@@ -1,0 +1,12 @@
+Index:
+  Background: Build
+
+Completion:
+  AllScopes: No
+
+Diagnostics:
+  UnusedIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  DeducedTypes: Yes

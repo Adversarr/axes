@@ -1,0 +1,12 @@
+{
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "VSCodeCounter.exclude": [
+    "**/.gitignore",
+    "**/.vscode/**",
+    "**/node_modules/**",
+    "**/3rdparty",
+    "**/.cache",
+    "**/.idea",
+    "**/.xmake"
+  ]
+}

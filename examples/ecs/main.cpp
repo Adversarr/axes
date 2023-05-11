@@ -3,7 +3,9 @@
 //
 
 #include <acore/ecs/ecs.hpp>
+#include <acore/utils/log.hpp>
 #include <sstream>
+#include "acore/init.hpp"
 
 struct Vector3 {
   int x_, y_, z_;
@@ -22,6 +24,9 @@ struct Vector3 {
 
 int main() {
   using namespace axes::ecs;
+
+  axes::init_axes();
+  AXES_INFO("Hi, this is ECS");
   // 1. You can create a world, and use it to create an entity.
   World world;
   EntityID ent0 = world.CreateEntity();
@@ -87,4 +92,7 @@ int main() {
     std::cout << "Entity " << ent
               << " obtains component `std::string` = " << *ptr << std::endl;
   }
+
+  axes::shutdown_axes();
+  return 0;
 }

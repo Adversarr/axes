@@ -4,7 +4,7 @@
 #include "acore/math/common.hpp"
 #include "acore/utils/god.hpp"
 #include "acore/utils/ndrange.hpp"
-namespace axes {
+namespace axes::math {
 
 /****************************************
  * NOTE: Foreach Indexer, it have:
@@ -14,37 +14,6 @@ namespace axes {
  *  4. Iterate(): To corresponding Iterator.
  ****************************************/
 template <size_t dim> class NdRangeIndexer;
-
-template <> class NdRangeIndexer<1> {
-public:
-  inline size_t operator()(size_t id) const { return id; }
-
-  constexpr bool IsValid(size_t this_size) const noexcept {
-    return 0 <= this_size && this_size < this_dim_;
-  }
-
-  explicit constexpr NdRangeIndexer(size_t this_dim = 0)
-      : this_dim_(this_dim) {}
-
-  constexpr auto operator[](size_t id) const noexcept {
-    return std::tuple<size_t>(id);
-  }
-
-  constexpr auto Shape() const noexcept {
-    return std::tuple<size_t>(this_dim_);
-  }
-
-  constexpr auto Size() const noexcept { return this_dim_; }
-
-  constexpr auto Iterate() const noexcept {
-    return NdRange<1>(std::array<size_t, 1>{this_dim_});
-  }
-
-  template <typename T> inline void Fit(T &&field) { this_dim_ = field.cols(); }
-
-protected:
-  size_t this_dim_;
-};
 
 /**
  * @brief Nd Range Indexer.
@@ -116,11 +85,53 @@ public:
     return result;
   }
 
+  /**
+   * @brief Get the shape of the RangeObject.
+   *
+   * @return
+   */
   constexpr std::array<size_t, dim> Shape() const noexcept { return shape_; }
 
+  /**
+   * @brief Create an object that can iterate over.
+   *
+   * @return
+   */
   constexpr auto Iterate() const noexcept { return NdRange<dim>(Shape()); }
 
-  constexpr auto Size() const noexcept { return multipliers_[0] * shape_[0]; }
+  /**
+   * @brief Returns the actual size of the range.
+   *
+   * @return
+   */
+  constexpr size_t Size() const noexcept { return multipliers_[0] * shape_[0]; }
+};
+
+template <> class NdRangeIndexer<1> {
+public:
+  inline size_t operator()(size_t id) const { return id; }
+
+  constexpr bool IsValid(size_t this_size) const noexcept {
+    return 0 <= this_size && this_size < this_dim_;
+  }
+
+  explicit constexpr NdRangeIndexer(size_t this_dim = 0)
+      : this_dim_(this_dim) {}
+
+  constexpr auto operator[](size_t id) const noexcept {
+    return std::tuple<size_t>(id);
+  }
+
+  constexpr std::array<size_t, 1> Shape() const noexcept { return {this_dim_}; }
+
+  constexpr size_t Size() const noexcept { return this_dim_; }
+
+  constexpr auto Iterate() const noexcept {
+    return NdRange<1>(std::array<size_t, 1>{this_dim_});
+  }
+
+protected:
+  size_t this_dim_;
 };
 
 }  // namespace axes

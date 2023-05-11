@@ -4,7 +4,7 @@
 
 #include "acore/common.hpp"
 
-namespace axes {
+namespace axes::math {
 
 /**
  * @brief Vector type.

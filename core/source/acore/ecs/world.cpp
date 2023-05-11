@@ -40,7 +40,7 @@ std::vector<std::pair<std::type_index, void*>> World::GetEntityComponents(
 std::vector<std::type_index> World::GetRegisteredComponents() {
   std::vector<std::type_index> result;
   result.reserve(registered_components_.size());
-  for (const auto & man: registered_components_) {
+  for (const auto& man : registered_components_) {
     result.push_back(man.ti_);
   }
   return result;

@@ -13,7 +13,6 @@ template <size_t dim> constexpr auto get_zero_array() {
   }
   return arr;
 }
-
 }  // namespace details
 
 /**
@@ -23,13 +22,12 @@ template <size_t dim> constexpr auto get_zero_array() {
  */
 template <int dim> struct NdRangeIterator {
   using iterator_category = std::random_access_iterator_tag;
-
   using container_type = std::array<size_t, dim>;
 
   /**
    * @brief Get the value of cursor
    *
-   * @return 
+   * @return
    */
   constexpr decltype(auto) operator*() const noexcept { return dims_; }
 
@@ -53,8 +51,18 @@ template <int dim> struct NdRangeIterator {
     return *this;
   }
 
+  /**
+   * @brief Allow copy
+   */
   constexpr NdRangeIterator(const NdRangeIterator &) = default;
 
+  /**
+   * @brief Construct a new NdRangeIterator, with current dim = dim,
+   *  upper bound = ub.
+   *
+   * @param dims
+   * @param ub
+   */
   constexpr NdRangeIterator(const container_type &dims,
                             const container_type &ub) noexcept
       : dims_(dims), ub_(ub) {}
@@ -82,16 +90,28 @@ template <int dim> struct NdRange {
   constexpr explicit NdRange(size_t a, Args &&...args)
       : NdRange(container_type(a, args...)) {}
 
-  // Cpp Iterator.
+  // NOLINTBEGIN
+  /**
+   * @brief Returns iterator
+   *
+   * @return
+   */
   constexpr auto begin() const noexcept {
     return NdRangeIterator<dim>(details::get_zero_array<dim>(), dims_);
   }
 
+  /**
+   * @brief Returns iterator.
+   *
+   * @return
+   */
   constexpr auto end() const noexcept {
     auto arr = details::get_zero_array<dim>();
     arr[0] = dims_[0];
     return NdRangeIterator<dim>(arr, dims_);
   }
+  // NOLINTEND
+
   const container_type dims_;
 };
 
@@ -101,4 +121,17 @@ template <int dim> struct NdRange {
 template <typename... Args> NdRange(std::array<size_t, sizeof...(Args)> &&dims)
     -> NdRange<sizeof...(Args)>;
 template <typename... Args> NdRange(Args &&...dims) -> NdRange<sizeof...(Args)>;
+
+/**
+ * @brief Create a new NdRange object.
+ *
+ * @tparam Args 
+ * @param args 
+ * @return 
+ */
+template <typename... Args> constexpr auto make_range(Args &&...args) {
+  return NdRange<sizeof...(Args)>{std::array<size_t, sizeof...(Args)>{
+      static_cast<size_t>(std::forward<Args>(args))...}};
+}
+
 }  // namespace axes

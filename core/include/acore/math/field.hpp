@@ -5,7 +5,7 @@
 #include "acore/math/indexer.hpp"  // IWYU pragma: export
 #include "common.hpp"
 
-namespace axes {
+namespace axes::math {
 
 template <typename Field, typename Indexer> class FieldView;
 /**
@@ -24,21 +24,20 @@ public:
   /**
    * @brief Fit the field to the indexer by size.
    *
-   * @tparam Indexer 
-   * @param getter 
-   * @return 
+   * @tparam Indexer
+   * @param getter
+   * @return
    */
   template <typename Indexer> Field& FitIndexer(Indexer&& getter) {
     internal_data_.resize(getter.Size());
   }
 
-  
   /**
    * @brief Foreach field element, apply fn.
    *
-   * @tparam Fn 
-   * @param fn 
-   * @return 
+   * @tparam Fn
+   * @param fn
+   * @return
    */
   template <typename Fn, std::enable_if_t<std::is_function_v<Fn>>>
   Field& Foreach(Fn&& fn) {
@@ -49,9 +48,9 @@ public:
   /**
    * @brief Foreach field element, apply fn. (const ver)
    *
-   * @tparam Fn 
-   * @param fn 
-   * @return 
+   * @tparam Fn
+   * @param fn
+   * @return
    */
   template <typename Fn, std::enable_if_t<std::is_function_v<Fn>>>
   Field& Foreach(Fn&& fn) const {
@@ -59,11 +58,12 @@ public:
                   std::forward<Fn>(fn));
   }
 
-
+  // NOLINTBEGIN
   constexpr auto begin() noexcept { return internal_data_.begin(); }
   constexpr auto end() noexcept { return internal_data_.end(); }
   constexpr auto begin() const noexcept { return internal_data_.begin(); }
   constexpr auto end() const noexcept { return internal_data_.end(); }
+  // NOLINTEND
 
   // With boundary check
   decltype(auto) At(size_t n) const { return internal_data_.at(n); }
@@ -88,7 +88,7 @@ private:
 };
 
 template <typename Scalar, int dim> using VectorField
-    = Field<axes::Vector<Scalar, dim>>;
+    = Field<axes::math::Vector<Scalar, dim>>;
 
 /**
  * @brief Iterator for FieldView object.
@@ -139,16 +139,17 @@ template <typename Field, typename Indexer> class FieldView {};
 // Use Indexer == void for those 1D arrays.
 template <typename Field> class FieldView<Field, void> {
 public:
-  FieldView(Field& field) : field_(field) {}
+  explicit FieldView(Field& field) : field_(field) {}
 
+  // NOLINTBEGIN
   auto begin() noexcept { return FieldViewIterator<Field, void>(field_, 0); };
-
   auto end() noexcept {
     return FieldViewIterator<Field, void>(field_, field_.Size());
-  };
+  }
+  // NOLINTEND
 
 private:
   Field& field_;
 };
 
-}  // namespace axes
+}  // namespace axes::math

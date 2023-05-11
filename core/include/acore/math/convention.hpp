@@ -2,7 +2,8 @@
 #include <array>
 
 #include "acore/math/common.hpp"
-namespace axes {
+
+namespace axes::math {
 
 namespace details {
 
@@ -23,12 +24,11 @@ std::array<typename Vec::Scalar, Vec::ColsAtCompileTime> make_array_impl(
  */
 template <typename Vec>
 std::array<typename Vec::Scalar, get_cols<Vec>()> make_array(const Vec& v) {
-  static_assert(get_cols<Vec>() > 0,
+  static_assert(
+      get_cols<Vec>() > 0,
       "You cannot create an array from vector without Compile Time Shape");
   return details::make_array_impl(
       v, std::make_index_sequence<Vec::ColsAtCompileTime>());
 }
 
-
-
-}  // namespace axes
+}  // namespace axes::math

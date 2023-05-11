@@ -65,30 +65,36 @@ public:
   void ReplaceComponent(EntityID ent, Args &&...args);
 
   ComponentManager() noexcept { static PrivateStaticRunner priv_runner; }
-  
+
   struct _Iterator {
     using iter = std::vector<ComponentInfo>::iterator;
-    
-    explicit _Iterator(iter it): it_(it) {}
-    
-    bool operator!=(const _Iterator &rhs) const noexcept { return it_ != rhs.it_; }
-    bool operator==(const _Iterator &rhs) const noexcept { return it_ == rhs.it_; }
-    
-    _Iterator& operator++() {
+
+    explicit _Iterator(iter it) : it_(it) {}
+
+    bool operator!=(const _Iterator &rhs) const noexcept {
+      return it_ != rhs.it_;
+    }
+    bool operator==(const _Iterator &rhs) const noexcept {
+      return it_ == rhs.it_;
+    }
+
+    _Iterator &operator++() {
       ++it_;
       return *this;
     }
-    
-    std::pair<EntityID, Component*> operator*() noexcept {
-      return std::make_pair(it_->GetEntityID(), (Component*)it_->GetComponentPtr());
+
+    std::pair<EntityID, Component *> operator*() noexcept {
+      return std::make_pair(it_->GetEntityID(),
+                            (Component *)it_->GetComponentPtr());
     }
-    
+
     iter it_;
   };
-  
-  _Iterator begin() { return _Iterator(instances_.begin());}
-  
-  _Iterator end() {return _Iterator(instances_.end()); }
+
+  // NOLINTBEGIN
+  _Iterator begin() { return _Iterator(instances_.begin()); }
+  _Iterator end() { return _Iterator(instances_.end()); }
+  // NOLINTEND
 
 private:
   uint32_t MakeAvailableChunk();
@@ -197,7 +203,6 @@ Component *ComponentManager<Component>::Query(EntityID ent) noexcept {
 
 template <typename Component> template <typename... Args>
 Component *ComponentManager<Component>::ConstructAtChunk(Args &&...args) {
-  assert(!non_full_chunk_id_.empty());
   ComponentChunk &c = chunks_[non_full_chunk_id_.front()];
   Component *p = c.Create(std::forward<Args>(args)...);
   if (c.IsFull()) {

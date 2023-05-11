@@ -74,9 +74,7 @@ private:
 };
 
 template <typename OutputIt> void World::QueryAllEntities(OutputIt out) {
-  for (const EntityID &ent : entities_) {
-    *out++ = ent;
-  }
+  std::copy(entities_.begin(), entities_.end(), out);
 }
 
 template <typename Component>

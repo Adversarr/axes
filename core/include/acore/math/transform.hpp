@@ -4,7 +4,8 @@
 #include "acore/math/convention.hpp"
 #include "acore/utils/ndrange.hpp"
 
-namespace axes {
+namespace axes::math {
+
 /**
  * The base type provides a helper operator(), support several input format.
  *
@@ -134,11 +135,11 @@ template <int dim> struct DiscreteStorageSequentialTransform
 /**
  * @brief Combine two transform into one.
  *
- * @tparam Front 
- * @tparam Back 
- * @param f 
- * @param b 
- * @return 
+ * @tparam Front
+ * @tparam Back
+ * @param f
+ * @param b
+ * @return
  */
 template <typename Front, typename Back> struct CombinedTransform
     : public CoordinateTransformBase<CombinedTransform<Front, Back>,

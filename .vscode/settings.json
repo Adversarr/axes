@@ -8,5 +8,18 @@
     "**/.cache",
     "**/.idea",
     "**/.xmake"
-  ]
+  ],
+  "files.associations": {
+    "*.m": "matlab",
+    "compare": "cpp",
+    "cholesky": "cpp",
+    "core": "cpp",
+    "eigenvalues": "cpp",
+    "geometry": "cpp",
+    "householder": "cpp",
+    "jacobi": "cpp",
+    "lu": "cpp",
+    "qr": "cpp",
+    "svd": "cpp"
+  }
 }

@@ -5,6 +5,7 @@
 #include <acore/ecs/ecs.hpp>
 #include <acore/utils/log.hpp>
 #include <sstream>
+
 #include "acore/init.hpp"
 
 struct Vector3 {
@@ -22,11 +23,32 @@ struct Vector3 {
   ~Vector3() { std::cout << "Vector " << ToString() << " gone." << std::endl; }
 };
 
+class WillNotRegister : public axes::ecs::SystemBase {
+  void Initialize() override {
+    throw std::runtime_error("This system should not be loaded.");
+  }
+
+  std::string GetName() const final { return "WillNotRegister"; }
+};
+
+class EchoSystem : public axes::ecs::SystemBase {
+  void TickLogic() override {
+    AXES_INFO("Echo. (count = {})", count_);
+    if (count_ == 10) {
+      using namespace axes::ecs;
+      World::EnqueueEvent(Event(EventKind::kSystemShutdown));
+    }
+    count_ += 1;
+  }
+
+  std::string GetName() const override { return "Echo"; }
+
+  int count_ = 0;
+};
+
 int main() {
   using namespace axes::ecs;
-
   axes::init_axes();
-  AXES_INFO("Hi, this is ECS");
   // 1. You can create a world, and use it to create an entity.
   World world;
   EntityID ent0 = world.CreateEntity();
@@ -93,6 +115,9 @@ int main() {
               << " obtains component `std::string` = " << *ptr << std::endl;
   }
 
-  axes::shutdown_axes();
-  return 0;
+  EchoSystem es;
+  WillNotRegister wnr;
+  world.TryRegisterSystem(&es);
+  world.TryRegisterSystem(&wnr);
+  return world.MainLoop(true);
 }

@@ -12,9 +12,11 @@ void init_axes() {
 #endif
       ,
       true, "");
+  AXES_INFO("AXES Initialized.");
 }
 
 void shutdown_axes() {
+  AXES_INFO("AXES Shutdown.");
   axes::utils::details::cleanup_logger();
 }
 }  // namespace axes

@@ -1,7 +1,16 @@
 #include "acore/ecs/details/world.hpp"
 
+#include "acore/init.hpp"
+#include "acore/utils/log.hpp"
+
 namespace axes::ecs {
 
+std::vector<World::RunningSystemInfo> World::systems_running_;
+std::vector<SystemBase*> World::systems_waiting_;
+std::vector<SystemBase*> World::systems_destroying_;
+bool World::is_running_;
+int World::return_value_;
+std::vector<Event> World::events_;
 EntityID World::counter_ = 0;
 
 std::set<EntityID> World::entities_{};
@@ -45,5 +54,81 @@ std::vector<std::type_index> World::GetRegisteredComponents() {
   }
   return result;
 }
+
+void World::TryRegisterSystem(SystemBase* sys) {
+  systems_waiting_.push_back(sys);
+}
+
+void World::TryDestroySystem(SystemBase* system) {
+  systems_destroying_.push_back(system);
+}
+
+int World::MainLoop(bool shutdown_axes) {
+  AXES_INFO("World main loop start.");
+  is_running_ = true;
+  return_value_ = 0;
+  while (is_running_) {
+    PreLoop();
+    LoopBody();
+    // PostLoop();
+  }
+
+  if (shutdown_axes) {
+    axes::shutdown_axes();
+  }
+  return return_value_;
+}
+
+void World::PreLoop() {
+  // Append Registered systems.
+  for (auto* sys : systems_waiting_) {
+    try {
+      sys->Initialize();
+      RunningSystemInfo rs;
+      rs.system_ = sys;
+      rs.enable_ = true;
+      systems_running_.push_back(rs);
+      AXES_INFO("System \"{}\" added successfully. at [{:#08x}]",
+                sys->GetName(), reinterpret_cast<size_t>(sys));
+    } catch (const std::exception& except) {
+      AXES_ERROR("Cannot initialize system \"{}\"at {:#08x}, message: \"{}\"",
+                 sys->GetName(), reinterpret_cast<size_t>(sys), except.what());
+    }
+  }
+  if (!systems_waiting_.empty()) {
+    // TODO: Sort systems by priority.
+  }
+
+  systems_waiting_.clear();
+}
+
+void World::LoopBody() {
+  // Tick Logic.
+  for (auto run_sys : systems_running_) {
+    if (run_sys.enable_) {
+      run_sys.system_->TickLogic();
+    }
+  }
+  // Process Events.
+  // TODO:
+  for (auto event : events_) {
+    if (event.GetKind() == EventKind::kSystemShutdown) {
+      is_running_ = false;
+    }
+  }
+
+  if (!is_running_) {
+    return;
+  }
+
+  // Tick Render
+  for (auto run_sys : systems_running_) {
+    if (run_sys.enable_) {
+      run_sys.system_->TickRender();
+    }
+  }
+}
+
+void World::EnqueueEvent(Event evt) { events_.push_back(evt); }
 
 }  // namespace axes::ecs

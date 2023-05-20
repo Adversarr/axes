@@ -62,7 +62,10 @@ public:
   void DetachComponent(EntityID entity);
 
   template <typename... Args>
-  void ReplaceComponent(EntityID ent, Args &&...args);
+  Component *ReplaceComponent(EntityID ent, Args &&...args);
+
+  template <typename... Args>
+  Component *EmplaceComponent(EntityID ent, Args &&...args);
 
   ComponentManager() noexcept { static PrivateStaticRunner priv_runner; }
 
@@ -109,8 +112,8 @@ private:
   static bool is_sorted_;
 };
 
-template <typename Component> bool ComponentManager<Component>::is_sorted_
-    = false;
+template <typename Component>
+bool ComponentManager<Component>::is_sorted_ = false;
 
 template <typename Component>
 std::vector<ComponentInfo> ComponentManager<Component>::instances_;
@@ -121,7 +124,8 @@ std::vector<details::Chunk<Component>> ComponentManager<Component>::chunks_;
 template <typename Component>
 std::vector<uint32_t> ComponentManager<Component>::non_full_chunk_id_;
 
-template <typename Component> template <typename... Args>
+template <typename Component>
+template <typename... Args>
 Component *ComponentManager<Component>::AttachComponent(EntityID entity,
                                                         Args &&...args) {
   // Prepare an chunk for storaging, and actually construct the object.
@@ -133,13 +137,14 @@ Component *ComponentManager<Component>::AttachComponent(EntityID entity,
   return allocated;
 }
 
-template <typename Component> template <typename... Args>
-void ComponentManager<Component>::ReplaceComponent(EntityID entity,
-                                                   Args &&...args) {
+template <typename Component>
+template <typename... Args>
+Component *ComponentManager<Component>::ReplaceComponent(EntityID entity,
+                                                         Args &&...args) {
   // Prepare an chunk for storaging, and actually construct the object.
   ComponentInfoIterator comp_info_it = QueryInfo(entity);
   if (comp_info_it == instances_.end()) {
-    return;
+    return nullptr;
   }
   uint32_t chunk_id = comp_info_it->GetChunkID();
   Component *ptr = static_cast<Component *>(comp_info_it->GetComponentPtr());
@@ -147,6 +152,7 @@ void ComponentManager<Component>::ReplaceComponent(EntityID entity,
   ComponentChunk::alloc_trait::destroy(chunk.GetAllocator(), ptr);
   ComponentChunk::alloc_trait::construct(chunk.GetAllocator(), ptr,
                                          std::forward<Args>(args)...);
+  return ptr;
 }
 
 template <typename Component>
@@ -201,7 +207,8 @@ Component *ComponentManager<Component>::Query(EntityID ent) noexcept {
   }
 }
 
-template <typename Component> template <typename... Args>
+template <typename Component>
+template <typename... Args>
 Component *ComponentManager<Component>::ConstructAtChunk(Args &&...args) {
   ComponentChunk &c = chunks_[non_full_chunk_id_.front()];
   Component *p = c.Create(std::forward<Args>(args)...);
@@ -220,7 +227,8 @@ std::vector<EntityID> ComponentManager<Component>::QueryAll() const noexcept {
   return result;
 }
 
-template <typename Component> template <typename OutputIt>
+template <typename Component>
+template <typename OutputIt>
 void ComponentManager<Component>::QueryAll(OutputIt first) const noexcept {
   for (const ComponentInfo &inst : instances_) {
     *first++ = inst.GetEntityID();
@@ -246,4 +254,15 @@ void ComponentManager<Component>::PrivateStaticRunner::Run() const noexcept {
   World().RegisterComponent<Component>(info);
 }
 
-}  // namespace axes::ecs
+template <typename Component>
+template <typename... Args>
+Component *ComponentManager<Component>::EmplaceComponent(EntityID ent,
+                                                         Args &&...args) {
+  if (QueryInfo(ent) == instances_.end()) {
+    return AttachComponent(ent, std::forward<Args>(args)...);
+  } else {
+    return ReplaceComponent(ent, std::forward<Args>(args)...);
+  }
+}
+
+} // namespace axes::ecs

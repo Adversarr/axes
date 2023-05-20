@@ -1,9 +1,9 @@
 #pragma once
 #include <iostream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
-#include <memory>
 #include <typeindex>
 #include <unordered_map>
 
@@ -74,7 +74,7 @@ public:
    *
    * @param system
    */
-  static void TryRegisterSystem(SystemBase* system);
+  static void TryRegisterSystem(std::shared_ptr<SystemBase>&& system);
 
   /**
    * @brief Try to destroy a system
@@ -92,16 +92,11 @@ public:
 
   static void EnqueueEvent(Event evt);
 
-  struct RegisterSystemInfo {
-    // TODO: To register some system ...
-    std::unique_ptr<SystemBase> system_;
-    bool enable_after_register_{false};
-    bool require_destroy_{false};
-  };
-
   struct RunningSystemInfo {
-    SystemBase* system_;
+    std::shared_ptr<SystemBase> system_;
     bool enable_;
+
+    bool operator<(const RunningSystemInfo& ) const noexcept;
   };
 
 private:
@@ -111,7 +106,7 @@ private:
   static std::set<EntityID> entities_;
   static std::vector<ComponentManagerInfo> registered_components_;
   static std::vector<RunningSystemInfo> systems_running_;
-  static std::vector<SystemBase*> systems_waiting_;
+  static std::vector<std::shared_ptr<SystemBase>> systems_waiting_;
   static std::vector<SystemBase*> systems_destroying_;
   static bool is_running_;
   static int return_value_;

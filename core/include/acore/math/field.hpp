@@ -1,11 +1,9 @@
-#pragma once
-
 #include <vector>
 
 #include "acore/math/indexer.hpp"  // IWYU pragma: export
 #include "common.hpp"
 
-namespace axes::math {
+namespace axes {
 
 template <typename Field, typename Indexer> class FieldView;
 /**
@@ -88,7 +86,7 @@ private:
 };
 
 template <typename Scalar, int dim> using VectorField
-    = Field<axes::math::Vector<Scalar, dim>>;
+    = Field<axes::Vector<Scalar, dim>>;
 
 /**
  * @brief Iterator for FieldView object.

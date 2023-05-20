@@ -1,10 +1,9 @@
 #pragma once
 #include <iostream>
 
-#include "acore/math/common.hpp"
-#include "acore/utils/god.hpp"
+#include "acore/math/common.hpp" // IWYU pragma: export
 #include "acore/utils/ndrange.hpp"
-namespace axes::math {
+namespace axes {
 
 /****************************************
  * NOTE: Foreach Indexer, it have:

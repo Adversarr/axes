@@ -13,3 +13,4 @@ build
 cmake-build-**
 .cache
 .idea
+**/imgui.ini

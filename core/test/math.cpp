@@ -5,8 +5,6 @@
 #include <iostream>
 
 using namespace axes;
-using namespace axes::math;
-
 TEST_CASE("1d-ndrange") {
   NdRange<1> r1d({2});
   CHECK_EQ(r1d.dims_[0], 2);

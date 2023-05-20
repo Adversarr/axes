@@ -48,7 +48,7 @@ class EchoSystem : public axes::ecs::SystemBase {
 
 int main() {
   using namespace axes::ecs;
-  axes::init_axes();
+  axes::init();
   // 1. You can create a world, and use it to create an entity.
   World world;
   EntityID ent0 = world.CreateEntity();
@@ -75,7 +75,8 @@ int main() {
 
   // 4. lets create some other components, and use an EntityManager.
   EntityManager em0{ent0}, em1{ent1};
-  em0.Attach<std::string>("Entity 0").Attach<Vector3>(1, 2, 3);
+  em0.Attach<std::string>("Entity 0");
+  em0.Attach<Vector3>(1, 2, 3);
   em1.Attach<std::string>("Entity 1");
 
   for (auto component : world.GetEntityComponents(ent0)) {
@@ -115,9 +116,7 @@ int main() {
               << " obtains component `std::string` = " << *ptr << std::endl;
   }
 
-  EchoSystem es;
-  WillNotRegister wnr;
-  world.TryRegisterSystem(&es);
-  world.TryRegisterSystem(&wnr);
+  world.TryRegisterSystem(std::make_shared<EchoSystem>());
+  world.TryRegisterSystem(std::make_shared<WillNotRegister>());
   return world.MainLoop(true);
 }

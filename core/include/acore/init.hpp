@@ -7,11 +7,11 @@ namespace axes {
  *
  * 1. Default Logger.
  */
-void init_axes();
+void init();
 
 /**
  * @brief Shutdown the axes core system.
  */
-void shutdown_axes();
+void shutdown();
 
 }

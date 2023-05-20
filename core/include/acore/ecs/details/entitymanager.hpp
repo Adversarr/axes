@@ -17,7 +17,7 @@ public:
   EntityManager(EntityManager&&) = default;
 
   template <typename Component, typename... Args>
-  const EntityManager& Attach(Args&&... args) const;
+  Component* Attach(Args&&... args) const;
 
   template <typename Component, typename... Args>
   const EntityManager& Replace(Args&&... args) const;
@@ -46,10 +46,9 @@ const EntityManager& EntityManager::Replace(Args&&... args) const {
 }
 
 template <typename Component, typename... Args>
-const EntityManager& EntityManager::Attach(Args&&... args) const {
-  ComponentManager<Component>{}.AttachComponent(id_,
+Component* EntityManager::Attach(Args&&... args) const {
+  return ComponentManager<Component>{}.AttachComponent(id_,
                                                 std::forward<Args>(args)...);
-  return *this;
 }
 
 }  // namespace axes::ecs

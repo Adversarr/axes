@@ -4,6 +4,8 @@
 #include "acore/math/convention.hpp"
 #include "acore/utils/ndrange.hpp"
 
+#include <cassert>
+
 namespace axes::math {
 
 /**

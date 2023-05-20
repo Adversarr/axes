@@ -48,5 +48,6 @@ if(${ENABLE_TIME_TRACE})
 endif()
 
 add_subdirectory(core)
+add_subdirectory(gui)
 add_subdirectory(examples)
 

@@ -12,20 +12,23 @@ std::shared_ptr<spdlog::logger> default_logger;
 
 static bool is_default_logger_initialized{false};
 
-std::shared_ptr<spdlog::logger>& get_default_logger() {
-  if_likely(default_logger) {
-    return default_logger;
-  } else {
+std::shared_ptr<spdlog::logger> &get_default_logger() {
+  if_unlikely(default_logger == nullptr) {
     default_logger = spdlog::get(default_logger_name);
-    return default_logger;
   }
+  if_unlikely(default_logger.get() == nullptr) {
+    throw std::logic_error(
+        "You cannot use axes logger before system initialization. (remember to "
+        "call `axes::init_axes()`)");
+  }
+  return default_logger;
 }
 
-std::shared_ptr<spdlog::logger> get_logger(const std::string& name) {
+std::shared_ptr<spdlog::logger> get_logger(const std::string &name) {
   return spdlog::get(name);
 }
 
-void add_logger(const std::shared_ptr<spdlog::logger>& logger) {
+void add_logger(const std::shared_ptr<spdlog::logger> &logger) {
   spdlog::register_logger(logger);
 }
 
@@ -58,7 +61,7 @@ void cleanup_logger() {
   is_default_logger_initialized = false;
 }
 
-}  // namespace details
+} // namespace details
 bool is_logger_inited() { return details::is_default_logger_initialized; }
-}  // namespace utils
-}  // namespace axes
+} // namespace utils
+} // namespace axes

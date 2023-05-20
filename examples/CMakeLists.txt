@@ -7,3 +7,4 @@ endfunction(axes_add_example)
 
 
 axes_add_example(ecs "AxesCore")
+axes_add_example(guitutor "AxesCore;AxesGui")

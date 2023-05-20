@@ -10,8 +10,9 @@ using ComponentID = UInt32;
 
 class World;
 class EntityManager;
-
+template <typename Type> class Resource;
 template <typename Component> class ComponentManager;
+
 /**
  * @brief Single Component with Entity
  */

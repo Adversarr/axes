@@ -1,47 +1,52 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 namespace axes::utils {
 /***************************************
        Likely support for brancing.
 ***************************************/
 #ifdef __clang__
-#  if __cplusplus > 201703L
-#    define LIKELY [[likely]]
-#    define UNLIKELY [[unlikely]]
-#  else
-#    define LIKELY
-#    define UNLIKELY
-#  endif
+#if __cplusplus > 201703L
+#define LIKELY [[likely]]
+#define UNLIKELY [[unlikely]]
 #else
-#  if __cplusplus >= 202003L
-#    define LIKELY [[likely]]
-#    define UNLIKELY [[unlikely]]
-#  else
-#    define LIKELY
-#    define UNLIKELY
-#  endif
+#define LIKELY
+#define UNLIKELY
+#endif
+#else
+#if __cplusplus >= 202003L
+#define LIKELY [[likely]]
+#define UNLIKELY [[unlikely]]
+#else
+#define LIKELY
+#define UNLIKELY
+#endif
 #endif
 
 #ifndef if_likely
-#  define if_likely(cond) \
-    if (cond) LIKELY
+#define if_likely(cond)                                                        \
+  if (cond)                                                                    \
+  LIKELY
 #endif
 
 #ifndef if_unlikely
-#  define if_unlikely(cond) \
-    if (cond) UNLIKELY
+#define if_unlikely(cond)                                                      \
+  if (cond)                                                                    \
+  UNLIKELY
 #endif
 /***************************************
  *           Force inline.
  ***************************************/
 #ifndef forceinline
-#  ifdef _MSC_VER_  // for MSVC
-#    define forceinline inline __forceinline
-#  elif defined __GNUC__       // for gcc on Linux/Apple OS X
-#    define forceinline inline /* __attribute__((always_inline)) */
-#  else
-#    define forceinline inline
-#  endif
+#ifdef _MSC_VER_ // for MSVC
+#define forceinline inline __forceinline
+#elif defined __GNUC__     // for gcc on Linux/Apple OS X
+#define forceinline inline /* __attribute__((always_inline)) */
+#else
+#define forceinline inline
+#endif
 #endif
 
 /***************************************
@@ -54,11 +59,11 @@ constexpr bool is_debug_mode = true;
 #endif
 
 #ifndef AXES_IS_DEBUG
-#  ifndef NDEBUG
-#    define AXES_IS_DEBUG 1
-#  else
-#    define AXES_IS_DEBUG 0
-#  endif
+#ifndef NDEBUG
+#define AXES_IS_DEBUG 1
+#else
+#define AXES_IS_DEBUG 0
+#endif
 #endif
 
 enum class BuildType { kRelease, kDebug };
@@ -87,10 +92,19 @@ inline constexpr PlatformType get_platform_type() {
 }
 
 // @brief do_nothing function avoid compiler warns 'unused-variable'
-template <typename... Args> inline void do_nothing(Args&&...) {}
+template <typename... Args> inline void do_nothing(Args &&...) {}
 
-template <typename T> const T& as_const_arg(T& ref) { return ref; }
+template <typename T> const T &as_const_arg(T &ref) { return ref; }
 
-template <typename T> const T& as_const_arg(const T& ref) { return ref; }
+template <typename T> const T &as_const_arg(const T &ref) { return ref; }
 
-}  // namespace axes::utils
+template <typename T> std::shared_ptr<T> lock_or_throw(std::weak_ptr<T> ptr) {
+  auto shared = ptr.lock();
+  if (!shared) {
+    throw std::runtime_error(std::string("Cannot lock the pointer.") +
+                             typeid(T).name());
+  }
+  return shared;
+}
+
+} // namespace axes::utils

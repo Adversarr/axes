@@ -2,11 +2,11 @@
 // Created by Yang Jerry on 2023/5/11.
 //
 
-#include <acore/ecs/ecs.hpp>
-#include <acore/utils/log.hpp>
+#include <axes/core/ecs/ecs.hpp>
+#include <axes/core/utils/log.hpp>
 #include <sstream>
 
-#include "acore/init.hpp"
+#include "axes/core/init.hpp"
 
 struct Vector3 {
   int x_, y_, z_;
@@ -95,25 +95,26 @@ int main() {
   std::cout << "Entity 1 has name = " << *name_manager.Query(ent1) << std::endl;
 
   // 5.1 and modify them, or replace them directly.
-  std::cout << "Entity 0 name cstr at "
-            << (void*)name_manager.Query(ent0)->data() << std::endl;
+  std::cout << "Entity 0 name cstr at " << (void*)name_manager.Query(ent0)->data()
+            << std::endl;
   *name_manager.Query(ent0) = "Ent 0";
-  std::cout << "Replace with new name "
-            << (void*)name_manager.Query(ent0)->data() << std::endl;
+  std::cout << "Replace with new name " << (void*)name_manager.Query(ent0)->data()
+            << std::endl;
   name_manager.ReplaceComponent(ent0, "Ent 01203124125");
   std::cout << "Replace component" << (void*)name_manager.Query(ent0)->data()
             << std::endl;
 
   // 6. reversely, you can get the entity that have the component.
   for (auto ent : name_manager.QueryAll()) {
-    std::cout << "Entity " << ent << " obtains component `std::string` = "
-              << *name_manager.Query(ent) << std::endl;
+    std::cout << "Entity " << ent
+              << " obtains component `std::string` = " << *name_manager.Query(ent)
+              << std::endl;
   }
 
   // 6.1 or directly use the iterator.
   for (auto [ent, ptr] : name_manager) {
-    std::cout << "Entity " << ent
-              << " obtains component `std::string` = " << *ptr << std::endl;
+    std::cout << "Entity " << ent << " obtains component `std::string` = " << *ptr
+              << std::endl;
   }
 
   world.TryRegisterSystem(std::make_shared<EchoSystem>());

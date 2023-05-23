@@ -3,19 +3,23 @@
   "version-string": "0.0.2",
   "dependencies": [
     "eigen3",
-    "cxxopts",
     "spdlog",
     "vulkan",
     "doctest",
     "glfw3",
     "taskflow",
     "glm",
-    "nlohmann-json",
     "benchmark",
     "tinyobjloader",
     {
+      "name": "abseil"
+    },
+    {
       "name": "imgui",
-      "features": ["vulkan-binding", "glfw-binding"]
+      "features": [
+        "vulkan-binding",
+        "glfw-binding"
+      ]
     }
   ]
 }

@@ -10,3 +10,7 @@ Diagnostics:
 InlayHints:
   Enabled: Yes
   DeducedTypes: Yes
+  ParameterNames: Yes
+
+Hover:
+  ShowAKA: No

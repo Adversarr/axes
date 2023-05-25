@@ -115,7 +115,7 @@ void VkGraphicsContext::CreateSwapchain(bool verb) {
       .setImageExtent(extent)
       .setImageArrayLayers(1)
       .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
-  auto queue_family_indices = std::array{support.graphics_family_.value(),
+  auto queue_family_indices = std::array<uint32_t, 2>{support.graphics_family_.value(),
                                          support.present_family_.value()};
   if (queue_family_indices[0] != queue_family_indices[1]) {
     info.setImageSharingMode(vk::SharingMode::eConcurrent)

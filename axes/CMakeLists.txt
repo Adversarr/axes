@@ -20,7 +20,7 @@ file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
      ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
-add_library(axes SHARED ${AXES_CORE_SOURCE})
+add_library(axes STATIC ${AXES_CORE_SOURCE})
 target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(
   axes

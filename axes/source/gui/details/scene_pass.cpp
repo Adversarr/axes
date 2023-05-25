@@ -6,7 +6,7 @@
 #include <axes/core/ecs/ecs.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <cmath>
 #include "axes/gui/details/buffers.hpp"
 #include "axes/gui/details/scene_pipeline_base.hpp"
 
@@ -39,7 +39,8 @@ void ScenePerspectiveProjection::InitResource() {
   auto* rc = ecs::ResourceManager::Construct<ScenePerspectiveProjection>();
   rc->far_ = 1000;
   rc->near_ = 1;
-  rc->fovy_ = M_PI * 0.2;
+  // TODO: M_PI is invalid under Windows.
+  rc->fovy_ = 3.1415926 * 0.2;
   rc->wh_ratio_ = 1366.0 / 768.0;
 }
 

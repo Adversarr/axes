@@ -1,5 +1,6 @@
 #pragma once
 #include <vma/vk_mem_alloc.h>
+#include <optional>
 
 #include "axes/gui/details/glfwin.hpp"
 

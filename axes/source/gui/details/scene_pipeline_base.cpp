@@ -94,7 +94,7 @@ void ScenePipelineBase::UpdateUniformBuffer() {
   details::SceneUniform ubo;
 
   // Camera information: View matrix
-  ubo.eye_position_ = details::to_glm(cam->position_);
+  ubo.eye_position_ = details::to_glm<3>(cam->position_);
   auto g_pos = ubo.eye_position_;
   auto point = details::to_glm<3>(cam->position_ + cam->front_);
   auto up = details::to_glm<3>(cam->up_);
@@ -108,11 +108,11 @@ void ScenePipelineBase::UpdateUniformBuffer() {
   }
 
   // Light information
-  ubo.ambient_light_color_ = details::to_glm(light->ambient_light_color_);
-  ubo.parallel_light_color_ = details::to_glm(light->parallel_light_color_);
-  ubo.parallel_light_dir_ = details::to_glm(light->parallel_light_dir_);
-  ubo.point_light_color_ = details::to_glm(light->point_light_color_);
-  ubo.point_light_pos_ = details::to_glm(light->point_light_pos_);
+  ubo.ambient_light_color_ = details::to_glm<4>(light->ambient_light_color_);
+  ubo.parallel_light_color_ = details::to_glm<4>(light->parallel_light_color_);
+  ubo.parallel_light_dir_ = details::to_glm<3>(light->parallel_light_dir_);
+  ubo.point_light_color_ = details::to_glm<4>(light->point_light_color_);
+  ubo.point_light_pos_ = details::to_glm<3>(light->point_light_pos_);
 
   // Wait for last render finish, and submit the buffer.
   vkc_->GetGraphicsQueue().waitIdle();

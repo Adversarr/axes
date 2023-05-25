@@ -8,7 +8,6 @@
 #include <optional>
 #include <set>
 #include <typeindex>
-#include <unordered_map>
 
 #include "axes/core/ecs/details/common.hpp"
 #include "axes/core/ecs/details/event.hpp"
@@ -38,8 +37,6 @@ public:
    */
   static void DestroyEntity(EntityID entity);
 
-  template <typename OutputIt> static void QueryAllEntities(OutputIt out);
-
   /**
    * @brief Return true if the world has given entity.
    *
@@ -63,14 +60,13 @@ public:
    * @tparam Component
    * @param info
    */
-  template <typename Component>
   static void RegisterComponent(ComponentManagerInfo info);
 
   /**
    * get all the registered components for reflection.
    * @return registered components.
    */
-  static std::vector<std::type_index> GetRegisteredComponents();
+  static const std::vector<ComponentManagerInfo>& GetRegisteredComponents();
 
   /**
    * @brief Try to register a system
@@ -97,6 +93,8 @@ public:
 
   static void EnqueueEvent(Event evt);
 
+  static const absl::flat_hash_set<EntityID>& GetEntities() { return entities_; }
+
   struct RunningSystemInfo {
     std::shared_ptr<SystemBase> system_;
     bool enable_;
@@ -119,12 +117,4 @@ private:
   static EntityID counter_;
 };
 
-template <typename OutputIt> void World::QueryAllEntities(OutputIt out) {
-  std::copy(entities_.begin(), entities_.end(), out);
-}
-
-template <typename Component>
-void World::RegisterComponent(ComponentManagerInfo info) {
-  registered_components_.push_back(info);
-}
 }  // namespace axes::ecs

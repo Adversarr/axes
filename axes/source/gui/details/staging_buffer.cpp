@@ -9,12 +9,11 @@ StagingBuffer::StagingBuffer(std::shared_ptr<VkContext> vkc) : vkc_(vkc) {
   bci.setSize(64 << 20);
   bci.setSharingMode(vk::SharingMode::eExclusive);
 
-  VmaAllocationCreateInfo alci;
+  VmaAllocationCreateInfo alci{};
+  memset(&alci, 0, sizeof(alci));
   alci.usage = VMA_MEMORY_USAGE_AUTO;
   alci.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-               | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
                | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-  memset(&alci, 0, sizeof(alci));
   buffer_ = vkc_->AllocateBuffer(bci, alci);
 }
 
@@ -39,6 +38,9 @@ void StagingBuffer::Flush() {
 void StagingBuffer::CopyBuffer(VmaAllocBuffer dst_buffer, void* data,
                                size_t nbytes) {
   size_t sbsize = buffer_.alloc_info_.size;
+  if (dst_buffer.buffer_ == VK_NULL_HANDLE) {
+    throw std::runtime_error("buffer is null handle.");
+  }
   if (nbytes + usage_ > buffer_.alloc_info_.size) {
     Flush();
   }

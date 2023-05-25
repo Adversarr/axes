@@ -1,3 +1,4 @@
+#include "axes/core/utils/log.hpp"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "axes/gui/details/scene_pipeline_base.hpp"
@@ -85,6 +86,7 @@ void ScenePipelineBase::CreateDescriptors(vk::DescriptorPool pool) {
 
 void ScenePipelineBase::UpdateUniformBuffer() {
   // Obtain the global resources.
+  AXES_DEBUG_LOG("Update uniform buffer.");
   SceneCamera *cam = ecs::Resource<SceneCamera>::MakeValid();
   SceneLight *light = ecs::Resource<SceneLight>::MakeValid();
   SceneProjection *proj = ecs::Resource<SceneProjection>::MakeValid();

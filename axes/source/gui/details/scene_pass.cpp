@@ -77,9 +77,8 @@ vk::Format SceneRenderPass::FindDepthFormat() {
   vk::FormatFeatureFlags features
       = vk::FormatFeatureFlagBits::eDepthStencilAttachment;
 
-  for (const auto& format :
-       {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint,
-        vk::Format::eD24UnormS8Uint}) {
+  for (const auto& format : {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint,
+                             vk::Format::eD24UnormS8Uint}) {
     auto props = physical_device.getFormatProperties(format);
 
     if (tiling == vk::ImageTiling::eLinear
@@ -156,8 +155,7 @@ void SceneRenderPass::CreateDepthResources() {
   auto depth_format = FindDepthFormat();
   auto vkgl = vkg_.lock();
   if (!vkgl) {
-    throw std::runtime_error(
-        "Failed to lock vkg, cannot create depth resource");
+    throw std::runtime_error("Failed to lock vkg, cannot create depth resource");
   }
   VkExtent2D extent = vkgl->GetSwapchainExtent();
   vk::ImageCreateInfo image_info{};
@@ -199,8 +197,7 @@ void SceneRenderPass::CreateDepthResources() {
 void SceneRenderPass::CreateFramebuffers() {
   auto vkgl = vkg_.lock();
   if (!vkgl) {
-    throw std::runtime_error(
-        "Failed to lock vkg, cannot create depth resource");
+    throw std::runtime_error("Failed to lock vkg, cannot create depth resource");
   }
   VkExtent2D extent = vkgl->GetSwapchainExtent();
   if (!framebuffers_.empty()) {
@@ -221,8 +218,7 @@ void SceneRenderPass::CreateFramebuffers() {
 void SceneRenderPass::CreateCommandBuffers() {
   auto vkgl = vkg_.lock();
   if (!vkgl) {
-    throw std::runtime_error(
-        "Failed to lock vkg when creating command buffers");
+    throw std::runtime_error("Failed to lock vkg when creating command buffers");
   }
 
   vk::CommandBufferAllocateInfo info;
@@ -310,8 +306,7 @@ vk::CommandBuffer SceneRenderPass::Draw() {
   return current_command_buffer;
 }
 
-void SceneRenderPass::AddPipeline(
-    std::unique_ptr<ScenePipelineBase>&& pipeline) {
+void SceneRenderPass::AddPipeline(std::shared_ptr<ScenePipelineBase> pipeline) {
   pipelines_.push_back(std::move(pipeline));
 }
 

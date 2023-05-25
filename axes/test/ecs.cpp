@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 
 #include <axes/core/ecs/details/chunk.hpp>
-#include <axes/core/ecs/details/componentmanager.hpp>
-#include <axes/core/ecs/details/entitymanager.hpp>
+#include <axes/core/ecs/details/component_manager.hpp>
+#include <axes/core/ecs/details/entity_manager.hpp>
 #include <axes/core/ecs/details/world.hpp>
 #include <axes/core/ecs/ecs.hpp>
 #include <iostream>

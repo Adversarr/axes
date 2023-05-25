@@ -21,8 +21,6 @@ struct SceneLight {
   RealVector4 parallel_light_color_;
   RealVector4 ambient_light_color_;
   static void InitResource();
-
-  ~SceneLight() { std::cout << "Destroy Light." << std::endl; }
 };
 
 enum class ProjectionMode: int {
@@ -82,7 +80,7 @@ public:
    * 
    * @param pipeline 
    */
-  void AddPipeline(std::unique_ptr<ScenePipelineBase>&& pipeline);
+  void AddPipeline(std::shared_ptr<ScenePipelineBase> pipeline);
 
   ~SceneRenderPass();
 
@@ -98,7 +96,7 @@ private:
 
   vk::Format FindDepthFormat();
 
-  std::vector<std::unique_ptr<ScenePipelineBase>> pipelines_;
+  std::vector<std::shared_ptr<ScenePipelineBase>> pipelines_;
 
   vk::ClearColorValue background_color_{std::array{0.05f, 0.05f, 0.05f, 1.0f}};
   vk::ClearDepthStencilValue depth_stencil_value_{{1.0f, 0}};

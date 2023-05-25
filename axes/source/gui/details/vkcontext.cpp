@@ -485,6 +485,8 @@ void VkContext::RunTransientCommandInplace(
 
 VmaAllocBuffer VkContext::AllocateBuffer(vk::BufferCreateInfo buf_info,
                                          VmaAllocationCreateInfo info) {
+  AXES_TRACE("Allocate buffer: usage = {}, size = {}",
+             vk::to_string(buf_info.usage), buf_info.size);
   VkBufferCreateInfo bfci = buf_info;
   VmaAllocBuffer buffer;
   vk::Result result{vmaCreateBuffer(default_allocator_, &bfci, &info,
@@ -498,6 +500,7 @@ VmaAllocBuffer VkContext::AllocateBuffer(vk::BufferCreateInfo buf_info,
 }
 
 void VkContext::FreeBuffer(VmaAllocBuffer buf) {
+  device_.waitIdle();
   vmaDestroyBuffer(default_allocator_, buf.buffer_, buf.alloc_);
 }
 
@@ -533,9 +536,9 @@ void VkContext::UnmapMemory(const VmaAllocBuffer &buffer) {
 
 void VkContext::PrepareBuffer(VmaAllocBuffer &buffer, vk::BufferCreateInfo bci,
                               VmaAllocationCreateInfo vaci) {
-  if (buffer.buffer_) {
+  if (buffer.buffer_ != nullptr) {
     auto size = buffer.alloc_info_.size;
-    if (size > bci.size) {
+    if (size >= bci.size) {
       // The buffer is large enough for current requirement.
       return;
     }

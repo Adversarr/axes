@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "common.hpp"
-#include "componentmanager.hpp"
+#include "component_manager.hpp"
 
 namespace axes::ecs {
 

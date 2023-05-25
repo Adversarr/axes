@@ -14,12 +14,9 @@ namespace axes::ecs::details {
  * @tparam chunk_size
  * @tparam Allocator
  */
-template <typename Type, size_t chunk_size = 32,
-          typename Allocator = std::allocator<Type>>
-class Chunk {
+template <typename Type, size_t chunk_size = 32> class Chunk {
 public:
-  using alloc_trait = std::allocator_traits<Allocator>;
-  explicit Chunk(Type *hint = nullptr);
+  explicit Chunk();
 
   ~Chunk();
 
@@ -41,34 +38,30 @@ public:
 
   size_t Request();
 
-  Allocator &GetAllocator() { return allocator_; }
-
 private:
   // Sparse set:
   std::array<size_t, chunk_size> constructed_memories_;
   std::array<size_t, chunk_size> reversed_id_map_;
   size_t used_size_{0};
   Type *data_;
-  Allocator allocator_;
 };
 
 /******************** IMPL ********************/
 
-template <typename Type, size_t chunk_size, typename Allocator>
-Chunk<Type, chunk_size, Allocator>::~Chunk() {
+template <typename Type, size_t chunk_size> Chunk<Type, chunk_size>::~Chunk() {
   if (data_ == nullptr) {
     return;
   }
   // Destroy active objects.
   for (size_t i = 0; i < used_size_; ++i) {
-    alloc_trait::destroy(allocator_, data_ + constructed_memories_[i]);
+    std::destroy_at(data_ + constructed_memories_[i]);
   }
-  alloc_trait::deallocate(allocator_, data_, chunk_size);
+  free(data_);
   data_ = nullptr;
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-Chunk<Type, chunk_size, Allocator>::Chunk(Chunk &&from) {
+template <typename Type, size_t chunk_size>
+Chunk<Type, chunk_size>::Chunk(Chunk &&from) {
   data_ = from.data_;
   constructed_memories_ = from.constructed_memories_;
   reversed_id_map_ = from.reversed_id_map_;
@@ -76,17 +69,16 @@ Chunk<Type, chunk_size, Allocator>::Chunk(Chunk &&from) {
   from.data_ = nullptr;
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-template <typename... Args>
-Type *Chunk<Type, chunk_size, Allocator>::Create(Args &&...val) {
+template <typename Type, size_t chunk_size> template <typename... Args>
+Type *Chunk<Type, chunk_size>::Create(Args &&...val) {
   size_t avail_mem_id = Request();
   Type *avail_mem = data_ + avail_mem_id;
-  alloc_trait::construct(allocator_, avail_mem, std::forward<Args>(val)...);
+  std::construct_at(avail_mem, std::forward<Args>(val)...);
   return avail_mem;
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-void Chunk<Type, chunk_size, Allocator>::Destroy(Type *ptr) {
+template <typename Type, size_t chunk_size>
+void Chunk<Type, chunk_size>::Destroy(Type *ptr) {
   std::ptrdiff_t diff = ptr - data_;
   if (diff < 0 || static_cast<size_t>(diff) > chunk_size) {
     throw std::out_of_range("Destroy out of range.");
@@ -98,16 +90,16 @@ void Chunk<Type, chunk_size, Allocator>::Destroy(Type *ptr) {
   std::swap(constructed_memories_[ci], constructed_memories_[used_size_]);
   std::swap(reversed_id_map_[constructed_memories_[ci]],
             reversed_id_map_[constructed_memories_[used_size_]]);
-  alloc_trait::destroy(allocator_, ptr);
+  std::destroy_at(ptr);
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-bool Chunk<Type, chunk_size, Allocator>::IsFull() const noexcept {
+template <typename Type, size_t chunk_size>
+bool Chunk<Type, chunk_size>::IsFull() const noexcept {
   return used_size_ == chunk_size;
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-size_t Chunk<Type, chunk_size, Allocator>::Request() {
+template <typename Type, size_t chunk_size>
+size_t Chunk<Type, chunk_size>::Request() {
   if (IsFull()) [[unlikely]] {
     throw std::out_of_range("Chunk exhausted.");
   }
@@ -116,17 +108,12 @@ size_t Chunk<Type, chunk_size, Allocator>::Request() {
   return free_mem_id;
 }
 
-template <typename Type, size_t chunk_size, typename Allocator>
-Chunk<Type, chunk_size, Allocator>::Chunk(Type *hint) : used_size_{0} {
+template <typename Type, size_t chunk_size> Chunk<Type, chunk_size>::Chunk()
+    : used_size_{0} {
   for (size_t i = 0; i < chunk_size; ++i) {
     constructed_memories_[i] = i;
     reversed_id_map_[i] = i;
   }
-  // Set every object to uninitialized.
-  if (hint) {
-    data_ = alloc_trait::allocate(allocator_, chunk_size, hint);
-  } else {
-    data_ = alloc_trait::allocate(allocator_, chunk_size);
-  }
+  data_ = (Type* ) malloc(sizeof(Type) * chunk_size);
 }
 }  // namespace axes::ecs::details

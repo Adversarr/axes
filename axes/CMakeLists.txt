@@ -19,6 +19,7 @@ set(SPIRV_HOME "${CMAKE_CURRENT_BINARY_DIR}/shader/outputs/")
 file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
      ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
+
 add_library(axes SHARED ${AXES_CORE_SOURCE})
 target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(
@@ -27,11 +28,17 @@ target_link_libraries(
          spdlog::spdlog
          Taskflow::Taskflow
          absl::base
+         absl::btree
          absl::flat_hash_map
          Vulkan::Vulkan
          imgui::imgui
          glm::glm
          glfw)
+
+if(USE_BACKWARD)
+  target_link_libraries(axes PUBLIC Backward::Backward)
+  target_compile_definitions(axes PUBLIC AXES_HAS_BACKWARD)
+endif()
 
 axes_set_warn_levels(axes)
 

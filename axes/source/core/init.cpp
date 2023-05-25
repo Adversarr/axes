@@ -3,11 +3,18 @@
 #include "axes/core/ecs/ecs.hpp"
 #include "axes/core/utils/log.hpp"
 
+#ifdef AXES_HAS_BACKWARD
+#  include "backward.hpp"
+namespace backward {
+
+backward::SignalHandling sh;
+
+}  // namespace backward
+#endif
+
 namespace axes {
 
 void init() {
-  // check mimalloc is linked.
-
   axes::utils::details::init_logger(
 #ifdef NDEBUG
       spdlog::level::info

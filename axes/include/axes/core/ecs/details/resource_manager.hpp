@@ -34,19 +34,20 @@ public:
    */
   template <typename Type, typename... Args>
   static Type *Construct(Args &&...args) {
+    std::cout << "Constructing Global Resource" << typeid(Type).name() << std::endl;
     std::type_index ti{typeid(Type)};
     Type *ptr = nullptr;
     if (auto it = resources_.find(ti); it == resources_.end()) {
       // Not found: allocate the data pointer, do not construct.
       ResourceMeta rm;
-      rm.data_ = std::malloc(sizeof(Type));
+      rm.data_ = malloc(sizeof(Type));
       rm.destroyer_ = [](void *p) { std::destroy_at(static_cast<Type *>(p)); };
       resources_.insert({ti, rm});
-      ptr = (Type *)rm.data_;
+      ptr = static_cast<Type *>(rm.data_);
     } else {
       // Otherwise, remove the original object
       it->second.destroyer_(it->second.data_);
-      ptr = (Type*) it->second.data_;
+      ptr = static_cast<Type *>(it->second.data_);
     }
 
     std::construct_at(ptr, std::forward<Args>(args)...);
@@ -75,6 +76,7 @@ public:
     auto ti = std::type_index{typeid(Type)};
     if (auto it = resources_.find(ti); it != resources_.end()) {
       it->second.destroyer_(it->second.data_);
+      free(it->second.data_);
       resources_.erase(it);
     }
   }
@@ -89,7 +91,7 @@ public:
 
   static T *Get() { return ResourceManager::Get<T>(); }
 
-  static T *TryGet(const T &default_value) {
+  static T *GetOrConstruct(const T &default_value) {
     static_assert(std::is_copy_constructible_v<T>, "T is not copy constructible.");
     if (T *ptr = Get()) {
       return ptr;

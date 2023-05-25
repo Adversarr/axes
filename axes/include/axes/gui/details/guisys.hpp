@@ -43,11 +43,11 @@ public:
 private:
   void CreateSceneSharedData(ecs::EntityID ent, SimplicalRenderData* data);
 
-  void CreateSceneMeshData(ecs::EntityID ent, SimplicalRenderData* data);
-
-  // XXX: maybe more functions here...
   std::shared_ptr<VkContext> vkc_;
   std::shared_ptr<VkGraphicsContext> vkg_;
+
+  std::shared_ptr<SceneRenderPass> scene_rp_;
+  std::shared_ptr<UiRenderPass> ui_rp_;
   std::vector<std::shared_ptr<ScenePipelineBase>> scene_pipelines_;
 
   // staging buffer

@@ -74,11 +74,19 @@ MeshRenderDataGpu::~MeshRenderDataGpu() {
     vkc_->FreeBuffer(instance_buffer_);
   }
 }
+MeshRenderDataGpu::MeshRenderDataGpu(std::shared_ptr<VkContext> vkc) : vkc_(vkc) {
+  instance_buffer_.buffer_ = nullptr;
+  index_buffer_.buffer_ = nullptr;
+}
 
 SceneRenderDataSharedGpu::~SceneRenderDataSharedGpu() {
   if (vertex_buffer_.buffer_) {
     vkc_->FreeBuffer(vertex_buffer_);
   }
+}
+SceneRenderDataSharedGpu::SceneRenderDataSharedGpu(std::shared_ptr<VkContext> vkc)
+    : vkc_(vkc) {
+  vertex_buffer_.buffer_ = VK_NULL_HANDLE;
 }
 
 }  // namespace axes::gui::details

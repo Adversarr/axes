@@ -1,4 +1,4 @@
-#include "axes/core/ecs/details/world.hpp"
+#include "axes/core/ecs/world.hpp"
 
 #include <absl/base/internal/prefetch.h>
 
@@ -7,23 +7,23 @@
 
 namespace axes::ecs {
 
-std::vector<World::RunningSystemInfo> World::systems_running_;
+std::vector<World::RunningSystemInfo> systems_running_;
 
-std::vector<std::shared_ptr<SystemBase>> World::systems_waiting_;
+std::vector<std::shared_ptr<SystemBase>> systems_waiting_;
 
-std::vector<SystemBase*> World::systems_destroying_;
+std::vector<SystemBase*> systems_destroying_;
 
-bool World::is_running_;
+bool is_running_;
 
-int World::return_value_;
+int return_value_;
 
-std::vector<Event> World::events_;
+std::vector<Event> events_;
 
-EntityID World::counter_ = 0;
+EntityID counter_ = 0;
 
-absl::flat_hash_set<EntityID> World::entities_{};
+absl::flat_hash_set<EntityID> entities_{};
 
-std::vector<ComponentManagerInfo> World::registered_components_{};
+std::vector<ComponentManagerInfo> registered_components_{};
 
 EntityID World::CreateEntity() {
   EntityID id = counter_;
@@ -59,7 +59,7 @@ const std::vector<ComponentManagerInfo>& World::GetRegisteredComponents() {
   return registered_components_;
 }
 
-void World::TryRegisterSystem(std::shared_ptr<SystemBase>&& sys) {
+void World::TryRegisterSystem(std::shared_ptr<SystemBase> sys) {
   systems_waiting_.emplace_back(std::move(sys));
 }
 
@@ -143,7 +143,7 @@ bool World::RunningSystemInfo::operator<(
   return system_->GetPriority() < rhs.system_->GetPriority();
 }
 
-void World::Destroy() {
+void World::DestroyAll() {
   for (const auto& c : registered_components_) {
     c.destroy_();
   }
@@ -152,5 +152,7 @@ void World::Destroy() {
 void World::RegisterComponent(ComponentManagerInfo info) {
   registered_components_.push_back(info);
 }
+
+const absl::flat_hash_set<EntityID>& World::GetEntities() { return entities_; }
 
 }  // namespace axes::ecs

@@ -46,18 +46,18 @@ mat4 instance_matrix() {
 }
 
 void main() {
-  // mat4 pre = instance_matrix() * pc.model;
-  // vec4 world_pos = pre * vec4(inPosition.xyz, 1.0) + vec4(instancePosition.xyz, 0.0);
-  // gl_Position =  (ubo.projection * ubo.view * world_pos);
-  // vec4 normal_rotated = pre * vec4(inNormal.xyz, 0.0);
-  // outNormal = normal_rotated.xyz;
-  // if (pc.options[2] != 0) {
-  //   outColor = instanceColor;
-  // } else {
-  //   outColor = inColor;
-  // }
-  // outWorldPosiion = world_pos.xyz;
-  gl_Position = vec4(inPosition, 1.0);
+  mat4 pre = instance_matrix() * pc.model;
+  vec4 world_pos = vec4(inPosition.xyz, 1.0) + vec4(instancePosition.xyz, 0.0);
+  gl_Position =  (ubo.projection * ubo.view * world_pos);
+
+  vec4 normal_rotated = pre * vec4(inNormal.xyz, 0.0);
+  outNormal = normal_rotated.xyz;
+  if (pc.options[2] != 0) {
+    outColor = instanceColor;
+  } else {
+    outColor = inColor;
+  }
+  outWorldPosiion = world_pos.xyz;
   outColor = inColor;
   return;
 }

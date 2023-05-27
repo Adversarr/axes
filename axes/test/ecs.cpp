@@ -1,10 +1,10 @@
 #include <doctest/doctest.h>
 
-#include <axes/core/ecs/details/chunk.hpp>
-#include <axes/core/ecs/details/component_manager.hpp>
-#include <axes/core/ecs/details/entity_manager.hpp>
-#include <axes/core/ecs/details/world.hpp>
+#include <axes/core/ecs/chunk.hpp>
+#include <axes/core/ecs/component_manager.hpp>
 #include <axes/core/ecs/ecs.hpp>
+#include <axes/core/ecs/entity_manager.hpp>
+#include <axes/core/ecs/world.hpp>
 #include <iostream>
 
 struct EchoCD {
@@ -48,7 +48,7 @@ TEST_CASE("ComponentManager") {
   CHECK(comps.size() == 2);
 
   for (auto k : comps) {
-    std::cout << k.name() << std::endl;
+    std::cout << k.ti_.name() << std::endl;
   }
 }
 

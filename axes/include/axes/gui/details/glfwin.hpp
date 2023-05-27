@@ -34,13 +34,11 @@ public:
 
   void UpdateWindowSize();
 
-  bool IsKeyPressed(int glfw_key) const {
-    return glfwGetKey(window_, glfw_key) == GLFW_PRESS;
-  }
+  bool IsKeyPressed(int glfw_key) const;
 
-  bool IsResized() const noexcept { return resized_; }
+  bool IsResized() const noexcept;
 
-  void ResetResizeFlag() { resized_ = false; }
+  void ResetResizeFlag();
   /**
    * @brief Returns the internal glfw pointer
    *

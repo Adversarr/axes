@@ -2,9 +2,9 @@
 #include "axes/core/ecs/ecs.hpp"
 namespace axes {
 
-class EcsInfoSystem: public ecs::SystemBase {
+class EcsInfoSystem : public ecs::SystemBase {
 public:
   void TickLogic() final;
 };
 
-}
+}  // namespace axes

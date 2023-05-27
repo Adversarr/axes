@@ -6,11 +6,10 @@
 namespace axes::ecs {
 
 using EntityID = UInt32;
-using ComponentID = UInt32;
 
 class World;
 class EntityManager;
-template <typename Type> class Resource;
+template <typename Type> class Rc;
 template <typename Component> class ComponentManager;
 
 /**

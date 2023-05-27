@@ -6,7 +6,9 @@
 
 #include <axes/gui/imnodes/imnodes.hpp>
 
+#include "axes/core/ecs/resource_manager.hpp"
 #include "axes/core/utils/log.hpp"
+#include "axes/gui/details/scene_data.hpp"
 #include "axes/gui/details/vkgraphics.hpp"
 
 static void check_vk_result(VkResult err) {
@@ -26,18 +28,18 @@ UiRenderPass::UiRenderPass(std::shared_ptr<VkContext> vkc,
   window_ = vkg_l->GetWindow();
   auto win_l = window_.lock();
 
-  vk::DescriptorPoolSize pool_sizes[] = {
-      {vk::DescriptorType::eSampler, 1000},
-      {vk::DescriptorType::eCombinedImageSampler, 1000},
-      {vk::DescriptorType::eSampledImage, 1000},
-      {vk::DescriptorType::eStorageImage, 1000},
-      {vk::DescriptorType::eUniformTexelBuffer, 1000},
-      {vk::DescriptorType::eStorageTexelBuffer, 1000},
-      {vk::DescriptorType::eUniformBuffer, 1000},
-      {vk::DescriptorType::eStorageBuffer, 1000},
-      {vk::DescriptorType::eUniformBufferDynamic, 1000},
-      {vk::DescriptorType::eStorageBufferDynamic, 1000},
-      {vk::DescriptorType::eInputAttachment, 1000}};
+  vk::DescriptorPoolSize pool_sizes[]
+      = {{vk::DescriptorType::eSampler, 1000},
+         {vk::DescriptorType::eCombinedImageSampler, 1000},
+         {vk::DescriptorType::eSampledImage, 1000},
+         {vk::DescriptorType::eStorageImage, 1000},
+         {vk::DescriptorType::eUniformTexelBuffer, 1000},
+         {vk::DescriptorType::eStorageTexelBuffer, 1000},
+         {vk::DescriptorType::eUniformBuffer, 1000},
+         {vk::DescriptorType::eStorageBuffer, 1000},
+         {vk::DescriptorType::eUniformBufferDynamic, 1000},
+         {vk::DescriptorType::eStorageBufferDynamic, 1000},
+         {vk::DescriptorType::eInputAttachment, 1000}};
 
   vk::DescriptorPoolCreateInfo pool_info = {};
   pool_info.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
@@ -52,12 +54,11 @@ UiRenderPass::UiRenderPass(std::shared_ptr<VkContext> vkc,
 
   auto device = vkc_->GetDevice();
   auto info = vkc_->GetSystemInfo();
-  { // Command Pool and Command Buffer.
+  {  // Command Pool and Command Buffer.
     vk::CommandPoolCreateInfo pool_info;
     pool_info
         .setQueueFamilyIndex(
-            vkc_->GetSystemInfo()
-                .physical_device_info_.graphics_family_.value())
+            vkc_->GetSystemInfo().physical_device_info_.graphics_family_.value())
         .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     command_pool_ = device.createCommandPool(pool_info);
 
@@ -68,7 +69,7 @@ UiRenderPass::UiRenderPass(std::shared_ptr<VkContext> vkc,
     command_buffers_ = device.allocateCommandBuffers(info);
   }
 
-  { // Render Pass
+  {  // Render Pass
     vk::AttachmentDescription attachment = {};
     attachment.setFormat(vkg_l->GetSwapchainFormat())
         .setSamples(vk::SampleCountFlagBits::e1)
@@ -117,11 +118,9 @@ UiRenderPass::UiRenderPass(std::shared_ptr<VkContext> vkc,
   AXES_CHECK(ImGui_ImplVulkan_Init(&init_info, render_pass_),
              "Falied to init ImGui_Vulkan");
 
-  { // Upload Fonts and textures
+  {  // Upload Fonts and textures
     vkc_->RunTransientCommandInplace(
-        [](vk::CommandBuffer cbuf) {
-          ImGui_ImplVulkan_CreateFontsTexture(cbuf);
-        },
+        [](vk::CommandBuffer cbuf) { ImGui_ImplVulkan_CreateFontsTexture(cbuf); },
         vkc_->GetGraphicsQueue());
     ImGui_ImplVulkan_DestroyFontUploadObjects();
   }
@@ -180,7 +179,7 @@ vk::CommandBuffer UiRenderPass::Draw() {
   }
   size_t current_index = vkg_l->GetFrameIndex();
   size_t current_image_index = vkg_l->GetAcquiredImageIndex();
-  auto &current_command_buffer = command_buffers_[current_index];
+  auto& current_command_buffer = command_buffers_[current_index];
   // Begin Command Buffer.
   vk::CommandBufferBeginInfo begininfo;
   current_command_buffer.begin(begininfo);
@@ -208,10 +207,16 @@ vk::CommandBuffer UiRenderPass::Draw() {
   return current_command_buffer;
 }
 
-void UiRenderPass::DrawUI() { ImGui::ShowDemoWindow(); }
-
-vk::DescriptorPool UiRenderPass::GetDescriptorPool() {
-  return descriptor_pool_;
+void UiRenderPass::DrawUI() {
+  auto win = ecs::Rc<UiWindows>{}.MakeValid();
+  if (win->menu_bar_) {
+    win->menu_bar_();
+  }
+  for (auto& f : win->callbacks_) {
+    f();
+  }
 }
 
-} // namespace axes::gui
+vk::DescriptorPool UiRenderPass::GetDescriptorPool() { return descriptor_pool_; }
+
+}  // namespace axes::gui

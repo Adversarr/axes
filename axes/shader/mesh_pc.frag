@@ -69,13 +69,10 @@ vec3 get_parallel_light_color() {
 }
 
 void main() {
-  // normal = normalize(inNormal);
-  // outColor = vec4(
-  //     // inWorldPosiion.xyz
-  //     get_point_light_color()
-  //     + get_parallel_light_color()
-  //     ,
-  //     inColor.w
-  // );
-  outColor = inColor;
+  normal = normalize(inNormal);
+  outColor = vec4(
+      // inWorldPosiion.xyz
+      get_point_light_color() + get_parallel_light_color(),
+      inColor.w
+  );
 }

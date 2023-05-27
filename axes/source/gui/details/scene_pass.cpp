@@ -4,58 +4,15 @@
 
 #include <Eigen/Geometry>
 #include <axes/core/ecs/ecs.hpp>
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <cmath>
+
 #include "axes/gui/details/buffers.hpp"
+#include "axes/gui/details/scene_data.hpp"
 #include "axes/gui/details/scene_pipeline_base.hpp"
 
 namespace axes::gui {
-
-void SceneCamera::InitResource() {
-  auto* rc = ecs::ResourceManager::Construct<SceneCamera>();
-  rc->position_ = RealVector3{3, 0, 3};
-  rc->up_ = RealVector3{-3, 0, 3};
-  rc->front_ = -rc->position_;
-}
-
-void SceneLight::InitResource() {
-  auto* rc = ecs::ResourceManager::Construct<SceneLight>();
-  rc->ambient_light_color_ = RealVector4{.2, .2, .2, .05};
-  rc->parallel_light_color_.setZero();
-  rc->point_light_color_ = RealVector4::Ones();
-  rc->point_light_pos_.setConstant(3);
-  rc->parallel_light_dir_.setConstant(-1);
-}
-
-void SceneProjection::InitResource() {
-  auto* rc = ecs::ResourceManager::Construct<SceneProjection>();
-  rc->mode_ = ProjectionMode::kPerspective;
-  auto* pp = ecs::Resource<ScenePerspectiveProjection>::MakeValid();
-  rc->projection_ = compute_perspective(*pp);
-}
-
-void ScenePerspectiveProjection::InitResource() {
-  auto* rc = ecs::ResourceManager::Construct<ScenePerspectiveProjection>();
-  rc->far_ = 1000;
-  rc->near_ = 1;
-  // TODO: M_PI is invalid under Windows.
-  rc->fovy_ = 3.1415926 * 0.2;
-  rc->wh_ratio_ = 1366.0 / 768.0;
-}
-
-RealMat4x4 compute_perspective(ScenePerspectiveProjection proj) {
-  RealMat4x4 m = RealMat4x4::Identity();
-  Real tan_fovy = tan(0.5 * proj.fovy_);
-  m(1, 1) = static_cast<Real>(1) / tan_fovy;
-  m(0, 0) = m(1, 1) / proj.wh_ratio_;
-  m(2, 2) = proj.far_ / (proj.far_ - proj.near_);
-  m(2, 3) = 1;
-  m(3, 2) = -(proj.far_ * proj.near_) / (proj.far_ - proj.near_);
-  m(1, 1) = -m(1, 1);
-  return m;
-}
-
 SceneRenderPass::SceneRenderPass(std::shared_ptr<VkContext> vkc,
                                  std::weak_ptr<VkGraphicsContext> vkg)
     : vkc_(std::move(vkc)), vkg_(std::move(vkg)) {

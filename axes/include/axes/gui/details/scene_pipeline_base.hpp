@@ -3,10 +3,10 @@
 #include <vulkan/vulkan.hpp>
 
 #include "axes/core/ecs/ecs.hpp"  // IWYU pragma: export
-#include "axes/gui/details/buffers.hpp"
 #include "axes/gui/details/common.hpp"
 #include "axes/gui/details/staging_buffer.hpp"
 #include "axes/gui/details/vkcontext.hpp"
+
 namespace axes::gui {
 class ScenePipelineBase {
 public:

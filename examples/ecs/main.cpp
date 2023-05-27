@@ -66,7 +66,7 @@ int main() {
   std::cout << "Now ent0 has Vector3 " << comp_ptr->ToString() << std::endl;
   // 2.1 and now, you can know about the registered component.
   std::cout << "World has one component registered. name = "
-            << world.GetRegisteredComponents().front().name() << std::endl;
+            << world.GetRegisteredComponents().front().ti_.name() << std::endl;
 
   // 3. You can detach the component on the entity.
   manager.DetachComponent(ent0);

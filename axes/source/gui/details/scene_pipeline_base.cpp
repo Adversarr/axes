@@ -1,15 +1,14 @@
 #include "axes/core/utils/log.hpp"
+#include "axes/gui/details/scene_data.hpp"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "axes/gui/details/scene_pipeline_base.hpp"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "axes/core/ecs/ecs.hpp"
 #include "axes/core/utils/common.hpp"
 #include "axes/gui/details/buffers.hpp"
 #include "axes/gui/details/scene_pass.hpp"
+#include "axes/gui/details/scene_pipeline_base.hpp"
 #include "axes/gui/details/vkgraphics.hpp"
 namespace axes::gui {
 
@@ -87,9 +86,15 @@ void ScenePipelineBase::CreateDescriptors(vk::DescriptorPool pool) {
 void ScenePipelineBase::UpdateUniformBuffer() {
   // Obtain the global resources.
   AXES_DEBUG_LOG("Update uniform buffer.");
-  SceneCamera *cam = ecs::Resource<SceneCamera>::MakeValid();
-  SceneLight *light = ecs::Resource<SceneLight>::MakeValid();
-  SceneProjection *proj = ecs::Resource<SceneProjection>::MakeValid();
+  auto cam = ecs::Rc<SceneCamera>{}.MakeValid();
+  auto light = ecs::Rc<SceneLight>{}.MakeValid();
+  auto proj = ecs::Rc<SceneProjection>{}.MakeValid();
+
+  bool update_actual = cam->update_ || light->update_ || proj->update_;
+  cam->front_.normalize();
+  cam->update_ = false;
+  light->update_ = false;
+  proj->update_ = false;
 
   details::SceneUniform ubo;
 

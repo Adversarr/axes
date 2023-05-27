@@ -27,8 +27,8 @@ void init() {
 }
 
 void shutdown() {
-  axes::ecs::ResourceManager::WorldDestroy();
-  axes::ecs::World::Destroy();
+  axes::ecs::RMan::DestroyAll();
+  axes::ecs::World::DestroyAll();
   AXES_INFO("AXES Shutdown.");
   axes::utils::details::cleanup_logger();
 }

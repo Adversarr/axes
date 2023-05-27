@@ -35,32 +35,26 @@ public:
 
   ~VkGraphicsContext();
 
-  void RegisterRenderPass(std::shared_ptr<RenderPassBase> p) {
-    render_passes_.push_back(p);
-  }
+  void RegisterRenderPass(std::shared_ptr<RenderPassBase> p);
 
   VkRenderResult Render();
 
-  uint32_t GetSwapchainSize() const noexcept { return swapchain_size_; }
+  uint32_t GetSwapchainSize() const noexcept;
 
-  vk::Format GetSwapchainFormat() const noexcept { return swapchain_image_format_; }
+  vk::Format GetSwapchainFormat() const noexcept;
 
-  vk::Extent2D GetSwapchainExtent() const noexcept { return swapchain_extent_; }
+  vk::Extent2D GetSwapchainExtent() const noexcept;
 
   const std::vector<details::VkImageWithView>& GetSwapchainImageWithView()
-      const noexcept {
-    return swapchain_images_;
-  }
+      const noexcept;
 
-  uint32_t GetAcquiredImageIndex() const noexcept {
-    return current_image_index_;
-  }
+  uint32_t GetAcquiredImageIndex() const noexcept;
 
-  uint32_t GetFrameIndex() const noexcept { return current_frame_; }
+  uint32_t GetFrameIndex() const noexcept;
 
-  std::weak_ptr<GlfwWindow> GetWindow() { return window_; }
+  std::weak_ptr<GlfwWindow> GetWindow();
 
-  vk::CommandPool GetCommandPool() { return graphics_command_pool_; }
+  vk::CommandPool GetCommandPool();
 
   void RecreateSwapchain();
 private:

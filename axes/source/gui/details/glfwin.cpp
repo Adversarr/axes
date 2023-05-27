@@ -38,12 +38,9 @@ GlfwWindow::~GlfwWindow() {
   }
 }
 
-GLFWwindow* GlfwWindow::GetWindow() {
-  return window_;
-}
+GLFWwindow* GlfwWindow::GetWindow() { return window_; }
 
-void GlfwWindow::WindowResizeCallback(GLFWwindow* window, int width,
-                                      int height) {
+void GlfwWindow::WindowResizeCallback(GLFWwindow* window, int width, int height) {
   auto* w = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
   w->resized_ = true;
   w->height_ = height;
@@ -84,4 +81,12 @@ vk::SurfaceKHR GlfwWindow::CreateSurface(vk::Instance instance) {
 std::pair<UInt32, UInt32> GlfwWindow::GetWindowSize() const noexcept {
   return {width_, height_};
 }
+
+bool GlfwWindow::IsKeyPressed(int glfw_key) const {
+  return glfwGetKey(window_, glfw_key) == GLFW_PRESS;
+}
+
+bool GlfwWindow::IsResized() const noexcept { return resized_; }
+
+void GlfwWindow::ResetResizeFlag() { resized_ = false; }
 }  // namespace axes::gui

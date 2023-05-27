@@ -88,8 +88,8 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
   vk::PipelineColorBlendAttachmentState color_blend_attachment;
   color_blend_attachment
       .setColorWriteMask(
-          vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-          vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
+          vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+          | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
       .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
       .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
       .setColorBlendOp(vk::BlendOp::eAdd)
@@ -104,8 +104,8 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
       .setAttachments(color_blend_attachment)
       .setBlendConstants({0.0f, 0.0f, 0.0f, 0.0f});
 
-  auto dynamic_states =
-      std::array{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+  auto dynamic_states
+      = std::array{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
   vk::PipelineDynamicStateCreateInfo dynamic_state_info;
   dynamic_state_info.setDynamicStates(dynamic_states);
 
@@ -127,13 +127,12 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
   // this push constant range takes up the size of a MeshPushConstants struct
   push_constant.size = sizeof(MeshPushConstants);
   // this push constant range is accessible only in the vertex shader
-  push_constant.stageFlags =
-      vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+  push_constant.stageFlags
+      = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
   pipeline_layout_info.setPPushConstantRanges(&push_constant)
       .setPushConstantRangeCount(1);
 
-  pipeline_layout_ =
-      vkc_->GetDevice().createPipelineLayout(pipeline_layout_info);
+  pipeline_layout_ = vkc_->GetDevice().createPipelineLayout(pipeline_layout_info);
   vk::GraphicsPipelineCreateInfo info;
   info.setStages(shader_stages)
       .setPVertexInputState(&vertex_input_create_info)
@@ -152,8 +151,8 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
 
   auto rv = vkc_->GetDevice().createGraphicsPipeline(VK_NULL_HANDLE, info);
   if (rv.result != vk::Result::eSuccess) {
-    throw std::runtime_error("Failed to create pipeline. reason = \"" +
-                             vk::to_string(rv.result) + "\"");
+    throw std::runtime_error("Failed to create pipeline. reason = \""
+                             + vk::to_string(rv.result) + "\"");
   }
   pipeline_ = rv.value;
   vkc_->GetDevice().destroy(vert_module);
@@ -162,8 +161,7 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
 
 void MeshPipeline::CreateEntityRenderData(ecs::EntityID ent,
                                           StagingBuffer &sbuffer) {
-  SimplicalRenderData *rd =
-      ecs::ComponentManager<SimplicalRenderData>{}.Query(ent);
+  SimplicalRenderData *rd = ecs::ComponentManager<SimplicalRenderData>{}.Query(ent);
   if (rd == nullptr) {
     return;
   }
@@ -218,12 +216,12 @@ void MeshPipeline::Draw(vk::CommandBuffer &cbuffer) {
   cbuffer.setScissor(0, scissor);
 
   // Bind UBO inline.
-  cbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_,
-                             0, ubo_descriptor_sets_[vkgl->GetFrameIndex()],
-                             {});
+  cbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
+                             ubo_descriptor_sets_[vkgl->GetFrameIndex()], {});
   ecs::ComponentManager<MeshRenderDataGpu> manager;
   for (auto [ent, render_data] : manager) {
-    auto *shared = ecs::ComponentManager<SceneRenderDataSharedGpu>{}.Query(ent);
+    auto *shared
+        = ecs::ComponentManager<SceneRenderDataSharedGpu>{}.Query(ent);
     if (!render_data->is_valid_) {
       continue;
     }
@@ -233,13 +231,13 @@ void MeshPipeline::Draw(vk::CommandBuffer &cbuffer) {
     cbuffer.bindVertexBuffers(1, isb, static_cast<vk::DeviceSize>(0));
     cbuffer.bindIndexBuffer(render_data->index_buffer_.buffer_, 0,
                             vk::IndexType::eUint32);
-    cbuffer.pushConstants(pipeline_layout_,
-                          vk::ShaderStageFlagBits::eVertex |
-                              vk::ShaderStageFlagBits::eFragment,
-                          0, sizeof(MeshPushConstants), &render_data->pc_);
-    cbuffer.drawIndexed(render_data->index_count_, render_data->instance_count_,
-                        0, 0, 0);
+    cbuffer.pushConstants(
+        pipeline_layout_,
+        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
+        sizeof(MeshPushConstants), &render_data->pc_);
+    cbuffer.drawIndexed(render_data->index_count_, render_data->instance_count_, 0,
+                        0, 0);
   }
 }
 
-} // namespace axes::gui::details
+}  // namespace axes::gui::details

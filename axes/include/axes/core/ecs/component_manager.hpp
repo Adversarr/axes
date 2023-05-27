@@ -4,39 +4,49 @@
 #include <queue>
 #include <vector>
 
-#include "axes/core/utils/static_run.hpp"
 #include "chunk.hpp"
 #include "common.hpp"
 #include "world.hpp"
 
 namespace axes::ecs {
 
-template <typename Component> class ComponentManager {
-  struct PrivateStaticRunner : public utils::StaticRunner<PrivateStaticRunner> {
-    void Run() const noexcept;
-  };
+template <typename Component> struct ComponentIterator {
+  using iter = absl::btree_map<EntityID, ComponentInfo>::iterator;
 
+  explicit ComponentIterator(iter it) : it_(it) {}
+
+  bool operator!=(const ComponentIterator &rhs) const noexcept {
+    return it_ != rhs.it_;
+  }
+  bool operator==(const ComponentIterator &rhs) const noexcept {
+    return it_ == rhs.it_;
+  }
+
+  ComponentIterator &operator++() {
+    ++it_;
+    return *this;
+  }
+
+  std::pair<EntityID, Component *> operator*() noexcept {
+    return {it_->first, static_cast<Component *>(it_->second.data_)};
+  }
+
+  iter it_;
+};
+
+template <typename Component> class ComponentManager {
 public:
   using ComponentChunk = details::Chunk<Component>;
   using ComponentInfoIterator =
       typename absl::btree_map<EntityID, ComponentInfo>::iterator;
 
-  static void DestroyAll();
+  void DestroyAll() { DestroyAllInternal(); }
 
-  /**
-   * @brief Query all the entities that obtains component `C`.
-   *
-   * @return std::vector<EntityID>
-   */
-  inline static std::vector<EntityID> QueryAll() noexcept;
+  void DetachComponent(EntityID ent) { DetachComponentInternal(ent); }
 
-  /**
-   * @brief Query the component for given entity
-   * @param ent
-   * @return If the entity exists, returns the pointer to the component.
-   *         Otherwise, return NULLPTR.
-   */
-  static Component *Query(EntityID ent) noexcept;
+  std::vector<EntityID> QueryAll() { return QueryAllInternal(); }
+
+  Component *Query(EntityID ent) { return QueryInternal(ent); }
 
   /**
    * @brief Attach a given component to some entity.
@@ -47,7 +57,42 @@ public:
    * @return
    */
   template <typename... Args>
-  static Component *AttachComponent(EntityID entity, Args &&...args);
+  Component *AttachComponent(EntityID entity, Args &&...args);
+
+  template <typename... Args>
+  Component *ReplaceComponent(EntityID ent, Args &&...args);
+
+  template <typename... Args> Component *AttachOrGet(EntityID ent, Args &&...args);
+
+  ComponentManager() noexcept;
+
+  // NOLINTBEGIN
+  ComponentIterator<Component> begin() {
+    return ComponentIterator<Component>(entities_.begin());
+  }
+
+  ComponentIterator<Component> end() {
+    return ComponentIterator<Component>(entities_.end());
+  }
+  // NOLINTEND
+
+private:
+  static void DestroyAllInternal();
+
+  /**
+   * @brief Query all the entities that obtains component `C`.
+   *
+   * @return std::vector<EntityID>
+   */
+  static inline std::vector<EntityID> QueryAllInternal() noexcept;
+
+  /**
+   * @brief Query the component for given entity
+   * @param ent
+   * @return If the entity exists, returns the pointer to the component.
+   *         Otherwise, return NULLPTR.
+   */
+  static Component *QueryInternal(EntityID ent) noexcept;
 
   /**
    * @brief Detach the entity's component
@@ -55,52 +100,30 @@ public:
    *
    * @param entity
    */
-  static void DetachComponent(EntityID entity);
+  static void DetachComponentInternal(EntityID entity);
 
-  template <typename... Args>
-  static Component *ReplaceComponent(EntityID ent, Args &&...args);
-
-  template <typename... Args>
-  static Component *AttachOrGet(EntityID ent, Args &&...args);
-
-  ComponentManager() noexcept { static PrivateStaticRunner priv_runner; }
-
-  struct Iterator {
-    using iter = absl::btree_map<EntityID, ComponentInfo>::iterator;
-
-    explicit Iterator(iter it) : it_(it) {}
-
-    bool operator!=(const Iterator &rhs) const noexcept { return it_ != rhs.it_; }
-    bool operator==(const Iterator &rhs) const noexcept { return it_ == rhs.it_; }
-
-    Iterator &operator++() {
-      ++it_;
-      return *this;
-    }
-
-    std::pair<EntityID, Component *> operator*() noexcept {
-      return {it_->first, static_cast<Component *>(it_->second.data_)};
-    }
-
-    iter it_;
-  };
-
-  // NOLINTBEGIN
-  Iterator begin() { return Iterator(entities_.begin()); }
-  Iterator end() { return Iterator(entities_.end()); }
-  // NOLINTEND
-
-private:
   static uint32_t MakeAvailableChunk();
 
   template <typename... Args> static Component *ConstructAtChunk(Args &&...args);
 
   static ComponentInfoIterator QueryInfo(EntityID ent) noexcept;
-
   static absl::btree_map<EntityID, ComponentInfo> entities_;
   static std::vector<uint32_t> non_full_chunk_id_;
   static std::vector<details::Chunk<Component>> chunks_;
+  static std::once_flag oflag_;
 };
+
+template <typename Component>
+ComponentManager<Component>::ComponentManager() noexcept {
+  std::call_once(oflag_, []() {
+    ComponentManagerInfo info(typeid(Component));
+    info.detach_ = ComponentManager<Component>::DetachComponentInternal;
+    info.query_ = ComponentManager<Component>::QueryInternal;
+    info.query_all_ = ComponentManager<Component>::QueryAllInternal;
+    info.destroy_ = ComponentManager<Component>::DestroyAllInternal;
+    World{}.RegisterComponent(info);
+  });
+}
 
 template <typename Component>
 absl::btree_map<EntityID, ComponentInfo> ComponentManager<Component>::entities_;
@@ -110,6 +133,8 @@ std::vector<details::Chunk<Component>> ComponentManager<Component>::chunks_;
 
 template <typename Component>
 std::vector<uint32_t> ComponentManager<Component>::non_full_chunk_id_;
+
+template <typename Component> std::once_flag ComponentManager<Component>::oflag_;
 
 template <typename Component> template <typename... Args>
 Component *ComponentManager<Component>::AttachComponent(EntityID entity,
@@ -137,7 +162,7 @@ Component *ComponentManager<Component>::ReplaceComponent(EntityID entity,
 }
 
 template <typename Component>
-void ComponentManager<Component>::DetachComponent(EntityID entity) {
+void ComponentManager<Component>::DetachComponentInternal(EntityID entity) {
   ComponentInfoIterator comp_info_it = QueryInfo(entity);
   if (comp_info_it == entities_.end()) {
     return;
@@ -172,7 +197,7 @@ uint32_t ComponentManager<Component>::MakeAvailableChunk() {
 }
 
 template <typename Component>
-Component *ComponentManager<Component>::Query(EntityID ent) noexcept {
+Component *ComponentManager<Component>::QueryInternal(EntityID ent) noexcept {
   auto it = QueryInfo(ent);
   if (it == entities_.end()) {
     return nullptr;
@@ -193,7 +218,7 @@ Component *ComponentManager<Component>::ConstructAtChunk(Args &&...args) {
 }
 
 template <typename Component>
-std::vector<EntityID> ComponentManager<Component>::QueryAll() noexcept {
+std::vector<EntityID> ComponentManager<Component>::QueryAllInternal() noexcept {
   std::vector<EntityID> result;
   result.reserve(entities_.size());
   for (const auto &[k, v] : entities_) {
@@ -202,28 +227,17 @@ std::vector<EntityID> ComponentManager<Component>::QueryAll() noexcept {
   return result;
 }
 
-template <typename Component>
-void ComponentManager<Component>::PrivateStaticRunner::Run() const noexcept {
-  ComponentManagerInfo info(typeid(Component));
-  info.detach_ = ComponentManager<Component>::DetachComponent;
-  info.query_ = ComponentManager<Component>::Query;
-  info.query_all_ = ComponentManager<Component>::QueryAll;
-  info.destroy_ = ComponentManager<Component>::DestroyAll;
-
-  World().RegisterComponent(info);
-}
-
 template <typename Component> template <typename... Args>
-Component *ComponentManager<Component>::AttachOrGet(EntityID ent,
-                                                         Args &&...args) {
+Component *ComponentManager<Component>::AttachOrGet(EntityID ent, Args &&...args) {
   if (auto it = QueryInfo(ent); it == entities_.end()) {
     return AttachComponent(ent, std::forward<Args>(args)...);
   } else {
-    return static_cast<Component* >(it->second.data_);
+    return static_cast<Component *>(it->second.data_);
   }
 }
 
-template <typename Component> void ComponentManager<Component>::DestroyAll() {
+template <typename Component>
+void ComponentManager<Component>::DestroyAllInternal() {
   entities_.clear();
   chunks_.clear();
 }

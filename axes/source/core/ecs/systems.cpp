@@ -1,4 +1,4 @@
-#include "axes/core/ecs/details/systems.hpp"
+#include "axes/core/ecs/systems.hpp"
 
 namespace axes::ecs {
 

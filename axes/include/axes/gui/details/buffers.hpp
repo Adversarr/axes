@@ -8,15 +8,15 @@
 
 namespace axes::gui {
 namespace details {
-struct alignas(16) SceneUniform {
-  glm::mat4 view_;
-  glm::mat4 projection_;
-  glm::vec3 eye_position_;
-  glm::vec3 point_light_pos_;
-  glm::vec4 point_light_color_;
-  glm::vec3 parallel_light_dir_;
-  glm::vec4 parallel_light_color_;
-  glm::vec4 ambient_light_color_;
+struct SceneUniform {
+  alignas(16) glm::mat4 view_;
+  alignas(16) glm::mat4 projection_;
+  alignas(16) glm::vec3 eye_position_;
+  alignas(16) glm::vec3 point_light_pos_;
+  alignas(16) glm::vec4 point_light_color_;
+  alignas(16) glm::vec3 parallel_light_dir_;
+  alignas(16) glm::vec4 parallel_light_color_;
+  alignas(16) glm::vec4 ambient_light_color_;
 };
 
 struct SceneVertex {
@@ -53,9 +53,7 @@ struct SceneRenderDataSharedGpu {
   uint32_t vertex_count_;
 
   std::shared_ptr<VkContext> vkc_;
-  explicit SceneRenderDataSharedGpu(std::shared_ptr<VkContext> vkc) : vkc_(vkc) {
-    vertex_buffer_.buffer_ = VK_NULL_HANDLE;
-  }
+  explicit SceneRenderDataSharedGpu(std::shared_ptr<VkContext> vkc);
   ~SceneRenderDataSharedGpu();
 };
 
@@ -69,10 +67,7 @@ struct MeshRenderDataGpu {
 
   std::shared_ptr<VkContext> vkc_;
 
-  explicit MeshRenderDataGpu(std::shared_ptr<VkContext> vkc) : vkc_(vkc) {
-    instance_buffer_.buffer_ = nullptr;
-    index_buffer_.buffer_ = nullptr;
-  }
+  explicit MeshRenderDataGpu(std::shared_ptr<VkContext> vkc);
 
   ~MeshRenderDataGpu();
 };

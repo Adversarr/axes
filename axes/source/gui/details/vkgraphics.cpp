@@ -115,8 +115,8 @@ void VkGraphicsContext::CreateSwapchain(bool verb) {
       .setImageExtent(extent)
       .setImageArrayLayers(1)
       .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
-  auto queue_family_indices = std::array<uint32_t, 2>{support.graphics_family_.value(),
-                                         support.present_family_.value()};
+  auto queue_family_indices = std::array<uint32_t, 2>{
+      support.graphics_family_.value(), support.present_family_.value()};
   if (queue_family_indices[0] != queue_family_indices[1]) {
     info.setImageSharingMode(vk::SharingMode::eConcurrent)
         .setQueueFamilyIndices(queue_family_indices);
@@ -152,8 +152,7 @@ void VkGraphicsContext::CreateImageViews() {
   }
 }
 
-vk::ImageView VkGraphicsContext::CreateImageView(vk::Image image,
-                                                 vk::Format format,
+vk::ImageView VkGraphicsContext::CreateImageView(vk::Image image, vk::Format format,
                                                  vk::ImageAspectFlags aspect) {
   vk::ImageViewCreateInfo view_info{};
   view_info.image = image;
@@ -209,32 +208,30 @@ void VkGraphicsContext::DestroySwapchain() {
 VkRenderResult VkGraphicsContext::BeginRender() {
   auto device = vk_context_->GetDevice();
   // Timeout = infinity.
-  AXES_CHECK(device.waitForFences(syncs_[current_frame_].in_flight_fence_,
-                                  VK_TRUE, std::numeric_limits<uint64_t>::max())
+  AXES_CHECK(device.waitForFences(syncs_[current_frame_].in_flight_fence_, VK_TRUE,
+                                  std::numeric_limits<uint64_t>::max())
                  == vk::Result::eSuccess,
              "Failed to wait for fence.");
 
   // Acquire Image
-  auto rv = device.acquireNextImageKHR(swapchain_,
-                                       std::numeric_limits<uint64_t>::max(),
-                                       syncs_[current_frame_].image_available_);
+  auto rv
+      = device.acquireNextImageKHR(swapchain_, std::numeric_limits<uint64_t>::max(),
+                                   syncs_[current_frame_].image_available_);
 
   if (rv.result == vk::Result::eErrorOutOfDateKHR) {
     return VkRenderResult::kRecreateSwapchain;
   }
   // Check acquire the image successfully.
-  AXES_CHECK(rv.result == vk::Result::eSuccess
-                 || rv.result == vk::Result::eSuboptimalKHR,
-             "Acquire next image failed, with result = {}",
-             vk::to_string(rv.result));
+  AXES_CHECK(
+      rv.result == vk::Result::eSuccess || rv.result == vk::Result::eSuboptimalKHR,
+      "Acquire next image failed, with result = {}", vk::to_string(rv.result));
   current_image_index_ = rv.value;
   device.resetFences(syncs_[current_frame_].in_flight_fence_);
   draw_started_ = true;
   return VkRenderResult::kSuccess;
 }
 
-VkRenderResult VkGraphicsContext::EndRender(
-    std::vector<vk::CommandBuffer> cbufs) {
+VkRenderResult VkGraphicsContext::EndRender(std::vector<vk::CommandBuffer> cbufs) {
   vk::SubmitInfo submit_info{};
   auto wait_sem = std::array{syncs_[current_frame_].image_available_};
   auto signal_sem = std::array{syncs_[current_frame_].render_finished_};
@@ -244,8 +241,8 @@ VkRenderResult VkGraphicsContext::EndRender(
       .setPWaitDstStageMask(wait_stages.data())
       .setCommandBuffers(cbufs)
       .setSignalSemaphores(signal_sem);
-  vk_context_->GetGraphicsQueue().submit(
-      submit_info, syncs_[current_frame_].in_flight_fence_);
+  vk_context_->GetGraphicsQueue().submit(submit_info,
+                                         syncs_[current_frame_].in_flight_fence_);
 
   vk::PresentInfoKHR present_info;
   auto render_finish = std::array{syncs_[current_frame_].render_finished_};
@@ -257,13 +254,11 @@ VkRenderResult VkGraphicsContext::EndRender(
   bool need_recreate_swapchain = false;
   if (result == vk::Result::eErrorOutOfDateKHR
       || result == vk::Result::eSuboptimalKHR || window_->IsResized()) {
-    AXES_DEBUG_LOG("Set Recreate Swapchain. result is {}",
-                   vk::to_string(result));
+    AXES_DEBUG_LOG("Set Recreate Swapchain. result is {}", vk::to_string(result));
     window_->ResetResizeFlag();
     need_recreate_swapchain = true;
   } else {
-    AXES_CHECK(result == vk::Result::eSuccess,
-               "Failed to present swapchain image");
+    AXES_CHECK(result == vk::Result::eSuccess, "Failed to present swapchain image");
   }
   current_frame_ = (current_frame_ + 1) % swapchain_size_;
   draw_started_ = false;
@@ -297,6 +292,41 @@ void VkGraphicsContext::RecreateSwapchain() {
   for (const auto &passes : render_passes_) {
     passes->RecreateSwapchain();
   }
+}
+
+const std::vector<details::VkImageWithView> &
+VkGraphicsContext::GetSwapchainImageWithView() const noexcept {
+  return swapchain_images_;
+}
+
+uint32_t VkGraphicsContext::GetAcquiredImageIndex() const noexcept {
+  return current_image_index_;
+}
+
+uint32_t VkGraphicsContext::GetFrameIndex() const noexcept {
+  return current_frame_;
+}
+
+std::weak_ptr<GlfwWindow> VkGraphicsContext::GetWindow() { return window_; }
+
+vk::CommandPool VkGraphicsContext::GetCommandPool() {
+  return graphics_command_pool_;
+}
+
+uint32_t VkGraphicsContext::GetSwapchainSize() const noexcept {
+  return swapchain_size_;
+}
+
+void VkGraphicsContext::RegisterRenderPass(std::shared_ptr<RenderPassBase> p) {
+  render_passes_.push_back(p);
+}
+
+vk::Format VkGraphicsContext::GetSwapchainFormat() const noexcept {
+  return swapchain_image_format_;
+}
+
+vk::Extent2D VkGraphicsContext::GetSwapchainExtent() const noexcept {
+  return swapchain_extent_;
 }
 
 }  // namespace axes::gui

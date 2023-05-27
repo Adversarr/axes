@@ -7,11 +7,16 @@
 
 namespace axes::ecs {
 
-std::vector<World::RunningSystemInfo> systems_running_;
+struct RunningSystemInfo {
+  std::shared_ptr<SystemBase> system_;
+  bool operator<(const RunningSystemInfo&) const noexcept;
+};
+
+std::vector<RunningSystemInfo> systems_running_;
 
 std::vector<std::shared_ptr<SystemBase>> systems_waiting_;
 
-std::vector<SystemBase*> systems_destroying_;
+std::vector<std::shared_ptr<SystemBase>> systems_destroying_;
 
 bool is_running_;
 
@@ -63,9 +68,9 @@ void World::TryRegisterSystem(std::shared_ptr<SystemBase> sys) {
   systems_waiting_.emplace_back(std::move(sys));
 }
 
-void World::TryDestroySystem(SystemBase* system) {
+void World::TryDestroySystem(std::shared_ptr<SystemBase> system) {
   // TODO: Implementation required.
-  // systems_destroying_.push_back(system);
+  systems_destroying_.push_back(system);
 }
 
 int World::MainLoop(bool shutdown_axes) {
@@ -93,7 +98,6 @@ void World::PreLoop() {
                 reinterpret_cast<size_t>(sys.get()));
       RunningSystemInfo rs;
       rs.system_.swap(sys);
-      rs.enable_ = true;
       systems_running_.push_back(std::move(rs));
     } catch (const std::exception& except) {
       AXES_ERROR("Cannot initialize system \"{}\"at {:#08x}, message: \"{}\"",
@@ -111,9 +115,7 @@ void World::PreLoop() {
 void World::LoopBody() {
   // Tick Logic.
   for (auto& run_sys : systems_running_) {
-    if (run_sys.enable_) {
-      run_sys.system_->TickLogic();
-    }
+    run_sys.system_->TickLogic();
   }
 
   // Process Events.
@@ -130,16 +132,13 @@ void World::LoopBody() {
 
   // Tick Render
   for (auto& run_sys : systems_running_) {
-    if (run_sys.enable_) {
-      run_sys.system_->TickRender();
-    }
+    run_sys.system_->TickRender();
   }
 }
 
 void World::EnqueueEvent(Event evt) { events_.push_back(evt); }
 
-bool World::RunningSystemInfo::operator<(
-    const RunningSystemInfo& rhs) const noexcept {
+bool RunningSystemInfo::operator<(const RunningSystemInfo& rhs) const noexcept {
   return system_->GetPriority() < rhs.system_->GetPriority();
 }
 
@@ -147,6 +146,8 @@ void World::DestroyAll() {
   for (const auto& c : registered_components_) {
     c.destroy_();
   }
+
+  entities_.clear();
 }
 
 void World::RegisterComponent(ComponentManagerInfo info) {

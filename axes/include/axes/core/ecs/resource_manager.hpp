@@ -13,6 +13,7 @@ namespace axes::ecs {
  * @class Resource Manager
  * @brief RAII Resource Manager.
  *
+ * @note Resource is unique for each type. type_index is the only identifier.
  */
 class RMan {
 public:
@@ -46,6 +47,11 @@ public:
    */
   template <typename Type> static Rc<Type> Get();
 
+  /**
+   * @brief Get the given data.
+   *
+   * @param ti 
+   */
   static void *GetData(std::type_index ti);
 
   /**
@@ -59,9 +65,14 @@ public:
 
   static void Destroy(std::type_index ti);
 
+  /**
+   * @brief Publish the given resource
+   *
+   * @param ti
+   */
   static void Publish(std::type_index ti);
 
-  static void SetDestroyer(std::type_index ti, std::function<void(void* )> d);
+  static void SetDestroyer(std::type_index ti, std::function<void(void *)> d);
 
 private:
   /**
@@ -92,9 +103,7 @@ public:
     std::construct_at(data_, std::move(cc));
   }
 
-  void Subscribe(std::function<void(void)> f) {
-    RMan::Subscribe(typeid(T), f);
-  }
+  void Subscribe(std::function<void(void)> f) { RMan::Subscribe(typeid(T), f); }
 
   // NOTE: These functions are unsafe to `OnUpdate`
   T *Ptr();

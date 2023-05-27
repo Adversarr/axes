@@ -34,7 +34,7 @@ void SceneProjection::InitResource() {
   rc->projection_ = compute_perspective(*pp);
 
   pp.Subscribe([]() {
-    auto rc = ecs::RMan::Construct<SceneProjection>();
+    auto rc = ecs::RMan::Get<SceneProjection>();
     auto sp = ecs::RMan::Get<ScenePerspectiveProjection>();
     rc->projection_ = compute_perspective(*sp);
     rc->update_ = true;

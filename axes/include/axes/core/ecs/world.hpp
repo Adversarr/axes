@@ -80,7 +80,7 @@ public:
    *
    * @param system
    */
-  static void TryDestroySystem(SystemBase* system);
+  static void TryDestroySystem(std::shared_ptr<SystemBase> system);
 
   /**
    * @brief Startup Main Loop
@@ -89,17 +89,14 @@ public:
    */
   static int MainLoop(bool shutdown_axes = false);
 
+  /**
+   * @brief Destroy all the entities.
+   */
   static void DestroyAll();
 
   static void EnqueueEvent(Event evt);
 
   static const absl::flat_hash_set<EntityID>& GetEntities();
-
-  struct RunningSystemInfo {
-    std::shared_ptr<SystemBase> system_;
-    bool enable_;
-    bool operator<(const RunningSystemInfo&) const noexcept;
-  };
 
 private:
   static void PreLoop();

@@ -117,7 +117,6 @@ void MeshPipeline::CreatePipeline(vk::RenderPass pass) {
   depth_stencil.setDepthTestEnable(VK_TRUE)
       .setDepthWriteEnable(VK_TRUE)
       .setDepthCompareOp(vk::CompareOp::eLess)
-      .setDepthBoundsTestEnable(VK_FALSE)
       .setStencilTestEnable(VK_FALSE);
 
   // setup push constants

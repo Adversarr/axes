@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "axes/core/ecs/common.hpp"
 #include "axes/core/ecs/systems.hpp"
 #include "axes/gui/details/common.hpp"
@@ -9,12 +11,19 @@
 
 namespace axes::gui {
 
+struct GuisysKeymap {
+  std::map<int, std::function<void(void)>> keymap_;
+  static void InitResource();
+};
+
 class GuiSystem : public ecs::SystemBase {
 public:
   // NOTE: This system should have the lowest priority.
 
   GuiSystem(std::shared_ptr<GlfwWindow> win, std::shared_ptr<VkContext> vkc,
             std::shared_ptr<VkGraphicsContext> vkg);
+
+  void ProcessInputs();
 
   ~GuiSystem();
 

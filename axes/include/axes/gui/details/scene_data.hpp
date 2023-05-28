@@ -1,10 +1,13 @@
 #pragma once
+#include <absl/container/flat_hash_map.h>
 #include "axes/core/math/common.hpp"
 
 namespace axes::gui {
 
+using UiWindowCallback = std::function<void(void)>;
+
 struct UiWindows {
-  std::vector<std::function<void(void)>> callbacks_;
+  absl::flat_hash_map<std::string, UiWindowCallback> callbacks_;
 
   std::function<void(void)> menu_bar_;
 

@@ -212,7 +212,7 @@ void UiRenderPass::DrawUI() {
   if (win->menu_bar_) {
     win->menu_bar_();
   }
-  for (auto& f : win->callbacks_) {
+  for (auto& [k, f] : win->callbacks_) {
     f();
   }
 }

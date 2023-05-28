@@ -517,7 +517,7 @@ void BeginNodeSelection(ImNodesEditorContext& editor, const int node_idx) {
   else if (GImNodes->MultipleSelectModifier) {
     const int* const node_ptr = editor.SelectedNodeIndices.find(node_idx);
     editor.SelectedNodeIndices.erase(node_ptr);
-
+    
     // Don't allow dragging after deselecting
     editor.ClickInteraction.Type = ImNodesClickInteractionType_None;
   }

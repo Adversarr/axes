@@ -91,7 +91,7 @@ void ScenePipelineBase::UpdateUniformBuffer() {
   auto proj = ecs::Rc<SceneProjection>{}.MakeValid();
 
   bool update_actual = cam->update_ || light->update_ || proj->update_;
-  cam->front_.normalize();
+  cam->front_;
   cam->update_ = false;
   light->update_ = false;
   proj->update_ = false;

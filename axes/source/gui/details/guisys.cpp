@@ -14,6 +14,38 @@
 
 namespace axes::gui {
 
+void default_gui_render() {
+  // TODO: more implement
+  ImGui::Begin("UI");
+  bool update = false;
+  auto cam = ecs::Rc<SceneCamera>{}.MakeValid();
+  std::string cp = fmt::format("Camera Position {} {} {}", cam->position_.x(),
+                               cam->position_.y(), cam->position_.z());
+  if (ImGui::TreeNode(cp.c_str())) {
+    update |= ImGui::InputDouble("X", &cam->position_.x());
+    update |= ImGui::InputDouble("Y", &cam->position_.y());
+    update |= ImGui::InputDouble("Z", &cam->position_.z());
+    ImGui::TreePop();
+  }
+  if (ImGui::TreeNode("Camera Front")) {
+    update |= ImGui::InputDouble("X", &cam->front_.x());
+    update |= ImGui::InputDouble("Y", &cam->front_.y());
+    update |= ImGui::InputDouble("Z", &cam->front_.z());
+    ImGui::TreePop();
+  }
+  if (update) {
+    cam->update_ = true;
+  }
+  auto light = ecs::Rc<SceneLight>{}.MakeValid();
+  auto proj = ecs::Rc<SceneProjection>{}.MakeValid();
+  ImGui::End();
+}
+
+static void setup_default_keymap() {
+  auto km = ecs::Rc<GuisysKeymap>{}.MakeValid();
+  // TODO: register hijk, wasd
+}
+
 GuiSystem::GuiSystem(std::shared_ptr<GlfwWindow> win,
                      std::shared_ptr<VkContext> vkc,
                      std::shared_ptr<VkGraphicsContext> vkg)
@@ -32,34 +64,8 @@ GuiSystem::GuiSystem(std::shared_ptr<GlfwWindow> win,
   scene_pipelines_.push_back(mp);
 
   auto w = ecs::Rc<UiWindows>{}.MakeValid();
-
-  w->callbacks_.push_back([]() -> void {
-    ImGui::Begin("UI");
-    bool update = false;
-    auto cam = ecs::Rc<SceneCamera>{}.MakeValid();
-    ImGui::Text("Camera Position: %lf %lf %lf", cam->position_.x(),
-                cam->position_.y(), cam->position_.z());
-    if (ImGui::TreeNode("Camera Position")) {
-      update |= ImGui::InputDouble("X", &cam->position_.x());
-      update |= ImGui::InputDouble("Y", &cam->position_.y());
-      update |= ImGui::InputDouble("Z", &cam->position_.z());
-      ImGui::TreePop();
-      ;
-    }
-    if (ImGui::TreeNode("Camera Front")) {
-      update |= ImGui::InputDouble("X", &cam->front_.x());
-      update |= ImGui::InputDouble("Y", &cam->front_.y());
-      update |= ImGui::InputDouble("Z", &cam->front_.z());
-      ImGui::TreePop();
-      ;
-    }
-    if (update) {
-      cam->update_ = true;
-    }
-    auto light = ecs::Rc<SceneLight>{}.MakeValid();
-    auto proj = ecs::Rc<SceneProjection>{}.MakeValid();
-    ImGui::End();
-  });
+  w->callbacks_.insert({"GuisysDefault", default_gui_render});
+  setup_default_keymap();
 }
 
 // TODO: Impl
@@ -67,6 +73,18 @@ GuiSystem::~GuiSystem() = default;
 
 void GuiSystem::TickLogic() {
   // TODO: Foreach Simplical Render Config.
+  glfwPollEvents();
+  ProcessInputs();
+}
+
+void GuiSystem::ProcessInputs() {
+  // detect key press...
+  auto km = ecs::Rc<GuisysKeymap>{}.MakeValid();
+  for (auto &[k, f] : km->keymap_) {
+    if (glfwGetKey(win_->GetWindow(), k)) {
+      f();
+    }
+  }
 }
 
 void GuiSystem::TickRender() {

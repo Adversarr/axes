@@ -28,8 +28,8 @@ int main() {
   data.vertices_[1].position_ = glm::vec3{0, 1, 0};
   data.vertices_[2].position_ = glm::vec3{0, 0, 1};
   data.vertices_[0].color_ = glm::vec4(.7, 0, 0, 1);
-  data.vertices_[1].color_ = glm::vec4(.7, 0, 0, 1);
-  data.vertices_[2].color_ = glm::vec4(.7, 0, 0, 1);
+  data.vertices_[1].color_ = glm::vec4(0, .7, 0, 1);
+  data.vertices_[2].color_ = glm::vec4(0, 0, .7, 1);
   data.vertices_[0].normal_ = glm::vec3(1, 0, 0);
   data.vertices_[1].normal_ = glm::vec3(0, 1, 0);
   data.vertices_[2].normal_ = glm::vec3(0, 0, 1);

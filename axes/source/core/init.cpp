@@ -1,16 +1,15 @@
 #include "axes/core/init.hpp"
 
 #include "axes/core/ecs/ecs.hpp"
+#include <absl/debugging/failure_signal_handler.h>
 #include "axes/core/utils/log.hpp"
 
-#ifdef AXES_HAS_BACKWARD
-#  include "backward.hpp"
-namespace backward {
-
-backward::SignalHandling sh;
-
-}  // namespace backward
-#endif
+// #ifdef AXES_HAS_BACKWARD
+// #  include "backward.hpp"
+// namespace backward {
+//
+// }  // namespace backward
+// #endif
 
 namespace axes {
 
@@ -23,6 +22,7 @@ void init() {
 #endif
       ,
       true, "");
+  absl::InstallFailureSignalHandler({});
   AXES_INFO("AXES Initialized.");
 }
 

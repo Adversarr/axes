@@ -1,6 +1,8 @@
 #pragma once
 #include <vma/vk_mem_alloc.h>
 
+#include <memory>
+
 #include "axes/gui/details/common.hpp"
 #include "axes/gui/details/render_pass_base.hpp"
 #include "axes/gui/details/vkcontext.hpp"
@@ -57,6 +59,7 @@ public:
   vk::CommandPool GetCommandPool();
 
   void RecreateSwapchain();
+
 private:
   VkRenderResult BeginRender();
   VkRenderResult EndRender(std::vector<vk::CommandBuffer> cbufs);

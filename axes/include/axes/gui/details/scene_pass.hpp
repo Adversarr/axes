@@ -2,6 +2,7 @@
 
 #include <glm/fwd.hpp>
 #include <iostream>
+#include <memory>
 
 #include "axes/gui/details/vkgraphics.hpp"
 #include "render_pass_base.hpp"

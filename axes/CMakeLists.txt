@@ -33,15 +33,15 @@ target_link_libraries(
          absl::base
          absl::btree
          absl::flat_hash_map
+         absl::inlined_vector
+         absl::examine_stack
+         absl::stacktrace
+         absl::base
+         absl::failure_signal_handler
          Vulkan::Vulkan
          imgui::imgui
          glm::glm
          glfw)
-
-if(USE_BACKWARD)
-  target_link_libraries(axes PUBLIC Backward::Backward)
-  target_compile_definitions(axes PUBLIC AXES_HAS_BACKWARD)
-endif()
 
 axes_set_warn_levels(axes)
 

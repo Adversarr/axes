@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "axes/gui/details/vkcontext.hpp"
 #include "render_pass_base.hpp"
 

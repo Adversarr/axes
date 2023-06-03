@@ -2,14 +2,6 @@ cmake_minimum_required(VERSION 3.17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-option(USE_BACKWARD "Use backward cpp for debug." ON)
-if(USE_BACKWARD)
-  list(APPEND CMAKE_PREFIX_PATH
-       "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/backward-cpp")
-
-  find_package(Backward CONFIG REQUIRED)
-endif()
-
 # Remove this block after bumping CMake to v3.21.0 PROJECT_IS_TOP_LEVEL is
 # defined then by default
 if(CMAKE_VERSION VERSION_LESS 3.21.0)

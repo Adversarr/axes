@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "axes/core/math/common.hpp" // IWYU pragma: export
+#include "axes/core/math/common.hpp"  // IWYU pragma: export
 #include "axes/core/utils/ndrange.hpp"
 namespace axes {
 
@@ -47,8 +47,8 @@ public:
    */
   template <typename... Args>
   constexpr explicit NdRangeIndexer(Args... arguments) noexcept
-      : NdRangeIndexer(
-          std::array<size_t, dim>{static_cast<size_t>(arguments)...}) {}
+      : NdRangeIndexer(std::array<size_t, dim>{static_cast<size_t>(arguments)...}) {
+  }
 
   /**
    * @brief Default constructor for ndrangeindexer.
@@ -60,9 +60,16 @@ public:
     std::fill(multipliers_.begin(), multipliers_.end(), 0);
     std::fill(shape_.begin(), shape_.end(), 0);
   }
-
+#ifndef __clang__
+#  ifdef __GNUC__
+#    pragma GCC push_options
+#    pragma GCC optimize("unroll-loops")
+#  endif
+#endif
   constexpr bool IsValid(std::array<size_t, dim> indices) const noexcept {
-#pragma unroll 4
+#ifdef __clang__
+#  pragma unroll 4
+#endif
     for (size_t i = 0; i < dim; ++i) {
       if_unlikely(indices[i] >= shape_[i] || indices[i] < 0) { return false; }
     }
@@ -77,13 +84,20 @@ public:
   constexpr size_t operator()(std::array<size_t, dim> indices) const noexcept {
     assert(IsValid(indices) && "Invalid indices.");
     size_t result = 0;
-#pragma unroll 4
+#ifdef __clang__
+#  pragma unroll 4
+#endif
     for (size_t i = 0; i < dim; ++i) {
       result += indices[i] * multipliers_[i];
     }
     return result;
   }
 
+#ifndef __clang__
+#  ifdef __GNUC__
+#    pragma GCC pop_options
+#  endif
+#endif
   /**
    * @brief Get the shape of the RangeObject.
    *
@@ -111,11 +125,10 @@ public:
   inline size_t operator()(size_t id) const { return id; }
 
   constexpr bool IsValid(size_t this_size) const noexcept {
-    return 0 <= this_size && this_size < this_dim_;
+    return this_size < this_dim_;
   }
 
-  explicit constexpr NdRangeIndexer(size_t this_dim = 0)
-      : this_dim_(this_dim) {}
+  explicit constexpr NdRangeIndexer(size_t this_dim = 0) : this_dim_(this_dim) {}
 
   constexpr auto operator[](size_t id) const noexcept {
     return std::tuple<size_t>(id);

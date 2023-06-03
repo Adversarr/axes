@@ -14,6 +14,10 @@
 
 namespace axes::gui {
 
+void GuisysKeymap::InitResource() {
+  // TODO: 
+}
+
 void default_gui_render() {
   // TODO: more implement
   ImGui::Begin("UI");

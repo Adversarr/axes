@@ -5,5 +5,9 @@ function(axes_add_example name deps)
   axes_set_warn_levels(${name})
 endfunction(axes_add_example)
 
+find_package(benchmark CONFIG REQUIRED)
+
 axes_add_example(ecs "")
 axes_add_example(guitutor "")
+axes_add_example(null "")
+axes_add_example(bench-math "benchmark::benchmark;benchmark::benchmark_main")

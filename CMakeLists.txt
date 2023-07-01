@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
+option(AXES_INSTALL_SIGNAL_HANDLER "Enable Signal Handler from absl" ON)
+
 # Remove this block after bumping CMake to v3.21.0 PROJECT_IS_TOP_LEVEL is
 # defined then by default
 if(CMAKE_VERSION VERSION_LESS 3.21.0)

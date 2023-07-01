@@ -3,6 +3,8 @@
 // Vertex Input, see mesh_ppl.hpp
 layout (location = 0) in vec3 inPosition;
 layout (location = 1) in vec4 inColor;
+// useless normal.
+layout (location = 2) in vec3 inNormal;
 
 layout(binding = 0) uniform Ubo{
   mat4 view;
@@ -17,8 +19,6 @@ layout(binding = 0) uniform Ubo{
 
 layout(push_constant) uniform constants {
   float size;
-  vec4 color;
-  int options[4];
 } pc;
 
 layout(location = 0) out vec4 outColor;
@@ -26,10 +26,6 @@ layout(location = 0) out vec4 outColor;
 void main(){
   gl_Position = ubo.projection * ubo.view * vec4(inPosition, 1.0);
   gl_PointSize = pc.size;
-  if (pc.options[0] == 0) {
-    outColor = inColor;
-  } else {
-    outColor = pc.color;
-  }
+  outColor = inColor;
   return ;
 }

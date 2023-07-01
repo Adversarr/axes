@@ -34,14 +34,18 @@ target_link_libraries(
          absl::btree
          absl::flat_hash_map
          absl::inlined_vector
-         absl::examine_stack
-         absl::stacktrace
          absl::base
-         absl::failure_signal_handler
          Vulkan::Vulkan
          imgui::imgui
          glm::glm
          glfw)
+
+if(AXES_INSTALL_SIGNAL_HANDLER)
+  target_link_libraries(axes PRIVATE absl::examine_stack absl::stacktrace
+                                     absl::failure_signal_handler)
+
+  target_compile_definitions(axes PRIVATE "AXES_INSTALL_SIGNAL_HANDLER")
+endif()
 
 axes_set_warn_levels(axes)
 

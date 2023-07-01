@@ -6,7 +6,6 @@
 #include <axes/gui/details/ui_pass.hpp>
 #include <axes/gui/details/vkcontext.hpp>
 #include <axes/gui/details/vkgraphics.hpp>
-#include <backward.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <iostream>
 

@@ -15,7 +15,9 @@
 namespace axes::gui {
 
 void GuisysKeymap::InitResource() {
-  // TODO: 
+  // TODO:
+  auto km = ecs::RMan::Construct<GuisysKeymap>();
+  km->keymap_.clear();
 }
 
 void default_gui_render() {
@@ -89,6 +91,8 @@ void GuiSystem::ProcessInputs() {
       f();
     }
   }
+
+  // TODO: detect mouse input?
 }
 
 void GuiSystem::TickRender() {

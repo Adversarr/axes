@@ -16,8 +16,6 @@ layout(binding = 0) uniform Ubo{
 
 layout(push_constant) uniform constants {
   float size;
-  vec3 color;
-  int options[4];
 } pc;
 
 layout(location = 0) out vec4 outColor;

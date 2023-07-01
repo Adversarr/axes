@@ -48,6 +48,10 @@ struct MeshPushConstants {
   int options_[4] = {0, 32, 0, 0};
 };
 
+struct PointPushConstants {
+  float32_t size_;
+};
+
 struct SceneRenderDataSharedGpu {
   VmaAllocBuffer vertex_buffer_;
   uint32_t vertex_count_;
@@ -55,6 +59,14 @@ struct SceneRenderDataSharedGpu {
   std::shared_ptr<VkContext> vkc_;
   explicit SceneRenderDataSharedGpu(std::shared_ptr<VkContext> vkc);
   ~SceneRenderDataSharedGpu();
+};
+
+struct PointRenderDataGpu {
+  bool is_valid_{false};
+  PointPushConstants pc_;
+  std::shared_ptr<VkContext> vkc_;
+  explicit PointRenderDataGpu(std::shared_ptr<VkContext> vkc) : vkc_(vkc) {}
+  ~PointRenderDataGpu() = default;
 };
 
 struct MeshRenderDataGpu {

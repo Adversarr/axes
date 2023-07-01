@@ -9,7 +9,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "axes/gui/details/buffers.hpp"
-#include "axes/gui/details/scene_data.hpp"
 #include "axes/gui/details/scene_pipeline_base.hpp"
 
 namespace axes::gui {

@@ -4,13 +4,6 @@
 #include <absl/debugging/failure_signal_handler.h>
 #include "axes/core/utils/log.hpp"
 
-// #ifdef AXES_HAS_BACKWARD
-// #  include "backward.hpp"
-// namespace backward {
-//
-// }  // namespace backward
-// #endif
-
 namespace axes {
 
 void init() {

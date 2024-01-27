@@ -1,0 +1,9 @@
+.idea
+build
+.cache
+cmake-build-*
+.DS_Store
+.vs
+out
+CMakeSettings.json
+imgui.ini

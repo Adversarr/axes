@@ -6,7 +6,7 @@
 #include "axes/core/common.hpp"
 #include "axes/utils/dup_tuple.hpp"
 
-namespace axes {
+namespace ax::math {
 
 /****************************** Vectors ******************************/
 
@@ -59,17 +59,26 @@ using vec4i = veci<4>;  ///< Alias for 4D idx vector.
  */
 template <typename Scalar, idx rows, idx cols> using mat = Eigen::Matrix<Scalar, rows, cols>;
 
-///< Alias for matrix with double precision floating point number.
-template <typename Scalar, idx rows, idx cols> using matr = mat<Scalar, rows, cols>;
+template <idx rows, idx cols> using matr = mat<real, rows, cols>;
 using matxxr = mat<real, dynamic, dynamic>;
 
-using mat2r = matr<real, 2, 2>;
-using mat3r = matr<real, 3, 3>;
-using mat4r = matr<real, 4, 4>;
+using mat2r = matr<2, 2>;
+using mat3r = matr<3, 3>;
+using mat4r = matr<4, 4>;
 
-using mat2xr = matr<real, 2, dynamic>;
-using mat3xr = matr<real, 3, dynamic>;
-using mat4xr = matr<real, 4, dynamic>;
+template <idx rows, idx cols> using mati = mat<idx, rows, cols>;
+using matxxi = mati<dynamic, dynamic>;
+using mat2i = mati<2, 2>;
+using mat3i = mati<3, 3>;
+using mat4i = mati<4, 4>;
+
+using mat2xr = matr<2, dynamic>;
+using mat3xr = matr<3, dynamic>;
+using mat4xr = matr<4, dynamic>;
+
+using mat2xi = mati<2, dynamic>;
+using mat3xi = mati<3, dynamic>;
+using mat4xi = mati<4, dynamic>;
 
 /****************************** Field ******************************/
 
@@ -91,24 +100,6 @@ using field2i = fieldi<2>;
 using field3i = fieldi<3>;
 using field4i = fieldi<4>;
 
-/****************************** Scalar Type For ******************************/
-
-template <typename T> struct scalar_of {
-  using type = T::Scalar;  // For Eigen type.
-};
-
-template <> struct scalar_of<f32> {
-  using type = f32;
-};
-
-template <> struct scalar_of<f64> {
-  using type = f64;
-};
-
-/**
- * Meta programming utilities for matrices
- */
-namespace math {
 
 /******************************************************************************
  * Matrix Meta data getter.
@@ -146,8 +137,6 @@ AXES_FORCE_INLINE MatShape shape_of_static(const Eigen::EigenBase<Derived> &mat)
   return std::make_pair(rows_static(mat), cols_static(mat));
 }
 
-}  // namespace math
-
 namespace details {
 template <typename T, size_t... seq> AXES_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
     const utils::details::dup_tuple<T, sizeof...(seq)> &tuple, std::index_sequence<seq...>) {
@@ -155,7 +144,7 @@ template <typename T, size_t... seq> AXES_FORCE_INLINE vec<T, sizeof...(seq)> tu
 }
 }  // namespace details
 
-template <size_t dim> using indexTuple
+template <size_t dim> using index_tuple
     = utils::DupTuple<idx, dim>;  ///< Alias for tuple of duplicated indices.
 
 /**
@@ -169,8 +158,6 @@ template <typename T, size_t dim>
 AXES_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
 }
-
-namespace math {
 
 /****************************** Constants ******************************/
 
@@ -312,8 +299,6 @@ template <typename Scalar = real> AXES_FORCE_INLINE auto empty(idx rows, idx col
 /****************************** 9. from buffer ******************************/
 // TODO:
 
-}  // namespace math
-
 /****************************** Iter methods ******************************/
 
 template <typename Derived>
@@ -344,12 +329,20 @@ AXES_FORCE_INLINE decltype(auto) iter(Eigen::DenseBase<Derived> &mat,
 template <typename Derived> AXES_FORCE_INLINE auto eval(const Eigen::DenseBase<Derived> &mat) {
   return mat.eval();
 }
+/****************************** cast ******************************/
+
+template <typename Scalar, typename Derived>
+AXES_FORCE_INLINE auto cast(const Eigen::DenseBase<Derived> &mat) {
+  return mat.template cast<Scalar>();
+}
 
 /****************************** field creation ******************************/
 
-template <typename Derived> AXES_FORCE_INLINE auto create(idx dofs) {
+template <typename Derived> AXES_FORCE_INLINE auto create_field(idx dofs) {
   return field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
                                                                      dofs};
 }
 
-}  // namespace axes
+// TODO: More create methods.
+
+}  // namespace ax::math

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <tuple>
 
-namespace axes::utils {
+namespace ax::utils {
 
 namespace details {
 

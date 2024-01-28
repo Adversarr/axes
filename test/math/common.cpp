@@ -2,7 +2,8 @@
 
 #include <axes/math/common.hpp>
 
-using namespace axes;
+using namespace ax;
+using namespace ax::math;
 TEST_CASE("math-types") {
   vec2i v2i{1, 2};
   CHECK(v2i.x() == 1);
@@ -74,7 +75,7 @@ TEST_CASE("diag") {
 }
 
 TEST_CASE("iter") {
-  auto f = create<field3i>(2);
+  auto f = create_field<field3i>(2);
   for (auto v3i: iter(f)) {
     v3i.setOnes();
   }

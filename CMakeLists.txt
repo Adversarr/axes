@@ -64,11 +64,11 @@ endif()
 
 add_subdirectory(axes)
 
-# if (AXES_ENABLE_TEST)
-#   enable_testing()
-#   add_subdirectory(test)
-# endif()
-#
+if (AXES_ENABLE_TEST)
+  enable_testing()
+  add_subdirectory(test)
+endif()
+
 # add_subdirectory(examples)
 
 # find_package(Doxygen)

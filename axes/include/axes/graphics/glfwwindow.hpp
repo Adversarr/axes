@@ -93,7 +93,7 @@ public:
    * @return A pair of unsigned integers representing the width and height of
    * the window.
    */
-  std::pair<UInt32, UInt32> GetWindowSize() noexcept;
+  std::pair<ui32, ui32> GetWindowSize() noexcept;
 
   /**
    * @brief Callback function for when the window is resized.
@@ -104,9 +104,9 @@ public:
    */
   static void WindowResizeCallback(GLFWwindow *window, int width, int height);
 
-  std::pair<Int32, Int32> GetCursorPosition() const;
+  std::pair<i32, i32> GetCursorPosition() const;
 
-  Int32 GetCursorScoll() const;
+  i32 GetCursorScoll() const;
 
   /**
    * @brief Gets the required extensions for GLFW.
@@ -120,11 +120,11 @@ public:
   static void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 private:
-  Vec2r scroll_;
+  vec2r scroll_;
   std::string title_{"axes viewer"}; /**< The title of the window. */
   GLFWwindow *window_{nullptr};      /**< The internal GLFW window object. */
-  Real mouse_x_position_;            /**< The x position of the cursor. */
-  Real mouse_y_position_;            /**< The y position of the cursor. */
+  real mouse_x_position_;            /**< The x position of the cursor. */
+  real mouse_y_position_;            /**< The y position of the cursor. */
   int width_{1366};                  /**< The width of the window. */
   int height_{768};                  /**< The height of the window. */
   bool resized_{false};              /**< Flag indicating if the window has been resized. */

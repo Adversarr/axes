@@ -12,11 +12,11 @@ public:
 
   explicit PolynomialN(coeff_container const& coeff) : coeff_(coeff) {}
 
-  AXES_FORCE_INLINE coeff_container const& Coeff() const { return coeff_; }
+  AX_FORCE_INLINE coeff_container const& Coeff() const { return coeff_; }
 
-  AXES_FORCE_INLINE coeff_container& Coeff() { return coeff_; }
+  AX_FORCE_INLINE coeff_container& Coeff() { return coeff_; }
 
-  AXES_FORCE_INLINE PolynomialN<degree - 1> Derivative() const {
+  AX_FORCE_INLINE PolynomialN<degree - 1> Derivative() const {
     coeff_container coeff;
     for (idx i : utils::iota(degree)) {
       coeff[i] = coeff_[i + 1] * (i + 1);
@@ -24,7 +24,7 @@ public:
     return PolynomialN<degree - 1>(coeff);
   }
 
-  AXES_FORCE_INLINE PolynomialN<degree + 1> Integral(real value_at_zero = 0) const {
+  AX_FORCE_INLINE PolynomialN<degree + 1> Integral(real value_at_zero = 0) const {
     coeff_container coeff;
     coeff[0] = value_at_zero;
     for (idx i : utils::iota(degree + 2)) {
@@ -33,7 +33,7 @@ public:
     return PolynomialN<degree + 1>(coeff);
   }
 
-  AXES_FORCE_INLINE real operator()(real x) const {
+  AX_FORCE_INLINE real operator()(real x) const {
     real result = 0;
     real x_pow = 1;
     for (idx i : utils::iota(degree + 1)) {
@@ -54,7 +54,7 @@ using CubicPolynomial = PolynomialN<3>;
 
 /****************************** Operations ******************************/
 template <idx deg1, idx deg2>
-AXES_FORCE_INLINE PolynomialN<deg1 + deg2> operator*(PolynomialN<deg1> const& lhs,
+AX_FORCE_INLINE PolynomialN<deg1 + deg2> operator*(PolynomialN<deg1> const& lhs,
                                                      PolynomialN<deg2> const& rhs) {
   typename PolynomialN<deg1 + deg2>::coeff_container coeff;
   for (idx i : utils::iota(deg1 + deg2 + 1)) {
@@ -67,7 +67,7 @@ AXES_FORCE_INLINE PolynomialN<deg1 + deg2> operator*(PolynomialN<deg1> const& lh
 }
 
 template <idx deg1, idx deg2>
-AXES_FORCE_INLINE PolynomialN<deg1 + deg2> operator+(PolynomialN<deg1> const& lhs,
+AX_FORCE_INLINE PolynomialN<deg1 + deg2> operator+(PolynomialN<deg1> const& lhs,
                                                      PolynomialN<deg2> const& rhs) {
   const idx out_deg = std::max<idx>(deg1, deg2);
   typename PolynomialN<out_deg>::coeff_container coeff;

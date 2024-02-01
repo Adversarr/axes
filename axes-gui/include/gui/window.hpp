@@ -10,7 +10,7 @@ struct WindowSizeEvent {
   math::vec2i size_;
 };
 
-struct WindowSizePos {
+struct WindowPosEvent {
   math::vec2i pos_;
 };
 
@@ -18,19 +18,15 @@ struct FrameBufferSizeEvent {
   math::vec2i size_;
 };
 
-struct FrameBufferScaleEvent {
-  math::vec2r scale_;
-};
-
 struct DropEvent {
   std::vector<std::string> paths_;
 };
 
 struct KeyboardEvent {
-  int key;
-  int scancode;
-  int action;
-  int mods;
+  int key_;
+  int scancode_;
+  int action_;
+  int mods_;
 };
 
 struct CursorMove {
@@ -43,9 +39,9 @@ struct ScrollEvent {
 };
 
 struct MouseButtonEvent {
-  int button;
-  int action;
-  int mods;
+  int button_;
+  int action_;
+  int mods_;
 };
 
 /****************************** Window ******************************/
@@ -56,6 +52,8 @@ public:
   // NOTE: The constructor will automatically check if there is more than one Window
   //       instance. We do not allow more than one Window instance.
   Window();
+  ~Window();
+  AX_DECLARE_CONSTRUCTOR(Window, delete, delete);
 
   /****************************** Meta Data Getters ******************************/
 
@@ -68,6 +66,8 @@ public:
   math::vec2r GetFrameBufferScale() const;
 
   math::vec2r GetCursorPos() const;
+
+  void* GetWindowInternal() const;
 
 private:
   utils::uptr<Impl> impl_;

@@ -13,6 +13,7 @@ namespace ax {
 
 /****************************** GLOBAL VARS ******************************/
 utils::uptr<entt::registry> registry_p;
+utils::uptr<entt::dispatcher> dispatcher_p;
 
 struct Hook {
   const char* name_;
@@ -37,7 +38,8 @@ void init(int argc, char** argv) {
   absl::InstallFailureSignalHandler(failure_signal_handler);
 
   /****************************** Setup Entt Registry ******************************/
-  registry();
+  get_registry();
+  get_dispatcher();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {
@@ -60,11 +62,18 @@ void hook_clean_up(const char* name, std::function<Status()> f) {
   clean_up_hooks.push_back({name, f});
 }
 
-entt::registry& registry() {
+entt::registry& get_registry() {
   if (!registry_p) {
     registry_p = std::make_unique<entt::registry>();
   }
   return *registry_p;
+}
+
+entt::dispatcher& get_dispatcher() {
+  if (!dispatcher_p) {
+    dispatcher_p = std::make_unique<entt::dispatcher>();
+  }
+  return *dispatcher_p;
 }
 
 }  // namespace ax

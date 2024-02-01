@@ -6,11 +6,19 @@
 #include "shader.hpp"
 namespace ax::gui {
 
+struct ProgramAttribLocation {
+  int location_;
+  std::string name_;
+};
+
 class Program {
 public:
-  using Shader_p = utils::uptr<Shader>;
-  Program(Shader_p vertex_shader, Shader_p fragment_shader);
-  AX_DECLARE_CONSTRUCTOR(Program, delete, delete);
+  Program();
+  ~Program();
+  AX_DECLARE_COPY_CTOR(Program, delete);
+  Program(Program&& prog);
+
+  Program& Append(Shader shader);
 
   operator bool() const;
 
@@ -18,24 +26,26 @@ public:
 
   Status Use();
 
+  /****************************** Uniform Buffer Setters ******************************/
   Status SetUniform(const std::string& name, int value);
-
   Status SetUniform(const std::string& name, float value);
 
+  Status SetUniform(const std::string& name, const math::vec2f& value);
   Status SetUniform(const std::string& name, const math::vec3f& value);
+  Status SetUniform(const std::string& name, const math::vec4f& value);
 
+  Status SetUniform(const std::string& name, const math::mat2f& value);
+  Status SetUniform(const std::string& name, const math::mat3f& value);
   Status SetUniform(const std::string& name, const math::mat4f& value);
 
   Status SetUniform(const std::string& name, void* value_ptr);
 
   unsigned int GetId() const;
 
-  ~Program();
-
 private:
-  Shader_p vertex_shader_;
-  Shader_p fragment_shader_;
   unsigned int id_;
+  std::vector<Shader> shaders_;
+  std::vector<ProgramAttribLocation> attrib_locations_;
 };
 
 }  // namespace ax::gui

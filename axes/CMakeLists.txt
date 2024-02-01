@@ -1,6 +1,5 @@
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
-find_package(Taskflow CONFIG REQUIRED)
 find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
@@ -24,7 +23,6 @@ target_link_libraries(
          absl::flags_parse
          absl::flags_usage
          absl::statusor
-         Taskflow::Taskflow
          EnTT::EnTT
          range-v3::range-v3)
 if (OpenMP_CXX_FOUND)

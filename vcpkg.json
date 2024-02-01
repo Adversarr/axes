@@ -4,7 +4,6 @@
   "dependencies": [
     "entt",
     "eigen3",
-    "taskflow",
     "range-v3",
     "abseil",
 
@@ -12,6 +11,7 @@
     "benchmark",
 
     "glfw3",
+    "glm",
     "stb",
     {
       "name": "imgui",
@@ -19,7 +19,6 @@
         "glfw-binding"
       ]
     },
-    "opengl",
     "glad"
   ]
 }

@@ -4,7 +4,6 @@
 
 #include "axes/utils/common.hpp"
 #include "render_base.hpp"
-#include "window.hpp"
 namespace ax::gui {
 
 class Context {
@@ -14,14 +13,11 @@ public:
 
   void TickRender();
 
-  virtual ~Context() = default;
-
-  Window& GetWindow();
+  ~Context();
 
 private:
   std::vector<utils::uptr<RenderBase>> renderers_;
   utils::uptr<Impl> impl_;
-  Window window_;
 };
 
 Context& get_context();

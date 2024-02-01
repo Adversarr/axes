@@ -12,11 +12,11 @@ public:
 
   explicit PointN(value_type const& position) : position_(position) {}
 
-  AXES_FORCE_INLINE value_type const& Position() const { return position_; }
+  AX_FORCE_INLINE value_type const& Position() const { return position_; }
 
-  AXES_FORCE_INLINE value_type& Position() { return position_; }
+  AX_FORCE_INLINE value_type& Position() { return position_; }
 
-  AXES_FORCE_INLINE operator value_type const&() const { return position_; }
+  AX_FORCE_INLINE operator value_type const&() const { return position_; }
 
 private:
   value_type position_;
@@ -34,19 +34,19 @@ public:
   explicit LineN(value_type const& origin, value_type const& direction)
       : origin_(origin), direction_(direction) {}
 
-  AXES_FORCE_INLINE value_type const& Origin() const { return origin_; }
+  AX_FORCE_INLINE value_type const& Origin() const { return origin_; }
 
-  AXES_FORCE_INLINE value_type& Origin() { return origin_; }
+  AX_FORCE_INLINE value_type& Origin() { return origin_; }
 
-  AXES_FORCE_INLINE value_type const& Direction() const { return direction_; }
+  AX_FORCE_INLINE value_type const& Direction() const { return direction_; }
 
-  AXES_FORCE_INLINE value_type& Direction() { return direction_; }
+  AX_FORCE_INLINE value_type& Direction() { return direction_; }
 
-  AXES_FORCE_INLINE value_type End() const { return origin_ + direction_; }
+  AX_FORCE_INLINE value_type End() const { return origin_ + direction_; }
 
-  AXES_FORCE_INLINE value_type Midpoint() const { return origin_ + (direction_ / 2); }
+  AX_FORCE_INLINE value_type Midpoint() const { return origin_ + (direction_ / 2); }
 
-  AXES_FORCE_INLINE real Length() const { return math::norm(direction_); }
+  AX_FORCE_INLINE real Length() const { return math::norm(direction_); }
 
 private:
   value_type origin_;
@@ -65,19 +65,19 @@ public:
   explicit TriangleN(value_type const& a, value_type const& b, value_type const& c)
       : a_(a), b_(b), c_(c) {}
 
-  AXES_FORCE_INLINE value_type const& A() const { return a_; }
+  AX_FORCE_INLINE value_type const& A() const { return a_; }
 
-  AXES_FORCE_INLINE value_type& A() { return a_; }
+  AX_FORCE_INLINE value_type& A() { return a_; }
 
-  AXES_FORCE_INLINE value_type const& B() const { return b_; }
+  AX_FORCE_INLINE value_type const& B() const { return b_; }
 
-  AXES_FORCE_INLINE value_type& B() { return b_; }
+  AX_FORCE_INLINE value_type& B() { return b_; }
 
-  AXES_FORCE_INLINE value_type const& C() const { return c_; }
+  AX_FORCE_INLINE value_type const& C() const { return c_; }
 
-  AXES_FORCE_INLINE value_type& C() { return c_; }
+  AX_FORCE_INLINE value_type& C() { return c_; }
 
-  AXES_FORCE_INLINE auto Normal() const noexcept { return math::cross(b_ - a_, c_ - a_); }
+  AX_FORCE_INLINE auto Normal() const noexcept { return math::cross(b_ - a_, c_ - a_); }
 
   // TODO: methods
 
@@ -100,21 +100,21 @@ public:
                        value_type const& d)
       : a_(a), b_(b), c_(c), d_(d) {}
 
-  AXES_FORCE_INLINE value_type const& A() const { return a_; }
+  AX_FORCE_INLINE value_type const& A() const { return a_; }
 
-  AXES_FORCE_INLINE value_type& A() { return a_; }
+  AX_FORCE_INLINE value_type& A() { return a_; }
 
-  AXES_FORCE_INLINE value_type const& B() const { return b_; }
+  AX_FORCE_INLINE value_type const& B() const { return b_; }
 
-  AXES_FORCE_INLINE value_type& B() { return b_; }
+  AX_FORCE_INLINE value_type& B() { return b_; }
 
-  AXES_FORCE_INLINE value_type const& C() const { return c_; }
+  AX_FORCE_INLINE value_type const& C() const { return c_; }
 
-  AXES_FORCE_INLINE value_type& C() { return c_; }
+  AX_FORCE_INLINE value_type& C() { return c_; }
 
-  AXES_FORCE_INLINE value_type const& D() const { return d_; }
+  AX_FORCE_INLINE value_type const& D() const { return d_; }
 
-  AXES_FORCE_INLINE value_type& D() { return d_; }
+  AX_FORCE_INLINE value_type& D() { return d_; }
 
   // TODO: methods
 
@@ -133,9 +133,9 @@ public:
 
   explicit SimplexN(container const& vertices) : vertices_(vertices) {}
 
-  AXES_FORCE_INLINE value_type const& operator[](idx i) const { return vertices_[i]; }
+  AX_FORCE_INLINE value_type const& operator[](idx i) const { return vertices_[i]; }
 
-  AXES_FORCE_INLINE value_type& operator[](idx i) { return vertices_[i]; }
+  AX_FORCE_INLINE value_type& operator[](idx i) { return vertices_[i]; }
 
 private:
   container vertices_;

@@ -1,20 +1,24 @@
 #include "gui/context.hpp"
-#include "axes/core/echo.hpp"
 
-#include <glad/glad.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
+
+#include "axes/core/echo.hpp"
 
 namespace ax::gui {
 
-struct Context::Impl {
-
-};
+struct Context::Impl {};
 
 Context::Context() {
-  // LOG(INFO) << "Setup OpenGL context";
-  // impl_ = std::make_unique<Impl>();
-  // gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
-  // TODO: Initialize it
+  impl_ = std::make_unique<Impl>();
+  int status = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
+  CHECK(status) << "Failed to initialize OpenGL context";
+  LOG(INFO) << "Setup OpenGL context";
+}
+
+Context::~Context() {
+  LOG(INFO) << "Destroy OpenGL context";
 }
 
 }  // namespace ax::gui

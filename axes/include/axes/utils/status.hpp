@@ -37,4 +37,5 @@ using absl::UnauthenticatedError;
 using absl::UnavailableError;
 using absl::UnimplementedError;
 using absl::UnknownError;
+using absl::OkStatus;
 }  // namespace ax::utils

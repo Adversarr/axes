@@ -8,17 +8,17 @@ namespace ax::math {
 /****************************** Unary op for scalar ******************************/
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto sqrt(Scalar x) {
+AX_FORCE_INLINE auto sqrt(Scalar x) {
   return details::sqrt_impl(x);
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto rsqrt(Scalar x) {
+AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
 
 #define IMPLEMENT_UNARY_STL(op)                                     \
   template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
-  AXES_FORCE_INLINE auto op(Scalar x) {                             \
+  AX_FORCE_INLINE auto op(Scalar x) {                             \
     return std::op(x);                                              \
   }
 
@@ -51,29 +51,29 @@ IMPLEMENT_UNARY_STL(arg)
 #undef IMPLEMENT_UNARY_STL
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto cube(Scalar x) {
+AX_FORCE_INLINE auto cube(Scalar x) {
   return x * x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto abs2(Scalar x) {
+AX_FORCE_INLINE auto abs2(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto square(Scalar x) {
+AX_FORCE_INLINE auto square(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AXES_FORCE_INLINE auto inverse(Scalar x) {
+AX_FORCE_INLINE auto inverse(Scalar x) {
   return Scalar(1) / x;
 }
 
 /****************************** Unary op available for matrices ******************************/
 #define IMPLEMENT_UNARY(FUNC, OP)                                                               \
-  template <typename Derived> AXES_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
-  template <typename Derived> AXES_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
+  template <typename Derived> AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
+  template <typename Derived> AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
 #define A_OP_M(OP) array().OP().matrix()
 #define IMPLEMENT_AOPM_UNARY(FUNC) IMPLEMENT_UNARY(FUNC, A_OP_M(FUNC))
 
@@ -125,37 +125,37 @@ IMPLEMENT_AOPM_UNARY(isNan)  // TODO: Naming is bad.
 #undef IMPLEMENT_AOPM_UNARY
 #undef IMPLEMENT_UNARY
 
-template <typename Derived> AXES_FORCE_INLINE Derived::Scalar sum(DBcr<Derived> a) {
+template <typename Derived> AX_FORCE_INLINE Derived::Scalar sum(DBcr<Derived> a) {
   return a.sum();
 }
 
-template <typename Derived> AXES_FORCE_INLINE Derived::Scalar prod(DBcr<Derived> a) {
+template <typename Derived> AX_FORCE_INLINE Derived::Scalar prod(DBcr<Derived> a) {
   return a.prod();
 }
 
-template <typename Derived> AXES_FORCE_INLINE Derived::Scalar mean(DBcr<Derived> a) {
+template <typename Derived> AX_FORCE_INLINE Derived::Scalar mean(DBcr<Derived> a) {
   return a.mean();
 }
 
-template <typename A> AXES_FORCE_INLINE A::ScalarType max(DBcr<A> mv) { return mv.maxCoeff(); }
+template <typename A> AX_FORCE_INLINE A::ScalarType max(DBcr<A> mv) { return mv.maxCoeff(); }
 
-template <typename A> AXES_FORCE_INLINE A::ScalarType min(DBcr<A> mv) { return mv.minCoeff(); }
+template <typename A> AX_FORCE_INLINE A::ScalarType min(DBcr<A> mv) { return mv.minCoeff(); }
 
-template <typename A> AXES_FORCE_INLINE A::ScalarType trace(DBcr<A> mv) { return mv.trace(); }
+template <typename A> AX_FORCE_INLINE A::ScalarType trace(DBcr<A> mv) { return mv.trace(); }
 
-template <typename A> AXES_FORCE_INLINE bool all(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) {
   static_assert(std::is_same_v<typename A::ScalarType, bool>,
                 "all() is only available for bool vectors");
   return mv.all();
 }
 
-template <typename A> AXES_FORCE_INLINE bool any(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) {
   static_assert(std::is_same_v<typename A::ScalarType, bool>,
                 "all() is only available for bool vectors");
   return mv.any();
 }
 
-template <typename A> AXES_FORCE_INLINE idx count(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) {
   static_assert(std::is_same_v<typename A::ScalarType, bool>,
                 "all() is only available for bool vectors");
   return mv.count();
@@ -164,14 +164,14 @@ template <typename A> AXES_FORCE_INLINE idx count(DBcr<A> mv) {
 /****************************** argxxx ******************************/
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AXES_FORCE_INLINE idx argmax(DBcr<Derived> mv) {
+AX_FORCE_INLINE idx argmax(DBcr<Derived> mv) {
   idx coef = -1;
   mv.maxCoeff(coef);
   return coef;
 }
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AXES_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
+AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
   idx coef = -1;
   mv.minCoeff(coef);
   return coef;

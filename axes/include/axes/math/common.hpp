@@ -129,37 +129,37 @@ using field4i = fieldi<4>;
 using MatShape = std::pair<idx, idx>;
 
 template <typename Derived>
-AXES_FORCE_INLINE AXES_CONSTEVAL idx rows_static(const Eigen::EigenBase<Derived> &) {
+AX_FORCE_INLINE AX_CONSTEVAL idx rows_static(const Eigen::EigenBase<Derived> &) {
   return Derived::RowsAtCompileTime;
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE AXES_CONSTEVAL idx cols_static(const Eigen::EigenBase<Derived> &) {
+AX_FORCE_INLINE AX_CONSTEVAL idx cols_static(const Eigen::EigenBase<Derived> &) {
   return Derived::ColsAtCompileTime;
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE AXES_CONSTEXPR idx rows(const Eigen::EigenBase<Derived> &mat) {
+AX_FORCE_INLINE AX_CONSTEXPR idx rows(const Eigen::EigenBase<Derived> &mat) {
   return mat.rows();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE AXES_CONSTEXPR idx cols(const Eigen::EigenBase<Derived> &mat) {
+AX_FORCE_INLINE AX_CONSTEXPR idx cols(const Eigen::EigenBase<Derived> &mat) {
   return mat.cols();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE MatShape shape_of(const Eigen::EigenBase<Derived> &mat) {
+AX_FORCE_INLINE MatShape shape_of(const Eigen::EigenBase<Derived> &mat) {
   return std::make_pair(rows(mat), cols(mat));
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE MatShape shape_of_static(const Eigen::EigenBase<Derived> &mat) {
+AX_FORCE_INLINE MatShape shape_of_static(const Eigen::EigenBase<Derived> &mat) {
   return std::make_pair(rows_static(mat), cols_static(mat));
 }
 
 namespace details {
-template <typename T, size_t... seq> AXES_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
+template <typename T, size_t... seq> AX_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
     const utils::details::dup_tuple<T, sizeof...(seq)> &tuple, std::index_sequence<seq...>) {
   return vec<T, sizeof...(seq)>{std::get<seq>(tuple)...};
 }
@@ -176,7 +176,7 @@ template <size_t dim> using index_tuple
  * @return A vector with the same elements as the DupTuple.
  */
 template <typename T, size_t dim>
-AXES_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
+AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
 }
 
@@ -195,109 +195,109 @@ template <typename Scalar = real> constexpr Scalar pi = static_cast<Scalar>(M_PI
 
 /****************************** 1. ones ******************************/
 
-template <idx rows, idx cols = 1, typename Scalar = real> AXES_FORCE_INLINE auto ones() {
+template <idx rows, idx cols = 1, typename Scalar = real> AX_FORCE_INLINE auto ones() {
   return mat<Scalar, rows, cols>::Ones();
 }
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto ones(idx cols) {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto ones(idx cols) {
   return mat<Scalar, rows, dynamic>::Ones(rows, cols);
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto ones(idx rows, idx cols) {
+template <typename Scalar = real> AX_FORCE_INLINE auto ones(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Ones(rows, cols);
 }
 
 /****************************** 2. zeros ******************************/
 
-template <idx rows, idx cols = 1, typename Scalar = real> AXES_FORCE_INLINE auto zeros() {
+template <idx rows, idx cols = 1, typename Scalar = real> AX_FORCE_INLINE auto zeros() {
   return mat<Scalar, rows, cols>::Zero();
 }
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto zeros(idx cols) {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto zeros(idx cols) {
   return mat<Scalar, rows, dynamic>::Zero(rows, cols);
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto zeros(idx rows, idx cols) {
+template <typename Scalar = real> AX_FORCE_INLINE auto zeros(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Zero(rows, cols);
 }
 
 /****************************** 3. constant ******************************/
 
 template <idx rows, idx cols = 1, typename Scalar = real>
-AXES_FORCE_INLINE auto constant(Scalar value) {
+AX_FORCE_INLINE auto constant(Scalar value) {
   return mat<Scalar, rows, cols>::Constant(value);
 }
 
 template <idx rows, typename Scalar = real>
-AXES_FORCE_INLINE auto constant(Scalar value, idx cols) {
+AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
   return mat<Scalar, rows, dynamic>::Constant(rows, cols, value);
 }
 
 template <typename Scalar = real>
-AXES_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
+AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Constant(rows, cols, value);
 }
 
 /****************************** 4. linspace ******************************/
 
 template <idx rows, typename Scalar = real>
-AXES_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
+AX_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
   return vec<Scalar, rows>::LinSpaced(rows, start, end);
 }
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto linspace(Scalar end) {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto linspace(Scalar end) {
   return linspace<rows, Scalar>(0, end);
 }
 
 template <typename Scalar = real>
-AXES_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
+AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
   return vec<Scalar, dynamic>::LinSpaced(rows, start, end);
 }
 
 /****************************** 5. arange ******************************/
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto arange(idx stop) {
+template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx stop) {
   return linspace<Scalar>(stop);
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto arange(idx start, idx stop) {
+template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx start, idx stop) {
   return linspace<Scalar>(start, stop, stop - start);
 }
 
 /****************************** 6. eye ******************************/
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto eye() {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto eye() {
   return mat<Scalar, rows, rows>::Identity();
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto eye(idx rows) {
+template <typename Scalar = real> AX_FORCE_INLINE auto eye(idx rows) {
   return mat<Scalar, dynamic, dynamic>::Identity(rows, rows);
 }
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto identity() {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto identity() {
   return eye<rows, Scalar>();
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto identity(idx rows) {
+template <typename Scalar = real> AX_FORCE_INLINE auto identity(idx rows) {
   return eye<Scalar>(rows);
 }
 
 /****************************** 7. diag ******************************/
 
-template <typename Derived> AXES_FORCE_INLINE auto diag(
+template <typename Derived> AX_FORCE_INLINE auto diag(
     MBcr<Derived> mat,
     char (*)[Derived::ColsAtCompileTime == 1 && Derived::RowsAtCompileTime != 1] = nullptr) {
   return mat.asDiagonal();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto diag(
+template <typename Derived> AX_FORCE_INLINE auto diag(
     MBcr<Derived> mat,
     char (*)[Derived::RowsAtCompileTime == 1 && Derived::ColsAtCompileTime != 1] = nullptr) {
   return diag(mat.transpose());
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE auto diag(MBcr<Derived> mat,
+AX_FORCE_INLINE auto diag(MBcr<Derived> mat,
                             char (*)[Derived::RowsAtCompileTime == Derived::ColsAtCompileTime]
                             = nullptr) {
   return mat.diagonal();
@@ -305,15 +305,15 @@ AXES_FORCE_INLINE auto diag(MBcr<Derived> mat,
 
 /****************************** 8. empty ******************************/
 
-template <idx rows, idx cols = 1, typename Scalar = real> AXES_FORCE_INLINE auto empty() {
+template <idx rows, idx cols = 1, typename Scalar = real> AX_FORCE_INLINE auto empty() {
   return mat<Scalar, rows, cols>{};
 }
 
-template <idx rows, typename Scalar = real> AXES_FORCE_INLINE auto empty(idx cols) {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto empty(idx cols) {
   return mat<Scalar, rows, dynamic>{rows, cols};
 }
 
-template <typename Scalar = real> AXES_FORCE_INLINE auto empty(idx rows, idx cols) {
+template <typename Scalar = real> AX_FORCE_INLINE auto empty(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>{rows, cols};
 }
 
@@ -323,34 +323,34 @@ template <typename Scalar = real> AXES_FORCE_INLINE auto empty(idx rows, idx col
 /****************************** Iter methods ******************************/
 
 template <typename Derived>
-AXES_FORCE_INLINE auto each(DBcr<Derived> mat,
+AX_FORCE_INLINE auto each(DBcr<Derived> mat,
                             char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
   return mat.colwise();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE auto each(DBr<Derived> mat, char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
+AX_FORCE_INLINE auto each(DBr<Derived> mat, char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
   return mat.colwise();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE decltype(auto) each(DBcr<Derived> mat,
+AX_FORCE_INLINE decltype(auto) each(DBcr<Derived> mat,
                                       char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE decltype(auto) each(DBr<Derived> mat,
+AX_FORCE_INLINE decltype(auto) each(DBr<Derived> mat,
                                       char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
 /****************************** eval ******************************/
-template <typename Derived> AXES_FORCE_INLINE auto eval(DBcr<Derived> mat) { return mat.eval(); }
+template <typename Derived> AX_FORCE_INLINE auto eval(DBcr<Derived> mat) { return mat.eval(); }
 
 /****************************** cast ******************************/
 
-template <typename To, typename Derived> AXES_FORCE_INLINE auto cast(DBcr<Derived> mat) {
+template <typename To, typename Derived> AX_FORCE_INLINE auto cast(DBcr<Derived> mat) {
   return mat.template cast<To>();
 }
 
@@ -359,66 +359,66 @@ To cast(From value) {
   return static_cast<To>(value);
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_array(MBcr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_array(MBcr<Derived> mat) noexcept {
   return mat.array();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_array(ABcr<Derived> arr) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_array(ABcr<Derived> arr) noexcept {
   return arr;
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_array(MBr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_array(MBr<Derived> mat) noexcept {
   return mat.array();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept {
   return arr;
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
   return arr.matrix();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_matrix(MBcr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_matrix(MBcr<Derived> mat) noexcept {
   return mat;
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_matrix(ABr<Derived> arr) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_matrix(ABr<Derived> arr) noexcept {
   return arr.matrix();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noexcept {
   return mat;
 }
 
 /****************************** transpose ******************************/
 
-template <typename Derived> AXES_FORCE_INLINE auto transpose(DBcr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto transpose(DBcr<Derived> mat) noexcept {
   return mat.transpose();
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto transpose(DBr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto transpose(DBr<Derived> mat) noexcept {
   return mat.transpose();
 }
 
-template <typename Derived> AXES_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
   mat.transposeInPlace();
 }
 
 /****************************** reshape ******************************/
 
-template <typename Derived> AXES_FORCE_INLINE auto flatten(MBcr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto flatten(MBcr<Derived> mat) noexcept {
   return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
 }
 
-template <typename Derived> AXES_FORCE_INLINE auto flatten(MBr<Derived> mat) noexcept {
+template <typename Derived> AX_FORCE_INLINE auto flatten(MBr<Derived> mat) noexcept {
   // TODO: test.
   return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
 }
 
 /****************************** field creation ******************************/
 
-template <typename Derived> AXES_FORCE_INLINE auto create_field(idx dofs) {
+template <typename Derived> AX_FORCE_INLINE auto create_field(idx dofs) {
   return field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
                                                                      dofs};
 }

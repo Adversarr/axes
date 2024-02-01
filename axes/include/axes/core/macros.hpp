@@ -1,131 +1,127 @@
 #pragma once
 
-#ifndef AXES_SPARSE_SET_DEFAULT_SIZE
-#define AXES_SPARSE_SET_DEFAULT_SIZE 6
+#ifndef AX_PLATFORM
+#define AX_WINDOWS 0
+#define AX_APPLE   1
+#define AX_LINUX   2
+#  ifdef _MSC_VER_
+#    define AX_PLATFORM AX_WINDOWS
+#    define AX_PLATFORM_WINDOWS
+#  elif defined __APPLE__
+#    define AX_PLATFORM AX_APPLE
+#    define AX_PLATFORM_APPLE
+#  elif defined __linux__
+#    define AX_PLATFORM AX_LINUX
+#    define AX_PLATFORM_LINUX
+#  endif
 #endif
-
-#ifndef AXES_ENABLE_MEMORY_ALLOC_CHECK
-#define AXES_ENABLE_MEMORY_ALLOC_CHECK 1
-#endif
-
-#if AXES_ENABLE_MEMORY_ALLOC_CHECK
-#define AXES_MEMORY_ALLOC_CHECK(ptr) if ((ptr) == nullptr)
-#else
-#define AXES_MEMORY_ALLOC_CHECK(ptr) if ((ptr) == nullptr || 1 == 1)
-#endif
-
-#ifndef AXES_FMT
-// In cpp20~ can use std::format instead of fmt::format
-#define AXES_FMT fmt
-#endif
-
 
 /***************************************
  *           Force inline.
  ***************************************/
-#ifndef AXES_FORCE_INLINE
+#ifndef AX_FORCE_INLINE
 #  ifdef _MSC_VER_  // for MSVC
 #    define forceinline inline __forceinline
-#  elif defined __GNUC__       // for gcc on Linux/Apple OS X
-#    define AXES_FORCE_INLINE __attribute__((always_inline)) inline
+#  elif defined __GNUC__  // for gcc on Linux/Apple OS X
+#    define AX_FORCE_INLINE __attribute__((always_inline)) inline
 #  else
-#    define AXES_FORCE_INLINE inline
+#    define AX_FORCE_INLINE inline
 #  endif
 #endif
 
-#ifndef AXES_IS_DEBUG
+#ifndef AX_IS_DEBUG
 #  ifndef NDEBUG
-#    define AXES_IS_DEBUG 1
+#    define AX_IS_DEBUG 1
 #  else
-#    define AXES_IS_DEBUG 0
+#    define AX_IS_DEBUG 0
 #  endif
 #endif
 
-#ifndef AXES_CONSTEXPR
+#ifndef AX_CONSTEXPR
 #  if __cplusplus >= 201703L
-#    define AXES_CONSTEXPR constexpr
+#    define AX_CONSTEXPR constexpr
 #  else
-#    define AXES_CONSTEXPR inline
+#    define AX_CONSTEXPR inline
 #  endif
 #endif
 
-#ifndef AXES_CONSTEVAL
+#ifndef AX_CONSTEVAL
 #  if __cpp_consteval >= 201703L
-#    define AXES_CONSTEVAL consteval
+#    define AX_CONSTEVAL consteval
 #  else
-#    define AXES_CONSTEVAL constexpr
+#    define AX_CONSTEVAL constexpr
 #  endif
 #endif
 
-#ifndef AXES_CONSTINIT
+#ifndef AX_CONSTINIT
 #  if __cplusplus >= 202003L
-#    define AXES_CONSTINIT constinit
+#    define AX_CONSTINIT constinit
 #  else
-#    define AXES_CONSTINIT constexpr
+#    define AX_CONSTINIT constexpr
 #  endif
 #endif
 
-#ifndef AXES_NODISCARD
+#ifndef AX_NODISCARD
 #  if __cplusplus >= 201703L
-#    define AXES_NODISCARD [[nodiscard]]
+#    define AX_NODISCARD [[nodiscard]]
 #  else
-#    define AXES_NODISCARD
+#    define AX_NODISCARD
 #  endif
 #endif
 
-#ifndef AXES_MAYBE_UNUSED
+#ifndef AX_MAYBE_UNUSED
 #  if __cplusplus >= 201703L
-#    define AXES_MAYBE_UNUSED [[maybe_unused]]
+#    define AX_MAYBE_UNUSED [[maybe_unused]]
 #  else
-#    define AXES_MAYBE_UNUSED
+#    define AX_MAYBE_UNUSED
 #  endif
 #endif
 
-#ifndef AXES_FALLTHROUGH
+#ifndef AX_FALLTHROUGH
 #  if __cplusplus >= 201703L
-#    define AXES_FALLTHROUGH [[fallthrough]]
+#    define AX_FALLTHROUGH [[fallthrough]]
 #  else
-#    define AXES_FALLTHROUGH
+#    define AX_FALLTHROUGH
 #  endif
 #endif
 
-#ifndef AXES_DEPRECATED
+#ifndef AX_DEPRECATED
 #  if __cplusplus >= 201403L
-#    define AXES_DEPRECATED(msg) [[deprecated(msg)]]
+#    define AX_DEPRECATED(msg) [[deprecated(msg)]]
 #  else
-#    define AXES_DEPRECATED(msg)
+#    define AX_DEPRECATED(msg)
 #  endif
 #endif
 
-#ifndef AXES_UNREACHABLE
+#ifndef AX_UNREACHABLE
 #  if __cplusplus >= 201703L
-#    define AXES_UNREACHABLE [[unreachable]]
+#    define AX_UNREACHABLE [[unreachable]]
 #  else
-#    define AXES_UNREACHABLE
+#    define AX_UNREACHABLE
 #  endif
 #endif
 
-#ifndef AXES_LIKELY
+#ifndef AX_LIKELY
 #  if __cplusplus >= 201703L
-#    define AXES_LIKELY [[likely]]
+#    define AX_LIKELY [[likely]]
 #  else
-#    define AXES_LIKELY
+#    define AX_LIKELY
 #  endif
 #endif
 
-#ifndef AXES_UNLIKELY
+#ifndef AX_UNLIKELY
 #  if __cplusplus >= 201703L
-#    define AXES_UNLIKELY [[unlikely]]
+#    define AX_UNLIKELY [[unlikely]]
 #  else
-#    define AXES_UNLIKELY
+#    define AX_UNLIKELY
 #  endif
 #endif
 
-#ifndef AXES_NOEXCEPT
+#ifndef AX_NOEXCEPT
 #  if __cplusplus >= 201703L
-#    define AXES_NOEXCEPT noexcept
+#    define AX_NOEXCEPT noexcept
 #  else
-#    define AXES_NOEXCEPT
+#    define AX_NOEXCEPT
 #  endif
 #endif
 
@@ -134,11 +130,10 @@
 ***************************************/
 #ifndef if_likely
 #  define if_likely(cond) \
-    if (cond) AXES_LIKELY
+    if (cond) AX_LIKELY
 #endif
 
 #ifndef if_unlikely
 #  define if_unlikely(cond) \
-    if (cond) AXES_UNLIKELY
+    if (cond) AX_UNLIKELY
 #endif
-

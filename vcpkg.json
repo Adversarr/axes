@@ -2,33 +2,24 @@
   "name": "axes",
   "version-string": "0.0.3",
   "dependencies": [
-    {
-      "name": "bgfx",
-      "features": [
-        "tools"
-      ]
-    },
+    "entt",
     "eigen3",
-    "spdlog",
-    "fmt",
-    "doctest",
-    "glm",
-    "benchmark",
-    "vulkan",
-    "stb",
     "taskflow",
-    "cxxopts",
-    "imguizmo",
-    {
-      "name": "abseil"
-    },
+    "range-v3",
+    "abseil",
+
+    "doctest",
+    "benchmark",
+
+    "glfw3",
+    "stb",
     {
       "name": "imgui",
       "features": [
         "glfw-binding"
       ]
     },
-    "implot",
-    "imgui-node-editor"
+    "opengl",
+    "glad"
   ]
 }

@@ -19,7 +19,17 @@ namespace ax::math {
 template <typename Scalar, int dim> using vec = Eigen::Vector<Scalar, dim>;
 template <typename Scalar, int dim> using rowvec = Eigen::RowVector<Scalar, dim>;
 
+/****************************** Helper Class and Constants ******************************/
 constexpr idx dynamic = Eigen::Dynamic;
+template <typename T> using DB = Eigen::DenseBase<T>;
+template <typename T> using DBr = DB<T> &;
+template <typename T> using DBcr = DB<T> const &;
+template <typename T> using MB = Eigen::MatrixBase<T>;
+template <typename T> using MBr = MB<T> &;
+template <typename T> using MBcr = MB<T> const &;
+template <typename T> using AB = Eigen::ArrayBase<T>;
+template <typename T> using ABr = AB<T> &;
+template <typename T> using ABcr = AB<T> const &;
 
 /**
  * @brief Most commonly used is `standard` realVector.
@@ -32,7 +42,13 @@ using vec3r = vec<real, 3>;        ///< Alias for 3D vector with double precisio
                                    ///< floating point number.
 using vec4r = vec<real, 4>;        ///< Alias for 4D vector with double precision
                                    ///< floating point number.
-using vecXr = vec<real, dynamic>;  ///< Alias for vector with double precision
+using vecxr = vec<real, dynamic>;  ///< Alias for vector with double precision
+                                   ///< floating point number.
+using vec2f = vec<float, 2>;       ///< Alias for 2D vector with single precision
+                                   ///< floating point number.
+using vec3f = vec<float, 3>;       ///< Alias for 3D vector with single precision
+                                   ///< floating point number.
+using vec4f = vec<float, 4>;       ///< Alias for 4D vector with single precision
                                    ///< floating point number.
 
 /**
@@ -65,6 +81,9 @@ using matxxr = mat<real, dynamic, dynamic>;
 using mat2r = matr<2, 2>;
 using mat3r = matr<3, 3>;
 using mat4r = matr<4, 4>;
+using mat2f = mat<float, 2, 2>;
+using mat3f = mat<float, 3, 3>;
+using mat4f = mat<float, 4, 4>;
 
 template <idx rows, idx cols> using mati = mat<idx, rows, cols>;
 using matxxi = mati<dynamic, dynamic>;
@@ -75,6 +94,9 @@ using mat4i = mati<4, 4>;
 using mat2xr = matr<2, dynamic>;
 using mat3xr = matr<3, dynamic>;
 using mat4xr = matr<4, dynamic>;
+using mat2xf = mat<float, 2, dynamic>;
+using mat3xf = mat<float, 3, dynamic>;
+using mat4xf = mat<float, 4, dynamic>;
 
 using mat2xi = mati<2, dynamic>;
 using mat3xi = mati<3, dynamic>;
@@ -99,7 +121,6 @@ using field1i = fieldi<1>;
 using field2i = fieldi<2>;
 using field3i = fieldi<3>;
 using field4i = fieldi<4>;
-
 
 /******************************************************************************
  * Matrix Meta data getter.
@@ -264,19 +285,19 @@ template <typename Scalar = real> AXES_FORCE_INLINE auto identity(idx rows) {
 /****************************** 7. diag ******************************/
 
 template <typename Derived> AXES_FORCE_INLINE auto diag(
-    const Eigen::MatrixBase<Derived> &mat,
+    MBcr<Derived> mat,
     char (*)[Derived::ColsAtCompileTime == 1 && Derived::RowsAtCompileTime != 1] = nullptr) {
   return mat.asDiagonal();
 }
 
 template <typename Derived> AXES_FORCE_INLINE auto diag(
-    const Eigen::MatrixBase<Derived> &mat,
+    MBcr<Derived> mat,
     char (*)[Derived::RowsAtCompileTime == 1 && Derived::ColsAtCompileTime != 1] = nullptr) {
   return diag(mat.transpose());
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE auto diag(const Eigen::MatrixBase<Derived> &mat,
+AXES_FORCE_INLINE auto diag(MBcr<Derived> mat,
                             char (*)[Derived::RowsAtCompileTime == Derived::ColsAtCompileTime]
                             = nullptr) {
   return mat.diagonal();
@@ -302,38 +323,97 @@ template <typename Scalar = real> AXES_FORCE_INLINE auto empty(idx rows, idx col
 /****************************** Iter methods ******************************/
 
 template <typename Derived>
-AXES_FORCE_INLINE auto iter(const Eigen::DenseBase<Derived> &mat,
+AXES_FORCE_INLINE auto each(DBcr<Derived> mat,
                             char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
   return mat.colwise();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE auto iter(Eigen::DenseBase<Derived> &mat,
-                            char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
+AXES_FORCE_INLINE auto each(DBr<Derived> mat, char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
   return mat.colwise();
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE decltype(auto) iter(const Eigen::DenseBase<Derived> &mat,
+AXES_FORCE_INLINE decltype(auto) each(DBcr<Derived> mat,
                                       char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
 template <typename Derived>
-AXES_FORCE_INLINE decltype(auto) iter(Eigen::DenseBase<Derived> &mat,
+AXES_FORCE_INLINE decltype(auto) each(DBr<Derived> mat,
                                       char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
 /****************************** eval ******************************/
-template <typename Derived> AXES_FORCE_INLINE auto eval(const Eigen::DenseBase<Derived> &mat) {
-  return mat.eval();
-}
+template <typename Derived> AXES_FORCE_INLINE auto eval(DBcr<Derived> mat) { return mat.eval(); }
+
 /****************************** cast ******************************/
 
-template <typename Scalar, typename Derived>
-AXES_FORCE_INLINE auto cast(const Eigen::DenseBase<Derived> &mat) {
-  return mat.template cast<Scalar>();
+template <typename To, typename Derived> AXES_FORCE_INLINE auto cast(DBcr<Derived> mat) {
+  return mat.template cast<To>();
+}
+
+template <typename To, typename From, typename = std::enable_if_t<std::is_arithmetic_v<From>>>
+To cast(From value) {
+  return static_cast<To>(value);
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_array(MBcr<Derived> mat) noexcept {
+  return mat.array();
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_array(ABcr<Derived> arr) noexcept {
+  return arr;
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_array(MBr<Derived> mat) noexcept {
+  return mat.array();
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept {
+  return arr;
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
+  return arr.matrix();
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_matrix(MBcr<Derived> mat) noexcept {
+  return mat;
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_matrix(ABr<Derived> arr) noexcept {
+  return arr.matrix();
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noexcept {
+  return mat;
+}
+
+/****************************** transpose ******************************/
+
+template <typename Derived> AXES_FORCE_INLINE auto transpose(DBcr<Derived> mat) noexcept {
+  return mat.transpose();
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto transpose(DBr<Derived> mat) noexcept {
+  return mat.transpose();
+}
+
+template <typename Derived> AXES_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
+  mat.transposeInPlace();
+}
+
+/****************************** reshape ******************************/
+
+template <typename Derived> AXES_FORCE_INLINE auto flatten(MBcr<Derived> mat) noexcept {
+  return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
+}
+
+template <typename Derived> AXES_FORCE_INLINE auto flatten(MBr<Derived> mat) noexcept {
+  // TODO: test.
+  return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
 }
 
 /****************************** field creation ******************************/

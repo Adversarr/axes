@@ -76,21 +76,21 @@ TEST_CASE("diag") {
 
 TEST_CASE("iter") {
   auto f = create_field<field3i>(2);
-  for (auto v3i: iter(f)) {
+  for (auto v3i: each(f)) {
     v3i.setOnes();
   }
 
-  for (auto v3i: iter(f)) {
+  for (auto v3i: each(f)) {
     CHECK(v3i.x() == 1);
     CHECK(v3i.y() == 1);
     CHECK(v3i.z() == 1);
   }
 
-  for (auto v3i: iter(f)) {
+  for (auto v3i: each(f)) {
     v3i.setZero();
   }
 
-  for (auto v3i: iter(f)) {
+  for (auto v3i: each(f)) {
     CHECK(v3i.x() == 0);
     CHECK(v3i.y() == 0);
     CHECK(v3i.z() == 0);

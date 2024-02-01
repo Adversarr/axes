@@ -1,10 +1,3 @@
-/**
- * @file
- * @brief AXES Core module:
- * 1. Program sequence control: computational graph sub-module;
- * 2. Data storaging: ECS sub-module;
- * 3. Math library: Eigen3 based math sub-module;
- */
 #pragma once
 
 #include <cstddef>

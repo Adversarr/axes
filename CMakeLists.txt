@@ -63,13 +63,14 @@ if(${ENABLE_TIME_TRACE})
 endif()
 
 add_subdirectory(axes)
+add_subdirectory(axes-gui)
 
 if (AXES_ENABLE_TEST)
   enable_testing()
   add_subdirectory(test)
 endif()
 
-# add_subdirectory(examples)
+add_subdirectory(examples)
 
 # find_package(Doxygen)
 # if (DOXYGEN_FOUND)

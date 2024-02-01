@@ -20,6 +20,9 @@ template <typename T, size_t dim> using dup_tuple =
 
 }  // namespace details
 
-/// @brief Alias for tuple of duplicated types.
+
+/****************************** Tuple with Duplicated Type ******************************/
+
+// @brief Alias for tuple of duplicated types.
 template <typename T, size_t dim> using DupTuple = details::dup_tuple<T, dim>;
 }  // namespace axes::utils

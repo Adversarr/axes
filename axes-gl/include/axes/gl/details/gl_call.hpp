@@ -15,7 +15,7 @@ Status fetch_error();
 #  define AXGL_CHECK_OK(status) AX_UNUSED(status)
 #  define AXGL_CHECK_NOTOK(status) AX_UNUSED(status)
 #else
-#  define AXGL_CHECK_OK(status) CHECK_OK(status)
+#  define AXGL_CHECK_OK(status, expr) CHECK_OK(status) << "Failed: " << #expr
 #  define AXGL_EVAL_RETURN_NOTOK(expr) AX_EVAL_RETURN_NOTOK(expr)
 #endif
 
@@ -35,4 +35,4 @@ Status fetch_error();
 // This will check for errors and abort the program if there is an error
 #define AXGL_CALLC(expr) \
   AXGL_CALL(expr);       \
-  AXGL_CHECK_OK(ax::gl::details::fetch_error())
+  AXGL_CHECK_OK(ax::gl::details::fetch_error(), expr)

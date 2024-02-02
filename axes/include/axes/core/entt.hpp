@@ -4,7 +4,7 @@
 #include <entt/signal/dispatcher.hpp>
 #include <entt/signal/sigh.hpp>
 
-#include "common.hpp" // IWYU pragma: export
+#include "common.hpp"  // IWYU pragma: export
 
 namespace ax {
 
@@ -43,19 +43,29 @@ template <typename T, typename... Args> T& add_resource(Args&&... args) {
 }
 
 template <typename T> void erase_resource() { get_registry().ctx().erase<T>(); }
+
 /****************************** Signal Handlers ******************************/
 
 entt::dispatcher& get_dispatcher();
 
-template <typename Event> void emit(Event && event) { get_dispatcher().trigger(std::forward<Event>(event)); }
+template <typename Event> void emit(Event&& event) {
+  get_dispatcher().trigger(std::forward<Event>(event));
+}
+
+template <typename Event> void emit_enqueue(Event&& event) {
+  get_dispatcher().enqueue(std::forward<Event>(event));
+}
+
+template <typename Event> void trigger_queue() { get_dispatcher().update<Event>(); }
+
+inline void trigger_queue() { get_dispatcher().update(); }
 
 template <typename Event, auto Candidate, typename... Args>
 entt::connection connect(Args&&... args) {
   return get_dispatcher().sink<Event>().template connect<Candidate>(std::forward<Args>(args)...);
 }
 
-template <typename Event, auto Candidate, typename ... Args>
-void disconnect(Args&&... args) {
+template <typename Event, auto Candidate, typename... Args> void disconnect(Args&&... args) {
   get_dispatcher().sink<Event>().template disconnect<Candidate>(std::forward<Args>(args)...);
 }
 

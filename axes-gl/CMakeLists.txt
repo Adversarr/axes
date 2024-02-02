@@ -19,7 +19,7 @@ target_include_directories(axes_gui PUBLIC ${Stb_INCLUDE_DIR}
                                            ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(axes_gui 
-  PRIVATE axes 
+  PUBLIC axes 
   PUBLIC glfw glad::glad imgui::imgui OpenGL::GLU)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)

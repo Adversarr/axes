@@ -1,3 +1,4 @@
+#include "axes/gl/vao.hpp"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <absl/flags/declare.h>
@@ -6,10 +7,10 @@
 #include "axes/core/echo.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
-#include "gl/context.hpp"
-#include "gl/program.hpp"
-#include "gl/shader.hpp"
-#include "gl/window.hpp"
+#include "axes/gl/context.hpp"
+#include "axes/gl/program.hpp"
+#include "axes/gl/shader.hpp"
+#include "axes/gl/window.hpp"
 
 ABSL_FLAG(bool, echo, false, "Echo events");
 
@@ -72,32 +73,44 @@ int main(int argc, char** argv) {
     connect<gl::KeyboardEvent, &Echo::Key>(echo);
   }
 
-  unsigned int VBO, VAO, EBO;
-  glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &VBO);
-  glGenBuffers(1, &EBO);
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
+  auto vao = gl::Vao::Create();
+  CHECK_OK(vao) << "Failed to create VAO";
 
-  GLFWwindow* window = static_cast<GLFWwindow*>(win.GetWindowInternal());
-  while (!glfwWindowShouldClose(window)) {
+  auto vbo = gl::Buffer::Create(gl::BufferBindingType::kArray, gl::BufferUsage::kStaticDraw);
+  CHECK_OK(vbo);
+  CHECK_OK(vbo->Bind());
+  CHECK_OK(vbo->Write(vertices, sizeof(vertices)));
+  CHECK_OK(vbo->Unbind());
+  auto ebo = gl::Buffer::Create(gl::BufferBindingType::kElementArray, gl::BufferUsage::kStaticDraw);
+  CHECK_OK(ebo);
+  CHECK_OK(ebo->Bind());
+  CHECK_OK(ebo->Write(indices, sizeof(indices)));
+  CHECK_OK(ebo->Unbind());
+
+  vao->SetVertexBuffer(std::move(vbo.value()));
+  vao->SetIndexBuffer(std::move(ebo.value()));
+
+  CHECK_OK(vao->Bind());
+  CHECK_OK(vao->GetVertexBuffer().Bind());
+  CHECK_OK(vao->SetAttribPointer(0, 3, gl::Type::kFloat, false, 3 * sizeof(float), 0));
+  CHECK_OK(vao->EnableAttrib(0));
+  CHECK_OK(vao->GetVertexBuffer().Unbind());
+  CHECK_OK(vao->GetIndexBuffer().Bind());
+  CHECK_OK(vao->Unbind());
+
+  while (!win.ShouldClose()) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     CHECK_OK(prog->Use());
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    CHECK_OK(vao->Bind());
+    CHECK_OK(vao->DrawElements(gl::PrimitiveType::kTriangles, 6, gl::Type::kUnsignedInt, 0));
 
-    auto win_size = win.GetSize();
+    auto win_size = win.GetFrameBufferSize();
     glViewport(0, 0, win_size[0], win_size[1]);
-
-    glfwPollEvents();
-    glfwSwapBuffers(window);
+    win.PollEvents();
+    win.SwapBuffers();
   }
 
   // NOTE: Add to hooks.

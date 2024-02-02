@@ -1,7 +1,7 @@
-#include "gl/program.hpp"
+#include "axes/gl/program.hpp"
 
 #include "axes/utils/status.hpp"
-#include "gl/details/gl_call.hpp"
+#include "axes/gl/details/gl_call.hpp"
 
 namespace ax::gl {
 

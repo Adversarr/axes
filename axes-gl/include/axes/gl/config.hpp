@@ -1,5 +1,5 @@
 #pragma once
-namespace ax::gl {}
+namespace ax::gl {}  // namespace ax::gl
 
 #ifndef AXGL_MAJOR_VERSION
 #  define AXGL_MAJOR_VERSION 4

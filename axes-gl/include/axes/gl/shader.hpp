@@ -3,18 +3,9 @@
 
 #include "axes/core/status.hpp"
 #include "axes/utils/common.hpp"
-#include "axes/utils/enum_refl.hpp"
+#include "details/gl_types.hpp"
 
 namespace ax::gl {
-
-enum class ShaderType {
-  kVertex = GL_VERTEX_SHADER,
-  kFragment = GL_FRAGMENT_SHADER,
-  kGeometry = GL_GEOMETRY_SHADER,
-  kTessControl = GL_TESS_CONTROL_SHADER,
-  kTessEvaluation = GL_TESS_EVALUATION_SHADER,
-  kCompute = GL_COMPUTE_SHADER,
-};
 
 class Shader {
 public:
@@ -29,6 +20,7 @@ private:
 
   /****************************** Other methods ******************************/
 public:
+  Shader();
   // Validate the Shader
   operator bool() const;
 
@@ -38,7 +30,6 @@ public:
 
   static StatusOr<Shader> Compile(const char* source, ShaderType type);
 
-  static Shader Dummy();
 
   /****************************** Internal Vars ******************************/
 private:
@@ -47,7 +38,3 @@ private:
 };
 
 }  // namespace ax::gl
-
-AX_ENUM_REFL_BEGIN(ax::gl::ShaderType)
-AX_ENUM_STATEk(Vertex) AX_ENUM_STATEk(Fragment) AX_ENUM_STATEk(Geometry) AX_ENUM_STATEk(TessControl)
-    AX_ENUM_STATEk(TessEvaluation) AX_ENUM_STATEk(Compute) AX_ENUM_REFL_END();

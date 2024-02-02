@@ -1,4 +1,4 @@
-#include "gl/context.hpp"
+#include "axes/gl/context.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -8,7 +8,11 @@
 
 namespace ax::gl {
 
-struct Context::Impl {};
+struct Context::Impl {
+  std::vector<utils::uptr<RenderBase>> renderers_;
+};
+
+Context::Context(Context &&) noexcept = default;
 
 Context::Context() {
   impl_ = std::make_unique<Impl>();

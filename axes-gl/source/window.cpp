@@ -1,4 +1,4 @@
-#include "gl/window.hpp"
+#include "axes/gl/window.hpp"
 
 #include <entt/signal/emitter.hpp>
 #include <entt/signal/sigh.hpp>
@@ -9,7 +9,7 @@
 #include <glad/glad.h>
 
 #include "axes/core/echo.hpp"
-#include "gl/config.hpp"
+#include "axes/gl/config.hpp"
 
 namespace ax::gl {
 
@@ -120,6 +120,12 @@ Window::Window() {
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
 
+  LOG(INFO) << "Window:" << std::endl
+            << " - Size=" << impl_->size_.transpose() << std::endl
+            << " - Pos=" << impl_->pos_.transpose() << std::endl
+            << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
+            << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
+
   /****************************** Install Fn ******************************/
   glfwSetWindowSizeCallback(impl_->window_, window_size_fn);
   glfwSetWindowPosCallback(impl_->window_, window_pos_fn);
@@ -157,5 +163,11 @@ math::vec2r Window::GetCursorPos() const {
 }
 
 void* Window::GetWindowInternal() const { return impl_->window_; }
+
+void Window::PollEvents() const { glfwPollEvents(); }
+
+bool Window::ShouldClose() const { return glfwWindowShouldClose(impl_->window_); }
+
+void Window::SwapBuffers() const { glfwSwapBuffers(impl_->window_); }
 
 }  // namespace ax::gl

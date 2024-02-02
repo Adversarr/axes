@@ -1,4 +1,4 @@
-#include "gl/shader.hpp"
+#include "axes/gl/shader.hpp"
 
 #include "axes/utils/status.hpp"
 
@@ -30,6 +30,8 @@ StatusOr<Shader> Shader::Compile(const char* source, ShaderType type) {
 
 Shader::Shader(GLuint id, ShaderType shader_type) : id_(id), type_(shader_type) {}
 
+Shader::Shader() : Shader(0, ShaderType::kVertex) {}
+
 Shader::Shader(Shader&& other) : Shader(other.id_, other.type_) {
   other.id_ = 0;
   other.type_ = ShaderType::kVertex;
@@ -49,7 +51,5 @@ Shader::~Shader() {
     glDeleteShader(id_);
   }
 }
-
-Shader Shader::Dummy() { return {0, ShaderType::kVertex}; }
 
 }  // namespace ax::gl

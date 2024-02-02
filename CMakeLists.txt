@@ -63,7 +63,7 @@ if(${ENABLE_TIME_TRACE})
 endif()
 
 add_subdirectory(axes)
-add_subdirectory(axes-gui)
+add_subdirectory(axes-gl)
 
 if (AXES_ENABLE_TEST)
   enable_testing()
@@ -72,12 +72,3 @@ endif()
 
 add_subdirectory(examples)
 
-# find_package(Doxygen)
-# if (DOXYGEN_FOUND)
-#   doxygen_add_docs(
-#     axes-docs
-#     ${PROJECT_SOURCE_DIR}/axes/include
-#     COMMENT "Generate documentation"
-#   )
-# endif()
-#

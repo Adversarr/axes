@@ -69,6 +69,12 @@ public:
 
   void* GetWindowInternal() const;
 
+  void PollEvents() const;
+
+  void SwapBuffers() const;
+
+  bool ShouldClose() const;
+
 private:
   utils::uptr<Impl> impl_;
 };

@@ -2,7 +2,7 @@
 
 #include "axes/math/common.hpp"
 #include "axes/utils/common.hpp"
-namespace ax::gui {
+namespace ax::gl {
 
 /****************************** Events ******************************/
 
@@ -73,4 +73,4 @@ private:
   utils::uptr<Impl> impl_;
 };
 
-}  // namespace ax::gui
+}  // namespace ax::gl

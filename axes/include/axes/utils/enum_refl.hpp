@@ -29,7 +29,7 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string_view name)
 
 #ifndef AX_ENUM_REFL_BEGIN
 #  define AX_ENUM_REFL_BEGIN(Enum)                                          \
-    template <> struct ::ax::utils::details::EnumReflectorMetaBuild<Enum> { \
+    template <> struct ax::utils::details::EnumReflectorMetaBuild<Enum> { \
       using enum_type = Enum;                                               \
       EnumReflectorMetaBuild() {                                            \
         entt::meta<enum_type>()

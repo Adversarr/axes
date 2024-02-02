@@ -1,6 +1,6 @@
 #pragma once
 #include "axes/math/common.hpp"
-namespace ax::gui {
+namespace ax::gl {
 
 struct Lines {
   math::field3r vertices_;
@@ -9,4 +9,4 @@ struct Lines {
 };
 
 
-}  // namespace ax::gui
+}  // namespace ax::gl

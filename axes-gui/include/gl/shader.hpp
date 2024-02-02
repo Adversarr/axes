@@ -5,7 +5,7 @@
 #include "axes/utils/common.hpp"
 #include "axes/utils/enum_refl.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 enum class ShaderType {
   kVertex = GL_VERTEX_SHADER,
@@ -18,14 +18,18 @@ enum class ShaderType {
 
 class Shader {
 public:
+  /****************************** Ctor and Dtors ******************************/
   AX_DECLARE_COPY_CTOR(Shader, delete);
-
-  Shader(Shader &&);
-  Shader& operator=(Shader &&);
-
-
+  Shader(Shader&&);
+  Shader& operator=(Shader&&);
   ~Shader();
 
+private:
+  Shader(GLuint id, ShaderType shader_type);
+
+  /****************************** Other methods ******************************/
+public:
+  // Validate the Shader
   operator bool() const;
 
   GLuint GetId() const;
@@ -36,14 +40,14 @@ public:
 
   static Shader Dummy();
 
+  /****************************** Internal Vars ******************************/
 private:
-  Shader(GLuint id, ShaderType shader_type);
   GLuint id_{0};
   ShaderType type_{ShaderType::kVertex};
 };
 
-}  // namespace ax::gui
+}  // namespace ax::gl
 
-AX_ENUM_REFL_BEGIN(ax::gui::ShaderType)
+AX_ENUM_REFL_BEGIN(ax::gl::ShaderType)
 AX_ENUM_STATEk(Vertex) AX_ENUM_STATEk(Fragment) AX_ENUM_STATEk(Geometry) AX_ENUM_STATEk(TessControl)
     AX_ENUM_STATEk(TessEvaluation) AX_ENUM_STATEk(Compute) AX_ENUM_REFL_END();

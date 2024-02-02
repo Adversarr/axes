@@ -1,7 +1,7 @@
 #pragma once
 #include <axes/math/common.hpp>
 
-namespace ax::gui {
+namespace ax::gl {
 
 class Mesh3D {
 public:
@@ -27,4 +27,4 @@ public:
   bool flush_vo_{false};
 };
 
-}  // namespace ax::gui
+}  // namespace ax::gl

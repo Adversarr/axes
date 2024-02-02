@@ -4,7 +4,7 @@
 
 #include "axes/utils/common.hpp"
 #include "render_base.hpp"
-namespace ax::gui {
+namespace ax::gl {
 
 class Context {
 public:
@@ -22,4 +22,4 @@ private:
 
 Context& get_context();
 
-}  // namespace ax::gui
+}  // namespace ax::gl

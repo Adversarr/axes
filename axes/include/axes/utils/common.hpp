@@ -37,3 +37,5 @@ template <typename T> struct DoNotUse {
 #define AX_DECLARE_CONSTRUCTOR(T, copy_en, move_en) \
   AX_DECLARE_COPY_CTOR(T, copy_en);                 \
   AX_DECLARE_MOVE_CTOR(T, move_en)
+
+#define AX_UNUSED(...) (void)(__VA_ARGS__)

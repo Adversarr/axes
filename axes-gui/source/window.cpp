@@ -1,4 +1,4 @@
-#include "gui/window.hpp"
+#include "gl/window.hpp"
 
 #include <entt/signal/emitter.hpp>
 #include <entt/signal/sigh.hpp>
@@ -9,9 +9,9 @@
 #include <glad/glad.h>
 
 #include "axes/core/echo.hpp"
-#include "gui/config.hpp"
+#include "gl/config.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 /****************************** PImpl ******************************/
 struct Window::Impl {
@@ -158,4 +158,4 @@ math::vec2r Window::GetCursorPos() const {
 
 void* Window::GetWindowInternal() const { return impl_->window_; }
 
-}  // namespace ax::gui
+}  // namespace ax::gl

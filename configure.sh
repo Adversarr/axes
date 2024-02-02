@@ -11,10 +11,10 @@ fi
 
 # Check Compiler.
 if [ -z "$CC" ]; then
-  export CC=clang
+  export CC=$(which clang)
 fi
 if [ -z "$CXX" ]; then
-  export CXX=clang++
+  export CXX=$(which clang++)
 fi
 if ! [ -x "$(command -v clang)" ]; then
   export CC=gcc

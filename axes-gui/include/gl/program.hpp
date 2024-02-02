@@ -4,7 +4,7 @@
 #include "axes/math/common.hpp"
 #include "axes/utils/common.hpp"
 #include "shader.hpp"
-namespace ax::gui {
+namespace ax::gl {
 
 struct ProgramAttribLocation {
   int location_;
@@ -48,4 +48,4 @@ private:
   std::vector<ProgramAttribLocation> attrib_locations_;
 };
 
-}  // namespace ax::gui
+}  // namespace ax::gl

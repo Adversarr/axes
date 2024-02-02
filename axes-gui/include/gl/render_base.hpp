@@ -4,7 +4,7 @@
 
 #include "axes/core/status.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 class RenderBase {
 public:
@@ -16,4 +16,4 @@ public:
   virtual Status CleanUp() = 0;
 };
 
-}  // namespace ax::gui
+}  // namespace ax::gl

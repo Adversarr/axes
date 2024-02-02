@@ -1,4 +1,4 @@
-#include "gui/context.hpp"
+#include "gl/context.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -6,7 +6,7 @@
 
 #include "axes/core/echo.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 struct Context::Impl {};
 
@@ -21,4 +21,4 @@ Context::~Context() {
   LOG(INFO) << "Destroy OpenGL context";
 }
 
-}  // namespace ax::gui
+}  // namespace ax::gl

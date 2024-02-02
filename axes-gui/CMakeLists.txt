@@ -1,4 +1,5 @@
 find_package(glad CONFIG REQUIRED)
+find_package(OpenGL REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
@@ -19,7 +20,7 @@ target_include_directories(axes_gui PUBLIC ${Stb_INCLUDE_DIR}
 
 target_link_libraries(axes_gui 
   PRIVATE axes 
-  PUBLIC glfw glad::glad imgui::imgui)
+  PUBLIC glfw glad::glad imgui::imgui OpenGL::GLU)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
 axes_set_warn_levels(axes_gui)

@@ -1,8 +1,9 @@
-#include "gui/program.hpp"
+#include "gl/program.hpp"
 
 #include "axes/utils/status.hpp"
+#include "gl/details/gl_call.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 Program::Program() : id_(0) {}
 
@@ -48,4 +49,14 @@ Status Program::Link() {
   return utils::OkStatus();
 }
 
-}  // namespace ax::gui
+Status Program::Use() {
+  if (id_ == 0) {
+    return utils::InvalidArgumentError("Program not linked");
+  }
+  AXGL_CALLR(glUseProgram(id_));
+
+  AX_RETURN_OK();
+}
+
+
+}  // namespace ax::gl

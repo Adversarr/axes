@@ -1,8 +1,8 @@
-#include "gui/shader.hpp"
+#include "gl/shader.hpp"
 
 #include "axes/utils/status.hpp"
 
-namespace ax::gui {
+namespace ax::gl {
 
 Shader::operator bool() const { return id_ != 0; }
 
@@ -52,4 +52,4 @@ Shader::~Shader() {
 
 Shader Shader::Dummy() { return {0, ShaderType::kVertex}; }
 
-}  // namespace ax::gui
+}  // namespace ax::gl

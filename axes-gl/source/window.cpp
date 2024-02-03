@@ -34,7 +34,7 @@ static void window_size_fn(GLFWwindow* window, int width, int height) {
 
   auto impl = Window::Impl::Extract(window);
   impl->size_ = event.size_;
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void window_pos_fn(GLFWwindow* window, int pos_x, int pos_y) {
@@ -43,7 +43,7 @@ static void window_pos_fn(GLFWwindow* window, int pos_x, int pos_y) {
 
   auto impl = Window::Impl::Extract(window);
   impl->pos_ = event.pos_;
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void framebuffer_size_fn(GLFWwindow* window, int width, int height) {
@@ -52,14 +52,14 @@ static void framebuffer_size_fn(GLFWwindow* window, int width, int height) {
 
   auto impl = Window::Impl::Extract(window);
   impl->fb_size_ = event.size_;
-  emit(event);
+  emit_enqueue(event);
 }
 static void drop_fn(GLFWwindow* /* window */, int count, const char** paths) {
   DropEvent event;
   for (int i = 0; i < count; ++i) {
     event.paths_.emplace_back(paths[i]);
   }
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void key_fn(GLFWwindow* /* window */, int key, int scancode, int action, int mods) {
@@ -68,19 +68,19 @@ static void key_fn(GLFWwindow* /* window */, int key, int scancode, int action, 
   event.scancode_ = scancode;
   event.action_ = action;
   event.mods_ = mods;
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void cursor_pos_fn(GLFWwindow* /* window */, double pos_x, double pos_y) {
   CursorMove event;
   event.pos_ = {pos_x, pos_y};
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void scroll_fn(GLFWwindow* /* window */, double offset_x, double offset_y) {
   ScrollEvent event;
   event.offset_ = {offset_x, offset_y};
-  emit(event);
+  emit_enqueue(event);
 }
 
 static void mouse_button_fn(GLFWwindow* /* window */, int button, int action, int mods) {
@@ -88,7 +88,7 @@ static void mouse_button_fn(GLFWwindow* /* window */, int button, int action, in
   event.button_ = button;
   event.action_ = action;
   event.mods_ = mods;
-  emit(event);
+  emit_enqueue(event);
 }
 
 Window::Window() {
@@ -164,7 +164,17 @@ math::vec2r Window::GetCursorPos() const {
 
 void* Window::GetWindowInternal() const { return impl_->window_; }
 
-void Window::PollEvents() const { glfwPollEvents(); }
+void Window::PollEvents() const {
+  glfwPollEvents();
+  trigger_queue<WindowSizeEvent>();
+  trigger_queue<WindowPosEvent>();
+  trigger_queue<FrameBufferSizeEvent>();
+  trigger_queue<DropEvent>();
+  trigger_queue<KeyboardEvent>();
+  trigger_queue<CursorMove>();
+  trigger_queue<ScrollEvent>();
+  trigger_queue<MouseButtonEvent>();
+}
 
 bool Window::ShouldClose() const { return glfwWindowShouldClose(impl_->window_); }
 

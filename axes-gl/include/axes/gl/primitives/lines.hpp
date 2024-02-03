@@ -2,11 +2,13 @@
 #include "axes/math/common.hpp"
 namespace ax::gl {
 
-struct Lines {
+class Lines {
+public:
   math::field3r vertices_;
-  math::field3r colors_;
+  math::field4r colors_;
   math::field2i indices_;
-};
 
+  bool flush_{false};
+};
 
 }  // namespace ax::gl

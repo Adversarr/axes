@@ -1,5 +1,6 @@
 #pragma once
-#include "axes/core/status.hpp" // IWYU pragma: export
+#include "axes/core/echo.hpp"    // IWYU pragma: export
+#include "axes/core/status.hpp"  // IWYU pragma: export
 
 namespace ax::utils {
 /****************************** Checker ******************************/
@@ -30,6 +31,7 @@ using absl::FailedPreconditionError;
 using absl::InternalError;
 using absl::InvalidArgumentError;
 using absl::NotFoundError;
+using absl::OkStatus;
 using absl::OutOfRangeError;
 using absl::PermissionDeniedError;
 using absl::ResourceExhaustedError;
@@ -37,18 +39,34 @@ using absl::UnauthenticatedError;
 using absl::UnavailableError;
 using absl::UnimplementedError;
 using absl::UnknownError;
-using absl::OkStatus;
 
-#define AX_RETURN_NOTOK(status) \
-  if (!status.ok()) {           \
-    return status;              \
+#define AX_RETURN_NOTOK(expr)               \
+  if (auto status = (expr); !status.ok()) { \
+    return status;                          \
   }
 
-#define AX_EVAL_RETURN_NOTOK(expr)               \
-  if (auto status = expr; !status.ok()) { \
-    return status;                        \
+#define AX_EVAL_RETURN_NOTOK(expr)          \
+  if (auto status = (expr); !status.ok()) { \
+    return status;                          \
   }
 
 #define AX_RETURN_OK() return ::ax::utils::OkStatus()
+
+template <typename T> T&& extract(StatusOr<T>& status_or) { return std::move(status_or.value()); }
+
+template <typename T> T&& extract_or_die(StatusOr<T>& status_or) {
+  CHECK_OK(status_or.status());
+  return std::move(status_or.value());
+}
+
+#define AX_ASSIGN_OR_RETURN(var, expr)     \
+  auto var##status = (expr);               \
+  AX_RETURN_NOTOK((var##status).status()); \
+  auto var = ::ax::utils::extract(var##status)
+
+#define AX_ASSIGN_OR_DIE(var, expr)                                 \
+  auto var##status = (expr);                                        \
+  CHECK_OK((var##status).status()) << "Failed preconditon: " #expr; \
+  auto var = ::ax::utils::extract_or_die(var##status)
 
 }  // namespace ax::utils

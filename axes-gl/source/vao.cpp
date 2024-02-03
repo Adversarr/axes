@@ -9,13 +9,22 @@ Vao::Vao() : id_{0} {}
 
 Vao::Vao(GLuint id) : id_{id} {}
 
-Vao::Vao(Vao&& other) noexcept : id_{other.id_} { other.id_ = 0; }
+Vao::Vao(Vao&& other) noexcept
+    : index_buffer_{std::move(other.index_buffer_)},
+      vertex_buffer_{std::move(other.vertex_buffer_)},
+      instance_buffer_{std::move(other.instance_buffer_)},
+      id_{other.id_} {
+  other.id_ = 0;
+}
 
 Vao& Vao::operator=(Vao&& other) noexcept {
   if (id_) {
     glDeleteVertexArrays(1, &id_);
   }
   id_ = other.id_;
+  vertex_buffer_ = std::move(other.vertex_buffer_);
+  index_buffer_ = std::move(other.index_buffer_);
+  instance_buffer_ = std::move(other.instance_buffer_);
   other.id_ = 0;
   return *this;
 }
@@ -29,6 +38,7 @@ StatusOr<Vao> Vao::Create() {
 Vao::~Vao() {
   if (id_) {
     glDeleteVertexArrays(1, &id_);
+    DLOG(INFO) << "Vao " << id_ << " deleted";
   }
 }
 

@@ -28,8 +28,8 @@ public:
 
   ShaderType GetType() const;
 
-  static StatusOr<Shader> Compile(const char* source, ShaderType type);
-
+  static StatusOr<Shader> CompileSource(const char* source, ShaderType type);
+  static StatusOr<Shader> CompileFile(std::string_view file_path, ShaderType type);
 
   /****************************** Internal Vars ******************************/
 private:

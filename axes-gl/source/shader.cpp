@@ -1,5 +1,6 @@
 #include "axes/gl/shader.hpp"
 
+#include "axes/utils/raw_buffer.hpp"
 #include "axes/utils/status.hpp"
 
 namespace ax::gl {
@@ -10,7 +11,7 @@ GLuint Shader::GetId() const { return id_; }
 
 ShaderType Shader::GetType() const { return type_; }
 
-StatusOr<Shader> Shader::Compile(const char* source, ShaderType type) {
+StatusOr<Shader> Shader::CompileSource(const char* source, ShaderType type) {
   GLuint shader_id = glCreateShader(static_cast<GLenum>(type));
   glShaderSource(shader_id, 1, &source, nullptr);
   glCompileShader(shader_id);
@@ -26,6 +27,13 @@ StatusOr<Shader> Shader::Compile(const char* source, ShaderType type) {
   }
 
   return Shader(shader_id, type);
+}
+
+StatusOr<Shader> Shader::CompileFile(std::string_view file_path, ShaderType type) {
+  AX_ASSIGN_OR_RETURN(buffer, utils::load_file_raw(file_path));
+
+  buffer.push_back(0);
+  return Shader::CompileSource(reinterpret_cast<const char*>(buffer.data()), type);
 }
 
 Shader::Shader(GLuint id, ShaderType shader_type) : id_(id), type_(shader_type) {}

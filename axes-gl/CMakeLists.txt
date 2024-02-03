@@ -29,8 +29,7 @@ axes_set_warn_levels(axes_gui)
 # compile_shader_dir(guishader "${CMAKE_CURRENT_SOURCE_DIR}/shader"
 # ${SPIRV_HOME}) add_dependencies(axes_gui guishader)
 
-target_compile_definitions(axes PRIVATE SPV_HOME="${SPIRV_HOME}"
-                                        AXES_ASSET_DIR="${AXES_ASSET_DIR}")
+
 
 if(AXES_NO_EXCEPT)
   if(MSVC)

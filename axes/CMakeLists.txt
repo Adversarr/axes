@@ -42,7 +42,7 @@ if(AXES_DEBUG_INTERNAL)
 endif()
 
 axes_set_warn_levels(axes)
-
+target_compile_definitions(axes PRIVATE AX_ASSET_DIR="${AX_ASSET_DIR}")
 # Disable Exceptions
 if(AXES_NO_EXCEPT)
   if(MSVC)

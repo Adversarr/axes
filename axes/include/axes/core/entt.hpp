@@ -14,9 +14,13 @@ using Entity = entt::entity;
 
 /****************************** Entity ******************************/
 
-entt::entity create_entity();
+AX_FORCE_INLINE entt::entity create_entity() { return get_registry().create(); }
 
 /****************************** Component ******************************/
+
+template <typename... Components> AX_FORCE_INLINE auto view_component() {
+  return get_registry().view<Components...>();
+}
 
 template <typename T, typename... Args> T& add_component(Entity entity, Args&&... args) {
   return get_registry().emplace<T>(entity, std::forward<Args>(args)...);
@@ -26,6 +30,10 @@ template <typename T> T& get_component(Entity entity) { return get_registry().ge
 
 template <typename T> T* try_get_component(Entity entity) {
   return get_registry().try_get<T>(entity);
+}
+
+template <typename T> bool has_component(Entity entity) {
+  return nullptr != try_get_component<T>(entity);
 }
 
 template <typename T> bool remove_component(Entity entity) {

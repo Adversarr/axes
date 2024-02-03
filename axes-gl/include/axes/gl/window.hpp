@@ -53,7 +53,7 @@ public:
   //       instance. We do not allow more than one Window instance.
   Window();
   ~Window();
-  AX_DECLARE_CONSTRUCTOR(Window, delete, delete);
+  AX_DECLARE_CONSTRUCTOR(Window, delete, default);
 
   /****************************** Meta Data Getters ******************************/
 

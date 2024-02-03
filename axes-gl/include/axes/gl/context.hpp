@@ -1,5 +1,6 @@
 #pragma once
 
+#include "axes/gl/window.hpp"
 #include "axes/utils/common.hpp"
 #include "render_base.hpp"
 namespace ax::gl {
@@ -15,9 +16,12 @@ public:
   ~Context();
 
   /****************************** Methods ******************************/
-  void TickRender();
+  Status TickLogic();
+  Status TickRender();
 
   void AppendEntityRenderer(utils::uptr<RenderBase> renderer);
+
+  Window& GetWindow();
 
 private:
   utils::uptr<Impl> impl_;

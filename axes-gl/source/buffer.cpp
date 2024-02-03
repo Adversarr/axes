@@ -15,9 +15,18 @@ StatusOr<Buffer> Buffer::Create(BufferBindingType type, BufferUsage usage) {
   return Buffer{id, type, usage};
 }
 
+StatusOr<Buffer> Buffer::CreateIndexBuffer(BufferUsage usage) {
+  return Create(BufferBindingType::kElementArray, usage);
+}
+
+StatusOr<Buffer> Buffer::CreateVertexBuffer(BufferUsage usage) {
+  return Create(BufferBindingType::kArray, usage);
+}
+
 Buffer::~Buffer() {
   if (id_) {
     glDeleteBuffers(1, &id_);
+    DLOG(INFO) << "Buffer " << id_ << " deleted";
   }
 }
 

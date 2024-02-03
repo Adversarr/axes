@@ -29,7 +29,7 @@ if(PROJECT_IS_TOP_LEVEL)
     CACHE BOOL "Allow C++ extensions")
 endif()
 
-set(AXES_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/asset")
+set(AX_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 
 # guard against in-source builds
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})

@@ -190,6 +190,7 @@ AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple
  * @brief The constant pi.
  */
 template <typename Scalar = real> constexpr Scalar pi = static_cast<Scalar>(M_PI);
+template <typename Scalar = real> constexpr Scalar pi_radian = static_cast<Scalar>(0.017453292519943);
 
 /****************************** Common Ops ******************************/
 
@@ -228,13 +229,11 @@ AX_FORCE_INLINE auto constant(Scalar value) {
   return mat<Scalar, rows, cols>::Constant(value);
 }
 
-template <idx rows, typename Scalar = real>
-AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
+template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
   return mat<Scalar, rows, dynamic>::Constant(rows, cols, value);
 }
 
-template <typename Scalar = real>
-AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
+template <typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Constant(rows, cols, value);
 }
 
@@ -298,8 +297,8 @@ template <typename Derived> AX_FORCE_INLINE auto diag(
 
 template <typename Derived>
 AX_FORCE_INLINE auto diag(MBcr<Derived> mat,
-                            char (*)[Derived::RowsAtCompileTime == Derived::ColsAtCompileTime]
-                            = nullptr) {
+                          char (*)[Derived::RowsAtCompileTime == Derived::ColsAtCompileTime]
+                          = nullptr) {
   return mat.diagonal();
 }
 
@@ -323,8 +322,7 @@ template <typename Scalar = real> AX_FORCE_INLINE auto empty(idx rows, idx cols)
 /****************************** Iter methods ******************************/
 
 template <typename Derived>
-AX_FORCE_INLINE auto each(DBcr<Derived> mat,
-                            char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
+AX_FORCE_INLINE auto each(DBcr<Derived> mat, char (*)[Derived::ColsAtCompileTime != 1] = nullptr) {
   return mat.colwise();
 }
 
@@ -335,13 +333,13 @@ AX_FORCE_INLINE auto each(DBr<Derived> mat, char (*)[Derived::ColsAtCompileTime 
 
 template <typename Derived>
 AX_FORCE_INLINE decltype(auto) each(DBcr<Derived> mat,
-                                      char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
+                                    char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
 template <typename Derived>
 AX_FORCE_INLINE decltype(auto) each(DBr<Derived> mat,
-                                      char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
+                                    char (*)[Derived::ColsAtCompileTime == 1] = nullptr) {
   return mat;
 }
 
@@ -371,9 +369,7 @@ template <typename Derived> AX_FORCE_INLINE auto as_array(MBr<Derived> mat) noex
   return mat.array();
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept {
-  return arr;
-}
+template <typename Derived> AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept { return arr; }
 
 template <typename Derived> AX_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
   return arr.matrix();

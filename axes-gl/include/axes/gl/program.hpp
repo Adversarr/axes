@@ -38,8 +38,6 @@ public:
   Status SetUniform(const std::string& name, const math::mat3f& value);
   Status SetUniform(const std::string& name, const math::mat4f& value);
 
-  Status SetUniform(const std::string& name, void* value_ptr);
-
   unsigned int GetId() const;
 
 private:

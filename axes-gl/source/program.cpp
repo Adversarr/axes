@@ -1,7 +1,7 @@
 #include "axes/gl/program.hpp"
 
-#include "axes/utils/status.hpp"
 #include "axes/gl/details/gl_call.hpp"
+#include "axes/utils/status.hpp"
 
 namespace ax::gl {
 
@@ -21,9 +21,7 @@ Program::~Program() {
 }
 
 Program::Program(Program&& prog)
-    : id_(prog.id_),
-      shaders_(std::move(prog.shaders_)),
-      attrib_locations_(std::move(prog.attrib_locations_)) {
+    : id_(prog.id_), shaders_(std::move(prog.shaders_)), attrib_locations_(std::move(prog.attrib_locations_)) {
   prog.id_ = 0;
 }
 
@@ -58,5 +56,49 @@ Status Program::Use() {
   AX_RETURN_OK();
 }
 
+Status Program::SetUniform(const std::string& name, int value) {
+  AXGL_CALLR(glUniform1i(glGetUniformLocation(id_, name.c_str()), value));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, float value) {
+  AXGL_CALLR(glUniform1f(glGetUniformLocation(id_, name.c_str()), value));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::vec2f& value) {
+  AXGL_CALLR(glUniform2fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::vec3f& value) {
+  AXGL_CALLR(glUniform3fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::vec4f& value) {
+  AXGL_CALLR(glUniform4fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::mat2f& value) {
+  math::mat2f transpose = value.transpose();
+  AXGL_CALLR(glUniformMatrix2fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::mat3f& value) {
+  math::mat3f transpose = value.transpose();
+  AXGL_CALLR(glUniformMatrix3fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
+  AX_RETURN_OK();
+}
+
+Status Program::SetUniform(const std::string& name, const math::mat4f& value) {
+  math::mat4f transpose = value.transpose();
+  AXGL_CALLR(glUniformMatrix4fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
+  AX_RETURN_OK();
+}
+
+GLuint Program::GetId() const { return id_; }
 
 }  // namespace ax::gl

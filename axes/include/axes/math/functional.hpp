@@ -16,9 +16,14 @@ AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
 
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE Scalar radians(Scalar degree) {
+  return degree * pi_radian<Scalar>;
+}
+
 #define IMPLEMENT_UNARY_STL(op)                                     \
   template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
-  AX_FORCE_INLINE auto op(Scalar x) {                             \
+  AX_FORCE_INLINE auto op(Scalar x) {                               \
     return std::op(x);                                              \
   }
 
@@ -71,7 +76,7 @@ AX_FORCE_INLINE auto inverse(Scalar x) {
 }
 
 /****************************** Unary op available for matrices ******************************/
-#define IMPLEMENT_UNARY(FUNC, OP)                                                               \
+#define IMPLEMENT_UNARY(FUNC, OP)                                                             \
   template <typename Derived> AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
   template <typename Derived> AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
 #define A_OP_M(OP) array().OP().matrix()
@@ -125,9 +130,7 @@ IMPLEMENT_AOPM_UNARY(isNan)  // TODO: Naming is bad.
 #undef IMPLEMENT_AOPM_UNARY
 #undef IMPLEMENT_UNARY
 
-template <typename Derived> AX_FORCE_INLINE Derived::Scalar sum(DBcr<Derived> a) {
-  return a.sum();
-}
+template <typename Derived> AX_FORCE_INLINE Derived::Scalar sum(DBcr<Derived> a) { return a.sum(); }
 
 template <typename Derived> AX_FORCE_INLINE Derived::Scalar prod(DBcr<Derived> a) {
   return a.prod();

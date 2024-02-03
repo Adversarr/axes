@@ -17,7 +17,7 @@ constexpr details::linf_t linf{};
 constexpr details::l1_t l1{};
 
 template <typename DerivedA, typename DerivedB>
-AX_FORCE_INLINE auto dot(DBcr<DerivedA> a, DBcr<DerivedB> b) {
+AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
   static_assert(DerivedA::RowsAtCompileTime == DerivedB::RowsAtCompileTime,
                 "dot product requires vectors of the same size");
 

@@ -2,24 +2,24 @@
 
 #include <glad/glad.h>
 
-#include <glm/ext.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "axes/core/entt.hpp"
+#include "axes/gl/context.hpp"
 #include "axes/gl/details/gl_call.hpp"
 #include "axes/gl/helpers.hpp"
 #include "axes/utils/asset.hpp"
 #include "axes/utils/status.hpp"
+#include "glm.hpp"
 
 namespace ax::gl {
 
 LineRenderer::LineRenderer() {}
 
 Status LineRenderer::Setup() {
-  AX_ASSIGN_OR_RETURN(
-      vs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex));
+  AX_ASSIGN_OR_RETURN(vs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex));
 
-  AX_ASSIGN_OR_RETURN(
-      fs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment));
+  AX_ASSIGN_OR_RETURN(fs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment));
 
   AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
 
@@ -29,11 +29,18 @@ Status LineRenderer::Setup() {
 
 Status LineRenderer::TickRender() {
   AX_RETURN_NOTOK(prog_.Use());
+  // TODO: Model matrix.
+  math::mat4f model = math::mat4f::Identity();
+  math::mat4f view = get_resource<Context>().GetCamera().LookAt().cast<f32>();
+  math::mat4f projection = get_resource<Context>().GetCamera().Perspective().cast<f32>();
+  CHECK_OK(prog_.SetUniform("model", model));
+  CHECK_OK(prog_.SetUniform("view", view));
+  CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, line_data] : view_component<LineRenderData>().each()) {
     AXGL_WITH_BINDR(line_data.vao_) {
-      AX_RETURN_NOTOK(line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(),
-                                                  Type::kUnsignedInt, 0));
+      AX_RETURN_NOTOK(
+          line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
     }
   }
   glUseProgram(0);
@@ -80,6 +87,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
     auto color = lines.colors_.col(i);
     vertex.vertices_ = glm::vec3(position.x(), position.y(), position.z());
     vertex.colors_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+
     vertices_.push_back(vertex);
   }
 
@@ -106,13 +114,15 @@ LineRenderData::LineRenderData(const Lines& lines) {
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {
-      CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
       CHECK_OK(vao_.EnableAttrib(0));
-      CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
+      CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
       CHECK_OK(vao_.EnableAttrib(1));
+      CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
     }
     CHECK_OK(vao_.GetIndexBuffer().Bind());
   }
+
+  DLOG(INFO) << "LineRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
 }
 
 LineRenderData::~LineRenderData() {}

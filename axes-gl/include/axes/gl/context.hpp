@@ -1,8 +1,9 @@
 #pragma once
 
-#include "axes/gl/window.hpp"
 #include "axes/utils/common.hpp"
+#include "camera.hpp"
 #include "render_base.hpp"
+#include "window.hpp"
 namespace ax::gl {
 
 class Context {
@@ -22,6 +23,7 @@ public:
   void AppendEntityRenderer(utils::uptr<RenderBase> renderer);
 
   Window& GetWindow();
+  Camera& GetCamera();
 
 private:
   utils::uptr<Impl> impl_;

@@ -19,6 +19,7 @@ public:
   bool flush_{false};
   bool is_flat_{false};
   bool use_lighting_{false};
+  bool use_global_model_{true};
 };
 
 }  // namespace ax::gl

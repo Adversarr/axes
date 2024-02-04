@@ -52,21 +52,20 @@ gl::Lines create_dummy_line() {
 
 gl::Mesh create_dummy_cube() {
   gl::Mesh mesh;
-  std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.5);  // NOTE: This is a dummy cube with size 0.5.
-  mesh.colors_.setRandom(4, mesh.vertices_.cols());
+  std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.5);
+  mesh.colors_ = math::ones<4>(8) * ((random() % 100) / 100.0);
 
   mesh.vertices_ *= 0.7;
 
-  mesh.colors_ = (mesh.colors_.array() * 0.4 + 0.5).matrix();
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+  mesh.colors_ = (mesh.colors_.array() * 0.5 + 0.5).matrix();
   mesh.flush_ = true;
 
   mesh.instance_offset_.resize(3, 3);
   mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0.5};
   mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0.5};
   mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0.5};
-  mesh.instance_color_.resize(4, 3);
-  mesh.instance_color_.setRandom();
+  mesh.instance_color_.setZero(4, 3);
 
   return mesh;
 }
@@ -103,7 +102,7 @@ int main(int argc, char** argv) {
   idx cnt = 0;
 
   ctx.GetCamera().SetProjectionMode(true);
-  mesh.use_lighting_ = false;
+  mesh.use_lighting_ = true;
   mesh.is_flat_ = true;
 
   bool rotate = absl::GetFlag(FLAGS_rotate);

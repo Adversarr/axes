@@ -1,6 +1,8 @@
 #include "axes/gl/context.hpp"
 
 #include "axes/core/entt.hpp"
+#include "axes/geometry/primitives.hpp"
+#include "axes/gl/extprim/axes.hpp"
 #include "axes/utils/status.hpp"
 #include "impl/render_mesh.hpp"
 
@@ -28,7 +30,14 @@ struct Context::Impl {
   math::mat4f model_;
   math::mat4f clear_color_;
 
-  entt::entity helper_entity_;
+  entt::entity axis_entity_;
+  entt::entity light_entity_;
+
+  bool render_axis_{true};
+  bool render_light_{true};
+
+  bool update_light_{true};
+  bool update_axes_{true};
 
   bool is_pressing_meta_key_ = false;
   bool is_pressing_ctrl_key_ = false;
@@ -128,12 +137,48 @@ struct Context::Impl {
     ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
-
       ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
                   camera_.GetPosition().z());
 
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
+      update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
+      update_light_ = ImGui::Checkbox("Render light", &render_light_);
+      update_light_ |= ImGui::InputDouble("Light X", &light_.position_.x());
+      update_light_ |= ImGui::InputDouble("Light Y", &light_.position_.y());
+      update_light_ |= ImGui::InputDouble("Light Z", &light_.position_.z());
+      update_light_ |= ImGui::InputDouble("Light Amb", &light_.ambient_strength_);
       ImGui::End();
+    }
+  }
+
+  void UpdateLight() {
+    if (!update_light_) {
+      return;
+    }
+    if (render_light_) {
+      auto& mesh = add_or_replace_component<gl::Mesh>(light_entity_);
+      std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.03);
+      math::each(mesh.vertices_) += light_.position_.cast<f64>();
+      mesh.colors_ = light_.ambient_strength_ * math::ones<4>(mesh.vertices_.cols());
+      mesh.use_lighting_ = false;
+      mesh.is_flat_ = true;
+      mesh.use_global_model_ = false;
+      mesh.flush_ = true;
+    } else {
+      remove_component<gl::Mesh>(light_entity_);
+    }
+  }
+
+  void UpdateAxes() {
+    if (!update_axes_) {
+      return;
+    }
+    if (render_axis_) {
+      auto& mesh = add_or_replace_component<gl::Lines>(axis_entity_, gl::prim::Axes().Draw());
+      mesh.use_global_model_ = false;
+      mesh.flush_ = true;
+    } else {
+      remove_component<gl::Lines>(axis_entity_);
     }
   }
 };
@@ -149,9 +194,12 @@ Context::Context() {
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
   impl_->model_ = math::eye<4>().cast<float>();
-  impl_->light_.position_ = impl_->camera_.GetPosition().cast<f32>();
+  impl_->light_.position_ = math::vec3r{0, 2, 2};
   impl_->light_.ambient_strength_ = 0.1;
   impl_->prev_cursor_pos_ = impl_->window_.GetCursorPos();
+
+  impl_->axis_entity_ = create_entity();
+  impl_->light_entity_ = create_entity();
 
   /* SECT: Listen on Signals */
   connect<KeyboardEvent, &Impl::OnKey>(*impl_);
@@ -199,6 +247,8 @@ Camera& Context::GetCamera() { return impl_->camera_; }
 
 Status Context::TickLogic() {
   impl_->window_.PollEvents();
+  impl_->UpdateLight();
+  impl_->UpdateAxes();
   for (auto& renderer : impl_->renderers_) {
     AX_EVAL_RETURN_NOTOK(renderer->TickLogic());
   }

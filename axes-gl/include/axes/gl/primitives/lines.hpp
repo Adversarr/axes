@@ -14,6 +14,7 @@ public:
   math::field4r instance_color_;
 
   bool flush_{false};
+  bool use_global_model_{true};
 
   static Lines Create(Mesh const& mesh);
 };

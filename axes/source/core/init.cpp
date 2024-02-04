@@ -38,8 +38,8 @@ void init(int argc, char** argv) {
   absl::InstallFailureSignalHandler(failure_signal_handler);
 
   /****************************** Setup Entt Registry ******************************/
-  global_registry();
-  global_dispatcher();
+  registry_p = std::make_unique<entt::registry>();
+  dispatcher_p = std::make_unique<entt::dispatcher>();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {
@@ -63,16 +63,12 @@ void hook_clean_up(const char* name, std::function<Status()> f) {
 }
 
 entt::registry& global_registry() {
-  if (!registry_p) {
-    registry_p = std::make_unique<entt::registry>();
-  }
+  DCHECK(registry_p != nullptr) << "Registry is not initialized.";
   return *registry_p;
 }
 
 entt::dispatcher& global_dispatcher() {
-  if (!dispatcher_p) {
-    dispatcher_p = std::make_unique<entt::dispatcher>();
-  }
+  DCHECK(dispatcher_p != nullptr) << "Registry is not initialized.";
   return *dispatcher_p;
 }
 

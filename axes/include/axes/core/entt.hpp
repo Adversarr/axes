@@ -16,6 +16,8 @@ using Entity = entt::entity;
 
 AX_FORCE_INLINE entt::entity create_entity() { return global_registry().create(); }
 
+AX_FORCE_INLINE void destroy_entity(Entity entity) { global_registry().destroy(entity); }
+
 /****************************** Component ******************************/
 
 template <typename... Components> AX_FORCE_INLINE auto view_component() {
@@ -24,6 +26,10 @@ template <typename... Components> AX_FORCE_INLINE auto view_component() {
 
 template <typename T, typename... Args> T& add_component(Entity entity, Args&&... args) {
   return global_registry().emplace<T>(entity, std::forward<Args>(args)...);
+}
+
+template <typename T, typename ... Args> T& add_or_replace_component(Entity entity, Args&&... args) {
+  return global_registry().emplace_or_replace<T>(entity, std::forward<Args>(args)...);
 }
 
 template <typename T> T& get_component(Entity entity) { return global_registry().get<T>(entity); }

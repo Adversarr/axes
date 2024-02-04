@@ -55,7 +55,7 @@ template <typename A> AX_FORCE_INLINE auto norm(MBcr<A> mv, details::l1_t) {
 
 template <typename A> AX_FORCE_INLINE auto normalized(MBcr<A> mv) { return mv.normalized(); }
 
-template <typename A> AX_FORCE_INLINE void normalize_(MBr<A> mv) {
+template <typename A> AX_FORCE_INLINE decltype(auto) normalize_(MBr<A> mv) {
   mv.normalize();
   return mv;
 }

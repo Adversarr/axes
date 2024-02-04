@@ -12,8 +12,8 @@ namespace ax::gl {
 
 struct MeshRenderVertexData {
   glm::vec3 position_;
-  glm::vec3 normal_;
   glm::vec4 color_;
+  glm::vec3 normal_;
 };
 
 struct MeshInstanceData {
@@ -25,12 +25,11 @@ struct MeshRenderData {
   std::vector<MeshRenderVertexData> vertices_;
   std::vector<MeshInstanceData> instances_;
   std::vector<GLuint> indices_;
-  math::vec4f wireframe_color_{0.0f, 0.0f, 0.0f, 1.0f};
   Vao vao_;
 
+  bool use_global_model_{false};
   bool is_flat_{false};
   bool use_lighting_{false};
-  bool render_wireframe_{false};
   MeshRenderData(Mesh const& line);
 };
 

@@ -27,6 +27,7 @@ struct LineRenderData {
 
   Vao vao_;
 
+  bool use_global_model_{true};
   LineRenderData(Lines const& line);
   ~LineRenderData();
 };

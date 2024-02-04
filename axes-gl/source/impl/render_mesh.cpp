@@ -5,6 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "axes/core/entt.hpp"
+#include "axes/geometry/normal.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/details/gl_call.hpp"
 #include "axes/gl/helpers.hpp"
@@ -30,11 +31,11 @@ Status MeshRenderer::TickRender() {
   // TODO: Model matrix.
   auto& ctx = get_resource<Context>();
   math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::mat4f eye = math::eye<4, f32>();
   math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
   math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
   math::vec3f light_pos = ctx.GetLight().position_.cast<f32>();
   math::vec3f view_pos = ctx.GetCamera().GetPosition().cast<f32>();
-  CHECK_OK(prog_.SetUniform("model", model));
   CHECK_OK(prog_.SetUniform("view", view));
   CHECK_OK(prog_.SetUniform("projection", projection));
   CHECK_OK(prog_.SetUniform("lightPos", light_pos));
@@ -43,6 +44,11 @@ Status MeshRenderer::TickRender() {
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, md] : view_component<MeshRenderData>().each()) {
+    if (md.use_global_model_) {
+      CHECK_OK(prog_.SetUniform("model", model));
+    } else {
+      CHECK_OK(prog_.SetUniform("model", eye));
+    }
     AXGL_WITH_BINDR(md.vao_) {
       int light_en = md.use_lighting_ ? 1 : 0;
       int flat_en = md.is_flat_ ? 1 : 0;
@@ -93,14 +99,20 @@ MeshRenderer::~MeshRenderer() {
 MeshRenderData::MeshRenderData(const Mesh& mesh) {
   is_flat_ = mesh.is_flat_;
   use_lighting_ = mesh.use_lighting_;
+  use_global_model_ = mesh.use_global_model_;
   CHECK(mesh.colors_.cols() >= mesh.vertices_.cols());
   /****************************** Prepare Buffer Data ******************************/
   vertices_.reserve(mesh.vertices_.size());
+  auto normals = mesh.normals_;
+  if (normals.cols() < mesh.vertices_.cols()) {
+    LOG(WARNING) << "Mesh Normal not set. Compute automatically";
+    normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+  }
   for (idx i = 0; i < mesh.vertices_.cols(); i++) {
     MeshRenderVertexData vertex;
     auto position = mesh.vertices_.col(i);
     auto color = mesh.colors_.col(i);
-    auto normal = mesh.normals_.col(i);
+    auto normal = normals.col(i);
     vertex.position_ = glm::vec3(position.x(), position.y(), position.z());
     vertex.color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
     vertex.normal_ = glm::vec3(normal.x(), normal.y(), normal.z());

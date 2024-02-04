@@ -33,11 +33,16 @@ Status LineRenderer::TickRender() {
   math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
   math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
   math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  CHECK_OK(prog_.SetUniform("model", model));
+  math::mat4f eye = math::eye<4, f32>();
   CHECK_OK(prog_.SetUniform("view", view));
   CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, line_data] : view_component<LineRenderData>().each()) {
+    if (line_data.use_global_model_) {
+      CHECK_OK(prog_.SetUniform("model", model));
+    } else {
+      CHECK_OK(prog_.SetUniform("model", eye));
+    }
     if (line_data.instance_data_.size() > 0) {
       AXGL_WITH_BINDR(line_data.vao_) {
         AX_RETURN_NOTOK(line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
@@ -86,6 +91,7 @@ LineRenderer::~LineRenderer() {
 }
 
 LineRenderData::LineRenderData(const Lines& lines) {
+  use_global_model_ = lines.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
   vertices_.reserve(lines.vertices_.size());
   for (idx i = 0; i < lines.vertices_.cols(); i++) {

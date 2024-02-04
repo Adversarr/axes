@@ -129,22 +129,22 @@ using field4i = fieldi<4>;
 using MatShape = std::pair<idx, idx>;
 
 template <typename Derived>
-AX_FORCE_INLINE AX_CONSTEVAL idx rows_static(const Eigen::EigenBase<Derived> &) {
+ AX_CONSTEVAL idx rows_static(const Eigen::EigenBase<Derived> &) {
   return Derived::RowsAtCompileTime;
 }
 
 template <typename Derived>
-AX_FORCE_INLINE AX_CONSTEVAL idx cols_static(const Eigen::EigenBase<Derived> &) {
+ AX_CONSTEVAL idx cols_static(const Eigen::EigenBase<Derived> &) {
   return Derived::ColsAtCompileTime;
 }
 
 template <typename Derived>
-AX_FORCE_INLINE AX_CONSTEXPR idx rows(const Eigen::EigenBase<Derived> &mat) {
+ AX_CONSTEXPR idx rows(const Eigen::EigenBase<Derived> &mat) {
   return mat.rows();
 }
 
 template <typename Derived>
-AX_FORCE_INLINE AX_CONSTEXPR idx cols(const Eigen::EigenBase<Derived> &mat) {
+ AX_CONSTEXPR idx cols(const Eigen::EigenBase<Derived> &mat) {
   return mat.cols();
 }
 

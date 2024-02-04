@@ -53,7 +53,7 @@ gl::Lines create_dummy_line() {
 gl::Mesh create_dummy_cube() {
   gl::Mesh mesh;
   std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.5);
-  mesh.colors_ = math::ones<4>(8) * ((random() % 100) / 100.0);
+  mesh.colors_.setRandom(4, 8);
 
   mesh.vertices_ *= 0.7;
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 
   ctx.GetCamera().SetProjectionMode(true);
   mesh.use_lighting_ = true;
-  mesh.is_flat_ = true;
+  mesh.is_flat_ = false;
 
   bool rotate = absl::GetFlag(FLAGS_rotate);
 

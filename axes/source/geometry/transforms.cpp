@@ -50,4 +50,38 @@ math::mat4r look_at(math::vec3r const& eye, math::vec3r const& center, math::vec
   result(3, 3) = 1.0f;
   return result;
 }
+
+math::mat4r rotate_x(real angle_rad) {
+  math::mat4r result = math::eye<4>();
+  result(1, 1) = cos(angle_rad);
+  result(1, 2) = -sin(angle_rad);
+  result(2, 1) = sin(angle_rad);
+  result(2, 2) = cos(angle_rad);
+  return result;
+}
+
+math::mat4r rotate_y(real angle_rad) {
+  math::mat4r result = math::eye<4>();
+  result(0, 0) = cos(angle_rad);
+  result(0, 2) = sin(angle_rad);
+  result(2, 0) = -sin(angle_rad);
+  result(2, 2) = cos(angle_rad);
+  return result;
+}
+
+math::mat4r rotate_z(real angle_rad) {
+  math::mat4r result = math::eye<4>();
+  result(0, 0) = cos(angle_rad);
+  result(0, 1) = -sin(angle_rad);
+  result(1, 0) = sin(angle_rad);
+  result(1, 1) = cos(angle_rad);
+  return result;
+}
+
+math::mat4r translate(math::vec3r const& v) {
+  math::mat4r result = math::eye<4>();
+  result.col(3) = v.homogeneous();
+  return result;
+}
+
 }  // namespace ax::geo

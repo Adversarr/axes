@@ -23,16 +23,16 @@ Status LineRenderer::Setup() {
 
   AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
 
-  get_registry().on_destroy<Lines>().connect<&LineRenderer::Erase>(*this);
+  global_registry().on_destroy<Lines>().connect<&LineRenderer::Erase>(*this);
   AX_RETURN_OK();
 }
 
 Status LineRenderer::TickRender() {
   AX_RETURN_NOTOK(prog_.Use());
-  // TODO: Model matrix.
-  math::mat4f model = math::mat4f::Identity();
-  math::mat4f view = get_resource<Context>().GetCamera().LookAt().cast<f32>();
-  math::mat4f projection = get_resource<Context>().GetCamera().Perspective().cast<f32>();
+  auto& ctx = get_resource<Context>();
+  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
+  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
   CHECK_OK(prog_.SetUniform("model", model));
   CHECK_OK(prog_.SetUniform("view", view));
   CHECK_OK(prog_.SetUniform("projection", projection));
@@ -54,13 +54,12 @@ Status LineRenderer::TickLogic() {
       if (has_component<LineRenderData>(ent)) {
         remove_component<LineRenderData>(ent);
       }
-      get_registry().emplace<LineRenderData>(ent, lines);
+      global_registry().emplace<LineRenderData>(ent, lines);
 
       DLOG(INFO) << "Flushing entity: " << entt::to_integral(ent);
     }
     lines.flush_ = false;
   }
-  // Remove LineRenderData from the entity, if the entity has been removed
   AX_RETURN_OK();
 }
 
@@ -70,13 +69,13 @@ Status LineRenderer::Erase(Entity entity) {
 }
 
 Status LineRenderer::CleanUp() {
-  get_registry().clear<LineRenderData>();
+  global_registry().clear<LineRenderData>();
   AX_RETURN_OK();
 }
 
 LineRenderer::~LineRenderer() {
   CHECK_OK(CleanUp());
-  get_registry().on_destroy<Lines>().disconnect<&LineRenderer::Erase>(*this);
+  global_registry().on_destroy<Lines>().disconnect<&LineRenderer::Erase>(*this);
 }
 
 LineRenderData::LineRenderData(const Lines& lines) {

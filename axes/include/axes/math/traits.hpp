@@ -7,7 +7,7 @@ namespace ax::math {
 /****************************** Scalar Type For ******************************/
 
 template <typename T> struct scalar_of {
-  using type = T::Scalar;  // For Eigen type.
+  using type = typename T::Scalar;  // For Eigen type.
 };
 
 template <> struct scalar_of<f32> {
@@ -61,7 +61,6 @@ template <typename Derived> constexpr idx cols_v = details::EigenInfo<Derived>::
 
 template <typename A, typename B> constexpr bool same_rows_v = rows_v<A> == rows_v<B>;
 template <typename A, typename B> constexpr bool same_cols_v = cols_v<A> == cols_v<B>;
-template <typename A, typename B>
-constexpr bool same_shape_v = same_rows_v<A, B> && same_cols_v<A, B>;
+template <typename A, typename B> constexpr bool same_shape_v = same_rows_v<A, B> && same_cols_v<A, B>;
 
 }  // namespace ax::math

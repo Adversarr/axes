@@ -2,9 +2,12 @@
 
 #include "axes/utils/common.hpp"
 #include "camera.hpp"
+#include "light.hpp"
 #include "render_base.hpp"
 #include "window.hpp"
 namespace ax::gl {
+
+struct UiRenderEvent {};
 
 class Context {
 public:
@@ -24,6 +27,11 @@ public:
 
   Window& GetWindow();
   Camera& GetCamera();
+  Light& GetLight();
+
+  math::mat4r const& GetGlobalModelMatrix() const;
+
+  void SetGlobalModelMatrix(math::mat4r const& value);
 
 private:
   utils::uptr<Impl> impl_;

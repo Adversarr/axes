@@ -156,6 +156,8 @@ math::vec2i Window::GetPos() const { return impl_->pos_; }
 
 math::vec2i Window::GetFrameBufferSize() const { return impl_->fb_size_; }
 
+math::vec2r Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<real>(); }
+
 math::vec2r Window::GetCursorPos() const {
   double pos_x, pos_y;
   glfwGetCursorPos(impl_->window_, &pos_x, &pos_y);

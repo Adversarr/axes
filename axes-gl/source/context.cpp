@@ -2,6 +2,7 @@
 
 #include "axes/core/entt.hpp"
 #include "axes/utils/status.hpp"
+#include "impl/render_mesh.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -11,26 +12,26 @@
 #include <imgui_impl_opengl3.h>
 
 #include "axes/core/echo.hpp"
+#include "axes/gl/config.hpp"
 #include "axes/gl/details/gl_call.hpp"
 #include "impl/render_line.hpp"
 
 namespace ax::gl {
-
-struct FramebufferResizeHandler {
-  void OnEvent(const FrameBufferSizeEvent& evt) const { glViewport(0, 0, evt.size_.x(), evt.size_.y()); }
-};
 
 struct Context::Impl {
   std::vector<utils::uptr<RenderBase>> renderers_;
 
   Window window_;
   Camera camera_;
-  FramebufferResizeHandler resize_event_handler_;
+  Light light_;
+
+  math::mat4r model_;
 
   void OnKey(const KeyboardEvent& evt) {
     if (evt.action_ != GLFW_PRESS && evt.action_ != GLFW_REPEAT) {
       return;
     }
+
     if (evt.key_ == GLFW_KEY_H) {
       camera_.Rotate(-5.0f, 0.0f);
     } else if (evt.key_ == GLFW_KEY_L) {
@@ -53,6 +54,11 @@ struct Context::Impl {
       camera_.Move(-camera_.GetUp() * 0.1f);
     }
   }
+
+  void OnFramebufferSize(const FrameBufferSizeEvent& evt) {
+    glViewport(0, 0, evt.size_.x(), evt.size_.y());
+    camera_.SetAspect(evt.size_.x(), evt.size_.y());
+  }
 };
 
 Context::Context(Context&&) noexcept = default;
@@ -63,25 +69,45 @@ Context::Context() {
   CHECK(status) << "Failed to initialize OpenGL context";
   LOG(INFO) << "Setup OpenGL context";
 
-  connect<FrameBufferSizeEvent, &FramebufferResizeHandler::OnEvent>(impl_->resize_event_handler_);
-  connect<KeyboardEvent, &Impl::OnKey>(impl_.get());
+  connect<KeyboardEvent, &Impl::OnKey>(*impl_);
+  connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_);
 
-  impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
+  auto fb_size = impl_->window_.GetFrameBufferSize();
+  impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
+  impl_->model_ = math::eye<4>();
+  impl_->light_.position_ = impl_->camera_.GetPosition();
+  impl_->light_.ambient_strength_ = 0.1;
 
+  /****************************** Setup ImGui ******************************/
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true);
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  ImGui_ImplOpenGL3_Init("#version 410");
+  ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG);
 
+  auto fb_scale = impl_->window_.GetFrameBufferScale();
+  ImGui::GetIO().DisplayFramebufferScale.x = fb_scale.x();
+  ImGui::GetIO().DisplayFramebufferScale.y = fb_scale.y();
+
+  /****************************** Setup Subrenderers ******************************/
+  impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
+  impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
   for (auto& renderer : impl_->renderers_) {
     CHECK_OK(renderer->Setup());
   }
 }
 
-Context::~Context() { LOG(INFO) << "Destroy OpenGL context"; }
+Context::~Context() {
+  global_dispatcher().clear<UiRenderEvent>();
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  impl_->renderers_.clear();
+  impl_.reset();
+  LOG(INFO) << "Destroy OpenGL context";
+}
 
 Window& Context::GetWindow() { return impl_->window_; }
 
@@ -97,6 +123,7 @@ Status Context::TickLogic() {
 
 Status Context::TickRender() {
   glEnable(GL_DEPTH_TEST);
+  glDisable(GL_CULL_FACE);
   glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& renderer : impl_->renderers_) {
@@ -106,8 +133,7 @@ Status Context::TickRender() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
-  ImGui::ShowDemoWindow();
-
+  emit<UiRenderEvent>({});
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -115,5 +141,11 @@ Status Context::TickRender() {
   impl_->window_.SwapBuffers();
   AX_RETURN_OK();
 }
+
+Light& Context::GetLight() { return impl_->light_; }
+
+math::mat4r const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
+
+void Context::SetGlobalModelMatrix(math::mat4r const& value) { impl_->model_ = value; }
 
 }  // namespace ax::gl

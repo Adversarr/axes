@@ -19,8 +19,17 @@ public:
 
   void SetAspect(real aspect);
 
+  void SetAspect(idx x, idx y);
+
   math::mat4r LookAt() const;
   math::mat4r Perspective() const;
+  math::mat4r Ortho() const;
+  math::mat4r GetProjectionMatrix() const;
+
+  void SetFov(real fov);
+  void SetOrthoHorizontal(math::vec2r const& value);
+  void SetOrthoVertical(math::vec2r const& value);
+  void SetProjectionMode(bool use_perspective);
 
   /****************************** Getters ******************************/
   math::vec3r const& GetPosition() const;
@@ -49,6 +58,10 @@ private:
   math::vec3r front_;
   real yaw_;
   real pitch_;
+
+  bool use_perspective_;
+  math::vec2r ortho_horizontal_;
+  math::vec2r ortho_vertical_;
 
   // Internal Parameters
   real fov_;

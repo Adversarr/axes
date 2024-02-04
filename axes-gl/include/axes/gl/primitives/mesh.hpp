@@ -3,28 +3,22 @@
 
 namespace ax::gl {
 
-class Mesh3D {
+class Mesh {
 public:
   math::field3r vertices_;
-  math::field3r colors_;
+  math::field4r colors_;
   math::field3r normals_;
   math::field3i indices_;
 
   math::field3r instance_offset_;
-  math::field3r instance_color_;
-
-  Mesh3D() = default;
-
-  Mesh3D& SetVertices(math::field3r vertices);
-  Mesh3D& SetColors(math::field3r colors);
-  Mesh3D& SetNormals(math::field3r normals);
-  Mesh3D& SetIndices(math::field3i indices);
+  math::field4r instance_color_;
 
   void Flush();
   void FlushVerticesOnly();
 
   bool flush_{false};
-  bool flush_vo_{false};
+  bool is_flat_{false};
+  bool use_lighting_{false};
 };
 
 }  // namespace ax::gl

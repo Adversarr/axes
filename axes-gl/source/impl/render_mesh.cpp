@@ -1,0 +1,179 @@
+#include "render_mesh.hpp"
+
+#include <glad/glad.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
+#include "axes/core/entt.hpp"
+#include "axes/gl/context.hpp"
+#include "axes/gl/details/gl_call.hpp"
+#include "axes/gl/helpers.hpp"
+#include "axes/utils/asset.hpp"
+#include "axes/utils/status.hpp"
+#include "glm.hpp"
+
+namespace ax::gl {
+
+MeshRenderer::MeshRenderer() = default;
+
+Status MeshRenderer::Setup() {
+  AX_ASSIGN_OR_RETURN(vs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.vert"), ShaderType::kVertex));
+  AX_ASSIGN_OR_RETURN(fs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment));
+
+  AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
+  global_registry().on_destroy<Mesh>().connect<&MeshRenderer::Erase>(*this);
+  AX_RETURN_OK();
+}
+
+Status MeshRenderer::TickRender() {
+  AX_RETURN_NOTOK(prog_.Use());
+  // TODO: Model matrix.
+  auto& ctx = get_resource<Context>();
+  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
+  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
+  math::vec3f light_pos = ctx.GetLight().position_.cast<f32>();
+  math::vec3f view_pos = ctx.GetCamera().GetPosition().cast<f32>();
+  CHECK_OK(prog_.SetUniform("model", model));
+  CHECK_OK(prog_.SetUniform("view", view));
+  CHECK_OK(prog_.SetUniform("projection", projection));
+  CHECK_OK(prog_.SetUniform("lightPos", light_pos));
+  CHECK_OK(prog_.SetUniform("viewPos", view_pos));
+  CHECK_OK(prog_.SetUniform("ambientStrength", (float)ctx.GetLight().ambient_strength_));
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  for (auto [ent, md] : view_component<MeshRenderData>().each()) {
+    AXGL_WITH_BINDR(md.vao_) {
+      int light_en = md.use_lighting_ ? 1 : 0;
+      int flat_en = md.is_flat_ ? 1 : 0;
+      CHECK_OK(prog_.SetUniform("enableLighting", light_en));
+      CHECK_OK(prog_.SetUniform("enableFlat", flat_en));
+      if (md.vao_.GetInstanceBuffer()) {
+        AX_RETURN_NOTOK(md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt,
+                                                      0, md.instances_.size()));
+      } else {
+        AX_RETURN_NOTOK(md.vao_.DrawElements(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt, 0));
+      }
+    }
+  }
+  glUseProgram(0);
+  AX_RETURN_OK();
+}
+
+Status MeshRenderer::TickLogic() {
+  for (auto [ent, lines] : view_component<Mesh>().each()) {
+    if (lines.flush_) {
+      if (has_component<MeshRenderData>(ent)) {
+        remove_component<MeshRenderData>(ent);
+      }
+      global_registry().emplace<MeshRenderData>(ent, lines);
+
+      DLOG(INFO) << "Flushing entity: " << entt::to_integral(ent);
+    }
+    lines.flush_ = false;
+  }
+  AX_RETURN_OK();
+}
+
+Status MeshRenderer::Erase(Entity entity) {
+  remove_component<MeshRenderData>(entity);
+  AX_RETURN_OK();
+}
+
+Status MeshRenderer::CleanUp() {
+  global_registry().clear<MeshRenderData>();
+  AX_RETURN_OK();
+}
+
+MeshRenderer::~MeshRenderer() {
+  CHECK_OK(CleanUp());
+  global_registry().on_destroy<Mesh>().disconnect<&MeshRenderer::Erase>(*this);
+}
+
+MeshRenderData::MeshRenderData(const Mesh& mesh) {
+  is_flat_ = mesh.is_flat_;
+  use_lighting_ = mesh.use_lighting_;
+  CHECK(mesh.colors_.cols() >= mesh.vertices_.cols());
+  /****************************** Prepare Buffer Data ******************************/
+  vertices_.reserve(mesh.vertices_.size());
+  for (idx i = 0; i < mesh.vertices_.cols(); i++) {
+    MeshRenderVertexData vertex;
+    auto position = mesh.vertices_.col(i);
+    auto color = mesh.colors_.col(i);
+    auto normal = mesh.normals_.col(i);
+    vertex.position_ = glm::vec3(position.x(), position.y(), position.z());
+    vertex.color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+    vertex.normal_ = glm::vec3(normal.x(), normal.y(), normal.z());
+
+    vertices_.push_back(vertex);
+  }
+
+  indices_.reserve(mesh.indices_.size());
+  for (idx i = 0; i < mesh.indices_.cols(); i++) {
+    auto index = mesh.indices_.col(i);
+    indices_.push_back(index.x());
+    indices_.push_back(index.y());
+    indices_.push_back(index.z());
+  }
+
+  if (mesh.instance_offset_.cols() > 0) {
+    CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
+    instances_.reserve(mesh.instance_offset_.size());
+    for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
+      MeshInstanceData instance;
+      auto position_offset = mesh.instance_offset_.col(i);
+      auto color_offset = mesh.instance_color_.col(i);
+      instance.position_offset_ = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
+      instance.color_offset_ = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      instances_.push_back(instance);
+    }
+  }
+
+  /****************************** Construct VAO ******************************/
+  AX_ASSIGN_OR_DIE(vao, Vao::Create());
+  vao_ = std::move(vao);
+
+  AX_ASSIGN_OR_DIE(vbo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
+  AX_ASSIGN_OR_DIE(ebo, Buffer::CreateIndexBuffer(BufferUsage::kStaticDraw));
+  AXGL_WITH_BINDC(vbo) { CHECK_OK(vbo.Write(vertices_)); }
+  AXGL_WITH_BINDC(ebo) { CHECK_OK(ebo.Write(indices_)); }
+  vao_.SetIndexBuffer(std::move(ebo));
+  vao_.SetVertexBuffer(std::move(vbo));
+  if (instances_.size() > 0) {
+    AX_ASSIGN_OR_DIE(ibo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
+    AXGL_WITH_BINDC(ibo) { CHECK_OK(ibo.Write(instances_)); }
+    vao_.SetInstanceBuffer(std::move(ibo));
+  }
+
+  const int stride = sizeof(MeshRenderVertexData);
+  const int position_offset = offsetof(MeshRenderVertexData, position_);
+  const int color_offset = offsetof(MeshRenderVertexData, color_);
+  const int normal_offset = offsetof(MeshRenderVertexData, normal_);
+
+  AXGL_WITH_BINDC(vao_) {
+    AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {
+      CHECK_OK(vao_.EnableAttrib(0));
+      CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
+      CHECK_OK(vao_.EnableAttrib(1));
+      CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
+      CHECK_OK(vao_.EnableAttrib(2));
+      CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, stride, normal_offset));
+    }
+
+    if (instances_.size() > 0) {
+      AXGL_WITH_BINDC(vao_.GetInstanceBuffer()) {
+        CHECK_OK(vao_.EnableAttrib(3));
+        CHECK_OK(vao_.SetAttribPointer(3, 3, Type::kFloat, false, sizeof(MeshInstanceData), 0));
+        CHECK_OK(vao_.EnableAttrib(4));
+        CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData), sizeof(glm::vec3)));
+        CHECK_OK(vao_.SetAttribDivisor(3, 1));
+        CHECK_OK(vao_.SetAttribDivisor(4, 1));
+      }
+    }
+    CHECK_OK(vao_.GetIndexBuffer().Bind());
+  }
+
+  DLOG(INFO) << "MeshRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
+}
+
+}  // namespace ax::gl

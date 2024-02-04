@@ -11,13 +11,20 @@
 namespace ax::gl {
 
 struct LineRenderVertexData {
-  glm::vec3 vertices_;
-  glm::vec4 colors_;
+  glm::vec3 position_;
+  glm::vec4 color_;
+};
+
+struct LineInstanceData {
+  glm::vec3 offset_;
+  glm::vec4 color_;
 };
 
 struct LineRenderData {
   std::vector<LineRenderVertexData> vertices_;
+  std::vector<LineInstanceData> instance_data_;
   std::vector<GLuint> indices_;
+
   Vao vao_;
 
   LineRenderData(Lines const& line);

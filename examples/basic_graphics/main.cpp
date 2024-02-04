@@ -9,12 +9,14 @@
 #include "axes/geometry/primitives.hpp"
 #include "axes/geometry/transforms.hpp"
 #include "axes/gl/context.hpp"
+#include "axes/gl/extprim/axes.hpp"
 #include "axes/gl/primitives/lines.hpp"
 #include "axes/gl/primitives/mesh.hpp"
 #include "axes/gl/window.hpp"
 #include "axes/utils/time.hpp"
 
 ABSL_FLAG(bool, echo, false, "Echo events");
+ABSL_FLAG(bool, rotate, false, "Rotate the cube");
 
 using namespace ax;
 
@@ -53,16 +55,18 @@ gl::Mesh create_dummy_cube() {
   std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.5);  // NOTE: This is a dummy cube with size 0.5.
   mesh.colors_.setRandom(4, mesh.vertices_.cols());
 
+  mesh.vertices_ *= 0.7;
+
   mesh.colors_ = (mesh.colors_.array() * 0.4 + 0.5).matrix();
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.flush_ = true;
 
-  // mesh.instance_offset_.resize(3, 3);
-  // mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0.5};
-  // mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0.5};
-  // mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0.5};
-  // mesh.instance_color_.resize(4, 3);
-  // mesh.instance_color_.setRandom();
+  mesh.instance_offset_.resize(3, 3);
+  mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0.5};
+  mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0.5};
+  mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0.5};
+  mesh.instance_color_.resize(4, 3);
+  mesh.instance_color_.setRandom();
 
   return mesh;
 }
@@ -71,7 +75,7 @@ int main(int argc, char** argv) {
   ax::init(argc, argv);
   auto& ctx = add_resource<gl::Context>();
 
-  // NOTE: Connect the echo events if the flag is set
+  // SECT: Connect the echo events if the flag is set
   if (absl::GetFlag(FLAGS_echo)) {
     auto& echo = add_resource<Echo>();
     connect<gl::WindowSizeEvent, &Echo::WSize>(echo);
@@ -79,20 +83,30 @@ int main(int argc, char** argv) {
     connect<gl::KeyboardEvent, &Echo::Key>(echo);
   }
 
-  // NOTE: Connect the ui rendering test function to UiRenderEvent
+  // SECT: Connect the ui rendering test function to UiRenderEvent
   connect<gl::UiRenderEvent, &render_ui_dummy>();
 
-  // NOTE: This is a dummy entity to test the rendering pipeline
-  auto ent = create_entity();
-  auto& lines = add_component<gl::Lines>(ent, create_dummy_line());  // Line
-  auto& mesh = add_component<gl::Mesh>(ent, create_dummy_cube());    // Mesh
+  // SECT: This is a dummy entity to test the rendering pipeline
+  // auto& lines = add_component<gl::Lines>(create_entity(), create_dummy_line());  // Line
+  auto mesh_ent = create_entity();
+  auto& mesh = add_component<gl::Mesh>(mesh_ent, create_dummy_cube());                 // Mesh
+  auto& mesh_wireframe = add_component<gl::Lines>(mesh_ent, gl::Lines::Create(mesh));  // Wireframe
+  auto axes_ent = create_entity();
+  auto& axes = add_component<gl::Lines>(axes_ent, gl::prim::Axes().Draw());  // Axes
+  axes.flush_ = true;
+  mesh_wireframe.colors_.setOnes();
+  mesh_wireframe.instance_color_.setOnes();
 
-  // NOTE: Main Loop
+  // SECT: Main Loop
   auto& win = ctx.GetWindow();
   i64 start = utils::GetCurrentTimeNanos();
   idx cnt = 0;
 
   ctx.GetCamera().SetProjectionMode(true);
+  mesh.use_lighting_ = false;
+  mesh.is_flat_ = true;
+
+  bool rotate = absl::GetFlag(FLAGS_rotate);
 
   while (!win.ShouldClose()) {
     CHECK_OK(ctx.TickLogic());
@@ -100,17 +114,11 @@ int main(int argc, char** argv) {
 
     i64 current = utils::GetCurrentTimeNanos();
     real dt = (current - start) / 1.0e9;
-    math::mat4r model = geo::rotate_y(dt * 0.3);
-    ctx.SetGlobalModelMatrix(model);
-
+    if (rotate) {
+      math::mat4r model = geo::rotate_y(dt * 0.3);
+      ctx.SetGlobalModelMatrix(model.cast<f32>());
+    }
     ++cnt;
-    if (cnt % 100 == 0) {
-      mesh.use_lighting_ = !mesh.use_lighting_;
-    }
-    if (cnt % 50 == 0) {
-      mesh.is_flat_ = !mesh.is_flat_;
-      mesh.flush_ = true;
-    }
   }
 
   // NOTE: Clean Up

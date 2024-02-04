@@ -38,9 +38,16 @@ Status LineRenderer::TickRender() {
   CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, line_data] : view_component<LineRenderData>().each()) {
-    AXGL_WITH_BINDR(line_data.vao_) {
-      AX_RETURN_NOTOK(
-          line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
+    if (line_data.instance_data_.size() > 0) {
+      AXGL_WITH_BINDR(line_data.vao_) {
+        AX_RETURN_NOTOK(line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
+                                                             Type::kUnsignedInt, 0, line_data.instance_data_.size()));
+      }
+    } else {
+      AXGL_WITH_BINDR(line_data.vao_) {
+        AX_RETURN_NOTOK(
+            line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
+      }
     }
   }
   glUseProgram(0);
@@ -79,13 +86,14 @@ LineRenderer::~LineRenderer() {
 }
 
 LineRenderData::LineRenderData(const Lines& lines) {
+  /************************* SECT: Setup Buffers *************************/
   vertices_.reserve(lines.vertices_.size());
   for (idx i = 0; i < lines.vertices_.cols(); i++) {
     LineRenderVertexData vertex;
     auto position = lines.vertices_.col(i);
     auto color = lines.colors_.col(i);
-    vertex.vertices_ = glm::vec3(position.x(), position.y(), position.z());
-    vertex.colors_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+    vertex.position_ = glm::vec3(position.x(), position.y(), position.z());
+    vertex.color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
 
     vertices_.push_back(vertex);
   }
@@ -95,6 +103,19 @@ LineRenderData::LineRenderData(const Lines& lines) {
     auto index = lines.indices_.col(i);
     indices_.push_back(index.x());
     indices_.push_back(index.y());
+  }
+  bool has_instance = lines.instance_offset_.size() > 0;
+  if (has_instance) {
+    instance_data_.reserve(lines.instance_offset_.cols());
+    for (idx i = 0; i < lines.instance_offset_.cols(); i++) {
+      LineInstanceData instance;
+      auto offset = lines.instance_offset_.col(i);
+      auto color = lines.instance_color_.col(i);
+      instance.offset_ = glm::vec3(offset.x(), offset.y(), offset.z());
+      instance.color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+
+      instance_data_.push_back(instance);
+    }
   }
 
   AX_ASSIGN_OR_DIE(vao, Vao::Create());
@@ -107,9 +128,15 @@ LineRenderData::LineRenderData(const Lines& lines) {
   vao_.SetIndexBuffer(std::move(ebo));
   vao_.SetVertexBuffer(std::move(vbo));
 
+  if (has_instance) {
+    AX_ASSIGN_OR_DIE(instance_vbo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
+    AXGL_WITH_BINDC(instance_vbo) { CHECK_OK(instance_vbo.Write(instance_data_)); }
+    vao_.SetInstanceBuffer(std::move(instance_vbo));
+  }
+
   const int stride = sizeof(LineRenderVertexData);
-  const int position_offset = offsetof(LineRenderVertexData, vertices_);
-  const int color_offset = offsetof(LineRenderVertexData, colors_);
+  const int position_offset = offsetof(LineRenderVertexData, position_);
+  const int color_offset = offsetof(LineRenderVertexData, color_);
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {
@@ -117,6 +144,17 @@ LineRenderData::LineRenderData(const Lines& lines) {
       CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
       CHECK_OK(vao_.EnableAttrib(1));
       CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
+    }
+
+    if (has_instance) {
+      AXGL_WITH_BINDC(vao_.GetInstanceBuffer()) {
+        CHECK_OK(vao_.EnableAttrib(2));
+        CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, sizeof(LineInstanceData), 0));
+        CHECK_OK(vao_.EnableAttrib(3));
+        CHECK_OK(vao_.SetAttribPointer(3, 4, Type::kFloat, false, sizeof(LineInstanceData), sizeof(glm::vec3)));
+        CHECK_OK(vao_.SetAttribDivisor(2, 1));
+        CHECK_OK(vao_.SetAttribDivisor(3, 1));
+      }
     }
     CHECK_OK(vao_.GetIndexBuffer().Bind());
   }

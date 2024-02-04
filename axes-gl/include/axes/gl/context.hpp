@@ -29,9 +29,9 @@ public:
   Camera& GetCamera();
   Light& GetLight();
 
-  math::mat4r const& GetGlobalModelMatrix() const;
+  math::mat4f const& GetGlobalModelMatrix() const;
 
-  void SetGlobalModelMatrix(math::mat4r const& value);
+  void SetGlobalModelMatrix(math::mat4f const& value);
 
 private:
   utils::uptr<Impl> impl_;

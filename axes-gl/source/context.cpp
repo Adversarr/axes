@@ -25,11 +25,38 @@ struct Context::Impl {
   Camera camera_;
   Light light_;
 
-  math::mat4r model_;
+  math::mat4f model_;
+  math::mat4f clear_color_;
+
+  entt::entity helper_entity_;
+
+  bool is_pressing_meta_key_ = false;
+  bool is_pressing_ctrl_key_ = false;
+  bool is_pressing_shft_key_ = false;
+  bool is_mouse_button_pressed_ = false;
+  math::vec2r prev_cursor_pos_;
+
+  float mouse_sensitivity_{1.0f};
 
   void OnKey(const KeyboardEvent& evt) {
     if (evt.action_ != GLFW_PRESS && evt.action_ != GLFW_REPEAT) {
+      if (evt.key_ == GLFW_KEY_LEFT_SHIFT || evt.key_ == GLFW_KEY_RIGHT_SHIFT) {
+        is_pressing_shft_key_ = false;
+      } else if (evt.key_ == GLFW_KEY_LEFT_CONTROL || evt.key_ == GLFW_KEY_RIGHT_CONTROL) {
+        is_pressing_ctrl_key_ = false;
+      } else if (evt.key_ == GLFW_KEY_LEFT_ALT || evt.key_ == GLFW_KEY_RIGHT_ALT) {
+        is_pressing_meta_key_ = false;
+      }
+      // NOTE: Nothing is needed.
       return;
+    }
+
+    if (evt.key_ == GLFW_KEY_LEFT_SHIFT || evt.key_ == GLFW_KEY_RIGHT_SHIFT) {
+      is_pressing_shft_key_ = true;
+    } else if (evt.key_ == GLFW_KEY_LEFT_CONTROL || evt.key_ == GLFW_KEY_RIGHT_CONTROL) {
+      is_pressing_ctrl_key_ = true;
+    } else if (evt.key_ == GLFW_KEY_LEFT_ALT || evt.key_ == GLFW_KEY_RIGHT_ALT) {
+      is_pressing_meta_key_ = true;
     }
 
     if (evt.key_ == GLFW_KEY_H) {
@@ -59,6 +86,56 @@ struct Context::Impl {
     glViewport(0, 0, evt.size_.x(), evt.size_.y());
     camera_.SetAspect(evt.size_.x(), evt.size_.y());
   }
+
+  void OnCursorMove(const CursorMoveEvent& evt) {
+    if (is_mouse_button_pressed_) {
+      real dx = evt.pos_.x() - prev_cursor_pos_.x();
+      real dy = prev_cursor_pos_.y() - evt.pos_.y();
+
+      dx *= mouse_sensitivity_;
+      dy *= mouse_sensitivity_;
+
+      if (is_pressing_meta_key_) {
+        camera_.Rotate(dx * 0.3f, dy * 0.3f);
+      }
+
+      if (is_pressing_shft_key_) {
+        math::vec3r right = camera_.GetRight();
+        math::vec3r up = camera_.GetUp();
+
+        camera_.Move(-(up * dy * 0.01f + right * dx * 0.01f));
+      }
+
+      if (is_pressing_ctrl_key_) {
+        math::vec3r front = camera_.GetFront();
+        camera_.Move(front * dy * 0.01f);
+      }
+    }
+    prev_cursor_pos_ = evt.pos_;
+  }
+
+  void OnMouse(const MouseButtonEvent& evt) {
+    if (evt.action_ == GLFW_PRESS) {
+      is_mouse_button_pressed_ = true;
+      // prev_cursor_pos_ = window_.GetCursorPos();
+    } else if (evt.action_ == GLFW_RELEASE) {
+      is_mouse_button_pressed_ = false;
+    }
+  }
+
+  void OnUiRender(UiRenderEvent const&) {
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+      ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
+
+      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
+                  camera_.GetPosition().z());
+
+      ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
+      ImGui::End();
+    }
+  }
 };
 
 Context::Context(Context&&) noexcept = default;
@@ -69,29 +146,34 @@ Context::Context() {
   CHECK(status) << "Failed to initialize OpenGL context";
   LOG(INFO) << "Setup OpenGL context";
 
-  connect<KeyboardEvent, &Impl::OnKey>(*impl_);
-  connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_);
-
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
-  impl_->model_ = math::eye<4>();
-  impl_->light_.position_ = impl_->camera_.GetPosition();
+  impl_->model_ = math::eye<4>().cast<float>();
+  impl_->light_.position_ = impl_->camera_.GetPosition().cast<f32>();
   impl_->light_.ambient_strength_ = 0.1;
+  impl_->prev_cursor_pos_ = impl_->window_.GetCursorPos();
 
-  /****************************** Setup ImGui ******************************/
+  /* SECT: Listen on Signals */
+  connect<KeyboardEvent, &Impl::OnKey>(*impl_);
+  connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_);
+  connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_);
+  connect<MouseButtonEvent, &Impl::OnMouse>(*impl_);
+  connect<UiRenderEvent, &Impl::OnUiRender>(*impl_);
+
+  /* SECT: Setup ImGUI */
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true);
+  CHECK(ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true))
+      << "Failed to Initialize ImGUI_GLFW";
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG);
-
+  CHECK(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG)) << "Failed to Initialize ImGUI_OpenGL3";
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = fb_scale.x();
   ImGui::GetIO().DisplayFramebufferScale.y = fb_scale.y();
 
-  /****************************** Setup Subrenderers ******************************/
+  /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
   for (auto& renderer : impl_->renderers_) {
@@ -113,6 +195,8 @@ Window& Context::GetWindow() { return impl_->window_; }
 
 Camera& Context::GetCamera() { return impl_->camera_; }
 
+/************************* SECT: Tick Logic and Tick Renderers *************************/
+
 Status Context::TickLogic() {
   impl_->window_.PollEvents();
   for (auto& renderer : impl_->renderers_) {
@@ -122,6 +206,7 @@ Status Context::TickLogic() {
 }
 
 Status Context::TickRender() {
+  // SECT: Setup OpenGL context
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
   glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
@@ -144,8 +229,8 @@ Status Context::TickRender() {
 
 Light& Context::GetLight() { return impl_->light_; }
 
-math::mat4r const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
+math::mat4f const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
 
-void Context::SetGlobalModelMatrix(math::mat4r const& value) { impl_->model_ = value; }
+void Context::SetGlobalModelMatrix(math::mat4f const& value) { impl_->model_ = value; }
 
 }  // namespace ax::gl

@@ -29,9 +29,8 @@ struct KeyboardEvent {
   int mods_;
 };
 
-struct CursorMove {
+struct CursorMoveEvent {
   math::vec2r pos_;
-  math::vec2r delta_;
 };
 
 struct ScrollEvent {

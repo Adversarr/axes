@@ -25,12 +25,16 @@ uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform float ambientStrength;
 
+uniform int enableWireframe;
+uniform vec4 wireframeColor;
 
 void main() {
   fragNormal = mat3(transpose(inverse(model))) * normal;
   fragPos = vec3(model * vec4(position_offset_ + position, 1.0));
   vec4 raw_color = color_offset_ + color;
-  if (enableLighting == 1) {
+  if (enableWireframe > 0) {
+    raw_color = wireframeColor;
+  } else if (enableLighting == 1) {
     vec3 norm = normalize(fragNormal);
     vec3 lightDir = normalize(lightPos - fragPos);
     float diff = max(dot(norm, lightDir), 0.0);

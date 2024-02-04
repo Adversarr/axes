@@ -3,7 +3,7 @@
 namespace ax::gl::prim {
 
 class Plane {
-  // TODO:
+  public:
 };
 
 }  // namespace ax::gl::prim

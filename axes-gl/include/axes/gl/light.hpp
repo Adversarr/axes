@@ -4,8 +4,8 @@
 namespace ax::gl {
 
 struct Light {
-  math::vec3r position_;
-  real ambient_strength_;
+  math::vec3f position_;
+  f32 ambient_strength_;
 };
 
 }

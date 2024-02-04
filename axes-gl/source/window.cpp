@@ -72,7 +72,7 @@ static void key_fn(GLFWwindow* /* window */, int key, int scancode, int action, 
 }
 
 static void cursor_pos_fn(GLFWwindow* /* window */, double pos_x, double pos_y) {
-  CursorMove event;
+  CursorMoveEvent event;
   event.pos_ = {pos_x, pos_y};
   emit_enqueue(event);
 }
@@ -173,7 +173,7 @@ void Window::PollEvents() const {
   trigger_queue<FrameBufferSizeEvent>();
   trigger_queue<DropEvent>();
   trigger_queue<KeyboardEvent>();
-  trigger_queue<CursorMove>();
+  trigger_queue<CursorMoveEvent>();
   trigger_queue<ScrollEvent>();
   trigger_queue<MouseButtonEvent>();
 }

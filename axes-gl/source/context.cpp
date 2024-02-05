@@ -28,7 +28,7 @@ struct Context::Impl {
   Light light_;
 
   math::mat4f model_;
-  math::mat4f clear_color_;
+  math::vec4f clear_color_;
 
   entt::entity axis_entity_;
   entt::entity light_entity_;
@@ -109,14 +109,14 @@ struct Context::Impl {
       }
 
       if (is_pressing_shft_key_) {
-        math::vec3r right = camera_.GetRight();
-        math::vec3r up = camera_.GetUp();
+        auto right = camera_.GetRight();
+        auto up = camera_.GetUp();
 
         camera_.Move(-(up * dy * 0.01f + right * dx * 0.01f));
       }
 
       if (is_pressing_ctrl_key_) {
-        math::vec3r front = camera_.GetFront();
+        auto front = camera_.GetFront();
         camera_.Move(front * dy * 0.01f);
       }
     }
@@ -139,16 +139,17 @@ struct Context::Impl {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
       ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
                   camera_.GetPosition().z());
-
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
       update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
       update_light_ = ImGui::Checkbox("Render light", &render_light_);
-      update_light_ |= ImGui::InputDouble("Light X", &light_.position_.x());
-      update_light_ |= ImGui::InputDouble("Light Y", &light_.position_.y());
-      update_light_ |= ImGui::InputDouble("Light Z", &light_.position_.z());
-      update_light_ |= ImGui::InputDouble("Light Amb", &light_.ambient_strength_);
-      ImGui::End();
+      update_light_ |= ImGui::InputFloat3("Light", &light_.position_.x());
+      update_light_ |= ImGui::SliderFloat("Light Ambi", &light_.ambient_strength_, 0.0f, 1.0f);
+      update_light_ |= ImGui::SliderFloat("Light Diff", &light_.diffuse_strength_, 0.0f, 1.0f);
+      update_light_ |= ImGui::SliderFloat("Light Spec", &light_.specular_strength_, 0.0f, 1.0f);
+
+      ImGui::ColorEdit3("Clear Color", &clear_color_.x());
     }
+    ImGui::End();
   }
 
   void UpdateLight() {
@@ -159,7 +160,7 @@ struct Context::Impl {
       auto& mesh = add_or_replace_component<gl::Mesh>(light_entity_);
       std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.03);
       math::each(mesh.vertices_) += light_.position_.cast<f64>();
-      mesh.colors_ = light_.ambient_strength_ * math::ones<4>(mesh.vertices_.cols());
+      mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
       mesh.use_lighting_ = false;
       mesh.is_flat_ = true;
       mesh.use_global_model_ = false;
@@ -194,8 +195,9 @@ Context::Context() {
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
   impl_->model_ = math::eye<4>().cast<float>();
-  impl_->light_.position_ = math::vec3r{0, 2, 2};
-  impl_->light_.ambient_strength_ = 0.1;
+  impl_->clear_color_ = math::vec4f{0.1f, 0.1f, 0.1f, 1.0f};
+  impl_->light_.position_ = math::vec3f{0, 2, 2};
+  impl_->light_.ambient_strength_ = 0.1f;
   impl_->prev_cursor_pos_ = impl_->window_.GetCursorPos();
 
   impl_->axis_entity_ = create_entity();
@@ -259,7 +261,8 @@ Status Context::TickRender() {
   // SECT: Setup OpenGL context
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
-  glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+  glClearColor(impl_->clear_color_(0), impl_->clear_color_(1), impl_->clear_color_(2),
+               impl_->clear_color_(3));
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& renderer : impl_->renderers_) {
     AX_EVAL_RETURN_NOTOK(renderer->TickRender());

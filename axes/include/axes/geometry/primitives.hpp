@@ -1,8 +1,12 @@
 #pragma once
 
+#include "axes/geometry/common.hpp"
 #include "axes/math/common.hpp"
 namespace ax::geo {
 
-std::pair<math::field3r, math::field3i> cube(real half_size);
+SurfaceMesh cube(real half_size);
+
+SurfaceMesh sphere(real radius, idx slices, idx stacks);
+
 
 }  // namespace ax::geo

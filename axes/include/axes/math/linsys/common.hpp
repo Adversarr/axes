@@ -17,6 +17,8 @@ struct LinsysProblem_Dense {
   matxxr const& A_;
   vecxr const& b_;
   bool is_spsd_;
+
+  LinsysProblem_Dense(matxxr const& A, vecxr const& b, bool is_spsd) : A_{A}, b_{b}, is_spsd_{is_spsd} {}
 };
 
 struct LinsysProblem_Sparse {
@@ -55,6 +57,7 @@ struct LinsysProblem_Implicit {
 struct LinsysSolveResultImpl {
   // Basic Result
   vecxr solution_;
+  bool converged_;
 
   // For iterative solver
   idx num_iter_;
@@ -63,6 +66,17 @@ struct LinsysSolveResultImpl {
   // May be not set?
   real l2_err_;
   real linf_err_;
+
+  LinsysSolveResultImpl(vecxr solution, bool converged, idx num_iter, vecxr residual, real l2_err, real linf_err)
+      : solution_{std::move(solution)},
+        converged_(converged),
+        num_iter_{num_iter},
+        residual_{std::move(residual)},
+        l2_err_{l2_err},
+        linf_err_{linf_err} {}
+
+  LinsysSolveResultImpl(vecxr solution, bool converged = true)
+      : solution_{std::move(solution)}, converged_{converged} {}
 };
 
 using LinsysSolveResult = StatusOr<LinsysSolveResultImpl>;

@@ -6,11 +6,11 @@
 namespace ax::optim {
 
 class OptimizerBase {
+public:
   static constexpr real default_tol_var = 1e-6;
   static constexpr real default_tol_grad = 1e-6;
   static constexpr idx default_max_iter = 100;
 
-public:
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase(OptProblem& problem) : problem_{problem} {}
 
@@ -26,7 +26,7 @@ public:
 
   void SetTolGrad(real tol_grad);
 
-  OptProblem& GetProblem();
+  inline OptProblem& GetProblem() { return problem_; }
 
   idx GetMaxIter() const;
 

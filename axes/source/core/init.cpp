@@ -1,8 +1,10 @@
 #include "axes/core/init.hpp"
-
+#include <absl/log/initialize.h>
 #include <absl/debugging/failure_signal_handler.h>
 #include <absl/debugging/symbolize.h>
 #include <absl/flags/parse.h>
+#include <absl/log/log.h>
+#include <absl/log/globals.h>
 #include <absl/log/die_if_null.h>
 
 #include "axes/core/echo.hpp"
@@ -30,7 +32,9 @@ void init(int argc, char** argv) {
 
   /****************************** Flags ******************************/
   absl::ParseCommandLine(argc, argv);
-
+  absl::InitializeLog();
+  absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
+  absl::SetStderrThreshold(absl::LogSeverity::kInfo);
   /****************************** Install the debuggers ******************************/
   CHECK(argc > 0) << "argc must be greater than 0";
   absl::InitializeSymbolizer(argv[0]);

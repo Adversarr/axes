@@ -34,13 +34,12 @@ Status MeshRenderer::TickRender() {
   math::mat4f eye = math::eye<4, f32>();
   math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
   math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  math::vec3f light_pos = ctx.GetLight().position_.cast<f32>();
+  math::vec3f light_pos = ctx.GetLight().position_;
   math::vec3f view_pos = ctx.GetCamera().GetPosition().cast<f32>();
   CHECK_OK(prog_.SetUniform("view", view));
   CHECK_OK(prog_.SetUniform("projection", projection));
   CHECK_OK(prog_.SetUniform("lightPos", light_pos));
   CHECK_OK(prog_.SetUniform("viewPos", view_pos));
-  CHECK_OK(prog_.SetUniform("ambientStrength", (float)ctx.GetLight().ambient_strength_));
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, md] : view_component<MeshRenderData>().each()) {
@@ -50,10 +49,20 @@ Status MeshRenderer::TickRender() {
       CHECK_OK(prog_.SetUniform("model", eye));
     }
     AXGL_WITH_BINDR(md.vao_) {
-      int light_en = md.use_lighting_ ? 1 : 0;
-      int flat_en = md.is_flat_ ? 1 : 0;
-      CHECK_OK(prog_.SetUniform("enableLighting", light_en));
-      CHECK_OK(prog_.SetUniform("enableFlat", flat_en));
+      math::vec4f light_coef = math::zeros<4, 1, f32>();
+      if (md.is_flat_) {
+        light_coef.w() = 1;
+      }
+      if (! md.use_lighting_) {
+        light_coef.y() = light_coef.z() = 0;
+        light_coef.x() = 1;
+      } else {
+        light_coef.x() = ctx.GetLight().ambient_strength_;
+        light_coef.y() = ctx.GetLight().diffuse_strength_;
+        light_coef.z() = ctx.GetLight().specular_strength_;
+      }
+      CHECK_OK(prog_.SetUniform("lightCoefficient", light_coef));
+
       if (md.vao_.GetInstanceBuffer()) {
         AX_RETURN_NOTOK(md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt,
                                                       0, md.instances_.size()));

@@ -21,7 +21,7 @@ using f64 = double;  ///< Alias for double precision floating point number.
 using real = f64;    ///< Alias for double precision floating point number.
 
 #ifndef REAL_PRID
-#  define REAL_PRID "lf"  ///< The printf format string for Real.
+#  define REAL_PRID "d"  ///< The printf format string for Real.
 #endif
 
 }  // namespace ax

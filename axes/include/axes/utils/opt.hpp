@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
-#include <unordered_map>
 #include <variant>
 
+#include <absl/container/flat_hash_map.h>
 #include "axes/core/common.hpp"
 #include "common.hpp"
 
@@ -14,7 +14,7 @@ using OptValue = std::variant<idx, real, std::string, Opt>;
 class Opt {
 public:
   using value_type = OptValue;
-  using container_type = std::unordered_map<std::string, value_type>;
+  using container_type = absl::flat_hash_map<std::string, value_type>;
 
   Opt() = default;
   AX_DECLARE_CONSTRUCTOR(Opt, default, default);
@@ -58,11 +58,28 @@ public:
 
   bool Has(const std::string& key) const { return dict_.find(key) != dict_.end(); }
 
+  template <typename T> bool Has(const std::string& key) const {
+    if (auto it = dict_.find(key); it != dict_.end()) {
+      return std::holds_alternative<T>(it->second);
+    } else {
+      return false;
+    }
+  }
+
   OptValue& At(const std::string& key) { return dict_.at(key); }
 
   OptValue const& At(const std::string& key) const { return dict_.at(key); }
 
   size_t Size() const { return dict_.size(); }
+
+  template<typename T, typename ... Args>
+  T Get(std::string const& key, Args&& ... default_T_args) const {
+    if (auto it = dict_.find(key); it != dict_.end()) {
+      return std::get<T>(it->second);
+    } else {
+      return T(std::forward<Args>(default_T_args)...);
+    }
+  }
 
   /****************************** Print ******************************/
 

@@ -6,8 +6,8 @@
 namespace ax::optim {
 
 /****************************** Function Handles ******************************/
-using ConvergeVarFn = std::function<bool(const math::vecxr&, const math::vecxr&)>;
-using ConvergeGradFn = std::function<bool(const math::vecxr&, const math::vecxr&)>;
+using ConvergeVarFn = std::function<real(const math::vecxr&, const math::vecxr&)>;
+using ConvergeGradFn = std::function<real(const math::vecxr&, const math::vecxr&)>;
 using VerboseFn = std::function<void(idx, const math::vecxr&, const real)>;
 using EnergyFn = std::function<real(const math::vecxr&)>;
 using GradFn = std::function<math::vecxr(const math::vecxr&)>;
@@ -21,18 +21,12 @@ public:
 
   /****************************** Evaluation ******************************/
   real EvalEnergy(math::vecxr const& x) const;
-
   math::vecxr EvalGrad(math::vecxr const& x) const;
-
   math::matxxr EvalHessian(math::vecxr const& x) const;
-
   math::sp_matxxr EvalSparseHessian(math::vecxr const& x) const;
-
-  bool CheckConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
-
-  bool CheckConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
-
-  bool CheckConverge(math::vecxr const& x0, math::vecxr const& x1, math::vecxr const& grad) const;
+  real EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
+  real EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
+  void EvalVerbose(idx iter, math::vecxr const &x, real f) const;
 
   /****************************** Setters ******************************/
   OptProblem& SetEnergy(EnergyFn const& energy);
@@ -49,6 +43,21 @@ public:
 
   OptProblem& SetVerbose(VerboseFn const& verbose);
 
+  /****************************** Check Valid ******************************/
+  bool HasEnergy() const;
+
+  bool HasGrad() const;
+
+  bool HasHessian() const;
+
+  bool HasSparseHessian() const;
+
+  bool HasConvergeVar() const;
+
+  bool HasConvergeGrad() const;
+
+  bool HasVerbose() const;
+
 private:
   EnergyFn energy_{nullptr};
   GradFn grad_{nullptr};
@@ -61,9 +70,14 @@ private:
 
 /****************************** Optimization Result ******************************/
 struct OptResultImpl {
-  // Shared Result:
+  // Optimal x
   math::vecxr x_opt_;
+  // Optimal energy
   real f_opt_;
+  // Indicates whether the optimization algorithm has converged.
+  bool converged_grad_;
+  bool converged_var_;
+  bool converged_;
 
   // For Iterative Solver:
   idx n_iter_;

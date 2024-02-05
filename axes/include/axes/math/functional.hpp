@@ -44,12 +44,11 @@ IMPLEMENT_UNARY_STL(rint)
 IMPLEMENT_UNARY_STL(round)
 IMPLEMENT_UNARY_STL(floor)
 IMPLEMENT_UNARY_STL(ceil)
-IMPLEMENT_UNARY_STL(conj)
-IMPLEMENT_UNARY_STL(real)
-IMPLEMENT_UNARY_STL(imag)
-IMPLEMENT_UNARY_STL(arg)
-
 #undef IMPLEMENT_UNARY_STL
+
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
+  return std::pow(x, y);
+}
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto cube(Scalar x) {
   return x * x * x;

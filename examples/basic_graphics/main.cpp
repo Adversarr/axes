@@ -62,11 +62,24 @@ gl::Mesh create_dummy_cube() {
   mesh.flush_ = true;
 
   mesh.instance_offset_.resize(3, 3);
-  mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0.5};
-  mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0.5};
-  mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0.5};
+  mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0};
+  mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0};
+  mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0};
   mesh.instance_color_.setZero(4, 3);
 
+  return mesh;
+}
+
+gl::Mesh create_dummy_sphere() {
+  gl::Mesh mesh;
+  std::tie(mesh.vertices_, mesh.indices_) = geo::sphere(0.5, 10, 10);
+  math::each(mesh.vertices_) += math::vec3r{1.5, 0, 0};
+  mesh.colors_.setConstant(4, mesh.vertices_.cols(), 0);
+  mesh.colors_.row(0) = mesh.vertices_.row(0) * 0.5;
+  mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+  mesh.use_lighting_ = true;
+  mesh.is_flat_ = true;
+  mesh.flush_ = true;
   return mesh;
 }
 
@@ -90,16 +103,16 @@ int main(int argc, char** argv) {
   auto mesh_ent = create_entity();
   auto& mesh = add_component<gl::Mesh>(mesh_ent, create_dummy_cube());                 // Mesh
   auto& mesh_wireframe = add_component<gl::Lines>(mesh_ent, gl::Lines::Create(mesh));  // Wireframe
-  auto axes_ent = create_entity();
-  auto& axes = add_component<gl::Lines>(axes_ent, gl::prim::Axes().Draw());  // Axes
-  axes.flush_ = true;
   mesh_wireframe.colors_.setOnes();
   mesh_wireframe.instance_color_.setOnes();
+
+  auto& sphere = add_component<gl::Mesh>(create_entity(), create_dummy_sphere());  // Sphere
+  auto& sphere_wireframe = add_component<gl::Lines>(create_entity(), gl::Lines::Create(sphere));
+  sphere_wireframe.colors_.setZero();
 
   // SECT: Main Loop
   auto& win = ctx.GetWindow();
   i64 start = utils::GetCurrentTimeNanos();
-  idx cnt = 0;
 
   ctx.GetCamera().SetProjectionMode(true);
   mesh.use_lighting_ = true;
@@ -117,7 +130,6 @@ int main(int argc, char** argv) {
       math::mat4r model = geo::rotate_y(dt * 0.3);
       ctx.SetGlobalModelMatrix(model.cast<f32>());
     }
-    ++cnt;
   }
 
   // NOTE: Clean Up

@@ -78,9 +78,4 @@ math::field3i get_boundary_triangles(math::field4i const& tetrahedrons) {
   return boundary_triangles;
 }
 
-math::field3i fix_boundary_orientation(math::field3r const& vertices, math::field4i const& tetrahedrons,
-                                       math::field3i const& boundary_triangles) {
-  CHECK(false) << "Not Implemented Error.";
-}
-
 }  // namespace ax::geo

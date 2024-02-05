@@ -174,4 +174,7 @@ private:
 using Quadrahedron2 = Quadrahedron<2>;
 using Quadrahedron3 = Quadrahedron<3>;
 
+using SurfaceMesh = std::pair<math::field3r, math::field3i>;
+using TetraMesh = std::pair<math::field3r, math::field4i>;
+
 }  // namespace ax::geo

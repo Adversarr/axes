@@ -20,6 +20,9 @@ target_link_libraries(
          absl::inlined_vector
          absl::status
          absl::log
+         absl::log_initialize
+         absl::log_globals
+         absl::log_flags
          absl::flags_parse
          absl::flags_usage
          absl::statusor

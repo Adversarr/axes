@@ -54,4 +54,34 @@ std::pair<math::field3r, math::field3i> cube(real size) {
   return {vertices, indices};
 }
 
+SurfaceMesh sphere(real radius, idx slices, idx stacks) {
+  math::field3r vertices(3, (slices + 1) * (stacks + 1));
+  math::field3i indices(3, 2 * slices * stacks);
+
+  for (idx i = 0; i <= stacks; ++i) {
+    real const theta = math::pi<real> * i / stacks;
+    real const sin_theta = math::sin(theta);
+    real const cos_theta = math::cos(theta);
+
+    for (idx j = 0; j <= slices; ++j) {
+      real const phi = 2 * math::pi<real> * j / slices;
+      real const sin_phi = math::sin(phi);
+      real const cos_phi = math::cos(phi);
+
+      vertices.col(i * (slices + 1) + j)
+          = math::vec3r{radius * cos_phi * sin_theta, radius * sin_phi * sin_theta, radius * cos_theta};
+    }
+  }
+
+  idx k = 0;
+  for (idx i = 0; i < stacks; ++i) {
+    for (idx j = 0; j < slices; ++j) {
+      indices.col(k++) = math::vec3i{i * (slices + 1) + j, (i + 1) * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1};
+      indices.col(k++) = math::vec3i{i * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1, i * (slices + 1) + j + 1};
+    }
+  }
+
+  return {vertices, indices};
+}
+
 }  // namespace ax::geo

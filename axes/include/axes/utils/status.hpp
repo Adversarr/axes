@@ -65,8 +65,8 @@ template <typename T> T&& extract_or_die(StatusOr<T>& status_or) {
   auto var = ::ax::utils::extract(var##status)
 
 #define AX_ASSIGN_OR_DIE(var, expr)                                 \
-  auto var##status = (expr);                                        \
-  CHECK_OK((var##status).status()) << "Failed preconditon: " #expr; \
-  auto var = ::ax::utils::extract_or_die(var##status)
+  auto _## var ##_status_or = (expr);                                        \
+  CHECK_OK((_## var ##_status_or).status()) << "Failed preconditon: " #expr; \
+  auto var = ::ax::utils::extract_or_die(_## var ##_status_or)
 
 }  // namespace ax::utils

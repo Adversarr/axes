@@ -11,7 +11,8 @@ public:
   OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& dir, utils::Opt const& options) override;
 
   real alpha_ = 1.0;
-  real beta_ = 0.3;
+  real rho_ = 0.3;
+  real c_ = 0.3;
 };
 
 }

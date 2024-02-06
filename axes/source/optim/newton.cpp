@@ -106,14 +106,11 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
       if (!solution.ok()) {
         return solution.status();
       }
-      DLOG(INFO) << "Solution: " << solution.value().solution_.transpose();
       dir = solution.value().solution_;
     } else {
       CHECK(false) << "This branch has not been implemented";
     }
-
     DLOG(INFO) << "Direction: " << dir.transpose();
-
     // Line search
     auto lsr = line_search->Optimize(problem_, x, dir, ls_opt);
     OptResultImpl ls_result;
@@ -122,9 +119,10 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
       return lsr.status();
     }
     ls_result = std::move(lsr.value());
-
+    DLOG(INFO) << "Step: " << (ls_result.x_opt_ - x).transpose();
     x = ls_result.x_opt_;
-    f_iter = problem_.EvalEnergy(x);
+    f_iter = ls_result.f_opt_;
+    grad = problem_.EvalGrad(x);
   }
 
   result.converged_grad_ = converge_grad;

@@ -17,6 +17,8 @@ public:
   using container_type = absl::flat_hash_map<std::string, value_type>;
 
   Opt() = default;
+
+  Opt(std::initializer_list<std::pair<std::string, value_type>> init) : dict_{init} {}
   AX_DECLARE_CONSTRUCTOR(Opt, default, default);
 
   /****************************** Add ******************************/

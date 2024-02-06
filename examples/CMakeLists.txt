@@ -7,4 +7,4 @@ endfunction(axes_add_example)
 
 axes_add_example(empty axes)
 axes_add_example(basic_graphics axes_gui)
-axes_add_example(optim axes)
+axes_add_example(optim_dense axes)

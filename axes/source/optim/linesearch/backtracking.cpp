@@ -3,7 +3,7 @@ namespace ax::optim {
 OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir,
                                            utils::Opt const& options) {
   real alpha = options.Get<real>("alpha", alpha_);
-  real rho = options.Get<real>("beta", rho_);
+  real rho = options.Get<real>("rho", rho_);
   real c = options.Get<real>("c", c_);
 
   // SECT: Check Inputs
@@ -19,7 +19,6 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   if (!prob.HasEnergy()) {
     return utils::FailedPreconditionError("Energy function not set");
   }
-
   if (!prob.HasGrad()) {
     return utils::FailedPreconditionError("Gradient function not set");
   }
@@ -36,6 +35,7 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   while (true) {
     math::vecxr x = x0 + alpha * dir;
     real f = prob.EvalEnergy(x);
+    // DLOG(INFO) << "Linesearch Iteration[" << iter << "]: E=" << f << ", alpha=" << alpha;
     if (f <= f0 + c * alpha * df0) {
       opt = OptResultImpl{x, f, iter};
       opt.converged_ = true;
@@ -49,7 +49,6 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
       break;
     }
   }
-  DLOG(INFO) << "BTLS[f0=" << f0 << ", df0=" << df0 << ", it=" << iter << "]";
   return opt;
 }
 }  // namespace ax::optim

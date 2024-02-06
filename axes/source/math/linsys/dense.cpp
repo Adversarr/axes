@@ -59,6 +59,8 @@ Status DenseSolver_LDLT::Analyse(problem_t const& problem, utils::Opt const& opt
   impl_.compute(problem.A_);
   if (!(impl_.info() == Eigen::Success)) {
     return utils::FailedPreconditionError("The factorization has not been computed.");
+  } else if (! impl_.isPositive()) {
+    return utils::FailedPreconditionError("The matrix is not positive definite.");
   }
   AX_RETURN_OK();
 }

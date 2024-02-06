@@ -12,7 +12,7 @@ public:
 
   real alpha_ = 1.0;
   real rho_ = 0.3;
-  real c_ = 0.3;
+  real c_ = 1e-4;
 };
 
 }

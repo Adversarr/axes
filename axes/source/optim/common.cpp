@@ -4,7 +4,13 @@
 
 namespace ax::optim {
 
-std::pair<math::vecxr, real> OptResultImpl::GetResult() const { return {x_opt_, f_opt_}; }
+OptProblem::OptProblem()
+    : converge_var_(default_converge_var<math::l2_t>),
+      converge_grad_(default_converge_grad<math::l2_t>) {}
+
+std::pair<math::vecxr, real> OptResultImpl::GetResult() const {
+  return {x_opt_, f_opt_};
+}
 
 std::ostream& operator<<(std::ostream& os, OptResultImpl const& result) {
   os << "Optimization Result:\n";
@@ -28,7 +34,8 @@ OptProblem& OptProblem::SetHessian(HessianFn const& hessian) {
   return *this;
 }
 
-OptProblem& OptProblem::SetSparseHessian(SparseHessianFn const& sparse_hessian) {
+OptProblem& OptProblem::SetSparseHessian(
+    SparseHessianFn const& sparse_hessian) {
   sparse_hessian_ = sparse_hessian;
   return *this;
 }
@@ -69,18 +76,20 @@ real OptProblem::EvalEnergy(math::vecxr const& x) const {
   return energy_(x);
 }
 
-void OptProblem::EvalVerbose(idx iter, math::vecxr const &x, real f) const {
+void OptProblem::EvalVerbose(idx iter, math::vecxr const& x, real f) const {
   if (verbose_) {
     verbose_(iter, x, f);
   }
 }
 
-real OptProblem::EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const {
+real OptProblem::EvalConvergeVar(math::vecxr const& x0,
+                                 math::vecxr const& x1) const {
   CHECK(converge_var_) << "Converge Var Fn is not set.";
   return converge_var_(x0, x1);
 }
 
-real OptProblem::EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const {
+real OptProblem::EvalConvergeGrad(math::vecxr const& x,
+                                  math::vecxr const& grad) const {
   CHECK(converge_grad_) << "Converge Grad Fn is not set.";
   return converge_grad_(x, grad);
 }
@@ -91,12 +100,18 @@ bool OptProblem::HasGrad() const { return static_cast<bool>(grad_); }
 
 bool OptProblem::HasHessian() const { return static_cast<bool>(hessian_); }
 
-bool OptProblem::HasSparseHessian() const { return static_cast<bool>(sparse_hessian_); }
+bool OptProblem::HasSparseHessian() const {
+  return static_cast<bool>(sparse_hessian_);
+}
 
-bool OptProblem::HasConvergeVar() const { return static_cast<bool>(converge_var_); }
+bool OptProblem::HasConvergeVar() const {
+  return static_cast<bool>(converge_var_);
+}
 
-bool OptProblem::HasConvergeGrad() const { return static_cast<bool>(converge_grad_); }
+bool OptProblem::HasConvergeGrad() const {
+  return static_cast<bool>(converge_grad_);
+}
 
 bool OptProblem::HasVerbose() const { return static_cast<bool>(verbose_); }
 
-} // namespace ax::optim
+}  // namespace ax::optim

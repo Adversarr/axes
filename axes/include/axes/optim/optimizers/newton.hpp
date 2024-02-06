@@ -1,12 +1,10 @@
 #pragma once
 
-#include "axes/optim/linesearch/linesearch.hpp"
-#include "optimizer_base.hpp"
+#include "axes/optim/optimizer_base.hpp"
 
 namespace ax::optim {
 
 class Newton : public OptimizerBase {
-
 public:
   /****************************** Ctor Dtor ******************************/
   explicit Newton(OptProblem& problem) : OptimizerBase{problem} {}
@@ -21,4 +19,4 @@ public:
 protected:
 };
 
-}
+}  // namespace ax::optim

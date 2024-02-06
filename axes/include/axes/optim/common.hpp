@@ -1,23 +1,36 @@
 #pragma once
 
 #include "axes/math/common.hpp"
+#include "axes/math/linalg.hpp"
 #include "axes/math/sparse.hpp"
+#include "axes/utils/common.hpp"
 
 namespace ax::optim {
 
 /****************************** Function Handles ******************************/
-using ConvergeVarFn = std::function<real(const math::vecxr&, const math::vecxr&)>;
-using ConvergeGradFn = std::function<real(const math::vecxr&, const math::vecxr&)>;
+using ConvergeVarFn
+    = std::function<real(const math::vecxr&, const math::vecxr&)>;
+using ConvergeGradFn
+    = std::function<real(const math::vecxr&, const math::vecxr&)>;
 using VerboseFn = std::function<void(idx, const math::vecxr&, const real)>;
 using EnergyFn = std::function<real(const math::vecxr&)>;
 using GradFn = std::function<math::vecxr(const math::vecxr&)>;
 using HessianFn = std::function<math::matxxr(const math::vecxr&)>;
 using SparseHessianFn = std::function<math::sp_matxxr(math::vecxr const&)>;
+template <typename NormType = math::l2_t>
+inline real default_converge_grad(math::vecxr const&, math::vecxr const& grad) {
+  return math::norm(grad, NormType{});
+}
+
+template <typename NormType = math::l2_t>
+inline real default_converge_var(math::vecxr const& x0, math::vecxr const& x1) {
+  return math::norm(x1 - x0, NormType{});
+}
 
 class OptProblem {
 public:
-  OptProblem() = default;
-  OptProblem(OptProblem const&) = default;
+  OptProblem();
+  AX_DECLARE_CONSTRUCTOR(OptProblem, default, default);
 
   /****************************** Evaluation ******************************/
   real EvalEnergy(math::vecxr const& x) const;
@@ -26,7 +39,7 @@ public:
   math::sp_matxxr EvalSparseHessian(math::vecxr const& x) const;
   real EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
   real EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
-  void EvalVerbose(idx iter, math::vecxr const &x, real f) const;
+  void EvalVerbose(idx iter, math::vecxr const& x, real f) const;
 
   /****************************** Setters ******************************/
   OptProblem& SetEnergy(EnergyFn const& energy);
@@ -68,7 +81,8 @@ private:
   VerboseFn verbose_{nullptr};
 };
 
-/****************************** Optimization Result ******************************/
+/****************************** Optimization Result
+ * ******************************/
 struct OptResultImpl {
   // Optimal x
   math::vecxr x_opt_;

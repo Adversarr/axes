@@ -89,9 +89,9 @@ struct OptResultImpl {
   // Optimal energy
   real f_opt_;
   // Indicates whether the optimization algorithm has converged.
-  bool converged_grad_;
-  bool converged_var_;
-  bool converged_;
+  bool converged_grad_{false};
+  bool converged_var_{false};
+  bool converged_{false};
 
   // For Iterative Solver:
   idx n_iter_;

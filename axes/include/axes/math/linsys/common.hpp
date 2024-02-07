@@ -16,16 +16,14 @@ struct LinsysProblem_Dense {
   // Problem Description
   matxxr const& A_;
   vecxr const& b_;
-  bool is_spsd_;
 
-  LinsysProblem_Dense(matxxr const& A, vecxr const& b, bool is_spsd) : A_{A}, b_{b}, is_spsd_{is_spsd} {}
+  LinsysProblem_Dense(matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
 };
 
 struct LinsysProblem_Sparse {
   // Problem Description
   sp_matxxr const& A_;
   vecxr const& b_;
-  bool is_spsd_;
 
   // For Iterative Solvers: Solution Requirement
   real l2_tol_;
@@ -34,6 +32,7 @@ struct LinsysProblem_Sparse {
   // Additional checkers.
   std::function<bool(vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
+  LinsysProblem_Sparse(sp_matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
 };
 
 struct LinsysProblem_Implicit {

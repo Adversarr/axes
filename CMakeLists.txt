@@ -52,6 +52,10 @@ include(CMakeDependentOption)
 
 include(cmake/utils.cmake)
 
+if (MSVC)
+    axes_add_cxx_compiler_flag("/bigobj")
+endif()
+
 # Further optimize for SIMD.
 if(NOT MSVC)
   axes_add_cxx_compiler_flag("-march=native")

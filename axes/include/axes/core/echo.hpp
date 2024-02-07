@@ -7,8 +7,4 @@
 
 namespace ax {
 
-namespace fmt {
-using namespace fmt;
-}
-
 }  // namespace ax

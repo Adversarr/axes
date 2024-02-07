@@ -12,6 +12,7 @@ math::matxxr A;
 math::vecxr b;
 
 ABSL_FLAG(std::string, problem, "sp_lstsq", "Problem to solve");
+ABSL_FLAG(std::string, optimizer, "lbfgs", "Optimizer");
 
 int main(int argc, char** argv) {
   init(argc, argv);
@@ -31,12 +32,12 @@ int main(int argc, char** argv) {
   if (absl::GetFlag(FLAGS_problem) == "rosenbrock") {
     prob = new optim::test::RosenbrockProblem();
     optimal = optim::test::RosenbrockProblem{}.Optimal(b);
-    x0.setRandom(n);
+    x0 = math::ones(n, 1);
     x0 = ((x0.array() + 1) * 0.3 + 1).matrix().eval();
   } else if (absl::GetFlag(FLAGS_problem) == "lstsq") {
     prob = new optim::test::LeastSquareProblem(A, b);
     optimal = optim::test::LeastSquareProblem{A, b}.Optimal(b);
-    x0 = math::ones(n, 1) * 1.2;
+    x0.setRandom(n);
   } else if (absl::GetFlag(FLAGS_problem) == "sp_lstsq") {
     math::SparseCoeffVec A_sparse;
     A_sparse.reserve(n * 10);
@@ -57,8 +58,16 @@ int main(int argc, char** argv) {
   } else {
     LOG(FATAL) << "Unknown problem: " << absl::GetFlag(FLAGS_problem);
   }
-  optim::Newton optimizer{*prob};
-  auto solution = optimizer.Optimize(x0, opt);
+  optim::OptimizerBase* optimizer;
+  if (absl::GetFlag(FLAGS_optimizer) == "newton") {
+    optimizer = new optim::Newton(*prob);
+  } else if (absl::GetFlag(FLAGS_optimizer) == "lbfgs") {
+    optimizer = new optim::Lbfgs(*prob);
+  } else {
+    LOG(FATAL) << "Unknown optimizer: " << absl::GetFlag(FLAGS_optimizer);
+  }
+
+  auto solution = optimizer->Optimize(x0, opt);
 
   CHECK(solution->converged_);
   LOG(INFO) << "Solution: " << solution->x_opt_.transpose();

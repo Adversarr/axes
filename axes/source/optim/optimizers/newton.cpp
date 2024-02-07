@@ -97,22 +97,22 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
     // SECT: Find a Dir
     if (is_dense_hessian) {
       math::matxxr H = problem_.EvalHessian(x);
-      math::LinsysProblem_Dense prob(H, -grad, true);
+      math::LinsysProblem_Dense prob(H, grad);
       auto solution = dense_solver->Solve(prob, linsys_opt);
       if (!solution.ok()) {
         LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
-      dir = std::move(solution.value().solution_);
+      dir = -solution.value().solution_;
     } else {
       math::sp_matxxr H = problem_.EvalSparseHessian(x);
-      math::LinsysProblem_Sparse prob(H, -grad, true);
+      math::LinsysProblem_Sparse prob(H, grad);
       auto solution = sparse_solver->Solve(prob, linsys_opt);
       if (!solution.ok()) {
         LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
-      LOG(ERROR) << "Solution: " << solution.value().solution_.transpose();
+      dir = -solution.value().solution_;
     }
 
     // SECT: Line search

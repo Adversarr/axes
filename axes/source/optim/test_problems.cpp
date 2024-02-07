@@ -11,8 +11,7 @@ namespace ax::optim::test {
 real rosenbrock(math::vecxr const& x) {
   real f = 0;
   for (idx i = 0; i < x.size() - 1; ++i) {
-    f += math::square(x[i] - 1)
-         + 100 * math::square(x[i + 1] - math::square(x[i]));
+    f += math::square(x[i] - 1) + 100 * math::square(x[i + 1] - math::square(x[i]));
   }
   return f;
 }
@@ -52,16 +51,28 @@ RosenbrockProblem::RosenbrockProblem() {
 }
 
 /************************* SECT: Least Square *************************/
-LeastSquareProblem::LeastSquareProblem(math::matxxr const& A,
-                                       math::vecxr const& b)
-    : A(A), b(b) {
-  SetEnergy([&](math::vecxr const& x) {
-    return 0.5 * (x - b).transpose() * A * (x - b);
-  });
-  SetGrad([&](math::vecxr const& x) { return A * (x - b); });
-  SetHessian([&](math::vecxr const&) { return A; });
+LeastSquareProblem::LeastSquareProblem(math::matxxr const& A, math::vecxr const& b) : A_(A), b_(b) {
+  SetEnergy([this](math::vecxr const& x) { return 0.5 * (x - b_).transpose() * A_ * (x - b_); });
+  SetGrad([this](math::vecxr const& x) { return A_ * (x - b_); });
+  SetHessian([this](math::vecxr const&) { return A_; });
 }
 
-math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b; }
+math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b_; }
+
+SparseLeastSquareProblem::SparseLeastSquareProblem(math::sp_matxxr const& A, math::vecxr const& b)
+    : A_(A), b_(b) {
+  CHECK(A.rows() == A.cols());
+  CHECK(A.rows() == b.rows());
+  SetEnergy([this](math::vecxr const& x) {
+    CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
+    math::vecxr residual = x - b_;
+    return 0.5 * residual.dot(A_ * residual);
+  });
+  SetGrad([this](math::vecxr const& x) {
+    CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
+    return math::vecxr{A_ * (x - b_)};
+  });
+  SetSparseHessian([this](math::vecxr const&) { return A_; });
+}
 
 }  // namespace ax::optim::test

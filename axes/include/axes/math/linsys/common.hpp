@@ -73,8 +73,8 @@ struct LinsysSolveResultImpl {
         l2_err_{l2_err},
         linf_err_{linf_err} {}
 
-  LinsysSolveResultImpl(vecxr solution, bool converged = true)
-      : solution_{std::move(solution)}, converged_{converged} {}
+  LinsysSolveResultImpl(vecxr const& solution, bool converged = true)
+      : solution_{solution}, converged_{converged} {}
 };
 
 using LinsysSolveResult = StatusOr<LinsysSolveResultImpl>;

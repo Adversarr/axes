@@ -34,32 +34,31 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
   auto ls_kind = ls_kind_opt.value_or(LineSearchKind::kBacktracking);
   line_search = LineSearchBase::Create(ls_kind);
   if (!line_search) {
-    return utils::FailedPreconditionError("Invalid line search method: "
-                                          + ls_name);
+    return utils::FailedPreconditionError("Invalid line search method: " + ls_name);
   }
 
   // SECT: Setup Linsys Solver
   utils::Opt linsys_opt = options.Get<utils::Opt>("linsys", utils::Opt{});
   utils::uptr<math::DenseSolver> dense_solver;
   utils::uptr<math::SparseSolverBase> sparse_solver;
-  std::string linsys_name = linsys_opt.Get<std::string>("name", "LDLT");
-  DLOG(INFO) << "Linsys Solver: " << linsys_name;
   if (is_dense_hessian) {
+    std::string linsys_name = linsys_opt.Get<std::string>("name", "LDLT");
+    DLOG(INFO) << "Dense Linsys Solver: " << linsys_name;
     auto kind = utils::reflect_enum<math::DenseSolverKind>(linsys_name);
     if (!kind) {
-      return utils::FailedPreconditionError("Invalid Dense linsys solver: "
-                                            + linsys_name);
+      return utils::FailedPreconditionError("Invalid Dense linsys solver: " + linsys_name);
     }
     dense_solver = math::DenseSolver::Create(kind.value());
     CHECK(dense_solver) << "Invalid Dense linsys solver: " << linsys_name;
   } else {
-    // auto kind = utils::reflect_enum<math::SparseSolverKind>(linsys_name);
-    // if (!kind) {
-    //   return utils::FailedPreconditionError("Invalid Dense linsys solver: " +
-    //   linsys_name);
-    // }
-    // sparse_solver = math::SparseSolverBase::Create(kind.value());
-    // CHECK(sparse_solver) << "Invalid Sparse linsys solver: " << linsys_name;
+    std::string linsys_name = linsys_opt.Get<std::string>("name", "LDLT");
+    DLOG(INFO) << "Sparse Linsys Solver: " << linsys_name;
+    auto kind = utils::reflect_enum<math::SparseSolverKind>(linsys_name);
+    if (!kind) {
+      return utils::FailedPreconditionError("Invalid Sparse linsys solver: " + linsys_name);
+    }
+    sparse_solver = math::SparseSolverBase::Create(kind.value());
+    CHECK(sparse_solver) << "Invalid Sparse linsys solver: " << linsys_name;
   }
 
   // SECT: Initialize
@@ -87,10 +86,9 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
     }
 
     // SECT: Check convergence
-    converge_grad = problem_.HasConvergeGrad()
-                    && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
-    converge_var = iter > 1 && problem_.HasConvergeVar()
-                   && problem_.EvalConvergeVar(x, x0) < tol_var_;
+    converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
+    converge_var
+        = iter > 1 && problem_.HasConvergeVar() && problem_.EvalConvergeVar(x, x0) < tol_var_;
     if (converge_grad || converge_var) {
       converged = true;
       break;
@@ -102,13 +100,19 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
       math::LinsysProblem_Dense prob(H, -grad, true);
       auto solution = dense_solver->Solve(prob, linsys_opt);
       if (!solution.ok()) {
-        LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible"
-                   << std::endl;
+        LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
       dir = std::move(solution.value().solution_);
     } else {
-      CHECK(false) << "This branch has not been implemented";
+      math::sp_matxxr H = problem_.EvalSparseHessian(x);
+      math::LinsysProblem_Sparse prob(H, -grad, true);
+      auto solution = sparse_solver->Solve(prob, linsys_opt);
+      if (!solution.ok()) {
+        LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
+        return solution.status();
+      }
+      LOG(ERROR) << "Solution: " << solution.value().solution_.transpose();
     }
 
     // SECT: Line search
@@ -116,6 +120,7 @@ OptResult Newton::Optimize(math::vecxr const& x0, utils::Opt const& options) {
     OptResultImpl ls_result;
     if (!lsr.ok()) {
       LOG(ERROR) << "Line Search Error: " << lsr.status();
+      LOG(ERROR) << "Search Dir = " << dir.transpose();
       LOG(ERROR) << "Possible Reason: Your Hessian matrix is not SPSD";
       return lsr.status();
     }

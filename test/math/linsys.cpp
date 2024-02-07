@@ -89,9 +89,9 @@ TEST_CASE("Sparse LU") {
   A.insert(1, 0) = 1;
   A.insert(1, 1) = 3;
   A.makeCompressed();
-  vecxr b = vecxr::Ones(2);
-  vecxr x = A.toDense().inverse() * b;
-  LinsysProblem_Sparse A_b{A, b, false, 1e-6, 1e-6, {}, {}};
+  vecxr x = vecxr::Ones(2);
+  vecxr b = A * x;
+  LinsysProblem_Sparse A_b{A, b, true, 1e-6, 1e-6, {}, {}};
   for (auto kind : {
            SparseSolverKind::kLU,
            SparseSolverKind::kQR,

@@ -61,17 +61,15 @@ struct LinsysSolveResultImpl {
 
   // For iterative solver
   idx num_iter_;
-  vecxr residual_;
 
   // May be not set?
-  real l2_err_;
-  real linf_err_;
+  real l2_err_{-1};
+  real linf_err_{-1};
 
-  LinsysSolveResultImpl(vecxr solution, bool converged, idx num_iter, vecxr residual, real l2_err, real linf_err)
+  LinsysSolveResultImpl(vecxr solution, bool converged, idx num_iter, real l2_err, real linf_err)
       : solution_{std::move(solution)},
         converged_(converged),
         num_iter_{num_iter},
-        residual_{std::move(residual)},
         l2_err_{l2_err},
         linf_err_{linf_err} {}
 

@@ -4,6 +4,7 @@
 #include <entt/locator/locator.hpp>
 
 #include "axes/math/linsys/dense.hpp"
+#include "axes/math/linsys/sparse.hpp"
 
 TEST_CASE("Refl") {
   using namespace ax::utils;
@@ -79,3 +80,34 @@ TEST_CASE("Solve Non-Invertible") {
     CHECK(result.ok());
   }
 }
+
+TEST_CASE("Sparse LU") {
+  using namespace ax::math;
+  sp_matxxr A(2, 2);
+  A.insert(0, 0) = 3;
+  A.insert(0, 1) = 1;
+  A.insert(1, 0) = 1;
+  A.insert(1, 1) = 3;
+  A.makeCompressed();
+  vecxr b = vecxr::Ones(2);
+  vecxr x = A.toDense().inverse() * b;
+  LinsysProblem_Sparse A_b{A, b, false, 1e-6, 1e-6, {}, {}};
+  for (auto kind : {
+           SparseSolverKind::kLU,
+           SparseSolverKind::kQR,
+           SparseSolverKind::kConjugateGradient,
+           SparseSolverKind::kLDLT
+       }) {
+    auto solver = SparseSolverBase::Create(kind);
+    CHECK(solver != nullptr);
+    auto status = solver->Analyse(A_b, {});
+    CHECK(status.ok());
+
+    auto result = solver->Solve(b, {}, {});
+    CHECK(result.ok());
+    CHECK(result.value().converged_);
+    CHECK(result.value().solution_.isApprox(x));
+  }
+}
+
+

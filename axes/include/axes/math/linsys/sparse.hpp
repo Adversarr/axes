@@ -1,8 +1,11 @@
 #pragma once
+#include <Eigen/IterativeLinearSolvers>
+#include <Eigen/Sparse>
+
+#include "axes/math/linsys/preconditioner.hpp"
 #include "axes/math/linsys/solver_base.hpp"
 #include "axes/utils/opt.hpp"
 #include "common.hpp"
-#include <Eigen/IterativeLinearSolvers>
 
 namespace ax::math {
 
@@ -22,7 +25,15 @@ enum SparseSolverKind : idx {
 class SparseSolverBase : public LinsysSolverBase<LinsysProblem_Sparse> {
 public:
   static utils::uptr<SparseSolverBase> Create(SparseSolverKind kind);
+
+  inline void SetPreconditioner(utils::uptr<PreconditionerBase> preconditioner) {
+    preconditioner_ = std::move(preconditioner);
+  }
+
   virtual ~SparseSolverBase() = default;
+
+protected:
+  utils::uptr<PreconditionerBase> preconditioner_{nullptr};
 };
 
 class SparseSolver_LDLT : public SparseSolverBase {
@@ -30,6 +41,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::SimplicialLDLT<sp_matxxr> solver_;
 };
 
 class SparseSolver_LLT : public SparseSolverBase {
@@ -37,6 +51,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::SimplicialLLT<sp_matxxr> solver_;
 };
 
 class SparseSolver_LU : public SparseSolverBase {
@@ -44,6 +61,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::SparseLU<sp_matxxr, Eigen::COLAMDOrdering<idx>> solver_;
 };
 
 class SparseSolver_QR : public SparseSolverBase {
@@ -51,6 +71,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::SparseQR<sp_matxxr, Eigen::COLAMDOrdering<idx>> solver_;
 };
 
 class SparseSolver_ConjugateGradient : public SparseSolverBase {
@@ -58,6 +81,11 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower | Eigen::Upper,
+                           Eigen::DiagonalPreconditioner<real>>
+      solver_;
 };
 
 class SparseSolver_LeastSquaresConjugateGradient : public SparseSolverBase {
@@ -65,6 +93,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::LeastSquaresConjugateGradient<sp_matxxr> solver_;
 };
 
 class SparseSolver_BiCGSTAB : public SparseSolverBase {
@@ -72,6 +103,9 @@ public:
   Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+
+private:
+  Eigen::BiCGSTAB<sp_matxxr> solver_;
 };
 
 }  // namespace ax::math

@@ -41,7 +41,7 @@ public:
   vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
 
 private:
-  Eigen::IncompleteCholesky<real> impl_;
+  Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;
 };
 
 class PreconditionerIncompleteLU : public PreconditionerBase {
@@ -51,7 +51,7 @@ public:
   vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
 
 private:
-  Eigen::IncompleteLUT<real> impl_;
+  Eigen::IncompleteLUT<real, idx> impl_;
 };
 
 }  // namespace ax::math

@@ -6,7 +6,7 @@
 
 namespace ax::math {
 
-using sp_matxxr = Eigen::SparseMatrix<real>;
+using sp_matxxr = Eigen::SparseMatrix<real, Eigen::ColMajor, idx>;
 
 using SparseCoeff = Eigen::Triplet<real, idx>;
 

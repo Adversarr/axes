@@ -17,43 +17,6 @@ public:
   virtual vecxr Solve(vecxr const &b, vecxr const &x0) = 0;
 };
 
-class PreconditionerIdentity : public PreconditionerBase {
-public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
-
-  vecxr Solve(vecxr const &b, vecxr const &x0) override;
-};
-
-class PreconditionerDiagonal : public PreconditionerBase {
-public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
-
-  vecxr Solve(vecxr const &b, vecxr const &x0) override;
-
-private:
-  Eigen::DiagonalPreconditioner<real> impl_;
-};
-
-class PreconditionerIncompleteCholesky : public PreconditionerBase {
-public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
-
-  vecxr Solve(vecxr const &b, vecxr const &x0) override;
-
-private:
-  Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;
-};
-
-class PreconditionerIncompleteLU : public PreconditionerBase {
-public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
-
-  vecxr Solve(vecxr const &b, vecxr const &x0) override;
-
-private:
-  Eigen::IncompleteLUT<real, idx> impl_;
-};
-
 }  // namespace ax::math
 
 #include "axes/utils/enum_refl.hpp"

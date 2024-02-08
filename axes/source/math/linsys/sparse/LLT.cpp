@@ -10,7 +10,7 @@ Status SparseSolver_LLT::Analyse(LinsysProblem_Sparse const &problem) {
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_LLT::Solve(vecxr const &b, vecxr const &x0) {
+LinsysSolveResult SparseSolver_LLT::Solve(vecxr const &b, vecxr const &) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_LLT: solve failed");

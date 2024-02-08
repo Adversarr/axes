@@ -39,8 +39,8 @@ int main(int argc, char** argv) {
   /************************* SECT: Setup Problems *************************/
   if (absl::GetFlag(FLAGS_problem) == "rosenbrock") {
     prob = new optim::test::RosenbrockProblem();
-    x0 = math::vecxr::Random(n);
-    x0 = ((x0.array()) * 0.2 + 1).matrix().eval();
+    x0 = math::vecxr::Constant(n, 1.2);
+    x0[0] = -1.2;
     optimal = optim::test::RosenbrockProblem{}.Optimal(x0);
   } else if (absl::GetFlag(FLAGS_problem) == "lstsq") {
     A = math::matxxr::Random(n, n);
@@ -95,8 +95,8 @@ int main(int argc, char** argv) {
     return 1;
   }
   AX_LOG(INFO) << "Optimization finished in " << solution->n_iter_ << " iterations";
-  // AX_LOG(INFO) << "Solution: " << solution->x_opt_.transpose();
-  // AX_LOG(INFO) << "Accurate: " << optimal.transpose();
+  AX_LOG(INFO) << "Solution: " << solution->x_opt_.transpose();
+  AX_LOG(INFO) << "Accurate: " << optimal.transpose();
   if (!solution->converged_) {
     AX_LOG(ERROR) << "Optimization failed to converge";
   } else {

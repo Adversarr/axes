@@ -5,9 +5,9 @@ namespace ax::gl {
 
 struct Light {
   math::vec3f position_;
-  f32 ambient_strength_{0.1};
-  f32 diffuse_strength_{0.5};
-  f32 specular_strength_{0.4};
+  f32 ambient_strength_{0.1f};
+  f32 diffuse_strength_{0.5f};
+  f32 specular_strength_{0.4f};
 };
 
 }

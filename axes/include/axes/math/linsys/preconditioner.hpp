@@ -13,22 +13,22 @@ public:
   static utils::uptr<PreconditionerBase> Create(PreconditionerKind kind);
 
   virtual ~PreconditionerBase() = default;
-  virtual Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) = 0;
-  virtual vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) = 0;
+  virtual Status Analyse(LinsysProblem_Sparse const &problem) = 0;
+  virtual vecxr Solve(vecxr const &b, vecxr const &x0) = 0;
 };
 
 class PreconditionerIdentity : public PreconditionerBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  vecxr Solve(vecxr const &b, vecxr const &x0) override;
 };
 
 class PreconditionerDiagonal : public PreconditionerBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::DiagonalPreconditioner<real> impl_;
@@ -36,9 +36,9 @@ private:
 
 class PreconditionerIncompleteCholesky : public PreconditionerBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;
@@ -46,9 +46,9 @@ private:
 
 class PreconditionerIncompleteLU : public PreconditionerBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  vecxr Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::IncompleteLUT<real, idx> impl_;

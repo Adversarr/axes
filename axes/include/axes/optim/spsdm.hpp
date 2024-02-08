@@ -7,13 +7,12 @@ namespace ax::optim {
 
 enum class SpsdModificationKind : idx { kEigenvalue, kCholesky, kIdentity };
 
-class SpsdModificationBase {
+class SpsdModificationBase : public utils::Tunable {
 public:
   virtual ~SpsdModificationBase() = default;
   utils::uptr<SpsdModificationBase> Create(SpsdModificationKind kind);
 
-  virtual StatusOr<math::matxxr> Modify(math::matxxr const& A,
-                                        utils::Opt const& opt = {})
+  virtual StatusOr<math::matxxr> Modify(math::matxxr const& A)
       = 0;
 };
 

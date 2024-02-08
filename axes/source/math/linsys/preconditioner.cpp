@@ -19,11 +19,11 @@ utils::uptr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind ki
   }
 }
 
-Status PreconditionerIdentity::Analyse(LinsysProblem_Sparse const &, utils::Opt const &) { AX_RETURN_OK(); }
+Status PreconditionerIdentity::Analyse(LinsysProblem_Sparse const &) { AX_RETURN_OK(); }
 
-vecxr PreconditionerIdentity::Solve(vecxr const &b, vecxr const &, utils::Opt const &) { return b; }
+vecxr PreconditionerIdentity::Solve(vecxr const &b, vecxr const &) { return b; }
 
-Status PreconditionerDiagonal::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &) {
+Status PreconditionerDiagonal::Analyse(LinsysProblem_Sparse const &problem) {
   impl_.compute(problem.A_);
   if (!(impl_.info() == Eigen::Success)) {
     return utils::FailedPreconditionError("The factorization has not been computed.");
@@ -31,9 +31,9 @@ Status PreconditionerDiagonal::Analyse(LinsysProblem_Sparse const &problem, util
   AX_RETURN_OK();
 }
 
-vecxr PreconditionerDiagonal::Solve(vecxr const &b, vecxr const &, utils::Opt const &) { return impl_.solve(b); }
+vecxr PreconditionerDiagonal::Solve(vecxr const &b, vecxr const &) { return impl_.solve(b); }
 
-Status PreconditionerIncompleteCholesky::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &) {
+Status PreconditionerIncompleteCholesky::Analyse(LinsysProblem_Sparse const &problem) {
   impl_.compute(problem.A_);
   if (!(impl_.info() == Eigen::Success)) {
     return utils::FailedPreconditionError("The factorization has not been computed.");
@@ -41,11 +41,11 @@ Status PreconditionerIncompleteCholesky::Analyse(LinsysProblem_Sparse const &pro
   AX_RETURN_OK();
 }
 
-vecxr PreconditionerIncompleteCholesky::Solve(vecxr const &b, vecxr const &, utils::Opt const &) {
+vecxr PreconditionerIncompleteCholesky::Solve(vecxr const &b, vecxr const &) {
   return impl_.solve(b);
 }
 
-Status PreconditionerIncompleteLU::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &) {
+Status PreconditionerIncompleteLU::Analyse(LinsysProblem_Sparse const &problem) {
   impl_.compute(problem.A_);
   if (!(impl_.info() == Eigen::Success)) {
     return utils::FailedPreconditionError("The factorization has not been computed.");
@@ -53,6 +53,6 @@ Status PreconditionerIncompleteLU::Analyse(LinsysProblem_Sparse const &problem, 
   AX_RETURN_OK();
 }
 
-vecxr PreconditionerIncompleteLU::Solve(vecxr const &b, vecxr const &, utils::Opt const &) { return impl_.solve(b); }
+vecxr PreconditionerIncompleteLU::Solve(vecxr const &b, vecxr const &) { return impl_.solve(b); }
 
 }  // namespace ax::math

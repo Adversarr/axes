@@ -33,14 +33,14 @@ TEST_CASE("Solve Invertible") {
   A << 1, 2, 3, 4;
   vecxr b = vecxr::Ones(2);
   vecxr x = A.inverse() * b;
-  LinsysProblem_Dense A_b{A, b, false};
+  LinsysProblem_Dense A_b{A, b};
   for (auto kind : kinds) {
-    auto solver = DenseSolver::Create(kind);
+    auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b, {});
+    auto status = solver->Analyse(A_b);
     CHECK(status.ok());
 
-    auto result = solver->Solve(b, {}, {});
+    auto result = solver->Solve(b, {});
     CHECK(result.ok());
     CHECK(result.value().converged_);
     CHECK(result.value().solution_.isApprox(x));
@@ -52,7 +52,7 @@ TEST_CASE("Solve Non-Invertible") {
   matxxr A(2, 2);
   A << 1, 2, 2, 4;
   vecxr b = vecxr::Ones(2);
-  LinsysProblem_Dense A_b{A, b, false};
+  LinsysProblem_Dense A_b{A, b};
   for (auto kind : {
            DenseSolverKind::kFullPivLU,
            DenseSolverKind::kFullPivHouseHolderQR,
@@ -60,9 +60,9 @@ TEST_CASE("Solve Non-Invertible") {
            DenseSolverKind::kColPivHouseholderQR,
            DenseSolverKind::kCompleteOrthognalDecomposition,
        }) {
-    auto solver = DenseSolver::Create(kind);
+    auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b, {});
+    auto status = solver->Analyse(A_b);
     CHECK(!status.ok());
   }
 
@@ -71,12 +71,12 @@ TEST_CASE("Solve Non-Invertible") {
            DenseSolverKind::kJacobiSVD,
            DenseSolverKind::kBDCSVD,
        }) {
-    auto solver = DenseSolver::Create(kind);
+    auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b, {});
+    auto status = solver->Analyse(A_b);
     CHECK(status.ok());
 
-    auto result = solver->Solve(b, {}, {});
+    auto result = solver->Solve(b, {});
     CHECK(result.ok());
   }
 }
@@ -91,7 +91,7 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   vecxr x = vecxr::Ones(2);
   vecxr b = A * x;
-  LinsysProblem_Sparse A_b{A, b, true, 1e-6, 1e-6, {}, {}};
+  LinsysProblem_Sparse A_b{A, b};
   for (auto kind : {
            SparseSolverKind::kLU,
            SparseSolverKind::kQR,
@@ -100,10 +100,10 @@ TEST_CASE("Sparse LU") {
        }) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b, {});
+    auto status = solver->Analyse(A_b);
     CHECK(status.ok());
 
-    auto result = solver->Solve(b, {}, {});
+    auto result = solver->Solve(b, {});
     CHECK(result.ok());
     CHECK(result.value().converged_);
     CHECK(result.value().solution_.isApprox(x));

@@ -1,20 +1,15 @@
 #include "axes/optim/linesearch/backtracking.hpp"
 namespace ax::optim {
-OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir,
-                                           utils::Opt const& options) {
-  real alpha = options.Get<real>("alpha", alpha_);
-  real rho = options.Get<real>("rho", rho_);
-  real c = options.Get<real>("c", c_);
-
+OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir) const {
   // SECT: Check Inputs
-  if (alpha <= 0) {
-    return utils::InvalidArgumentError("Invalid alpha: " + std::to_string(alpha));
+  if (alpha_ <= 0) {
+    return utils::InvalidArgumentError("Invalid alpha_: " + std::to_string(alpha_));
   }
-  if (rho <= 0 || rho > 1) {
-    return utils::InvalidArgumentError("Invalid rho: " + std::to_string(rho));
+  if (rho_ <= 0 || rho_ > 1) {
+    return utils::InvalidArgumentError("Invalid rho_: " + std::to_string(rho_));
   }
-  if (c <= 0 || c > 1) {
-    return utils::InvalidArgumentError("Invalid c: " + std::to_string(c));
+  if (c_ <= 0 || c_ > 1) {
+    return utils::InvalidArgumentError("Invalid c_: " + std::to_string(c_));
   }
   if (!prob.HasEnergy()) {
     return utils::FailedPreconditionError("Energy function not set");
@@ -24,6 +19,7 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   }
 
   // SECT: Backtracking Line Search
+  real alpha = alpha_;
   real f0 = prob.EvalEnergy(x0);
   real df0 = prob.EvalGrad(x0).dot(dir);
   if (df0 >= 0) {
@@ -35,13 +31,13 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   while (true) {
     math::vecxr x = x0 + alpha * dir;
     real f = prob.EvalEnergy(x);
-    // DLOG(INFO) << "Linesearch Iteration[" << iter << "]: E=" << f << ", alpha=" << alpha;
-    if (f <= f0 + c * alpha * df0) {
+    // DLOG(INFO) << "Linesearch Iteration[" << iter << "]: E=" << f << ", alpha_=" << alpha_;
+    if (f <= f0 + c_ * alpha_ * df0) {
       opt = OptResultImpl{x, f, iter};
       opt.converged_ = true;
       break;
     }
-    alpha *= rho;
+    alpha *= rho_;
     iter++;
     if (iter > max_iter_) {
       opt = OptResultImpl{x, f, iter};
@@ -51,4 +47,20 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   }
   return opt;
 }
+
+void BacktrackingLinesearch::SetOptions(utils::Opt const& options) {
+  AX_SYNC_OPT_(options, real, alpha);
+  AX_SYNC_OPT_(options, real, rho);
+  AX_SYNC_OPT_(options, real, c);
+  LineSearchBase::SetOptions(options);
+}
+
+utils::Opt BacktrackingLinesearch::GetOptions() const {
+  utils::Opt opt = LineSearchBase::GetOptions();
+  opt["alpha"] = alpha_;
+  opt["rho"] = rho_;
+  opt["c"] = c_;
+  return opt;
+}
+
 }  // namespace ax::optim

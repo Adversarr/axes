@@ -1,8 +1,9 @@
 #pragma once
+#include <absl/container/flat_hash_map.h>
+
 #include <string>
 #include <variant>
 
-#include <absl/container/flat_hash_map.h>
 #include "axes/core/common.hpp"
 #include "common.hpp"
 
@@ -21,7 +22,7 @@ public:
   Opt(std::initializer_list<std::pair<std::string, value_type>> init) : dict_{init} {}
   AX_DECLARE_CONSTRUCTOR(Opt, default, default);
 
-  /****************************** Add ******************************/
+  /****************************** SECT: Add ******************************/
   OptValue& Emplace(const std::string& key, value_type&& value) {
     return dict_.emplace(key, std::move(value)).first->second;
   }
@@ -30,14 +31,12 @@ public:
     return dict_.emplace(key, value).first->second;
   }
 
-  /****************************** Remove ******************************/
-
+  /****************************** SECT: Remove ******************************/
   void Erase(const std::string& key) { dict_.erase(key); }
 
   void Clear() { dict_.clear(); }
 
-  /****************************** Access ******************************/
-
+  /****************************** SECT: Access ******************************/
   OptValue& operator[](const char* key) { return dict_[key]; }
 
   OptValue const& operator[](const char* key) const { return dict_.at(key); }
@@ -46,7 +45,7 @@ public:
 
   OptValue const& operator[](const std::string& key) const { return dict_.at(key); }
 
-  /****************************** Iterators ******************************/
+  /****************************** SECT: Iterators ******************************/
 
   auto begin() { return dict_.begin(); }
 
@@ -58,15 +57,11 @@ public:
 
   /****************************** Queriers ******************************/
 
-  bool Has(const std::string& key) const { return dict_.find(key) != dict_.end(); }
+  template <typename T> bool Has(const std::string& key) const { return Check<T>(key).first; }
 
-  template <typename T> bool Has(const std::string& key) const {
-    if (auto it = dict_.find(key); it != dict_.end()) {
-      return std::holds_alternative<T>(it->second);
-    } else {
-      return false;
-    }
-  }
+  template <typename T> bool Holds(const std::string& key) const { return Check<T>(key).second; }
+
+  template <typename T> std::pair<bool, bool> Check(const std::string& key) const;
 
   OptValue& At(const std::string& key) { return dict_.at(key); }
 
@@ -74,21 +69,31 @@ public:
 
   size_t Size() const { return dict_.size(); }
 
-  template<typename T, typename ... Args>
-  T Get(std::string const& key, Args&& ... default_T_args) const {
-    if (auto it = dict_.find(key); it != dict_.end()) {
-      return std::get<T>(it->second);
-    } else {
-      return T(std::forward<Args>(default_T_args)...);
-    }
-  }
+  template <typename T> T GetDefault(std::string const& key, T const& default_value) const;
+
+  template <typename T> T const& Get(std::string const& key) const;
 
   /****************************** Print ******************************/
-
   void Print(std::ostream&, idx depth = 0) const noexcept;
 
 private:
   container_type dict_;
 };
+
+std::ostream& operator<<(std::ostream& os, Opt const& opt);
+
+class Tunable {
+public:
+  virtual void SetOptions(utils::Opt const& option);
+  virtual utils::Opt GetOptions() const;
+};
+
+#define AX_SYNC_OPT(opt, key, type, var)\
+  if (opt.Has<type>(key)) {\
+    CHECK(opt.Holds<type>(key)) << key  " should be a "  #type;\
+    var = opt.Get<type>(key);\
+  }
+
+#define AX_SYNC_OPT_(opt, type, var) AX_SYNC_OPT(opt, #var, type, var ## _)
 
 }  // namespace ax::utils

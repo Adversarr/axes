@@ -1,10 +1,18 @@
 #include "axes/math/linsys/dense.hpp"
 
-#include "axes/core/echo.hpp"
-#include "axes/utils/status.hpp"
+#include "axes/math/linsys/dense/BDCSVD.hpp"
+#include "axes/math/linsys/dense/ColPivHouseholderQR.hpp"
+#include "axes/math/linsys/dense/CompleteOrthognalDecomposition.hpp"
+#include "axes/math/linsys/dense/FullPivHouseholderQR.hpp"
+#include "axes/math/linsys/dense/FullPivLU.hpp"
+#include "axes/math/linsys/dense/HouseholderQR.hpp"
+#include "axes/math/linsys/dense/JacobiSVD.hpp"
+#include "axes/math/linsys/dense/LDLT.hpp"
+#include "axes/math/linsys/dense/LLT.hpp"
+#include "axes/math/linsys/dense/PartialPivLU.hpp"
 namespace ax::math {
 
-utils::uptr<DenseSolver> DenseSolver::Create(DenseSolverKind kind) {
+utils::uptr<DenseSolverBase> DenseSolverBase::Create(DenseSolverKind kind) {
   switch (kind) {
     case DenseSolverKind::kLDLT:
       return std::make_unique<DenseSolver_LDLT>();
@@ -31,158 +39,4 @@ utils::uptr<DenseSolver> DenseSolver::Create(DenseSolverKind kind) {
   }
 }
 
-LinsysSolveResult DenseSolver_LLT::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.info() == Eigen::Success)) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_LLT::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.info() == Eigen::Success)) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_LDLT::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.info() == Eigen::Success)) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_LDLT::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.info() == Eigen::Success)) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  } else if (! impl_.isPositive()) {
-    return utils::FailedPreconditionError("The matrix is not positive definite.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_PartialPivLU::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  static bool logged = false;
-  if (!logged) {
-    LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use FullPivLU instead.";
-    logged = true;
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_PartialPivLU::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  static bool logged = false;
-  if (!logged) {
-    LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use FullPivLU instead.";
-    logged = true;
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_FullPivLU::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_FullPivLU::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!impl_.isInjective()) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_HouseholderQR::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_HouseholderQR::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_ColPivHouseholderQR::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_ColPivHouseholderQR::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_FullPivHouseHolderQR::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_FullPivHouseHolderQR::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_CompleteOrthognalDecomposition::Solve(vecxr const& b, vecxr const&,
-                                                                    utils::Opt const& options) {
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_CompleteOrthognalDecomposition::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_);
-  if (!(impl_.isInjective())) {
-    return utils::FailedPreconditionError("The factorization has not been computed.");
-  }
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_JacobiSVD::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_JacobiSVD::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  AX_RETURN_OK();
-}
-
-LinsysSolveResult DenseSolver_BDCSVD::Solve(vecxr const& b, vecxr const&, utils::Opt const& options) {
-  vecxr x = impl_.solve(b);
-  return LinsysSolveResultImpl{std::move(x)};
-}
-
-Status DenseSolver_BDCSVD::Analyse(problem_t const& problem, utils::Opt const& options) {
-  impl_.compute(problem.A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  AX_RETURN_OK();
-}
 }  // namespace ax::math

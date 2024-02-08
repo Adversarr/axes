@@ -8,7 +8,11 @@ class BacktrackingLinesearch : public LineSearchBase {
 public:
   BacktrackingLinesearch() {}
 
-  OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& dir, utils::Opt const& options) override;
+  OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& dir) const override;
+
+  void SetOptions(utils::Opt const& options) override;
+
+  utils::Opt GetOptions() const final;
 
   real alpha_ = 1.0;
   real rho_ = 0.3;

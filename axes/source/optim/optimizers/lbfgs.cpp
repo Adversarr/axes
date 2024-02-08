@@ -1,12 +1,13 @@
 #include "axes/optim/optimizers/lbfgs.hpp"
 
 #include "axes/core/echo.hpp"
+#include "axes/optim/linesearch/backtracking.hpp"
 #include "axes/optim/linesearch/linesearch.hpp"
 #include "axes/utils/status.hpp"
 
 namespace ax::optim {
 
-OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
+OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
   std::vector<math::vecxr> s;
   std::vector<math::vecxr> y;
   s.reserve(history_size_);
@@ -19,25 +20,7 @@ OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
   }
 
   if (history_size_ < 0) {
-    return utils::InvalidArgumentError("Invalid history size: "
-                                       + std::to_string(history_size_));
-  }
-
-  // SECT: Setup Linesearch
-  utils::uptr<LineSearchBase> line_search;
-  utils::Opt ls_opt;
-  std::string ls_name;
-  if (options.Has<utils::Opt>("line_search")) {
-    ls_opt = options.Get<utils::Opt>("line_search");
-    ls_name = ls_opt.Get<std::string>("name", "backtracking");
-  }
-  DLOG(INFO) << "Linesearch Method: " << ls_name;
-  auto ls_kind_opt = utils::reflect_enum<LineSearchKind>(ls_name);
-  auto ls_kind = ls_kind_opt.value_or(LineSearchKind::kBacktracking);
-  line_search = LineSearchBase::Create(ls_kind);
-  if (!line_search) {
-    return utils::FailedPreconditionError("Invalid line search method: "
-                                          + ls_name);
+    return utils::InvalidArgumentError("Invalid history size: " + std::to_string(history_size_));
   }
 
   // SECT: Initialize
@@ -49,7 +32,7 @@ OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
   bool converged = false;
   bool converge_grad = false;
   bool converge_var = false;
-  bool verbose = options.Get<idx>("verbose", problem_.HasVerbose());
+  bool verbose = verbose_;
   while (iter < max_iter_) {
     // SECT: Verbose
     if (verbose) {
@@ -62,10 +45,9 @@ OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
                << "  grad: " << g.transpose();
 
     // SECT: Check convergence
-    converge_grad = problem_.HasConvergeGrad()
-                    && problem_.EvalConvergeGrad(x, g) < tol_grad_;
-    converge_var = iter > 1 && problem_.HasConvergeVar()
-                   && problem_.EvalConvergeVar(x, x0) < tol_var_;
+    converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
+    converge_var
+        = iter > 1 && problem_.HasConvergeVar() && problem_.EvalConvergeVar(x, x0) < tol_var_;
     if (converge_grad || converge_var) {
       converged = true;
       break;
@@ -92,7 +74,7 @@ OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
     math::vecxr dir = -r;
 
     // SECT: Line search
-    auto ls_result = line_search->Optimize(problem_, x, dir, ls_opt);
+    auto ls_result = linesearch_->Optimize(problem_, x, dir);
     if (!ls_result.ok()) {
       LOG(ERROR) << "Line search failed: " << ls_result.status();
       return ls_result.status();
@@ -121,6 +103,25 @@ OptResult Lbfgs::Optimize(math::vecxr const& x0, utils::Opt const& options) {
   result.n_iter_ = iter;
 
   return result;
+}
+
+Lbfgs::Lbfgs() { linesearch_ = std::make_unique<BacktrackingLinesearch>(); }
+
+void Lbfgs::SetOptions(utils::Opt const& options) {
+  OptimizerBase::SetOptions(options);
+  AX_SYNC_OPT_(options, idx, history_size);
+  AX_SYNC_OPT_(options, std::string, linesearch_name);
+  if (options.Holds<utils::Opt>("linesearch_opt")) {
+    linesearch_->SetOptions(options.Get<utils::Opt>("linesearch_opt"));
+  }
+}
+
+utils::Opt Lbfgs::GetOptions() const {
+  utils::Opt opt = OptimizerBase::GetOptions();
+  opt["history_size"] = history_size_;
+  opt["linesearch_name"] = linesearch_name_;
+  opt["linesearch_opt"] = linesearch_->GetOptions();
+  return opt;
 }
 
 }  // namespace ax::optim

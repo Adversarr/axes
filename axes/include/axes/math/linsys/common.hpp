@@ -14,16 +14,18 @@ namespace ax::math {
 
 struct LinsysProblem_Dense {
   // Problem Description
-  matxxr const& A_;
-  vecxr const& b_;
+  matxxr A_;
+  vecxr b_;
 
-  LinsysProblem_Dense(matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
+  LinsysProblem_Dense(matxxr A, vecxr b) : A_{std::move(A)}, b_{std::move(b)} {}
+
+  LinsysProblem_Dense() = default;
 };
 
 struct LinsysProblem_Sparse {
   // Problem Description
-  sp_matxxr const& A_;
-  vecxr const& b_;
+  sp_matxxr A_;
+  vecxr b_;
 
   // For Iterative Solvers: Solution Requirement
   real l2_tol_;
@@ -32,7 +34,9 @@ struct LinsysProblem_Sparse {
   // Additional checkers.
   std::function<bool(vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
-  LinsysProblem_Sparse(sp_matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
+  LinsysProblem_Sparse(sp_matxxr A, vecxr b) : A_{std::move(A)}, b_{std::move(b)} {}
+
+  LinsysProblem_Sparse() = default;
 };
 
 struct LinsysProblem_Implicit {

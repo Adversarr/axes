@@ -5,19 +5,23 @@
 
 namespace ax::optim {
 
-class OptimizerBase {
+class OptimizerBase: public utils::Tunable {
 public:
   static constexpr real default_tol_var = 1e-6;
   static constexpr real default_tol_grad = 1e-6;
   static constexpr idx default_max_iter = 100;
 
   /****************************** Ctor Dtor ******************************/
-  explicit OptimizerBase(OptProblem& problem) : problem_{problem} {}
+  explicit OptimizerBase() = default;
+
+  virtual void SetOptions(utils::Opt const& options) override;
+
+  utils::Opt GetOptions() const override;
 
   virtual ~OptimizerBase() = default;
 
   /****************************** Interfaces ******************************/
-  virtual OptResult Optimize(math::vecxr const& x0, utils::Opt const& options) = 0;
+  virtual OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) = 0;
 
   /****************************** Getter Setter ******************************/
   void SetMaxIter(idx max_iter);
@@ -26,8 +30,6 @@ public:
 
   void SetTolGrad(real tol_grad);
 
-  inline OptProblem& GetProblem() { return problem_; }
-
   idx GetMaxIter() const;
 
   real GetTolVar() const;
@@ -35,12 +37,11 @@ public:
   real GetTolGrad() const;
 
 protected:
-  OptProblem& problem_;
-
   /****************************** Options ******************************/
   idx max_iter_{default_max_iter};
   real tol_var_{default_tol_var};
   real tol_grad_{default_tol_grad};
+  bool verbose_{false};
 };
 
 }  // namespace ax::optim

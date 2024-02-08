@@ -38,9 +38,9 @@ protected:
 
 class SparseSolver_LDLT : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::SimplicialLDLT<sp_matxxr> solver_;
@@ -48,9 +48,9 @@ private:
 
 class SparseSolver_LLT : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::SimplicialLLT<sp_matxxr> solver_;
@@ -58,9 +58,9 @@ private:
 
 class SparseSolver_LU : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::SparseLU<sp_matxxr, Eigen::COLAMDOrdering<idx>> solver_;
@@ -68,9 +68,9 @@ private:
 
 class SparseSolver_QR : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::SparseQR<sp_matxxr, Eigen::COLAMDOrdering<idx>> solver_;
@@ -78,9 +78,9 @@ private:
 
 class SparseSolver_ConjugateGradient : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower | Eigen::Upper,
@@ -90,9 +90,9 @@ private:
 
 class SparseSolver_LeastSquaresConjugateGradient : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::LeastSquaresConjugateGradient<sp_matxxr> solver_;
@@ -100,9 +100,9 @@ private:
 
 class SparseSolver_BiCGSTAB : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) override;
+  Status Analyse(LinsysProblem_Sparse const &problem) override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0, utils::Opt const &options) override;
+  result_type Solve(vecxr const &b, vecxr const &x0) override;
 
 private:
   Eigen::BiCGSTAB<sp_matxxr> solver_;

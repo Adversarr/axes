@@ -32,8 +32,8 @@ int main(int argc, char** argv) {
   if (absl::GetFlag(FLAGS_problem) == "rosenbrock") {
     prob = new optim::test::RosenbrockProblem();
     optimal = optim::test::RosenbrockProblem{}.Optimal(b);
-    x0 = math::ones(n, 1);
-    x0 = ((x0.array() + 1) * 0.3 + 1).matrix().eval();
+    x0 = math::vecxr::Random(n);
+    x0 = ((x0.array() + 1) * 0.1 + 1).matrix().eval();
   } else if (absl::GetFlag(FLAGS_problem) == "lstsq") {
     prob = new optim::test::LeastSquareProblem(A, b);
     optimal = optim::test::LeastSquareProblem{A, b}.Optimal(b);
@@ -60,19 +60,27 @@ int main(int argc, char** argv) {
   }
   optim::OptimizerBase* optimizer;
   if (absl::GetFlag(FLAGS_optimizer) == "newton") {
-    optimizer = new optim::Newton(*prob);
+    optimizer = new optim::Newton;
   } else if (absl::GetFlag(FLAGS_optimizer) == "lbfgs") {
-    optimizer = new optim::Lbfgs(*prob);
+    optimizer = new optim::Lbfgs;
   } else {
     LOG(FATAL) << "Unknown optimizer: " << absl::GetFlag(FLAGS_optimizer);
   }
+  optimizer->SetOptions(opt);
+  auto solution = optimizer->Optimize(*prob, x0);
 
-  auto solution = optimizer->Optimize(x0, opt);
-
-  CHECK(solution->converged_);
+  LOG(INFO) << "Optimizer Options: " << std::endl << optimizer->GetOptions();
+  if (!solution.ok()) {
+    LOG(ERROR) << "Optimization failed: " << solution.status();
+    return 1;
+  }
+  LOG(INFO) << "Optimization finished in " << solution->n_iter_ << " iterations";
   LOG(INFO) << "Solution: " << solution->x_opt_.transpose();
   LOG(INFO) << "Accurate: " << optimal.transpose();
-
+  if (!solution->converged_) {
+    LOG(ERROR) << "Optimization failed to converge";
+  }
+  delete optimizer;
   delete prob;
   clean_up();
   return 0;

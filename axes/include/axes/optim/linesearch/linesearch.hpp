@@ -7,11 +7,11 @@ namespace ax::optim {
 
 enum class LineSearchKind { kBacktracking };
 
-class LineSearchBase {
+class LineSearchBase : public utils::Tunable {
 public:
   virtual ~LineSearchBase() = default;
 
-  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir, utils::Opt const& options) = 0;
+  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir) const = 0;
 
   static utils::uptr<LineSearchBase> Create(LineSearchKind kind);
 

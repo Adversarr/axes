@@ -25,7 +25,7 @@ utils::uptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
   }
 }
 
-Status SparseSolver_LDLT::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) {
+Status SparseSolver_LDLT::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
 
   if (solver_.info() != Eigen::Success) {
@@ -35,8 +35,7 @@ Status SparseSolver_LDLT::Analyse(LinsysProblem_Sparse const &problem, utils::Op
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_LDLT::Solve(vecxr const &b, vecxr const &x0,
-                                           utils::Opt const &options) {
+LinsysSolveResult SparseSolver_LDLT::Solve(vecxr const &b, vecxr const &x0) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_LDLT: solve failed");
@@ -44,7 +43,7 @@ LinsysSolveResult SparseSolver_LDLT::Solve(vecxr const &b, vecxr const &x0,
   return x;
 }
 
-Status SparseSolver_LLT::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) {
+Status SparseSolver_LLT::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
   if (solver_.info() != Eigen::Success) {
     return utils::FailedPreconditionError("SparseSolver_LLT: factorization failed");
@@ -53,8 +52,7 @@ Status SparseSolver_LLT::Analyse(LinsysProblem_Sparse const &problem, utils::Opt
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_LLT::Solve(vecxr const &b, vecxr const &x0,
-                                          utils::Opt const &options) {
+LinsysSolveResult SparseSolver_LLT::Solve(vecxr const &b, vecxr const &x0) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_LLT: solve failed");
@@ -62,7 +60,7 @@ LinsysSolveResult SparseSolver_LLT::Solve(vecxr const &b, vecxr const &x0,
   return x;
 }
 
-Status SparseSolver_LU::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) {
+Status SparseSolver_LU::Analyse(LinsysProblem_Sparse const &problem) {
   if (!problem.A_.isCompressed()) {
     return utils::InvalidArgumentError("SparseSolver_LU: matrix is not compressed");
   }
@@ -74,8 +72,7 @@ Status SparseSolver_LU::Analyse(LinsysProblem_Sparse const &problem, utils::Opt 
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_LU::Solve(vecxr const &b, vecxr const &x0,
-                                         utils::Opt const &options) {
+LinsysSolveResult SparseSolver_LU::Solve(vecxr const &b, vecxr const &x0) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_LU: solve failed");
@@ -83,7 +80,7 @@ LinsysSolveResult SparseSolver_LU::Solve(vecxr const &b, vecxr const &x0,
   return x;
 }
 
-Status SparseSolver_QR::Analyse(LinsysProblem_Sparse const &problem, utils::Opt const &options) {
+Status SparseSolver_QR::Analyse(LinsysProblem_Sparse const &problem) {
   if (!problem.A_.isCompressed()) {
     return utils::InvalidArgumentError("SparseSolver_CG: matrix is not compressed");
   }
@@ -95,8 +92,7 @@ Status SparseSolver_QR::Analyse(LinsysProblem_Sparse const &problem, utils::Opt 
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_QR::Solve(vecxr const &b, vecxr const &x0,
-                                         utils::Opt const &options) {
+LinsysSolveResult SparseSolver_QR::Solve(vecxr const &b, vecxr const &x0) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_CG: solve failed");
@@ -104,8 +100,7 @@ LinsysSolveResult SparseSolver_QR::Solve(vecxr const &b, vecxr const &x0,
   return x;
 }
 
-Status SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem,
-                                               utils::Opt const &options) {
+Status SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
   if (solver_.info() != Eigen::Success) {
     return utils::FailedPreconditionError("SparseSolver_ConjugateGradient: factorization failed");
@@ -114,10 +109,10 @@ Status SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &probl
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0,
-                                                        utils::Opt const &options) {
+LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
   if (!preconditioner_) {
-    solver_.setMaxIterations(options.Get<idx>("max_iter", 100));
+    // TODO: Fix bug.
+    // solver_.setMaxIterations(options.GetDefault<idx>("max_iter", 100));
     vecxr x;
     if (x0.size() > 0) {
       x = solver_.solveWithGuess(b, x0);
@@ -133,8 +128,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
   }
 }
 
-Status SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse const &problem,
-                                                           utils::Opt const &options) {
+Status SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
   if (solver_.info() != Eigen::Success) {
     return utils::FailedPreconditionError(
@@ -144,10 +138,10 @@ Status SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse 
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const &b, vecxr const &x0,
-                                                                    utils::Opt const &options) {
+LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
   if (!preconditioner_) {
-    solver_.setMaxIterations(options.Get<idx>("max_iter", 100));
+    // TODO: Fix bug
+    // solver_.setMaxIterations(options.GetDefault<idx>("max_iter", 100));
     vecxr x;
     if (x0.size() > 0) {
       x = solver_.solveWithGuess(b, x0);
@@ -163,8 +157,7 @@ LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const 
   }
 }
 
-Status SparseSolver_BiCGSTAB::Analyse(LinsysProblem_Sparse const &problem,
-                                      utils::Opt const &options) {
+Status SparseSolver_BiCGSTAB::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
   if (solver_.info() != Eigen::Success) {
     return utils::FailedPreconditionError("SparseSolver_BiCGSTAB: factorization failed");
@@ -173,10 +166,10 @@ Status SparseSolver_BiCGSTAB::Analyse(LinsysProblem_Sparse const &problem,
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0,
-                                               utils::Opt const &options) {
+LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0) {
   if (!preconditioner_) {
-    solver_.setMaxIterations(options.Get<idx>("max_iter", 100));
+    // TODO: Fix bug
+    // solver_.setMaxIterations(options.GetDefault<idx>("max_iter", 100));
     vecxr x;
     if (x0.size() > 0) {
       x = solver_.solveWithGuess(b, x0);

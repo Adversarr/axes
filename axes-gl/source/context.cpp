@@ -189,8 +189,8 @@ Context::Context(Context&&) noexcept = default;
 Context::Context() {
   impl_ = std::make_unique<Impl>();
   int status = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
-  CHECK(status) << "Failed to initialize OpenGL context";
-  LOG(INFO) << "Setup OpenGL context";
+  AX_CHECK(status) << "Failed to initialize OpenGL context";
+ AX_LOG(INFO) << "Setup OpenGL context";
 
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
@@ -213,12 +213,12 @@ Context::Context() {
   /* SECT: Setup ImGUI */
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  CHECK(ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true))
+  AX_CHECK(ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true))
       << "Failed to Initialize ImGUI_GLFW";
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  CHECK(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG)) << "Failed to Initialize ImGUI_OpenGL3";
+  AX_CHECK(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG)) << "Failed to Initialize ImGUI_OpenGL3";
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = fb_scale.x();
   ImGui::GetIO().DisplayFramebufferScale.y = fb_scale.y();
@@ -227,7 +227,7 @@ Context::Context() {
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
   for (auto& renderer : impl_->renderers_) {
-    CHECK_OK(renderer->Setup());
+    AX_CHECK_OK(renderer->Setup());
   }
 }
 
@@ -238,7 +238,7 @@ Context::~Context() {
   ImGui::DestroyContext();
   impl_->renderers_.clear();
   impl_.reset();
-  LOG(INFO) << "Destroy OpenGL context";
+ AX_LOG(INFO) << "Destroy OpenGL context";
 }
 
 Window& Context::GetWindow() { return impl_->window_; }

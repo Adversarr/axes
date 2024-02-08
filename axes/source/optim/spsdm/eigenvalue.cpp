@@ -27,8 +27,9 @@ StatusOr<math::matxxr> EigenvalueModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
-void EigenvalueModification::SetOptions(utils::Opt const& options) {
-  min_eigval_ = options.Get<real>("min_eigval");
+Status EigenvalueModification::SetOptions(utils::Opt const& options) {
+  AX_SYNC_OPT(options, real, min_eigval);
+  AX_RETURN_OK();
 }
 
 utils::Opt EigenvalueModification::GetOptions() const {

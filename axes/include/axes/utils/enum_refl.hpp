@@ -3,7 +3,8 @@
 #include <entt/meta/meta.hpp>
 #include <entt/meta/resolve.hpp>
 #include <optional>
-#include <string>
+
+#include "common.hpp"
 
 namespace ax::utils {
 
@@ -15,11 +16,21 @@ template <typename Enum> struct EnumReflectorMetaBuild {};
 template <typename Enum> std::optional<Enum> reflect_enum(std::string_view name) {
   static details::EnumReflectorMetaBuild<Enum> setup_reflect;
   auto&& meta_data = entt::resolve<Enum>().data(entt::hashed_string{name.data()});
-  if (! static_cast<bool>(meta_data)) {
+  if (!static_cast<bool>(meta_data)) {
     return std::nullopt;
   }
   return *(meta_data.get({}).template try_cast<Enum>());
 }
+
+template <typename Enum, typename T> uptr<T> reflect_create(std::string_view name) {
+  std::optional<Enum> val = reflect_enum<Enum>(name);
+  if (!val.has_value()) {
+    return nullptr;
+  } else {
+    return T::Create(val.name());
+  }
+}
+
 }  // namespace ax::utils
 
 #ifndef AX_ENUM_REFL_BEGIN

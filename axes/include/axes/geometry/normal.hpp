@@ -17,4 +17,7 @@ math::field3r normal_per_face(math::field3r const& vertices, math::field3i const
 math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i const& indices,
                                 details::face_uniform_avg_t = {});
 
+math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i const& indices,
+                                details::face_area_avg_t);
+
 }  // namespace ax::geo

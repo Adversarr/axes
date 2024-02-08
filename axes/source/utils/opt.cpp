@@ -25,7 +25,7 @@ void Opt::Print(std::ostream& os, idx depth) const noexcept {
           } else if constexpr (std::is_same_v<T, Opt>) {
             arg.Print(os, depth + 1);
           } else {
-            CHECK(false) << "Unsupported type: " << typeid(T).name();
+            AX_CHECK(false) << "Unsupported type: " << typeid(T).name();
           }
         },
         it->second);
@@ -107,6 +107,6 @@ template <> std::pair<bool, bool> Opt::Check<Opt>(const std::string& key) const 
 }
 
 utils::Opt Tunable::GetOptions() const { return {}; }
-void Tunable::SetOptions(utils::Opt const& option) {}
+Status Tunable::SetOptions(utils::Opt const&) { AX_RETURN_OK(); }
 
 }  // namespace ax::utils

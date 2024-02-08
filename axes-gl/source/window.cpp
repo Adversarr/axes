@@ -93,7 +93,7 @@ static void mouse_button_fn(GLFWwindow* /* window */, int button, int action, in
 
 Window::Window() {
   impl_ = std::make_unique<Impl>();
-  CHECK(glfwInit()) << "Failed to initialize GLFW";
+  AX_CHECK(glfwInit()) << "Failed to initialize GLFW";
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, AXGL_MAJOR_VERSION);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, AXGL_MINOR_VERSION);
@@ -103,7 +103,7 @@ Window::Window() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
   impl_->window_ = glfwCreateWindow(1280, 720, "Axes", nullptr, nullptr);
-  CHECK(impl_->window_ != nullptr) << "Failed to create GLFW window";
+  AX_CHECK(impl_->window_ != nullptr) << "Failed to create GLFW window";
 
   glfwMakeContextCurrent(impl_->window_);
   glfwSwapInterval(1);
@@ -120,7 +120,7 @@ Window::Window() {
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
 
-  LOG(INFO) << "Window:" << std::endl
+ AX_LOG(INFO) << "Window:" << std::endl
             << " - Size=" << impl_->size_.transpose() << std::endl
             << " - Pos=" << impl_->pos_.transpose() << std::endl
             << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
@@ -138,7 +138,7 @@ Window::Window() {
 
   /****************************** Install User Pointer ******************************/
   glfwSetWindowUserPointer(impl_->window_, impl_.get());
-  LOG(INFO) << "Window created";
+ AX_LOG(INFO) << "Window created";
 }
 
 Window::~Window() {
@@ -146,7 +146,7 @@ Window::~Window() {
     glfwDestroyWindow(impl_->window_);
   }
   glfwTerminate();
-  LOG(INFO) << "Window destroyed";
+ AX_LOG(INFO) << "Window destroyed";
 }
 
 /****************************** Meta Data Getters ******************************/

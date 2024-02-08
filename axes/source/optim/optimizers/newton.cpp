@@ -4,14 +4,14 @@
 #include "axes/math/linsys/dense.hpp"
 #include "axes/math/linsys/dense/LDLT.hpp"
 #include "axes/math/linsys/sparse.hpp"
+#include "axes/math/linsys/sparse/LDLT.hpp"
 #include "axes/optim/linesearch/backtracking.hpp"
 #include "axes/optim/linesearch/linesearch.hpp"
 #include "axes/utils/status.hpp"
 
 namespace ax::optim {
 
-OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
-  // DLOG(INFO) << "Newton method Options: " << std::endl << options;
+OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   if (!problem_.HasEnergy()) {
     return utils::FailedPreconditionError("Energy function not set");
   }
@@ -32,20 +32,19 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
 
   idx iter = 0;
   bool converged = false;
-  bool verbose = verbose_;
 
   OptResultImpl result;
   bool converge_grad = false;
   bool converge_var = false;
   // Main loop
   for (iter = 0; iter < max_iter_; ++iter) {
-    // SECT: Verbose
-    if (verbose) {
+    // SECT: verbose_
+    if (verbose_) {
       problem_.EvalVerbose(iter, x, f_iter);
-      DLOG(INFO) << "Newton iter " << iter << std::endl
-                 << "  x: " << x.transpose() << std::endl
-                 << "  f: " << f_iter << std::endl
-                 << "  grad: " << grad.transpose();
+      AX_DLOG(INFO) << "Newton iter " << iter << std::endl
+                    << "  x: " << x.transpose() << std::endl
+                    << "  f: " << f_iter << std::endl
+                    << "  grad: " << grad.transpose();
     }
 
     // SECT: Check convergence
@@ -60,19 +59,25 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     // SECT: Find a Dir
     if (is_dense_hessian) {
       math::matxxr H = problem_.EvalHessian(x);
+      if (H.rows() != x.rows() || H.cols() != x.rows()) {
+        return utils::FailedPreconditionError("Hessian matrix size mismatch");
+      }
       math::LinsysProblem_Dense prob(std::move(H), grad);
-      auto solution = dense_solver_->Solve(prob);
+      auto solution = dense_solver_->SolveProblem(prob);
       if (!solution.ok()) {
-        LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible";
+        AX_LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
       dir = -solution.value().solution_;
     } else {
       math::sp_matxxr H = problem_.EvalSparseHessian(x);
+      if (H.rows() != x.rows() || H.cols() != x.rows()) {
+        return utils::FailedPreconditionError("Hessian matrix size mismatch");
+      }
       math::LinsysProblem_Sparse prob(std::move(H), grad);
-      auto solution = sparse_solver_->Solve(prob);
+      auto solution = sparse_solver_->SolveProblem(prob);
       if (!solution.ok()) {
-        LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
+        AX_LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
       dir = -solution.value().solution_;
@@ -82,9 +87,9 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     auto lsr = linesearch_->Optimize(problem_, x, dir);
     OptResultImpl ls_result;
     if (!lsr.ok()) {
-      LOG(ERROR) << "Line Search Error: " << lsr.status();
-      LOG(ERROR) << "Search Dir = " << dir.transpose();
-      LOG(ERROR) << "Possible Reason: Your Hessian matrix is not SPSD";
+      AX_LOG(ERROR) << "Line Search Error: " << lsr.status()
+                    << "Possible Reason: Your Hessian matrix is not SPSD";
+      AX_LOG(ERROR) << "Search Dir = " << dir.transpose();
       return lsr.status();
     }
     ls_result = std::move(lsr.value());
@@ -106,33 +111,37 @@ Newton::Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LDLT>();
   sparse_solver_ = std::make_unique<math::SparseSolver_LDLT>();
   linesearch_ = std::make_unique<BacktrackingLinesearch>();
+  BacktrackingLinesearch* ls = dynamic_cast<BacktrackingLinesearch*>(linesearch_.get());
+  ls->alpha_ = 1.0;
+  ls->c_ = 0.1;
+  ls->rho_ = 0.5;
   linesearch_name_ = "Backtracking";
   dense_solver_name_ = "LDLT";
   sparse_solver_name_ = "LDLT";
 }
 
-void Newton::SetOptions(utils::Opt const& options) {
-  OptimizerBase::SetOptions(options);
-  AX_SYNC_OPT_(options, std::string, linesearch_name);
-  AX_SYNC_OPT_(options, std::string, dense_solver_name);
-  AX_SYNC_OPT_(options, std::string, sparse_solver_name);
+Status Newton::SetOptions(utils::Opt const& options) {
+  AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
+    auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
+    AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
+    linesearch_ = LinesearchBase::Create(ls.value());
+    AX_RETURN_NOTOK_OR(utils::sync_to_field(*linesearch_, options, "linesearch_opt"));
+  }
 
-  auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
-  CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
-  linesearch_ = LineSearchBase::Create(ls.value());
+  AX_SYNC_OPT_IF(options, std::string, dense_solver_name) {
+    auto ds = utils::reflect_enum<math::DenseSolverKind>(dense_solver_name_);
+    AX_CHECK(ds) << "Unknown dense_solver_name: " << dense_solver_name_;
+    dense_solver_ = math::DenseSolverBase::Create(ds.value());
+    AX_RETURN_NOTOK_OR(utils::sync_to_field(*dense_solver_, options, "dense_solver_opt"));
+  }
 
-  auto ds = utils::reflect_enum<math::DenseSolverKind>(dense_solver_name_);
-  CHECK(ds) << "Unknown dense_solver_name: " << dense_solver_name_;
-  dense_solver_ = math::DenseSolverBase::Create(ds.value());
-
-  auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
-  CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;
-  sparse_solver_ = math::SparseSolverBase::Create(ss.value());
-
-  utils::Opt ls_opt, ds_opt, ss_opt;
-  AX_SYNC_OPT(options, "linesearch_opt", utils::Opt, ls_opt);
-  AX_SYNC_OPT(options, "dense_solver_opt", utils::Opt, ds_opt);
-  AX_SYNC_OPT(options, "sparse_solver_opt", utils::Opt, ss_opt);
+  AX_SYNC_OPT_IF(options, std::string, sparse_solver_name) {
+    auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
+    AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;
+    sparse_solver_ = math::SparseSolverBase::Create(ss.value());
+    AX_RETURN_NOTOK_OR(utils::sync_to_field(*sparse_solver_, options, "sparse_solver_opt"));
+  }
+  return OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Newton::GetOptions() const {

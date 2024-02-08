@@ -38,7 +38,7 @@ StatusOr<Vao> Vao::Create() {
 Vao::~Vao() {
   if (id_) {
     glDeleteVertexArrays(1, &id_);
-    DLOG(INFO) << "Vao " << id_ << " deleted";
+    AX_DLOG(INFO) << "Vao " << id_ << " deleted";
   }
 }
 

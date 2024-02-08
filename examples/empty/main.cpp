@@ -9,11 +9,11 @@ ABSL_FLAG(std::string, name, "world", "The name to say hello to.");
 using namespace ax;
 int main(int argc, char** argv) {
   ax::init(argc, argv);
-  LOG(INFO) << "This is a test message";
+ AX_LOG(INFO) << "This is a test message";
   std::string name = absl::GetFlag(FLAGS_name);
-  LOG(WARNING) << "Hello " << name;
+ AX_LOG(WARNING) << "Hello " << name;
 
-  CHECK(name != "throw") << "You let me throw.";
+  AX_CHECK(name != "throw") << "You let me throw.";
   ax::clean_up();
   return 0;
 }

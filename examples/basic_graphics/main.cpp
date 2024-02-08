@@ -21,12 +21,12 @@ ABSL_FLAG(bool, rotate, false, "Rotate the cube");
 using namespace ax;
 
 struct Echo {
-  void WSize(const gl::WindowSizeEvent& evt) const { LOG(INFO) << "Window size: " << math::transpose(evt.size_); }
+  void WSize(const gl::WindowSizeEvent& evt) const { AX_LOG(INFO) << "Window size: " << math::transpose(evt.size_); }
 
-  void WPos(const gl::WindowPosEvent& evt) const { LOG(INFO) << "Window pos: " << math::transpose(evt.pos_); }
+  void WPos(const gl::WindowPosEvent& evt) const { AX_LOG(INFO) << "Window pos: " << math::transpose(evt.pos_); }
 
   void Key(const gl::KeyboardEvent& evt) const {
-    LOG(INFO) << "Key: " << evt.key_ << std::endl << "Action: " << evt.action_;
+   AX_LOG(INFO) << "Key: " << evt.key_ << std::endl << "Action: " << evt.action_;
   }
 };
 
@@ -121,8 +121,8 @@ int main(int argc, char** argv) {
   bool rotate = absl::GetFlag(FLAGS_rotate);
 
   while (!win.ShouldClose()) {
-    CHECK_OK(ctx.TickLogic());
-    CHECK_OK(ctx.TickRender());
+    AX_CHECK_OK(ctx.TickLogic());
+    AX_CHECK_OK(ctx.TickRender());
 
     i64 current = utils::GetCurrentTimeNanos();
     real dt = (current - start) / 1.0e9;

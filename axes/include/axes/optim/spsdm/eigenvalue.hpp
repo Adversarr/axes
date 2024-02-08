@@ -6,7 +6,7 @@ class EigenvalueModification : public SpsdModificationBase {
 public:
   virtual StatusOr<math::matxxr> Modify(math::matxxr const& A) final;
 
-  void SetOptions(utils::Opt const& options) final;
+  Status SetOptions(utils::Opt const& options) final;
   utils::Opt GetOptions() const final;
 
   real min_eigval_{1e-6};

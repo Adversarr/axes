@@ -56,23 +56,23 @@ OptProblem& OptProblem::SetVerbose(VerboseFn const& verbose) {
 }
 
 math::sp_matxxr OptProblem::EvalSparseHessian(math::vecxr const& x) const {
-  CHECK(sparse_hessian_) << "Sparse Hessian Fn is not set.";
+  AX_CHECK(sparse_hessian_) << "Sparse Hessian Fn is not set.";
   return sparse_hessian_(x);
 }
 
 math::matxxr OptProblem::EvalHessian(math::vecxr const& x) const {
-  CHECK(hessian_) << "Hessian Fn is not set.";
+  AX_CHECK(hessian_) << "Hessian Fn is not set.";
   return hessian_(x);
 }
 
 math::vecxr OptProblem::EvalGrad(math::vecxr const& x) const {
-  CHECK(grad_) << "Grad Fn is not set.";
+  AX_CHECK(grad_) << "Grad Fn is not set.";
   return grad_(x);
 }
 
 real OptProblem::EvalEnergy(math::vecxr const& x) const {
   // TODO: Check Before Optimize
-  CHECK(energy_) << "Energy Fn is not set.";
+  AX_CHECK(energy_) << "Energy Fn is not set.";
   return energy_(x);
 }
 
@@ -84,13 +84,13 @@ void OptProblem::EvalVerbose(idx iter, math::vecxr const& x, real f) const {
 
 real OptProblem::EvalConvergeVar(math::vecxr const& x0,
                                  math::vecxr const& x1) const {
-  CHECK(converge_var_) << "Converge Var Fn is not set.";
+  AX_CHECK(converge_var_) << "Converge Var Fn is not set.";
   return converge_var_(x0, x1);
 }
 
 real OptProblem::EvalConvergeGrad(math::vecxr const& x,
                                   math::vecxr const& grad) const {
-  CHECK(converge_grad_) << "Converge Grad Fn is not set.";
+  AX_CHECK(converge_grad_) << "Converge Grad Fn is not set.";
   return converge_grad_(x, grad);
 }
 

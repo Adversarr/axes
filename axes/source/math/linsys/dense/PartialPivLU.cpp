@@ -7,7 +7,7 @@ namespace ax::math {
 LinsysSolveResult DenseSolver_PartialPivLU::Solve(vecxr const& b, vecxr const&) {
   static bool logged = false;
   if (!logged) {
-    LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use "
+   AX_LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use "
                     "FullPivLU instead.";
     logged = true;
   }
@@ -19,7 +19,7 @@ Status DenseSolver_PartialPivLU::Analyse(problem_t const& problem) {
   impl_.compute(problem.A_);
   static bool logged = false;
   if (!logged) {
-    LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use "
+   AX_LOG(WARNING) << "This method always your matrix is invertible. If you are not sure, use "
                     "FullPivLU instead.";
     logged = true;
   }

@@ -36,7 +36,7 @@ void init(int argc, char** argv) {
   absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
   absl::SetStderrThreshold(absl::LogSeverity::kInfo);
   /****************************** Install the debuggers ******************************/
-  CHECK(argc > 0) << "argc must be greater than 0";
+  AX_CHECK(argc > 0) << "argc must be greater than 0";
   absl::InitializeSymbolizer(argv[0]);
   FailureSignalHandlerOptions failure_signal_handler{};
   absl::InstallFailureSignalHandler(failure_signal_handler);
@@ -47,14 +47,14 @@ void init(int argc, char** argv) {
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {
-    CHECK_OK(call()) << "Init-hook [" << name << "] failed.";
+    AX_CHECK_OK(call()) << "Init-hook [" << name << "] failed.";
   }
   init_hooks.clear();
 }
 
 void clean_up() {
   for (auto [name, call] : clean_up_hooks) {
-    CHECK_OK(call()) << "CleanUp-hook [" << name << "] failed.";
+    AX_CHECK_OK(call()) << "CleanUp-hook [" << name << "] failed.";
   }
   registry_p->clear();
   clean_up_hooks.clear();
@@ -67,12 +67,12 @@ void hook_clean_up(const char* name, std::function<Status()> f) {
 }
 
 entt::registry& global_registry() {
-  DCHECK(registry_p != nullptr) << "Registry is not initialized.";
+  AX_DCHECK(registry_p != nullptr) << "Registry is not initialized.";
   return *registry_p;
 }
 
 entt::dispatcher& global_dispatcher() {
-  DCHECK(dispatcher_p != nullptr) << "Registry is not initialized.";
+  AX_DCHECK(dispatcher_p != nullptr) << "Registry is not initialized.";
   return *dispatcher_p;
 }
 

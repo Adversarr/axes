@@ -10,23 +10,24 @@ void OptimizerBase::SetTolVar(real tol_var) { tol_var_ = tol_var; }
 
 void OptimizerBase::SetTolGrad(real tol_grad) { tol_grad_ = tol_grad; }
 
-void OptimizerBase::SetOptions(utils::Opt const& options) {
+Status OptimizerBase::SetOptions(utils::Opt const& options) {
   if (options.Has<idx>("max_iter")) {
-    CHECK(options.Holds<idx>("max_iter")) << "max_iter must be an integer";
+    AX_CHECK(options.Holds<idx>("max_iter")) << "max_iter must be an integer";
     SetMaxIter(options.Get<idx>("max_iter"));
   }
   if (options.Has<real>("tol_var")) {
-    CHECK(options.Holds<real>("tol_var")) << "tol_var must be a real number";
+    AX_CHECK(options.Holds<real>("tol_var")) << "tol_var must be a real number";
     SetTolVar(options.Get<real>("tol_var"));
   }
   if (options.Has<real>("tol_grad")) {
-    CHECK(options.Holds<real>("tol_grad")) << "tol_grad must be a real number";
+    AX_CHECK(options.Holds<real>("tol_grad")) << "tol_grad must be a real number";
     SetTolGrad(options.Get<real>("tol_grad"));
   }
   if (options.Has<idx>("verbose")) {
-    CHECK(options.Holds<idx>("verbose")) << "verbose must be a boolean";
+    AX_CHECK(options.Holds<idx>("verbose")) << "verbose must be a boolean";
     verbose_ = options.Get<idx>("verbose") != 0;
   }
+  AX_RETURN_OK();
 }
 
 utils::Opt OptimizerBase::GetOptions() const {

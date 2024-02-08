@@ -3,6 +3,8 @@
 #include "axes/core/echo.hpp"
 #include "axes/math/functional.hpp"
 #include "axes/math/linsys/dense.hpp"
+#include "axes/math/linsys/sparse.hpp"
+#include "axes/math/linsys/sparse/QR.hpp"
 #include "axes/optim/spsdm/eigenvalue.hpp"
 
 namespace ax::optim::test {
@@ -35,8 +37,9 @@ math::matxxr rosenbrock_hessian(math::vecxr const& x) {
   hessian(x.size() - 1, x.size() - 1) = 200;
 
   optim::EigenvalueModification modification;
+  modification.min_eigval_ = 1e-3;
   auto spsd_hessian = modification.Modify(hessian);
-  CHECK_OK(spsd_hessian);
+  AX_CHECK_OK(spsd_hessian);
   return spsd_hessian.value();
 }
 
@@ -61,18 +64,32 @@ math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b_; }
 
 SparseLeastSquareProblem::SparseLeastSquareProblem(math::sp_matxxr const& A, math::vecxr const& b)
     : A_(A), b_(b) {
-  CHECK(A.rows() == A.cols());
-  CHECK(A.rows() == b.rows());
+  AX_CHECK(A.rows() == A.cols());
+  AX_CHECK(A.rows() == b.rows());
   SetEnergy([this](math::vecxr const& x) {
-    CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
-    math::vecxr residual = x - b_;
-    return 0.5 * residual.dot(A_ * residual);
+    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
+    math::vecxr residual = A_ * x - b_;
+    return 0.5 * residual.dot(residual);
   });
   SetGrad([this](math::vecxr const& x) {
-    CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
-    return math::vecxr{A_ * (x - b_)};
+    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
+    return A_.transpose() * (A_ * x - b_);
   });
-  SetSparseHessian([this](math::vecxr const&) { return A_; });
+  SetSparseHessian([this](math::vecxr const& x) {
+    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
+    return A_.transpose() * A_;
+  });
+}
+
+math::vecxr SparseLeastSquareProblem::Optimal(math::vecxr const&) {
+  math::vecxr x_opt = math::vecxr::Zero(b_.rows());
+  math::SparseSolver_QR solver;
+  math::LinsysProblem_Sparse linsys{A_, b_};
+  AX_CHECK_OK(solver.Analyse(linsys));
+  auto solution = solver.Solve(b_, {});
+  AX_CHECK_OK(solution);
+  x_opt = solution->solution_;
+  return x_opt;
 }
 
 }  // namespace ax::optim::test

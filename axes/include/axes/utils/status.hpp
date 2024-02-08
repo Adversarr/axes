@@ -45,6 +45,11 @@ using absl::UnknownError;
     return status;                          \
   }
 
+#define AX_RETURN_NOTOK_OR(expr)      \
+  if (auto sor = (expr); !sor.ok()) { \
+    return sor.status();              \
+  }
+
 #define AX_EVAL_RETURN_NOTOK(expr)          \
   if (auto status = (expr); !status.ok()) { \
     return status;                          \
@@ -55,7 +60,7 @@ using absl::UnknownError;
 template <typename T> T&& extract(StatusOr<T>& status_or) { return std::move(status_or.value()); }
 
 template <typename T> T&& extract_or_die(StatusOr<T>& status_or) {
-  CHECK_OK(status_or.status());
+  AX_CHECK_OK(status_or.status());
   return std::move(status_or.value());
 }
 
@@ -64,9 +69,9 @@ template <typename T> T&& extract_or_die(StatusOr<T>& status_or) {
   AX_RETURN_NOTOK((var##status).status()); \
   auto var = ::ax::utils::extract(var##status)
 
-#define AX_ASSIGN_OR_DIE(var, expr)                                 \
-  auto _## var ##_status_or = (expr);                                        \
-  CHECK_OK((_## var ##_status_or).status()) << "Failed preconditon: " #expr; \
-  auto var = ::ax::utils::extract_or_die(_## var ##_status_or)
+#define AX_ASSIGN_OR_DIE(var, expr)                                           \
+  auto _##var##_status_or = (expr);                                           \
+  AX_CHECK_OK((_##var##_status_or).status()) << "Failed preconditon: " #expr; \
+  auto var = ::ax::utils::extract_or_die(_##var##_status_or)
 
 }  // namespace ax::utils

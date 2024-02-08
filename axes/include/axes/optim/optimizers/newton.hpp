@@ -16,9 +16,9 @@ public:
   ~Newton() override = default;
 
   /****************************** Interfaces ******************************/
-  OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) override;
+  OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
-  void SetOptions(utils::Opt const& options) override;
+  Status SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const override;
 
@@ -28,7 +28,7 @@ protected:
   std::string linesearch_name_;
   std::string dense_solver_name_;
   std::string sparse_solver_name_;
-  utils::uptr<LineSearchBase> linesearch_;
+  utils::uptr<LinesearchBase> linesearch_;
   utils::uptr<math::DenseSolverBase> dense_solver_;
   utils::uptr<math::SparseSolverBase> sparse_solver_;
 };

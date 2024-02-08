@@ -26,7 +26,7 @@ StatusOr<Buffer> Buffer::CreateVertexBuffer(BufferUsage usage) {
 Buffer::~Buffer() {
   if (id_) {
     glDeleteBuffers(1, &id_);
-    DLOG(INFO) << "Buffer " << id_ << " deleted";
+    AX_DLOG(INFO) << "Buffer " << id_ << " deleted";
   }
 }
 

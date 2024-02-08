@@ -16,9 +16,7 @@ public:
   virtual Status Analyse(problem_t const& problem) = 0;
 
   /****************************** Solve ******************************/
-  result_type Solve(problem_t const& problem) { return Solve(problem, vecxr{}); }
-
-  virtual result_type Solve(problem_t const& problem, vecxr const& init_guess) {
+  virtual result_type SolveProblem(problem_t const& problem, vecxr const& init_guess = {}) {
     auto status = Analyse(problem);
     if (!status.ok()) {
       return status;

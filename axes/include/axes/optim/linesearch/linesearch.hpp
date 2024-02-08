@@ -5,15 +5,15 @@
 
 namespace ax::optim {
 
-enum class LineSearchKind { kBacktracking };
+enum class LineSearchKind { kBacktracking , kAjimo };
 
-class LineSearchBase : public utils::Tunable {
+class LinesearchBase : public utils::Tunable {
 public:
-  virtual ~LineSearchBase() = default;
+  virtual ~LinesearchBase() = default;
 
   virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir) const = 0;
 
-  static utils::uptr<LineSearchBase> Create(LineSearchKind kind);
+  static utils::uptr<LinesearchBase> Create(LineSearchKind kind);
 
 protected:
   idx max_iter_{20};

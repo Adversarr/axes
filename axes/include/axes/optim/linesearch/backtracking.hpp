@@ -4,18 +4,18 @@
 
 namespace ax::optim {
 
-class BacktrackingLinesearch : public LineSearchBase {
+class BacktrackingLinesearch : public LinesearchBase {
 public:
   BacktrackingLinesearch() {}
 
   OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& dir) const override;
 
-  void SetOptions(utils::Opt const& options) override;
+  Status SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const final;
 
   real alpha_ = 1.0;
-  real rho_ = 0.3;
+  real rho_ = 0.5;
   real c_ = 1e-4;
 };
 

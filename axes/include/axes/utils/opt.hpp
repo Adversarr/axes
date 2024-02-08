@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "axes/core/common.hpp"
+#include "axes/utils/status.hpp"
 #include "common.hpp"
 
 namespace ax::utils {
@@ -84,16 +85,41 @@ std::ostream& operator<<(std::ostream& os, Opt const& opt);
 
 class Tunable {
 public:
-  virtual void SetOptions(utils::Opt const& option);
+  virtual Status SetOptions(utils::Opt const& option);
   virtual utils::Opt GetOptions() const;
 };
 
-#define AX_SYNC_OPT(opt, key, type, var)\
-  if (opt.Has<type>(key)) {\
-    CHECK(opt.Holds<type>(key)) << key  " should be a "  #type;\
-    var = opt.Get<type>(key);\
+template <typename T> StatusOr<bool> sync_to_field(T& value, Opt const& options, const char* name) {
+  using value_t = std::decay_t<T>;
+  if constexpr (std::is_same_v<value_t, std::string> || std::is_same_v<value_t, idx>
+                || std::is_same_v<value_t, real>) {
+    bool has_field = options.Has<T>(name);
+    if (!has_field) {
+      return false;
+    }
+    if (!options.Holds<T>(name)) {
+      return utils::InvalidArgumentError(std::string("Expected [") + name + std::string("] to be")
+                                         + typeid(T).name());
+    }
+    value = options.Get<T>(name);
+  } else {
+    bool has_field = options.Has<Opt>(name);
+    if (!has_field) {
+      return false;
+    }
+    if (!options.Holds<Opt>(name)) {
+      return utils::InvalidArgumentError(std::string("Expected [") + name + std::string("] to be")
+                                         + typeid(Opt).name());
+    }
+    AX_RETURN_NOTOK(value.SetOptions(options.Get<Opt>(name)));
+  }
+  return true;
+}
+#define AX_SYNC_OPT(opt, type, var)                                         \
+  if (auto status = sync_to_field<type>(var##_, opt, #var); !status.ok()) { \
+    return status.status();                                                 \
   }
 
-#define AX_SYNC_OPT_(opt, type, var) AX_SYNC_OPT(opt, #var, type, var ## _)
+#define AX_SYNC_OPT_IF(opt, type, var) AX_SYNC_OPT(opt, type, var) else if (status.value())
 
 }  // namespace ax::utils

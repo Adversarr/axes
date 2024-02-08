@@ -7,7 +7,7 @@
 
 namespace ax::optim {
 
-OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
+OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   std::vector<math::vecxr> s;
   std::vector<math::vecxr> y;
   s.reserve(history_size_);
@@ -25,7 +25,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
 
   // SECT: Initialize
   math::vecxr x = x0;
-  math::vecxr g = problem_.EvalGrad(x);
+  math::vecxr grad = problem_.EvalGrad(x);
   real f_iter = problem_.EvalEnergy(x);
 
   idx iter = 0;
@@ -37,15 +37,14 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     // SECT: Verbose
     if (verbose) {
       problem_.EvalVerbose(iter, x, f_iter);
+      AX_DLOG(INFO) << "L-BFGS iter " << iter << std::endl
+                    << "  x: " << x.transpose() << std::endl
+                    << "  f: " << f_iter << std::endl
+                    << "  grad: " << grad.transpose();
     }
 
-    DLOG(INFO) << "L-BFGS iter " << iter << std::endl
-               << "  x: " << x.transpose() << std::endl
-               << "  f: " << f_iter << std::endl
-               << "  grad: " << g.transpose();
-
     // SECT: Check convergence
-    converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
+    converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
     converge_var
         = iter > 1 && problem_.HasConvergeVar() && problem_.EvalConvergeVar(x, x0) < tol_var_;
     if (converge_grad || converge_var) {
@@ -56,7 +55,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     // SECT: LBFGS Two Loop
     math::vecxr alpha(history_size_);
     math::vecxr rho(history_size_);
-    math::vecxr q = g;
+    math::vecxr q = grad;
     math::vecxr r = q;
     if (!s.empty()) {
       for (idx i = s.size() - 1; i >= 0; i--) {
@@ -76,13 +75,13 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     // SECT: Line search
     auto ls_result = linesearch_->Optimize(problem_, x, dir);
     if (!ls_result.ok()) {
-      LOG(ERROR) << "Line search failed: " << ls_result.status();
+      AX_LOG(ERROR) << "Line search failed: " << ls_result.status();
       return ls_result.status();
     }
 
     math::vecxr s_new = ls_result->x_opt_ - x;
     math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
-    math::vecxr y_new = g_new - g;
+    math::vecxr y_new = g_new - grad;
 
     if (s.size() == (size_t)history_size_) {
       s.erase(s.begin());
@@ -90,7 +89,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
     }
     s.push_back(s_new);
     y.push_back(y_new);
-    g = g_new;
+    grad = g_new;
     x = ls_result->x_opt_;
     iter++;
   }
@@ -105,15 +104,25 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) {
   return result;
 }
 
-Lbfgs::Lbfgs() { linesearch_ = std::make_unique<BacktrackingLinesearch>(); }
+Lbfgs::Lbfgs() {
+  linesearch_ = std::make_unique<BacktrackingLinesearch>();
+  linesearch_name_ = "Backtracking";
 
-void Lbfgs::SetOptions(utils::Opt const& options) {
-  OptimizerBase::SetOptions(options);
-  AX_SYNC_OPT_(options, idx, history_size);
-  AX_SYNC_OPT_(options, std::string, linesearch_name);
-  if (options.Holds<utils::Opt>("linesearch_opt")) {
-    linesearch_->SetOptions(options.Get<utils::Opt>("linesearch_opt"));
+  auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
+  ls->c_ = 1e-4;
+  ls->alpha_ = 1.0;
+  ls->rho_ = 0.5;
+}
+
+Status Lbfgs::SetOptions(utils::Opt const& options) {
+  AX_SYNC_OPT(options, idx, history_size);
+  AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
+    auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
+    AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
+    linesearch_ = LinesearchBase::Create(ls.value());
+    AX_RETURN_NOTOK_OR(utils::sync_to_field(*linesearch_, options, "linesearch_opt"));
   }
+  return OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Lbfgs::GetOptions() const {

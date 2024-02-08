@@ -5,7 +5,7 @@
 
 namespace ax::optim {
 
-class OptimizerBase: public utils::Tunable {
+class OptimizerBase : public utils::Tunable {
 public:
   static constexpr real default_tol_var = 1e-6;
   static constexpr real default_tol_grad = 1e-6;
@@ -14,14 +14,14 @@ public:
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase() = default;
 
-  virtual void SetOptions(utils::Opt const& options) override;
+  virtual Status SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const override;
 
   virtual ~OptimizerBase() = default;
 
   /****************************** Interfaces ******************************/
-  virtual OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) = 0;
+  virtual OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const = 0;
 
   /****************************** Getter Setter ******************************/
   void SetMaxIter(idx max_iter);

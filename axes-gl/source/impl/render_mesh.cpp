@@ -36,17 +36,17 @@ Status MeshRenderer::TickRender() {
   math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
   math::vec3f light_pos = ctx.GetLight().position_;
   math::vec3f view_pos = ctx.GetCamera().GetPosition().cast<f32>();
-  CHECK_OK(prog_.SetUniform("view", view));
-  CHECK_OK(prog_.SetUniform("projection", projection));
-  CHECK_OK(prog_.SetUniform("lightPos", light_pos));
-  CHECK_OK(prog_.SetUniform("viewPos", view_pos));
+  AX_CHECK_OK(prog_.SetUniform("view", view));
+  AX_CHECK_OK(prog_.SetUniform("projection", projection));
+  AX_CHECK_OK(prog_.SetUniform("lightPos", light_pos));
+  AX_CHECK_OK(prog_.SetUniform("viewPos", view_pos));
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, md] : view_component<MeshRenderData>().each()) {
     if (md.use_global_model_) {
-      CHECK_OK(prog_.SetUniform("model", model));
+      AX_CHECK_OK(prog_.SetUniform("model", model));
     } else {
-      CHECK_OK(prog_.SetUniform("model", eye));
+      AX_CHECK_OK(prog_.SetUniform("model", eye));
     }
     AXGL_WITH_BINDR(md.vao_) {
       math::vec4f light_coef = math::zeros<4, 1, f32>();
@@ -61,7 +61,7 @@ Status MeshRenderer::TickRender() {
         light_coef.y() = ctx.GetLight().diffuse_strength_;
         light_coef.z() = ctx.GetLight().specular_strength_;
       }
-      CHECK_OK(prog_.SetUniform("lightCoefficient", light_coef));
+      AX_CHECK_OK(prog_.SetUniform("lightCoefficient", light_coef));
 
       if (md.vao_.GetInstanceBuffer()) {
         AX_RETURN_NOTOK(md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt,
@@ -83,7 +83,7 @@ Status MeshRenderer::TickLogic() {
       }
       global_registry().emplace<MeshRenderData>(ent, lines);
 
-      DLOG(INFO) << "Flushing entity: " << entt::to_integral(ent);
+      AX_DLOG(INFO) << "Flushing entity: " << entt::to_integral(ent);
     }
     lines.flush_ = false;
   }
@@ -101,7 +101,7 @@ Status MeshRenderer::CleanUp() {
 }
 
 MeshRenderer::~MeshRenderer() {
-  CHECK_OK(CleanUp());
+  AX_CHECK_OK(CleanUp());
   global_registry().on_destroy<Mesh>().disconnect<&MeshRenderer::Erase>(*this);
 }
 
@@ -109,12 +109,12 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   is_flat_ = mesh.is_flat_;
   use_lighting_ = mesh.use_lighting_;
   use_global_model_ = mesh.use_global_model_;
-  CHECK(mesh.colors_.cols() >= mesh.vertices_.cols());
+  AX_CHECK(mesh.colors_.cols() >= mesh.vertices_.cols());
   /****************************** Prepare Buffer Data ******************************/
   vertices_.reserve(mesh.vertices_.size());
   auto normals = mesh.normals_;
   if (normals.cols() < mesh.vertices_.cols()) {
-    LOG(WARNING) << "Mesh Normal not set. Compute automatically";
+   AX_LOG(WARNING) << "Mesh Normal not set. Compute automatically";
     normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   }
   for (idx i = 0; i < mesh.vertices_.cols(); i++) {
@@ -138,7 +138,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   if (mesh.instance_offset_.cols() > 0) {
-    CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
+    AX_CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
     instances_.reserve(mesh.instance_offset_.size());
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
@@ -156,13 +156,13 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
 
   AX_ASSIGN_OR_DIE(vbo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
   AX_ASSIGN_OR_DIE(ebo, Buffer::CreateIndexBuffer(BufferUsage::kStaticDraw));
-  AXGL_WITH_BINDC(vbo) { CHECK_OK(vbo.Write(vertices_)); }
-  AXGL_WITH_BINDC(ebo) { CHECK_OK(ebo.Write(indices_)); }
+  AXGL_WITH_BINDC(vbo) { AX_CHECK_OK(vbo.Write(vertices_)); }
+  AXGL_WITH_BINDC(ebo) { AX_CHECK_OK(ebo.Write(indices_)); }
   vao_.SetIndexBuffer(std::move(ebo));
   vao_.SetVertexBuffer(std::move(vbo));
   if (instances_.size() > 0) {
     AX_ASSIGN_OR_DIE(ibo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
-    AXGL_WITH_BINDC(ibo) { CHECK_OK(ibo.Write(instances_)); }
+    AXGL_WITH_BINDC(ibo) { AX_CHECK_OK(ibo.Write(instances_)); }
     vao_.SetInstanceBuffer(std::move(ibo));
   }
 
@@ -173,28 +173,28 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {
-      CHECK_OK(vao_.EnableAttrib(0));
-      CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
-      CHECK_OK(vao_.EnableAttrib(1));
-      CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
-      CHECK_OK(vao_.EnableAttrib(2));
-      CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, stride, normal_offset));
+      AX_CHECK_OK(vao_.EnableAttrib(0));
+      AX_CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
+      AX_CHECK_OK(vao_.EnableAttrib(1));
+      AX_CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
+      AX_CHECK_OK(vao_.EnableAttrib(2));
+      AX_CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, stride, normal_offset));
     }
 
     if (instances_.size() > 0) {
       AXGL_WITH_BINDC(vao_.GetInstanceBuffer()) {
-        CHECK_OK(vao_.EnableAttrib(3));
-        CHECK_OK(vao_.SetAttribPointer(3, 3, Type::kFloat, false, sizeof(MeshInstanceData), 0));
-        CHECK_OK(vao_.EnableAttrib(4));
-        CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData), sizeof(glm::vec3)));
-        CHECK_OK(vao_.SetAttribDivisor(3, 1));
-        CHECK_OK(vao_.SetAttribDivisor(4, 1));
+        AX_CHECK_OK(vao_.EnableAttrib(3));
+        AX_CHECK_OK(vao_.SetAttribPointer(3, 3, Type::kFloat, false, sizeof(MeshInstanceData), 0));
+        AX_CHECK_OK(vao_.EnableAttrib(4));
+        AX_CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData), sizeof(glm::vec3)));
+        AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
+        AX_CHECK_OK(vao_.SetAttribDivisor(4, 1));
       }
     }
-    CHECK_OK(vao_.GetIndexBuffer().Bind());
+    AX_CHECK_OK(vao_.GetIndexBuffer().Bind());
   }
 
-  DLOG(INFO) << "MeshRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
+  AX_DLOG(INFO) << "MeshRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
 }
 
 }  // namespace ax::gl

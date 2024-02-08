@@ -12,7 +12,7 @@ public:
   Status Bind() { return bindable->Bind(); }
 
   ~BindGuard() {
-    if (bindable) CHECK_OK(bindable->Unbind());
+    if (bindable) AX_CHECK_OK(bindable->Unbind());
   }
 
 private:
@@ -26,7 +26,7 @@ template <typename Bindable> std::pair<Status, BindGuard<Bindable>> bind(Bindabl
 
 #define AXGL_WITH_BINDC(bindable)                                         \
   if (auto [status, bind_guard] = ax::gl::bind(bindable); !status.ok()) { \
-    CHECK_OK(status);                                                     \
+    AX_CHECK_OK(status);                                                     \
   } else
 
 #define AXGL_WITH_BINDR(bindable)                                         \

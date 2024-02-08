@@ -31,7 +31,7 @@ std::string error_code_to_string(GLenum error_code) {
 
 void clear_error() {
   for (GLenum error_code = glGetError(); error_code != GL_NO_ERROR; error_code = glGetError()) {
-    LOG(WARNING) << "Ignore OpenGL error:" << error_code_to_string(error_code);
+   AX_LOG(WARNING) << "Ignore OpenGL error:" << error_code_to_string(error_code);
   }
 }
 

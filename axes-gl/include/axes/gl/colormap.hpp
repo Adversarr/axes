@@ -5,6 +5,7 @@ namespace ax::gl {
 
 using cmap = float const[256][3];
 
+// This is taken from DiffFR.
 extern float const colormap_bwr[256][3];
 extern float const colormap_coolwarm[256][3];
 extern float const colormap_jet[256][3];

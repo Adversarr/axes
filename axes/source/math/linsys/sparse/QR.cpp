@@ -13,7 +13,7 @@ Status SparseSolver_QR::Analyse(LinsysProblem_Sparse const &problem) {
   AX_RETURN_OK();
 }
 
-LinsysSolveResult SparseSolver_QR::Solve(vecxr const &b, vecxr const &x0) {
+LinsysSolveResult SparseSolver_QR::Solve(vecxr const &b, vecxr const &) {
   vecxr x = solver_.solve(b);
   if (solver_.info() != Eigen::Success) {
     return utils::InvalidArgumentError("SparseSolver_CG: solve failed");

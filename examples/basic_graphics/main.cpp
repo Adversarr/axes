@@ -10,6 +10,7 @@
 #include "axes/geometry/transforms.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/extprim/axes.hpp"
+#include "axes/gl/colormap.hpp"
 #include "axes/gl/primitives/lines.hpp"
 #include "axes/gl/primitives/mesh.hpp"
 #include "axes/gl/window.hpp"
@@ -74,8 +75,10 @@ gl::Mesh create_dummy_sphere() {
   gl::Mesh mesh;
   std::tie(mesh.vertices_, mesh.indices_) = geo::sphere(0.5, 10, 10);
   math::each(mesh.vertices_) += math::vec3r{1.5, 0, 0};
-  mesh.colors_.setConstant(4, mesh.vertices_.cols(), 0);
-  mesh.colors_.row(0) = mesh.vertices_.row(0) * 0.5;
+  mesh.colors_.resize(4, mesh.vertices_.cols());
+  for (idx i = 0; i < mesh.vertices_.cols(); ++i) {
+    mesh.colors_.topRows<3>().col(i) = math::vec3f(gl::colormap_coolwarm[i % 256]).cast<real>();
+  }
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.use_lighting_ = true;
   mesh.is_flat_ = true;

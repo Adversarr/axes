@@ -9,7 +9,6 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
-private:
   Eigen::SimplicialLDLT<sp_matxxr> solver_;
 };
 }  // namespace ax::math

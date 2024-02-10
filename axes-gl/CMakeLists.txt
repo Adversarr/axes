@@ -25,12 +25,6 @@ target_link_libraries(axes_gui
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
 axes_set_warn_levels(axes_gui)
 
-# include(${PROJECT_SOURCE_DIR}/cmake/compile_shaders.cmake)
-# compile_shader_dir(guishader "${CMAKE_CURRENT_SOURCE_DIR}/shader"
-# ${SPIRV_HOME}) add_dependencies(axes_gui guishader)
-
-
-
 if(AXES_NO_EXCEPT)
   if(MSVC)
     target_compile_options(axes_gui PRIVATE /EHsc)

@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     optimal = optim::test::LeastSquareProblem{A, b}.Optimal(b);
     x0.setRandom(n);
   } else if (absl::GetFlag(FLAGS_problem) == "sp_lstsq") {
-    math::SparseCoeffVec A_sparse;
+    math::sp_coeff_list A_sparse;
     A_sparse.reserve(n * 10);
     for (idx i = 0; i < n; ++i) {
       for (idx j = 0; j < 9; ++j) {

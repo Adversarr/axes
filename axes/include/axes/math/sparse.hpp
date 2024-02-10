@@ -8,8 +8,8 @@ namespace ax::math {
 
 using sp_matxxr = Eigen::SparseMatrix<real, Eigen::ColMajor, idx>;
 
-using SparseCoeff = Eigen::Triplet<real, idx>;
+using sp_coeff = Eigen::Triplet<real, idx>;
 
-using SparseCoeffVec = std::vector<SparseCoeff>;
+using sp_coeff_list = std::vector<sp_coeff>;
 
 }  // namespace ax::math

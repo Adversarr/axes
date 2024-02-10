@@ -7,20 +7,24 @@ namespace ax::math {
 
 /****************************** Unary op for scalar ******************************/
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto sqrt(Scalar x) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto sqrt(Scalar x) {
   return details::sqrt_impl(x);
 }
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto rsqrt(Scalar x) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE Scalar radians(Scalar degree) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE Scalar radians(Scalar degree) {
   return degree * pi_radian<Scalar>;
 }
 
-#define IMPLEMENT_UNARY_STL(op)                                                                         \
-  template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto op(Scalar x) { \
-    return std::op(x);                                                                                  \
+#define IMPLEMENT_UNARY_STL(op)                                     \
+  template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
+  AX_FORCE_INLINE auto op(Scalar x) {                               \
+    return std::op(x);                                              \
   }
 
 IMPLEMENT_UNARY_STL(abs)
@@ -46,21 +50,28 @@ IMPLEMENT_UNARY_STL(floor)
 IMPLEMENT_UNARY_STL(ceil)
 #undef IMPLEMENT_UNARY_STL
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
   return std::pow(x, y);
 }
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto cube(Scalar x) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto cube(Scalar x) {
   return x * x * x;
 }
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto abs2(Scalar x) { return x * x; }
-
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto square(Scalar x) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto abs2(Scalar x) {
   return x * x;
 }
 
-template <typename Scalar, typename = enable_if_scalar_t<Scalar>> AX_FORCE_INLINE auto inverse(Scalar x) {
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto square(Scalar x) {
+  return x * x;
+}
+
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto inverse(Scalar x) {
   return Scalar(1) / x;
 }
 
@@ -119,30 +130,45 @@ IMPLEMENT_AOPM_UNARY(isNan)  // TODO: Naming is bad.
 #undef IMPLEMENT_AOPM_UNARY
 #undef IMPLEMENT_UNARY
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar sum(DBcr<Derived> a) { return a.sum(); }
+template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar sum(DBcr<Derived> a) {
+  return a.sum();
+}
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar prod(DBcr<Derived> a) { return a.prod(); }
+template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar prod(DBcr<Derived> a) {
+  return a.prod();
+}
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar mean(DBcr<Derived> a) { return a.mean(); }
+template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar mean(DBcr<Derived> a) {
+  return a.mean();
+}
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType max(DBcr<A> mv) { return mv.maxCoeff(); }
+template <typename A> AX_FORCE_INLINE typename A::ScalarType max(DBcr<A> mv) {
+  return mv.maxCoeff();
+}
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType min(DBcr<A> mv) { return mv.minCoeff(); }
+template <typename A> AX_FORCE_INLINE typename A::ScalarType min(DBcr<A> mv) {
+  return mv.minCoeff();
+}
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(DBcr<A> mv) { return mv.trace(); }
+template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(DBcr<A> mv) {
+  return mv.trace();
+}
 
 template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>, "all() is only available for bool vectors");
+  static_assert(std::is_same_v<typename A::ScalarType, bool>,
+                "all() is only available for bool vectors");
   return mv.all();
 }
 
 template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>, "all() is only available for bool vectors");
+  static_assert(std::is_same_v<typename A::ScalarType, bool>,
+                "all() is only available for bool vectors");
   return mv.any();
 }
 
 template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>, "all() is only available for bool vectors");
+  static_assert(std::is_same_v<typename A::ScalarType, bool>,
+                "all() is only available for bool vectors");
   return mv.count();
 }
 
@@ -160,6 +186,47 @@ AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
   idx coef = -1;
   mv.minCoeff(coef);
   return coef;
+}
+
+/****************************** Specials ******************************/
+using std::clamp;
+using std::fmod;
+using std::lgamma;
+using std::tgamma;
+
+namespace details {
+constexpr real factorials[32] = {1.0,
+                                 1.0,
+                                 2.0,
+                                 6.0,
+                                 24.0,
+                                 120.0,
+                                 720.0,
+                                 5040.0,
+                                 40320.0,
+                                 362880.0,
+                                 3628800.0,
+                                 39916800.0,
+                                 479001600.0,
+                                 6227020800.0,
+                                 87178291200.0,
+                                 1307674368000.0,
+                                 20922789888000.0,
+                                 355687428096000.0,
+                                 6402373705728000.0,
+                                 121645100408832000.0,
+                                 2432902008176640000.0,
+                                 51090942171709440000.0,
+                                 1124000727777607680000.0,
+                                 25852016738884976640000.0,
+                                 620448401733239439360000.0,
+                                 15511210043330985984000000.0,
+                                 403291461126605635584000000.0,
+                                 10888869450418352160768000000.0,
+                                 304888344611713860501504000000.0,
+                                 8841761993739701954543616000000.0,
+                                 265252859812191058636308480000000.0,
+                                 8222838654177922817725562880000000.0};
 }
 
 }  // namespace ax::math

@@ -8,7 +8,7 @@
  */
 
 #include "axes/core/init.hpp"
-#include "axes/fem/pelem/p1.hpp"
+#include "axes/fem/elements/p1.hpp"
 #include "axes/math/linsys/sparse/LDLT.hpp"
 
 using namespace ax;
@@ -19,6 +19,27 @@ bool is_diriclet(idx id) {
   idx i = id / n;
   idx j = id % n;
   return i == 0 || i == n - 1 || j == 0 || j == n - 1;
+}
+
+field3i make_triangles(idx nx, idx ny) {
+  field3i triangles(3, 2 * (nx - 1) * (ny - 1));
+  idx id = 0;
+  for (idx i = 0; i < nx - 1; ++i) {
+    for (idx j = 0; j < ny - 1; ++j) {
+      idx idx00 = i * ny + j;
+      idx idx01 = i * ny + j + 1;
+      idx idx10 = (i + 1) * ny + j;
+      idx idx11 = (i + 1) * ny + j + 1;
+      if (j % 2 == 0) {
+        triangles.col(id++) = vec3i{idx00, idx11, idx01};
+        triangles.col(id++) = vec3i{idx00, idx11, idx10};
+      } else {
+        triangles.col(id++) = vec3i{idx00, idx01, idx10};
+        triangles.col(id++) = vec3i{idx01, idx11, idx10};
+      }
+    }
+  }
+  return triangles;
 }
 
 int main(int argc, char** argv) {
@@ -35,6 +56,8 @@ int main(int argc, char** argv) {
 
   // SECT: Make a mesh grid:
   math::field2r vertices(2, n * n);
+  math::field3i faces = make_triangles(n, n);
+
   for (idx i = 0; i < n; ++i) {
     for (idx j = 0; j < n; ++j) {
       vertices.col(i * n + j) = math::vec2r{i / real(n - 1), j / real(n - 1)};
@@ -43,30 +66,20 @@ int main(int argc, char** argv) {
 
   // SECT: Make a P1 element:
   sp_coeff_list coefficients;
-  for (idx i = 0; i < n - 1; ++i) {
-    for (idx j = 0; j < n - 1; ++j) {
-      idx idx00 = i * n + j;
-      idx idx01 = i * n + j + 1;
-      idx idx10 = (i + 1) * n + j;
-      idx idx11 = (i + 1) * n + j + 1;
-      fem::P1Element2D element({
-          vertices.col(idx00),
-          vertices.col(idx11),
-          vertices.col(idx01),
-      });
-      idx e1i[3] = {idx00, idx11, idx01};
-      fem::P1Element2D element2({vertices.col(idx00), vertices.col(idx10), vertices.col(idx11)});
-      idx e2i[3] = {idx00, idx10, idx11};
-
-      for (idx i = 0; i < 3; ++i) {
-        for (idx j = 0; j < 3; ++j) {
-          coefficients.push_back(
-              sp_coeff(e1i[i], e1i[j],
-                       element.Integrate_PF_PF(i, j, 0, 0) + element.Integrate_PF_PF(i, j, 1, 1)));
-          coefficients.push_back(sp_coeff(
-              e2i[i], e2i[j],
-              element2.Integrate_PF_PF(i, j, 0, 0) + element2.Integrate_PF_PF(i, j, 1, 1)));
-        }
+  for (auto elem : each(faces)) {
+    idx idx00 = elem[0];
+    idx idx01 = elem[1];
+    idx idx10 = elem[2];
+    fem::P1Element2D element({
+        vertices.col(idx00),
+        vertices.col(idx01),
+        vertices.col(idx10),
+    });
+    for (idx i = 0; i < 3; ++i) {
+      for (idx j = 0; j < 3; ++j) {
+        coefficients.push_back(
+            sp_coeff(elem[i], elem[j],
+                     element.Integrate_PF_PF(i, j, 0, 0) + element.Integrate_PF_PF(i, j, 1, 1)));
       }
     }
   }

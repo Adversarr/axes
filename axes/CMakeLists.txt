@@ -6,29 +6,34 @@ find_package(EnTT CONFIG REQUIRED)
 
 # Library axes-core
 file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
-     ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
 add_library(axes ${AXES_CORE_SOURCE})
 target_include_directories(axes PRIVATE ${TINYGLTF_INCLUDE_DIRS})
 target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(
-  axes
-  PUBLIC Eigen3::Eigen
-         absl::btree
-         absl::flat_hash_map
-         absl::inlined_vector
-         absl::status
-         absl::log
-         absl::log_initialize
-         absl::log_globals
-         absl::log_flags
-         absl::flags_parse
-         absl::flags_usage
-         absl::statusor
-         EnTT::EnTT
-         range-v3::range-v3)
-if (OpenMP_CXX_FOUND)
+
+set(ABSL_LIBRARIES
+  absl::btree
+  absl::flat_hash_map
+  absl::inlined_vector
+  absl::status
+  absl::log
+  absl::log_initialize
+  absl::log_globals
+  absl::log_flags
+  absl::flags_parse
+  absl::flags_usage
+  absl::statusor)
+
+target_link_libraries(axes
+  PUBLIC
+  Eigen3::Eigen
+  ${ABSL_LIBRARIES}
+  EnTT::EnTT
+  range-v3::range-v3)
+
+if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
   message(STATUS "OpenMP found and link to axes.")
   target_compile_definitions(axes PRIVATE "AXES_HAS_OPENMP")
@@ -46,6 +51,7 @@ endif()
 
 axes_set_warn_levels(axes)
 target_compile_definitions(axes PRIVATE AX_ASSET_DIR="${AX_ASSET_DIR}")
+
 # Disable Exceptions
 if(AXES_NO_EXCEPT)
   if(MSVC)
@@ -54,3 +60,6 @@ if(AXES_NO_EXCEPT)
     target_compile_options(axes PRIVATE -fno-exceptions)
   endif()
 endif()
+
+# PCH
+target_precompile_headers(axes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/axes/ax_pch.hpp)

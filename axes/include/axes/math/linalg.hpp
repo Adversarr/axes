@@ -102,4 +102,5 @@ template <typename A, typename B>
 AX_FORCE_INLINE auto psolve(MBcr<A> a, MBcr<B> b) {
   return a.completeOrthogonalDecomposition().solve(b);
 }
+
 }  // namespace ax::math

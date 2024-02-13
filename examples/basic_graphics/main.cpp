@@ -77,7 +77,7 @@ gl::Mesh create_dummy_sphere() {
   math::each(mesh.vertices_) += math::vec3r{1.5, 0, 0};
   mesh.colors_.resize(4, mesh.vertices_.cols());
   for (idx i = 0; i < mesh.vertices_.cols(); ++i) {
-    mesh.colors_.topRows<3>().col(i) = math::vec3f(gl::colormap_coolwarm[i % 256]).cast<real>();
+    mesh.colors_.topRows<3>().col(i) = math::vec3r(gl::colormap_coolwarm[i % 256]);
   }
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.use_lighting_ = true;

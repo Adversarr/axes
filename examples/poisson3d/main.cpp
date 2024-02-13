@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 
   vecxr x = result->solution_;
   vecxr error = x - accurate;
-  real l2_error = sqrt(error.dot(K * error));
+  real l2_error = error.norm() / (n * n * n);
 
   AX_LOG(INFO) << "L2 error: " << l2_error;
   clean_up();

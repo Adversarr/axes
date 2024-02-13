@@ -7,8 +7,11 @@
  *
  */
 
+#include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
 #include "axes/fem/elements/p1.hpp"
+#include "axes/gl/context.hpp"
+#include "axes/gl/primitives/height_field.hpp"
 #include "axes/math/linsys/sparse/LDLT.hpp"
 
 using namespace ax;
@@ -145,8 +148,22 @@ int main(int argc, char** argv) {
       accurate[idx00] = (1 - x) * (1 - y) * sin(x) * sin(y);
     }
   }
-  real err = (x - accurate).norm();
+  real err = (x - accurate).norm() / (n * n);
   AX_LOG(INFO) << "Error: " << err << std::boolalpha << "\tConverged? " << (err < 1e-4);
+
+  auto& ctx = add_resource<gl::Context>();
+  auto height_field= gl::make_height_field(x, n, n);
+  auto ent = create_entity();
+  AX_CHECK_OK(height_field);
+  auto& mesh = add_component<gl::Mesh>(ent, height_field.value());
+  mesh.flush_ = true;
+
+  while (! ctx.GetWindow().ShouldClose()) {
+    AX_CHECK_OK(ctx.TickLogic()); 
+    AX_CHECK_OK(ctx.TickRender());
+  }
+
+  erase_resource<gl::Context>();
   clean_up();
   return 0;
 }

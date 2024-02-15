@@ -34,6 +34,7 @@ math::mat4f Camera::Ortho() const {
     left = (left + right - new_width) / 2.0f;
     right = (left + right + new_width) / 2.0f;
   }
+
   auto ortho = geo::ortho(left, right, bottom, top, 0.1f, 100.0f);
   return ortho.cast<f32>();
 }
@@ -85,17 +86,15 @@ void Camera::Move(math::vec3f const& direction) { position_ += direction; }
 
 void Camera::SetPosition(math::vec3f const& position) { position_ = position; }
 
-math::vec3f & Camera::GetPosition() { return position_; }
-math::vec3f & Camera::GetFront() { return front_; }
-math::vec3f & Camera::GetRight() { return right_; }
-math::vec3f & Camera::GetUp() { return up_; }
+math::vec3f& Camera::GetPosition() { return position_; }
+math::vec3f& Camera::GetFront() { return front_; }
+math::vec3f& Camera::GetRight() { return right_; }
+math::vec3f& Camera::GetUp() { return up_; }
 f32 Camera::GetYaw() const { return yaw_; }
 f32 Camera::GetPitch() const { return pitch_; }
 f32 Camera::GetFov() const { return fov_; }
 
-void Camera::SetAspect(f32 aspect) {
-  aspect_ = aspect;
-}
+void Camera::SetAspect(f32 aspect) { aspect_ = aspect; }
 
 void Camera::SetAspect(idx x, idx y) {
   aspect_ = static_cast<f32>(x) / static_cast<f32>(y);
@@ -104,7 +103,8 @@ void Camera::SetAspect(idx x, idx y) {
 f32 Camera::GetAspect() const { return aspect_; }
 
 math::mat4f Camera::LookAt() const {
-  auto lookat = geo::look_at(position_.cast<real>(), (position_ + front_).cast<real>(), up_.cast<real>());
+  auto lookat
+      = geo::look_at(position_.cast<real>(), (position_ + front_).cast<real>(), up_.cast<real>());
   return lookat.cast<f32>();
 }
 

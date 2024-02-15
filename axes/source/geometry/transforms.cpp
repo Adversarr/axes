@@ -6,7 +6,7 @@ namespace ax::geo {
 
 math::mat4r ortho(real left, real right, real bottom, real top, real near, real far) {
   using namespace math;
-  mat4r result = math::zeros<4, 4>();
+  mat4r result = math::eye<4>();
   result(0, 0) = 2.0f / (right - left);
   result(1, 1) = 2.0f / (top - bottom);
   result(2, 2) = -2.0f / (far - near);

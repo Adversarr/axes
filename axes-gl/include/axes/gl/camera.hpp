@@ -48,6 +48,7 @@ public:
 
   f32 GetAspect() const;
 
+  bool use_perspective_;
 private:
   // External Parameters
   math::vec3f position_;
@@ -59,7 +60,6 @@ private:
   f32 yaw_;
   f32 pitch_;
 
-  bool use_perspective_;
   math::vec2f ortho_horizontal_;
   math::vec2f ortho_vertical_;
 

@@ -140,6 +140,7 @@ struct Context::Impl {
       ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
                   camera_.GetPosition().z());
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
+      ImGui::Checkbox("Perspective", &camera_.use_perspective_);
       update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
       update_light_ = ImGui::Checkbox("Render light", &render_light_);
       update_light_ |= ImGui::InputFloat3("Light", &light_.position_.x());
@@ -148,6 +149,7 @@ struct Context::Impl {
       update_light_ |= ImGui::SliderFloat("Light Spec", &light_.specular_strength_, 0.0f, 1.0f);
 
       ImGui::ColorEdit3("Clear Color", &clear_color_.x());
+
     }
     ImGui::End();
   }

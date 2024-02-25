@@ -1,3 +1,4 @@
+#include "axes/utils/iota.hpp"
 #include <doctest/doctest.h>
 
 #include <axes/math/common.hpp>
@@ -94,5 +95,37 @@ TEST_CASE("iter") {
     CHECK(v3i.x() == 0);
     CHECK(v3i.y() == 0);
     CHECK(v3i.z() == 0);
+  }
+}
+
+TEST_CASE("mult-iota") {
+  using namespace ax;
+  auto iota1 = utils::multi_iota(2, 3, 4);
+  auto it1 = iota1.begin();
+  for (auto i: utils::iota(2)) {
+    for (auto j: utils::iota(3)) {
+      for (auto k: utils::iota(4)) {
+        auto [ii, jj, kk] = *(it1++);
+        CHECK_EQ(i, ii);
+        CHECK_EQ(j, jj);
+        CHECK_EQ(k, kk);
+      }
+    }
+  }
+  auto iota2 = utils::multi_iota(
+    utils::ituple(0, 2), 
+    utils::ituple(0, 3, 2),
+    4);
+
+  auto it2 = iota2.begin();
+  for (auto i: utils::iota(0, 2)) {
+    for (auto j: utils::iota(0, 3, 2)) {
+      for (auto k: utils::iota(4)) {
+        auto [ii, jj, kk] = *(it2++);
+        CHECK_EQ(i, ii);
+        CHECK_EQ(j, jj);
+        CHECK_EQ(k, kk);
+      }
+    }
   }
 }

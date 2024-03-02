@@ -1,8 +1,8 @@
 #pragma once
 #include "common.hpp"
+#include "axes/utils/ranges.hpp"
+
 namespace ax::math {
-
-
 
 template <idx dim, typename Fn> math::fieldr<dim> make_field(veci<dim> const& nd, Fn&& fn) {
   math::fieldr<dim> f(nd.prod());
@@ -16,4 +16,9 @@ template <idx dim, typename Fn> math::fieldr<dim> make_field(veci<dim> const& nd
   }
   return f;
 }
+
+template <typename F> auto enumerate_field(F && field) {
+  return utils::ranges::iter_enumerate(field.colwise().begin(), field.colwise().end());
+}
+
 }  // namespace ax::math

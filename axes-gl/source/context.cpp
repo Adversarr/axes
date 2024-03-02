@@ -27,6 +27,9 @@ struct Context::Impl {
   Camera camera_;
   Light light_;
 
+  f32 model_rotate_x_{0.0f};
+  f32 model_rotate_y_{0.0f};
+
   math::mat4f model_;
   math::vec4f clear_color_;
 
@@ -42,6 +45,7 @@ struct Context::Impl {
   bool is_pressing_meta_key_ = false;
   bool is_pressing_ctrl_key_ = false;
   bool is_pressing_shft_key_ = false;
+  bool is_pressing_space_key_ = false;
   bool is_mouse_button_pressed_ = false;
   math::vec2r prev_cursor_pos_;
 
@@ -55,6 +59,8 @@ struct Context::Impl {
         is_pressing_ctrl_key_ = false;
       } else if (evt.key_ == GLFW_KEY_LEFT_ALT || evt.key_ == GLFW_KEY_RIGHT_ALT) {
         is_pressing_meta_key_ = false;
+      } else if (evt.key_ == GLFW_KEY_SPACE) {
+        is_pressing_space_key_ = false;
       }
       // NOTE: Nothing is needed.
       return;
@@ -66,6 +72,8 @@ struct Context::Impl {
       is_pressing_ctrl_key_ = true;
     } else if (evt.key_ == GLFW_KEY_LEFT_ALT || evt.key_ == GLFW_KEY_RIGHT_ALT) {
       is_pressing_meta_key_ = true;
+    } else if (evt.key_ == GLFW_KEY_SPACE) {
+      is_pressing_space_key_ = true;
     }
 
     if (evt.key_ == GLFW_KEY_H) {
@@ -118,6 +126,18 @@ struct Context::Impl {
       if (is_pressing_ctrl_key_) {
         auto front = camera_.GetFront();
         camera_.Move(front * dy * 0.01f);
+      }
+
+
+      if (is_pressing_space_key_) {
+        // Rotate the world model matrix.
+        dx *= mouse_sensitivity_ * 0.005;
+        dy *= mouse_sensitivity_ * 0.005;
+        model_rotate_x_ += static_cast<f32>(dx);
+        model_rotate_y_ += static_cast<f32>(dy);
+        math::mat3f rx = Eigen::AngleAxis<f32>(model_rotate_y_, math::vec3f::UnitX()).toRotationMatrix();
+        math::mat3f ry = Eigen::AngleAxis<f32>(-model_rotate_x_, math::vec3f::UnitY()).toRotationMatrix();
+        model_.topLeftCorner<3, 3>() = (rx * ry).cast<f32>();
       }
     }
     prev_cursor_pos_ = evt.pos_;

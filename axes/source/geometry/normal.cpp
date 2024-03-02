@@ -7,9 +7,13 @@ namespace ax::geo {
 math::field3r normal_per_face(math::field3r const& vertices, math::field3i const& indices) {
   math::field3r normals(3, indices.cols());
   for (int i = 0; i < indices.cols(); ++i) {
-    math::vec3r const& a = vertices.col(indices(0, i));
-    math::vec3r const& b = vertices.col(indices(1, i));
-    math::vec3r const& c = vertices.col(indices(2, i));
+    idx ii = indices(0, i);
+    idx ij = indices(1, i);
+    idx ik = indices(2, i);
+    AX_CHECK(ii < vertices.cols() && ij < vertices.cols() && ik < vertices.cols());
+    math::vec3r const& a = vertices.col(ii);
+    math::vec3r const& b = vertices.col(ij);
+    math::vec3r const& c = vertices.col(ik);
     math::vec3r const ab = b - a;
     math::vec3r const ac = c - a;
     math::vec3r const n = ab.cross(ac);

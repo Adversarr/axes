@@ -120,7 +120,7 @@ Window::Window() {
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
 
- AX_LOG(INFO) << "Window:" << std::endl
+  AX_LOG(INFO) << "Window:" << std::endl
             << " - Size=" << impl_->size_.transpose() << std::endl
             << " - Pos=" << impl_->pos_.transpose() << std::endl
             << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl

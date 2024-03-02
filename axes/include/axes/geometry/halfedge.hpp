@@ -64,10 +64,18 @@ public:
   HalfedgeEdge_t* TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2);
 
   void ForeachEdgeAroundVertex(HalfedgeVertex_t* vert, std::function<void(HalfedgeEdge_t*)> const& fn);
+  void ForeachEdgeInFace(HalfedgeFace_t* face, std::function<void(HalfedgeEdge_t*)> const& fn);
 
   void ForeachEdge(std::function<void(HalfedgeEdge_t*)> const& fn);
 
   void ForeachVertex(std::function<void(HalfedgeVertex_t*)> const& fn);
+
+
+  idx NVertices() const noexcept { return (idx) vertices_.size(); }
+
+  idx NEdges() const noexcept { return (idx) edges_.size(); }
+
+  bool CheckOk() const noexcept;
 
 // private:
   void RemoveVertexInternal(HalfedgeVertex_t* vert);

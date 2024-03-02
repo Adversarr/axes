@@ -7,20 +7,52 @@
 #include "axes/core/echo.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
+#include "axes/geometry/decimate.hpp"
 #include "axes/geometry/halfedge.hpp"
 #include "axes/geometry/normal.hpp"
-#include "axes/geometry/primitives.hpp"
-#include "axes/geometry/transforms.hpp"
-#include "axes/gl/colormap.hpp"
 #include "axes/gl/context.hpp"
-#include "axes/gl/extprim/axes.hpp"
 #include "axes/gl/primitives/lines.hpp"
 #include "axes/gl/primitives/mesh.hpp"
 #include "axes/gl/window.hpp"
 #include "axes/utils/asset.hpp"
-#include "axes/utils/time.hpp"
 
 using namespace ax;
+
+ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
+
+float ratio = 1.0f;
+
+entt::entity original, modified;
+
+math::field3r vertices;
+math::field3i indices;
+
+void ui_render_callback(gl::UiRenderEvent) {
+  ImGui::Begin("Decimate");
+  ImGui::SliderFloat("Ratio", &ratio, 0.0f, 1.0f);
+  bool run_algorithm = ImGui::Button("Run Algorithm");
+  if (run_algorithm) {
+    auto& modified_mesh = ax::get_component<gl::Mesh>(modified);
+    auto halfedge = geo::HalfedgeMesh(vertices, indices);
+
+    auto decimator = geo::MeshDecimator(&halfedge);
+    decimator.SetRatio(ratio);
+    AX_CHECK_OK(decimator.Run());
+    std::tie(modified_mesh.vertices_, modified_mesh.indices_) = halfedge.ToTriangleMesh();
+    modified_mesh.colors_.resize(4, modified_mesh.vertices_.cols());
+    modified_mesh.colors_.setConstant(0.5);
+    modified_mesh.colors_.topRows(3) = modified_mesh.vertices_;
+    modified_mesh.normals_ = geo::normal_per_vertex(modified_mesh.vertices_, modified_mesh.indices_);
+    modified_mesh.flush_ =  modified_mesh.use_global_model_ = true;
+
+    auto& wf = add_component<gl::Lines>(modified, gl::Lines::Create(modified_mesh));  // Wireframe
+    wf.flush_ = true;
+    wf.colors_.setOnes();
+    wf.instance_color_.setOnes();
+  }
+  ImGui::End();
+}
+
 
 std::pair<math::field3i, math::field3r> load_obj(const std::string& filename) {
   std::vector<math::vec3r> vertices_list;
@@ -46,14 +78,14 @@ std::pair<math::field3i, math::field3r> load_obj(const std::string& filename) {
     }
   }
 
-  vertices.resize(3, vertices_list.size());
-  for (idx i = 0; i < vertices_list.size(); ++i) {
-    vertices.col(i) = vertices_list[i];
+  vertices.resize(3, idx(vertices_list.size()));
+  for (size_t i = 0; i < vertices_list.size(); ++i) {
+    vertices.col(idx(i)) = vertices_list[i];
   }
 
-  indices.resize(3, indices_list.size());
-  for (idx i = 0; i < indices_list.size(); ++i) {
-    indices.col(i) = indices_list[i];
+  indices.resize(3, idx(indices_list.size()));
+  for (size_t i = 0; i < indices_list.size(); ++i) {
+    indices.col(idx(i)) = indices_list[i];
   }
 
   return std::make_pair(indices, vertices);
@@ -63,34 +95,55 @@ int main(int argc, char** argv) {
   ax::init(argc, argv);
   auto& ctx = add_resource<gl::Context>();
 
-  // SECT: This is a dummy entity to test the rendering pipeline
+  connect<gl::UiRenderEvent, &ui_render_callback>();
+
   auto mesh_ent = create_entity();
+  modified = mesh_ent;
 
-  auto [indices, vertices] = load_obj("box_naive.obj");
-  gl::Mesh mesh;
-  geo::HalfedgeMesh halfedge_mesh(vertices, indices);
-  halfedge_mesh.ForeachEdge([&](geo::HalfedgeEdge_t* edge) {
-    AX_LOG(INFO) << "Edge is collapsable? " << (halfedge_mesh.CheckCollapse(edge));
-  });
-  halfedge_mesh.CollapseEdge(halfedge_mesh.edges_[1].get(), math::vec3r{0, -1, 0});
-  std::tie(mesh.vertices_, mesh.indices_) = halfedge_mesh.ToTriangleMesh();
+  auto file = absl::GetFlag(FLAGS_obj_file);
+  AX_LOG(INFO) << "Reading " << std::quoted(file);
+  std::tie(indices, vertices) = load_obj(file);
+  { // Setup Original
+    original = create_entity();
+    auto& mesh = add_component<gl::Mesh>(original);
+    std::tie(mesh.vertices_, mesh.indices_) = std::make_pair(vertices, indices);
+    mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+    mesh.colors_.resize(4, mesh.vertices_.cols());
+    mesh.colors_.setConstant(0.5);
+    mesh.colors_.topRows(3) = mesh.vertices_;
+    mesh.flush_ =  mesh.use_global_model_ = true;
+    mesh.vertices_.row(0).array() -= 1.75;
+    mesh.use_lighting_ = false;
 
+    auto& wf = add_component<gl::Lines>(original, gl::Lines::Create(mesh));  // Wireframe
+    wf.colors_.setOnes();
+    wf.instance_color_.setOnes();
+  }
+  geo::HalfedgeMesh he_mesh(vertices, indices);
+  std::vector<geo::HalfedgeEdge_t* > edge_to_collapse;
+  he_mesh.CheckOk();
+
+  auto& mesh = add_component<gl::Mesh>(mesh_ent);
+  // halfedge_mesh = &he_mesh;
+  // geo::MeshDecimator decimator(halfedge_mesh);
+  // decimator.SetTargetCount(halfedge_mesh->NVertices() * 0.7);
+  // decimator.SetTargetCount(3000);
+  // AX_CHECK_OK(decimator.Run());
+
+  std::tie(mesh.vertices_, mesh.indices_) = he_mesh.ToTriangleMesh();
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.colors_.resize(4, mesh.vertices_.cols());
   mesh.colors_.setConstant(0.5);
   mesh.colors_.topRows(3) = mesh.vertices_;
   mesh.flush_ =  mesh.use_global_model_ = true;
-  // mesh.is_flat_ = true;
+
   mesh.use_lighting_ = false;
-  auto& m = add_component<gl::Mesh>(mesh_ent, mesh);
-  auto& mesh_wireframe = add_component<gl::Lines>(mesh_ent, gl::Lines::Create(m));  // Wireframe
+  auto& mesh_wireframe = add_component<gl::Lines>(mesh_ent, gl::Lines::Create(mesh));  // Wireframe
   mesh_wireframe.colors_.setOnes();
   mesh_wireframe.instance_color_.setOnes();
-  // SECT: Main Loop
+
+
   auto& win = ctx.GetWindow();
-  i64 start = utils::GetCurrentTimeNanos();
-
-
 
   ctx.GetCamera().SetProjectionMode(true);
   while (!win.ShouldClose()) {
@@ -98,7 +151,6 @@ int main(int argc, char** argv) {
     AX_CHECK_OK(ctx.TickRender());
   }
 
-  // NOTE: Clean Up
   erase_resource<gl::Context>();
   clean_up();
   return 0;

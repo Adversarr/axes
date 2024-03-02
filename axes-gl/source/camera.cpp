@@ -11,7 +11,7 @@
 
 namespace ax::gl {
 
-Camera::Camera() : yaw_(0.0f), pitch_(0.0f), use_perspective_(true), fov_(45.0f) {
+Camera::Camera() : use_perspective_(true), yaw_(0.0f), pitch_(0.0f), fov_(45.0f) {
   SetRotate(-135.0f, -10.0f);
   SetPosition(math::vec3f(3.0f, 1.0f, 3.0f));
   aspect_ = 1.0;

@@ -1,4 +1,3 @@
-#pragma once
 #include "axes/gl/primitives/height_field.hpp"
 #include "axes/core/echo.hpp"
 #include "axes/geometry/grid.hpp"

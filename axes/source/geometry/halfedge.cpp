@@ -50,14 +50,13 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
 
   std::map<std::pair<HalfedgeVertex_t*, HalfedgeVertex_t*>, HalfedgeEdge_t*> edge_map;
   for (auto [id, e] : utils::enumerate(edges_)) {
-    auto v = e->vertex_;
-    auto next_v = e->next_->vertex_;
-    auto pair = std::make_pair(v, next_v);
-    if (auto it = edge_map.find(pair); it != edge_map.end()) {
-      establish_pair(it->second, e.get());
-      edge_map.erase(it);
+    auto head = e->vertex_;
+    auto tail = e->prev_->vertex_;
+    auto ht = std::make_pair(head, tail);
+    if (auto it = edge_map.find(std::make_pair(tail, head)); it != edge_map.end()) {
+      establish_pair(e.get(), it->second);
     } else {
-      edge_map.emplace(std::make_pair(next_v, v), e.get());
+      edge_map.emplace(ht, e.get());
     }
   }
 
@@ -135,9 +134,9 @@ std::pair<math::field3r, math::field3i> HalfedgeMesh::ToTriangleMesh() const {
 }
 
 void HalfedgeMesh::RemoveEdgeInternal(HalfedgeEdge_t* edge) {
+  AX_DLOG(INFO) << "Removing edge: " << edge;
   auto it = std::find_if(edges_.begin(), edges_.end(),
                          [edge](auto const& e) { return e.get() == edge; });
-  AX_LOG(INFO) << "Removing edge: " << edge;
   AX_CHECK(it != edges_.end());
 
   std::swap(*it, edges_.back());
@@ -152,7 +151,6 @@ void HalfedgeMesh::RemoveEdgeInternal(HalfedgeEdge_t* edge) {
 void HalfedgeMesh::RemoveFaceInternal(HalfedgeFace_t* face) {
   auto it = std::find_if(faces_.begin(), faces_.end(),
                          [face](auto const& f) { return f.get() == face; });
-  AX_LOG(INFO) << "Removing face: " << face;
   std::swap(*it, faces_.back());
   faces_.pop_back();
 }
@@ -170,20 +168,25 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_
   head_vertex->position_= target_position;
   HalfedgeEdge_t* pair = edge->pair_;
   HalfedgeVertex_t* tail_vertex = pair->vertex_;  // c
+  AX_CHECK(head_vertex != tail_vertex);
   // Assign all c to b.
   ForeachEdgeAroundVertex(tail_vertex,
                           [head_vertex](HalfedgeEdge_t* e) { e->vertex_ = head_vertex; });
 
   // Fix the pair of the edge to be removed
-  edge->next_->pair_->pair_ = edge->prev_->pair_;
-  edge->prev_->pair_->pair_ = edge->next_->pair_;
-  pair->prev_->pair_->pair_ = pair->next_->pair_;
+  establish_pair(edge->next_->pair_, edge->prev_->pair_);
+  establish_pair(pair->next_->pair_, pair->prev_->pair_);
+  head_vertex->halfedge_entry_ = edge->next_->pair_;
+  edge->next_->vertex_->halfedge_entry_ = edge->prev_->pair_;
+  edge->pair_->next_->vertex_->halfedge_entry_ = edge->pair_->prev_->pair_;
 
   // Do remove the edge
   RemoveFaceInternal(edge->face_);
   RemoveFaceInternal(pair->face_);
+  RemoveEdgeInternal(pair->prev_);
   RemoveEdgeInternal(pair->next_);
   RemoveEdgeInternal(edge->prev_);
+  RemoveEdgeInternal(edge->next_);
   RemoveEdgeInternal(pair);
   RemoveEdgeInternal(edge);
   RemoveVertexInternal(tail_vertex);
@@ -193,6 +196,7 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
   // $p, q$ are boundaries, but $(p, q)$ is not a boundary edge.
   HalfedgeEdge_t* p_bd_edge = nullptr;
   HalfedgeEdge_t* q_bd_edge = nullptr;
+  auto head = edge->vertex_, tail = edge->pair_->vertex_;
   ForeachEdgeAroundVertex(edge->vertex_, [&p_bd_edge](HalfedgeEdge_t* e) {
     if (e->pair_->face_ == nullptr) {
       p_bd_edge = e;
@@ -210,35 +214,20 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
   }
 
   // Foreach $k$ incident to both i and j, $(i,j,k)$ should be the vertices of a triangle.
-  std::set<HalfedgeVertex_t*> i_incidents;
-  std::set<HalfedgeVertex_t*> j_incidents;
+  absl::flat_hash_set<HalfedgeVertex_t*> i_incidents;
   ForeachEdgeAroundVertex(
-      edge->vertex_, [&i_incidents](HalfedgeEdge_t* e) { i_incidents.emplace(e->pair_->vertex_); });
+      head, [&i_incidents](HalfedgeEdge_t* e) { i_incidents.emplace(e->pair_->vertex_); });
 
-  std::vector<HalfedgeVertex_t*> incidents_both;
+  absl::flat_hash_set<HalfedgeVertex_t*> incidents_both;
 
-  ForeachEdgeAroundVertex(edge->pair_->vertex_, [&i_incidents, &incidents_both](HalfedgeEdge_t* e) {
+  ForeachEdgeAroundVertex(tail, [&i_incidents, &incidents_both](HalfedgeEdge_t* e) {
     if (i_incidents.contains(e->pair_->vertex_)) {
-      incidents_both.push_back(e->pair_->vertex_);
+      incidents_both.emplace(e->pair_->vertex_);
     }
   });
-
-  auto head = edge->vertex_;
-  auto tail = edge->pair_->vertex_;
-
-  // Check if <head, tail, k> is a triangle foreach k in incidents_both
-  for (auto k : incidents_both) {
-    if (k == head || k == tail) {
-      continue;
-    }
-    if (auto* e = TryGetEdgeBetween(head, k); e == nullptr) {
-      return false;
-    } else if (auto* e = TryGetEdgeBetween(tail, k); e == nullptr) {
-      return false;
-    }
-  }
-
-  return true;
+  AX_CHECK(incidents_both.contains(edge->next_->vertex_));
+  AX_CHECK(incidents_both.contains(edge->pair_->next_->vertex_));
+  return incidents_both.size() == 2;
 }
 
 HalfedgeEdge_t* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2) {
@@ -257,10 +246,23 @@ void HalfedgeMesh::ForeachEdgeAroundVertex(HalfedgeVertex_t* vert,
   auto beg = vert->halfedge_entry_;
   idx rec_guard = 100;
   do {
+    AX_CHECK(beg != nullptr);
     fn(beg);
-    beg = beg->pair_->next_;
+    beg = beg->next_->pair_;
     AX_CHECK(rec_guard-- > 0) << "This vertex has too many edges!";
   } while (beg != vert->halfedge_entry_);
+}
+
+void HalfedgeMesh::ForeachEdgeInFace(HalfedgeFace_t* face,
+                                     std::function<void(HalfedgeEdge_t*)> const& fn) {
+  auto beg = face->halfedge_entry_;
+  idx rec_guard = 100;
+  do {
+    AX_CHECK(beg != nullptr);
+    fn(beg);
+    beg = beg->next_;
+    AX_CHECK(rec_guard-- > 0) << "This face has too many edges!";
+  } while (beg != face->halfedge_entry_);
 }
 
 void HalfedgeMesh::ForeachEdge(std::function<void(HalfedgeEdge_t*)> const& fn) {
@@ -278,9 +280,42 @@ void HalfedgeMesh::ForeachVertex(std::function<void(HalfedgeVertex_t*)> const& f
 void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex_t* vert) {
   auto it = std::find_if(vertices_.begin(), vertices_.end(),
                          [vert](auto const& v) { return v.get() == vert; });
-  AX_LOG(INFO) << "Removing vertex: " << vert;
   AX_CHECK(it != vertices_.end());
   std::swap(*it, vertices_.back());
   vertices_.pop_back();
 }
+
+bool HalfedgeMesh::CheckOk() const noexcept {
+  absl::flat_hash_set<HalfedgeVertex_t*> vertices;
+  for (auto const& v : vertices_) {
+    vertices.insert(v.get());
+  }
+  absl::flat_hash_set<HalfedgeEdge_t*> edges;
+  for (auto const& e : edges_) {
+    edges.insert(e.get());
+  }
+  absl::flat_hash_set<HalfedgeFace_t*> faces;
+  for (auto const& f : faces_) {
+    faces.insert(f.get());
+  }
+  for (auto const& e : edges_) {
+    AX_CHECK(faces.contains(e->face_)) << "Edge: " << e << " Face: " << e->face_;
+    AX_CHECK(vertices.contains(e->vertex_));
+    AX_CHECK(edges.contains(e->next_));
+    AX_CHECK(edges.contains(e->prev_));
+    AX_CHECK(edges.contains(e->pair_)) << "Edge: " << e << " Pair: " << e->pair_;
+    AX_CHECK(e->next_->next_->next_ == e.get()) << "Edge: " << e << " Next: " << e->next_;
+    AX_CHECK(e->pair_->pair_ == e.get());
+    AX_CHECK(e->pair_->vertex_ == e->prev_->vertex_);
+  }
+  
+  for (auto const& v : vertices_) {
+    AX_CHECK(edges.contains(v->halfedge_entry_)) <<"Vertex: " << v << "Edge: " << v->halfedge_entry_;
+  }
+  for (auto const& f : faces_) {
+    AX_CHECK(edges.contains(f->halfedge_entry_)) << f->halfedge_entry_;
+  }
+  return true;
+}
+
 }  // namespace ax::geo

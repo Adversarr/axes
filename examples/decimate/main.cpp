@@ -16,18 +16,20 @@
 #include "axes/gl/window.hpp"
 #include "axes/utils/asset.hpp"
 
+#include <igl/readOBJ.h>
+
 using namespace ax;
 
-ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
+ABSL_FLAG(std::string, obj_file, "jelly_low_res_remesh.obj", "The obj file to load");
 
 float ratio = 1.0f;
 
 entt::entity original, modified;
-
 math::field3r vertices;
 math::field3i indices;
 
 void ui_render_callback(gl::UiRenderEvent) {
+  ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
   ImGui::Begin("Decimate");
   ImGui::SliderFloat("Ratio", &ratio, 0.0f, 1.0f);
   bool run_algorithm = ImGui::Button("Run Algorithm");
@@ -45,7 +47,8 @@ void ui_render_callback(gl::UiRenderEvent) {
     modified_mesh.normals_ = geo::normal_per_vertex(modified_mesh.vertices_, modified_mesh.indices_);
     modified_mesh.flush_ =  modified_mesh.use_global_model_ = true;
 
-    auto& wf = add_component<gl::Lines>(modified, gl::Lines::Create(modified_mesh));  // Wireframe
+    auto& wf = ax::get_component<gl::Lines>(modified);  // Wireframe
+    wf = gl::Lines::Create(modified_mesh);
     wf.flush_ = true;
     wf.colors_.setOnes();
     wf.instance_color_.setOnes();
@@ -59,34 +62,12 @@ std::pair<math::field3i, math::field3r> load_obj(const std::string& filename) {
   std::vector<math::vec3i> indices_list;
   math::field3r vertices;
   math::field3i indices;
-  std::ifstream file(utils::get_asset("/mesh/obj/" + filename));
-  AX_CHECK(file.is_open());
 
-  for (std::string line; std::getline(file, line);) {
-    std::istringstream iss(line);
-    std::string type;
-    iss >> type;
-    if (type == "v") {
-      math::vec3r v;
-      iss >> v.x() >> v.y() >> v.z();
-      vertices_list.push_back(v);
-    } else if (type == "f") {
-      math::vec3i f;
-      iss >> f.x() >> f.y() >> f.z();
-      f -= math::ones<3, 1, idx>();
-      indices_list.push_back(f);
-    }
-  }
-
-  vertices.resize(3, idx(vertices_list.size()));
-  for (size_t i = 0; i < vertices_list.size(); ++i) {
-    vertices.col(idx(i)) = vertices_list[i];
-  }
-
-  indices.resize(3, idx(indices_list.size()));
-  for (size_t i = 0; i < indices_list.size(); ++i) {
-    indices.col(idx(i)) = indices_list[i];
-  }
+  math::matr<Eigen::Dynamic, 3> V;
+  math::mati<Eigen::Dynamic, 3> F;
+  igl::readOBJ(utils::get_asset("/mesh/obj/" + filename), V, F);
+  vertices = V.transpose();
+  indices = F.transpose().cast<idx>();
 
   return std::make_pair(indices, vertices);
 }
@@ -103,6 +84,14 @@ int main(int argc, char** argv) {
   auto file = absl::GetFlag(FLAGS_obj_file);
   AX_LOG(INFO) << "Reading " << std::quoted(file);
   std::tie(indices, vertices) = load_obj(file);
+
+  auto row_y = vertices.row(1).eval();
+  auto row_z = vertices.row(2).eval();
+  vertices.row(1) = row_z;
+  vertices.row(2) = row_y;
+
+  math::vec3r min_xyz = vertices.rowwise().minCoeff();
+  math::vec3r max_xyz = vertices.rowwise().maxCoeff();
   { // Setup Original
     original = create_entity();
     auto& mesh = add_component<gl::Mesh>(original);
@@ -112,7 +101,7 @@ int main(int argc, char** argv) {
     mesh.colors_.setConstant(0.5);
     mesh.colors_.topRows(3) = mesh.vertices_;
     mesh.flush_ =  mesh.use_global_model_ = true;
-    mesh.vertices_.row(0).array() -= 1.75;
+    mesh.vertices_.row(0).array() += (max_xyz - min_xyz).x();
     mesh.use_lighting_ = false;
 
     auto& wf = add_component<gl::Lines>(original, gl::Lines::Create(mesh));  // Wireframe
@@ -124,11 +113,6 @@ int main(int argc, char** argv) {
   he_mesh.CheckOk();
 
   auto& mesh = add_component<gl::Mesh>(mesh_ent);
-  // halfedge_mesh = &he_mesh;
-  // geo::MeshDecimator decimator(halfedge_mesh);
-  // decimator.SetTargetCount(halfedge_mesh->NVertices() * 0.7);
-  // decimator.SetTargetCount(3000);
-  // AX_CHECK_OK(decimator.Run());
 
   std::tie(mesh.vertices_, mesh.indices_) = he_mesh.ToTriangleMesh();
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
@@ -152,6 +136,6 @@ int main(int argc, char** argv) {
   }
 
   erase_resource<gl::Context>();
-  clean_up();
+  ax::clean_up();
   return 0;
 }

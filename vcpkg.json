@@ -9,7 +9,7 @@
 
     "doctest",
     "benchmark",
-
+    "libigl",
     "glfw3",
     "glm",
     "stb",

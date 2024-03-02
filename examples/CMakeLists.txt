@@ -5,9 +5,11 @@ function(axes_add_example name deps)
   axes_set_warn_levels(${name})
 endfunction(axes_add_example)
 
+find_package(libigl CONFIG REQUIRED)
+
 axes_add_example(empty axes)
 axes_add_example(basic_graphics axes_gui)
 axes_add_example(optim axes)
 axes_add_example(poisson2d axes_gui)
 axes_add_example(poisson3d axes)
-axes_add_example(decimate axes_gui)
+axes_add_example(decimate axes_gui igl::igl_core)

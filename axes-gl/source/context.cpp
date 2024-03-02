@@ -153,9 +153,11 @@ struct Context::Impl {
   }
 
   void OnUiRender(UiRenderEvent const&) {
-    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+    auto w = ImGui::GetIO().DisplaySize.x;
+    auto h = ImGui::GetIO().DisplaySize.y;
+    ImGui::SetNextWindowPos(ImVec2(w - 500, 0));
+    ImGui::SetNextWindowSize(ImVec2(500, h));
+    if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
       ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
                   camera_.GetPosition().z());
@@ -170,6 +172,12 @@ struct Context::Impl {
 
       ImGui::ColorEdit3("Clear Color", &clear_color_.x());
 
+      ImGui::Text("Use WASD to move camera");
+      ImGui::Text("Use HJKL to rotate camera");
+      ImGui::Text("Use Alt+Mouse to rotate camera");
+      ImGui::Text("Use Shift+Mouse to move camera");
+      ImGui::Text("Use Ctrl+Mouse to zoom (also move) camera");
+      ImGui::Text("Use Space+Mouse to rotate the whole world");
     }
     ImGui::End();
   }
@@ -185,11 +193,12 @@ struct Context::Impl {
       mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
       mesh.use_lighting_ = false;
       mesh.is_flat_ = true;
-      mesh.use_global_model_ = false;
+      mesh.use_global_model_ = true;
       mesh.flush_ = true;
     } else {
       remove_component<gl::Mesh>(light_entity_);
     }
+    update_light_ = false;
   }
 
   void UpdateAxes() {
@@ -198,7 +207,7 @@ struct Context::Impl {
     }
     if (render_axis_) {
       auto& mesh = add_or_replace_component<gl::Lines>(axis_entity_, gl::prim::Axes().Draw());
-      mesh.use_global_model_ = false;
+      mesh.use_global_model_ = true;
       mesh.flush_ = true;
     } else {
       remove_component<gl::Lines>(axis_entity_);
@@ -212,7 +221,7 @@ Context::Context() {
   impl_ = std::make_unique<Impl>();
   int status = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
   AX_CHECK(status) << "Failed to initialize OpenGL context";
- AX_LOG(INFO) << "Setup OpenGL context";
+  AX_LOG(INFO) << "Setup OpenGL context";
 
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
@@ -244,6 +253,8 @@ Context::Context() {
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = fb_scale.x();
   ImGui::GetIO().DisplayFramebufferScale.y = fb_scale.y();
+
+  ImGui::GetStyle().ScaleAllSizes(1.5f);
 
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());

@@ -47,31 +47,13 @@ Status MeshDecimator::Run() {
 
   std::make_heap(cost.begin(), cost.end());
 
-  while (mesh_->NVertices() > target_count_ && ! cost.empty()) {
+  while (mesh_->NVertices() > target_count_ && !cost.empty()) {
     EdgeCollapseCost min_cost = cost.front();
-    if (min_cost.edge == nullptr || !mesh_->CheckCollapse(min_cost.edge)) {
+    if (!mesh_->CheckCollapse(min_cost.edge)) {
       std::pop_heap(cost.begin(), cost.end());
       cost.pop_back();
       continue;
     }
-
-    mesh_->ForeachEdge([&min_cost, &Q_i, this](HalfedgeEdge_t* e) {
-      if (!mesh_->CheckCollapse(e)) {
-        return;
-      }
-      EdgeCollapseCost ci;
-      ci.edge = e;
-      auto head = e->vertex_->position_;
-      auto tail = e->pair_->vertex_->position_;
-      ci.target_position = (head + tail) / 2;
-      math::mat3r head_Q = Q_i.at(e->vertex_);
-      math::mat3r tail_Q = Q_i.at(e->pair_->vertex_);
-      ci.cost = ci.target_position.dot(((head_Q + tail_Q) * ci.target_position));
-      if (ci.cost < min_cost.cost) {
-        min_cost = ci;
-      }
-    });
-
     HalfedgeEdge_t* edge_to_collapse = min_cost.edge;
     math::vec3r target_position = min_cost.target_position;
 
@@ -82,7 +64,7 @@ Status MeshDecimator::Run() {
     auto collapse_vertex = edge_to_collapse->vertex_;
     mesh_->CollapseEdge(edge_to_collapse, target_position);
     // mesh_->CheckOk();
-    std::set<HalfedgeVertex_t* > influenced_vertices = {collapse_vertex};
+    std::set<HalfedgeVertex_t*> influenced_vertices = {collapse_vertex};
     math::mat3r Q_head = math::zeros<3, 3>();
     mesh_->ForeachEdgeAroundVertex(collapse_vertex, [&](HalfedgeEdge_t* e) {
       auto A = e->vertex_->position_;
@@ -106,36 +88,22 @@ Status MeshDecimator::Run() {
       Q_i[v] = Q_v;
     });
     // Vertex Position is updated, need to update the cost list:
-    size_t nullptr_count = 0;
     for (size_t i = 0; i < cost.size(); ++i) {
       auto& c = cost[i];
-      if (c.edge == nullptr) {
-        continue;
-      } else if (edge_to_remove.contains(c.edge) || !mesh_->CheckCollapse(c.edge)) {
-        c.edge = nullptr;
-      } else if (influenced_vertices.contains(c.edge->vertex_) || influenced_vertices.contains(c.edge->pair_->vertex_)){
+      if (edge_to_remove.contains(c.edge) || !mesh_->CheckCollapse(c.edge)) {
+        std::swap(c, cost.back());
+        cost.pop_back();
+        --i;
+      } else if (influenced_vertices.contains(c.edge->vertex_)
+                 || influenced_vertices.contains(c.edge->pair_->vertex_)) {
         auto head = c.edge->vertex_->position_;
         auto tail = c.edge->pair_->vertex_->position_;
-        EdgeCollapseCost c_new;
-        c_new.edge = c.edge;
-        c_new.target_position = (head + tail) / 2;
-        auto Q_head = Q_i.at(c_new.edge->vertex_), Q_tail = Q_i.at(c_new.edge->pair_->vertex_);
-        c_new.cost = c_new.target_position.dot(((Q_head + Q_tail) * c_new.target_position));
-        c.edge = nullptr;
-        cost.push_back(c_new);
-        std::push_heap(cost.begin(), cost.end());
+        c.target_position = (head + tail) / 2;
+        auto Q_head = Q_i.at(c.edge->vertex_), Q_tail = Q_i.at(c.edge->pair_->vertex_);
+        c.cost = c.target_position.dot(((Q_head + Q_tail) * c.target_position));
       }
     }
-    if (nullptr_count > cost.size() / 2) {
-      auto new_cost = std::vector<EdgeCollapseCost>();
-      for (auto& c : cost) {
-        if (c.edge != nullptr) {
-          new_cost.push_back(c);
-        }
-      }
-      cost = std::move(new_cost);
-      std::make_heap(cost.begin(), cost.end());
-    }
+    std::make_heap(cost.begin(), cost.end());
   }
   AX_RETURN_OK();
 }

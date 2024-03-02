@@ -49,7 +49,7 @@ Status MeshDecimator::Run() {
 
   while (mesh_->NVertices() > target_count_ && ! cost.empty()) {
     EdgeCollapseCost min_cost = cost.front();
-    if (! mesh_->CheckCollapse(min_cost.edge)) {
+    if (min_cost.edge == nullptr || !mesh_->CheckCollapse(min_cost.edge)) {
       std::pop_heap(cost.begin(), cost.end());
       cost.pop_back();
       continue;
@@ -106,21 +106,36 @@ Status MeshDecimator::Run() {
       Q_i[v] = Q_v;
     });
     // Vertex Position is updated, need to update the cost list:
+    size_t nullptr_count = 0;
     for (size_t i = 0; i < cost.size(); ++i) {
       auto& c = cost[i];
-      if (edge_to_remove.contains(c.edge) || !mesh_->CheckCollapse(c.edge)) {
-        std::swap(c, cost.back());
-        cost.pop_back();
-        --i;
+      if (c.edge == nullptr) {
+        continue;
+      } else if (edge_to_remove.contains(c.edge) || !mesh_->CheckCollapse(c.edge)) {
+        c.edge = nullptr;
       } else if (influenced_vertices.contains(c.edge->vertex_) || influenced_vertices.contains(c.edge->pair_->vertex_)){
         auto head = c.edge->vertex_->position_;
         auto tail = c.edge->pair_->vertex_->position_;
-        c.target_position = (head + tail) / 2;
-        auto Q_head = Q_i.at(c.edge->vertex_), Q_tail = Q_i.at(c.edge->pair_->vertex_);
-        c.cost = c.target_position.dot(((Q_head + Q_tail) * c.target_position));
+        EdgeCollapseCost c_new;
+        c_new.edge = c.edge;
+        c_new.target_position = (head + tail) / 2;
+        auto Q_head = Q_i.at(c_new.edge->vertex_), Q_tail = Q_i.at(c_new.edge->pair_->vertex_);
+        c_new.cost = c_new.target_position.dot(((Q_head + Q_tail) * c_new.target_position));
+        c.edge = nullptr;
+        cost.push_back(c_new);
+        std::push_heap(cost.begin(), cost.end());
       }
     }
-    std::make_heap(cost.begin(), cost.end());
+    if (nullptr_count > cost.size() / 2) {
+      auto new_cost = std::vector<EdgeCollapseCost>();
+      for (auto& c : cost) {
+        if (c.edge != nullptr) {
+          new_cost.push_back(c);
+        }
+      }
+      cost = std::move(new_cost);
+      std::make_heap(cost.begin(), cost.end());
+    }
   }
   AX_RETURN_OK();
 }

@@ -18,8 +18,10 @@ namespace ax::gl {
 MeshRenderer::MeshRenderer() = default;
 
 Status MeshRenderer::Setup() {
-  AX_ASSIGN_OR_RETURN(vs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.vert"), ShaderType::kVertex));
-  AX_ASSIGN_OR_RETURN(fs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment));
+  AX_ASSIGN_OR_RETURN(
+      vs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.vert"), ShaderType::kVertex));
+  AX_ASSIGN_OR_RETURN(
+      fs, Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment));
 
   AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
   global_registry().on_destroy<Mesh>().connect<&MeshRenderer::Erase>(*this);
@@ -53,7 +55,7 @@ Status MeshRenderer::TickRender() {
       if (md.is_flat_) {
         light_coef.w() = 1;
       }
-      if (! md.use_lighting_) {
+      if (!md.use_lighting_) {
         light_coef.y() = light_coef.z() = 0;
         light_coef.x() = 1;
       } else {
@@ -64,10 +66,11 @@ Status MeshRenderer::TickRender() {
       AX_CHECK_OK(prog_.SetUniform("lightCoefficient", light_coef));
 
       if (md.vao_.GetInstanceBuffer()) {
-        AX_RETURN_NOTOK(md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt,
-                                                      0, md.instances_.size()));
+        AX_RETURN_NOTOK(md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(),
+                                                      Type::kUnsignedInt, 0, md.instances_.size()));
       } else {
-        AX_RETURN_NOTOK(md.vao_.DrawElements(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt, 0));
+        AX_RETURN_NOTOK(md.vao_.DrawElements(PrimitiveType::kTriangles, md.indices_.size(),
+                                             Type::kUnsignedInt, 0));
       }
     }
   }
@@ -114,7 +117,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   vertices_.reserve(mesh.vertices_.size());
   auto normals = mesh.normals_;
   if (normals.cols() < mesh.vertices_.cols()) {
-   AX_LOG(WARNING) << "Mesh Normal not set. Compute automatically";
+    AX_DLOG(WARNING) << "Mesh Normal not set. Compute automatically";
     normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   }
   for (idx i = 0; i < mesh.vertices_.cols(); i++) {
@@ -144,8 +147,10 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);
       auto color_offset = mesh.instance_color_.col(i);
-      instance.position_offset_ = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
-      instance.color_offset_ = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      instance.position_offset_
+          = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
+      instance.color_offset_
+          = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
       instances_.push_back(instance);
     }
   }
@@ -186,7 +191,8 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
         AX_CHECK_OK(vao_.EnableAttrib(3));
         AX_CHECK_OK(vao_.SetAttribPointer(3, 3, Type::kFloat, false, sizeof(MeshInstanceData), 0));
         AX_CHECK_OK(vao_.EnableAttrib(4));
-        AX_CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData), sizeof(glm::vec3)));
+        AX_CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData),
+                                          sizeof(glm::vec3)));
         AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
         AX_CHECK_OK(vao_.SetAttribDivisor(4, 1));
       }

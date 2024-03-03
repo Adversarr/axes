@@ -2,7 +2,7 @@
 
 namespace ax::geo {
 
-std::pair<math::field3r, math::field3i> cube(real size) {
+SurfaceMesh cube(real size) {
   /**
     var DEFAULT_VERT = [
         1, 1, 1, 1, 1,1,1,1,

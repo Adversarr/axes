@@ -3,6 +3,7 @@ find_package(absl CONFIG REQUIRED)
 find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
+find_package(libigl CONFIG REQUIRED)
 
 # Library axes-core
 file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
@@ -31,7 +32,9 @@ target_link_libraries(axes
   Eigen3::Eigen
   ${ABSL_LIBRARIES}
   EnTT::EnTT
-  range-v3::range-v3)
+  range-v3::range-v3
+  igl::igl_core
+)
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)

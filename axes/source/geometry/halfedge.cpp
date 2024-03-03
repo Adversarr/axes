@@ -5,6 +5,8 @@
 
 #include <entt/entity/entity.hpp>
 
+#include "axes/geometry/common.hpp"
+
 namespace ax::geo {
 
 void establish_pair(HalfedgeEdge_t* e1, HalfedgeEdge_t* e2) {
@@ -50,8 +52,7 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
 
   std::map<std::pair<HalfedgeVertex_t*, HalfedgeVertex_t*>, HalfedgeEdge_t*> edge_map;
   for (auto [id, e] : utils::enumerate(edges_)) {
-    auto head = e->vertex_;
-    auto tail = e->prev_->vertex_;
+    auto [head, tail] = e->HeadAndTail();
     auto ht = std::make_pair(head, tail);
     if (auto it = edge_map.find(std::make_pair(tail, head)); it != edge_map.end()) {
       establish_pair(e.get(), it->second);
@@ -100,7 +101,7 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
   }
 }
 
-std::pair<math::field3r, math::field3i> HalfedgeMesh::ToTriangleMesh() const {
+SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
   math::field3i indices(3, faces_.size());
   math::field3r vertices(3, vertices_.size());
 
@@ -132,6 +133,14 @@ std::pair<math::field3r, math::field3i> HalfedgeMesh::ToTriangleMesh() const {
   }
   return std::make_pair(vertices, indices);
 }
+HalfedgeFaceHandle HalfedgeMesh::GetFace(idx idx) const {
+  for (auto const& f : faces_) {
+    if (f->original_id_ == idx) {
+      return HalfedgeFaceHandle{f.get()};
+    }
+  }
+  return HalfedgeFaceHandle{nullptr};
+}
 
 void HalfedgeMesh::RemoveEdgeInternal(HalfedgeEdge_t* edge) {
   AX_DLOG(INFO) << "Removing edge: " << edge;
@@ -155,6 +164,14 @@ void HalfedgeMesh::RemoveFaceInternal(HalfedgeFace_t* face) {
   faces_.pop_back();
 }
 
+HalfedgeVertexHandle HalfedgeMesh::GetVertex(idx idx) const {
+  for (auto const& v : vertices_) {
+    if (v->original_id_ == idx) {
+      return HalfedgeVertexHandle{v.get()};
+    }
+  }
+  return HalfedgeVertexHandle{nullptr};
+}
 void HalfedgeMesh::CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_position) {
   /**
    *    a
@@ -164,10 +181,10 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_
    *  d */
 
   // The vertex to collapse to
-  HalfedgeVertex_t* head_vertex = edge->vertex_;  // b
+  auto head_vertex = edge->Head();
   head_vertex->position_= target_position;
   HalfedgeEdge_t* pair = edge->pair_;
-  HalfedgeVertex_t* tail_vertex = pair->vertex_;  // c
+  auto tail_vertex = pair->Head();
   AX_DCHECK(head_vertex != tail_vertex);
   // Assign all c to b.
   ForeachEdgeAroundVertex(tail_vertex,
@@ -196,7 +213,7 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
   // $p, q$ are boundaries, but $(p, q)$ is not a boundary edge.
   HalfedgeEdge_t* p_bd_edge = nullptr;
   HalfedgeEdge_t* q_bd_edge = nullptr;
-  auto head = edge->vertex_, tail = edge->pair_->vertex_;
+  auto [head, tail] = edge->HeadAndTail();
   ForeachEdgeAroundVertex(edge->vertex_, [&p_bd_edge](HalfedgeEdge_t* e) {
     if (e->pair_->face_ == nullptr) {
       p_bd_edge = e;

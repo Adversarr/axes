@@ -22,7 +22,15 @@ public:
 
   Status Run();
 
+  enum Strategy {
+    kDirect,
+    kQuadratic
+  };
+
+  MeshDecimator& SetStrategy(Strategy s);
+
 private:
+  Strategy collapse_strategy_ = kDirect;
 
   HalfedgeEdge_t* FindEdgeToCollapse();
 
@@ -31,6 +39,7 @@ private:
   HalfedgeMesh* mesh_;
 
   idx target_count_;
+
 };
 
 }

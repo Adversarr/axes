@@ -94,13 +94,24 @@ using mat4i = mati<4, 4>;
 using mat2xr = matr<2, dynamic>;
 using mat3xr = matr<3, dynamic>;
 using mat4xr = matr<4, dynamic>;
+using matx2r = matr<dynamic, 2>;
+using matx3r = matr<dynamic, 3>;
+using matx4r = matr<dynamic, 4>;
 using mat2xf = mat<float, 2, dynamic>;
 using mat3xf = mat<float, 3, dynamic>;
 using mat4xf = mat<float, 4, dynamic>;
+using matx2f = mat<float, dynamic, 2>;
+using matx3f = mat<float, dynamic, 3>;
+using matx4f = mat<float, dynamic, 4>;
+
 
 using mat2xi = mati<2, dynamic>;
 using mat3xi = mati<3, dynamic>;
 using mat4xi = mati<4, dynamic>;
+using matx2i = mati<dynamic, 2>;
+using matx3i = mati<dynamic, 3>;
+using matx4i = mati<dynamic, 4>;
+
 
 /****************************** Field ******************************/
 

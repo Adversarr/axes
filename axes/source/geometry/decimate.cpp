@@ -1,5 +1,7 @@
 #include "axes/geometry/decimate.hpp"
 
+#include "axes/math/linsys/dense/HouseholderQR.hpp"
+
 namespace ax::geo {
 
 MeshDecimator::MeshDecimator(HalfedgeMesh* mesh) : mesh_(mesh), target_count_(mesh->NVertices()) {}
@@ -13,13 +15,20 @@ MeshDecimator& MeshDecimator::SetTargetCount(idx count) {
   return *this;
 }
 
+real eval_cost(math::mat4r const& Q, math::vec3r const& position) {
+  math::vec4r homo;
+  homo << position, 1.0;
+  return homo.dot(Q * homo);
+}
+
 Status MeshDecimator::Run() {
-  std::map<HalfedgeVertex_t*, math::mat3r> Q_i;
+  std::map<HalfedgeVertex_t*, math::mat4r> Q_i;
   mesh_->ForeachVertex([&](HalfedgeVertex_t* vert) {
-    math::mat3r m = math::mat3r::Zero();
+    math::mat4r m = math::mat4r::Zero();
     mesh_->ForeachEdgeAroundVertex(vert, [&](HalfedgeEdge_t* edge) {
-      auto normal = edge->Normal();
-      m += normal * normal.transpose();
+      auto normal = edge->Normal().normalized();
+      auto abcd = math::vec4r{normal.x(), normal.y(), normal.z(), -vert->position_.dot(normal)};
+      m += abcd * abcd.transpose();
     });
     Q_i[vert] = m;
   });
@@ -31,13 +40,22 @@ Status MeshDecimator::Run() {
     }
     EdgeCollapseCost ci;
     ci.edge = e;
-    auto head = e->vertex_->position_;
-    auto tail = e->pair_->vertex_->position_;
-    math::mat3r head_Q = Q_i.at(e->vertex_);
-    math::mat3r tail_Q = Q_i.at(e->pair_->vertex_);
+    auto const& head = e->vertex_->position_;
+    auto const& tail = e->pair_->vertex_->position_;
+    auto const& head_Q = Q_i.at(e->vertex_);
+    auto const& tail_Q = Q_i.at(e->pair_->vertex_);
+    math::mat4r Q = head_Q + tail_Q;
     // TODO: Replace with a better one
-    ci.target_position = (head + tail) / 2;
-    ci.cost = ci.target_position.dot(((head_Q + tail_Q) * ci.target_position));
+    if (collapse_strategy_ == kDirect) {
+      ci.target_position = (head + tail) / 2;
+    } else if (collapse_strategy_ == kQuadratic) {
+      math::mat4r Q_modified = math::eye<4>();
+      Q_modified.topRows<3>() = Q.leftCols<3>().transpose();
+      auto qr = Q_modified.colPivHouseholderQr();
+      auto solution = qr.solve(math::vec4r{0, 0, 0, 1}).eval();
+      ci.target_position = solution.head<3>();
+    }
+    ci.cost = eval_cost(Q, ci.target_position);
 
     cost.push_back(ci);
   });
@@ -62,19 +80,22 @@ Status MeshDecimator::Run() {
     mesh_->CollapseEdge(edge_to_collapse, target_position);
     // mesh_->CheckOk();
     std::set<HalfedgeVertex_t*> influenced_vertices = {collapse_vertex};
-    math::mat3r Q_head = math::zeros<3, 3>();
+    math::mat4r Q_head = math::zeros<4, 4>();
     mesh_->ForeachEdgeAroundVertex(collapse_vertex, [&](HalfedgeEdge_t* e) {
-      auto normal = e->Normal();
-      Q_head += normal * normal.transpose();
+      auto normal = e->Normal().normalized();
+      auto abcd = math::vec4r{normal.x(), normal.y(), normal.z(),
+                              -collapse_vertex->position_.dot(normal)};
+      Q_head += abcd * abcd.transpose();
       influenced_vertices.insert(e->pair_->vertex_);
     });
     Q_i[collapse_vertex] = Q_head;
     mesh_->ForeachEdgeAroundVertex(collapse_vertex, [&](HalfedgeEdge_t* e) {
-      auto v = e->pair_->vertex_;
-      math::mat3r Q_v = math::zeros<3, 3>();
-      mesh_->ForeachEdgeAroundVertex(v, [&Q_v](HalfedgeEdge_t* e2) {
-        auto normal = e2->Normal();
-        Q_v += normal * normal.transpose();
+      const auto v = e->pair_->vertex_;
+      math::mat4r Q_v = math::zeros<4, 4>();
+      mesh_->ForeachEdgeAroundVertex(v, [&Q_v, &v](HalfedgeEdge_t* e2) {
+        auto normal = e2->Normal().normalized();
+        auto abcd = math::vec4r{normal.x(), normal.y(), normal.z(), -v->position_.dot(normal)};
+        Q_v += abcd * abcd.transpose();
       });
       Q_i[v] = Q_v;
     });
@@ -87,16 +108,32 @@ Status MeshDecimator::Run() {
         --i;
       } else if (influenced_vertices.contains(c.edge->vertex_)
                  || influenced_vertices.contains(c.edge->pair_->vertex_)) {
-        auto head = c.edge->vertex_->position_;
-        auto tail = c.edge->pair_->vertex_->position_;
-        c.target_position = (head + tail) / 2;
-        auto Q_head_update = Q_i.at(c.edge->vertex_), Q_tail = Q_i.at(c.edge->pair_->vertex_);
-        c.cost = c.target_position.dot(((Q_head_update + Q_tail) * c.target_position));
+        auto e = c.edge;
+        auto const& head = e->vertex_->position_;
+        auto const& tail = e->pair_->vertex_->position_;
+        auto const& head_Q = Q_i.at(e->vertex_);
+        auto const& tail_Q = Q_i.at(e->pair_->vertex_);
+        math::mat4r Q = head_Q + tail_Q;
+        if (collapse_strategy_ == kDirect) {
+          c.target_position = (head + tail) / 2;
+        } else if (collapse_strategy_ == kQuadratic) {
+          math::mat4r Q_modified = math::eye<4>();
+          Q_modified.topRows<3>() = Q.leftCols<3>().transpose();
+          auto qr = Q_modified.colPivHouseholderQr();
+          auto solution = qr.solve(math::vec4r{0, 0, 0, 1}).eval();
+          c.target_position = solution.head<3>();
+        }
+        c.cost = eval_cost(Q, c.target_position);
       }
     }
     std::make_heap(cost.begin(), cost.end());
   }
   AX_RETURN_OK();
+}
+
+MeshDecimator& MeshDecimator::SetStrategy(Strategy s) {
+  collapse_strategy_ = s;
+  return *this;
 }
 
 }  // namespace ax::geo

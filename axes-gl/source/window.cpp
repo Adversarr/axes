@@ -120,11 +120,11 @@ Window::Window() {
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
 
-  AX_LOG(INFO) << "Window:" << std::endl
-            << " - Size=" << impl_->size_.transpose() << std::endl
-            << " - Pos=" << impl_->pos_.transpose() << std::endl
-            << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
-            << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
+  AX_DLOG(INFO) << "Window Information:" << std::endl
+                << " - Size=" << impl_->size_.transpose() << std::endl
+                << " - Pos=" << impl_->pos_.transpose() << std::endl
+                << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
+                << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
 
   /****************************** Install Fn ******************************/
   glfwSetWindowSizeCallback(impl_->window_, window_size_fn);
@@ -138,7 +138,7 @@ Window::Window() {
 
   /****************************** Install User Pointer ******************************/
   glfwSetWindowUserPointer(impl_->window_, impl_.get());
- AX_LOG(INFO) << "Window created";
+  AX_DLOG(INFO) << "Window created";
 }
 
 Window::~Window() {
@@ -146,7 +146,7 @@ Window::~Window() {
     glfwDestroyWindow(impl_->window_);
   }
   glfwTerminate();
- AX_LOG(INFO) << "Window destroyed";
+  AX_DLOG(INFO) << "Window destroyed";
 }
 
 /****************************** Meta Data Getters ******************************/

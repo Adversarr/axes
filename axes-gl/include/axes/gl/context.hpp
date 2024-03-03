@@ -23,6 +23,10 @@ public:
   Status TickLogic();
   Status TickRender();
 
+  /**
+   * Add a custom renderer to the render pipeline.
+   * @param renderer RenderBase
+   */
   void AppendEntityRenderer(utils::uptr<RenderBase> renderer);
 
   Window& GetWindow();

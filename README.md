@@ -4,20 +4,35 @@
 
 System Requirement:
 
-- gcc
-- clang: 15.0
+- gcc>=12, or
+- clang>=16.0, or
+- MSVC: VS2022
 
-## What is in
+`axes` use C++20 code standard.
+
+You have to use `vcpkg` for CMake package management:
+
+```sh
+cmake -S . -B build \
+  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+  -DCMAKE_BUILD_TYPE=Release \
+```
+
+Without `vcpkg`, you have to make sure CMake can find the required packages listed in `vcpkg.json`.
+
+## What's in
 
 1. A basic library for general purpose CG physical simulation, containing
-   1. math library using Eigen;
-   2. utilities library, such as abseil's Status, Logging, Flags;
+   1. Math library using Eigen;
+   2. Utilities library, such as abseil's Status, Logging, Flags;
    3. A tiny optimization library
-2. Graphics for visulization. which supports trimesh visualization.
-   1. ImGUI integration.
-   2. and something more...
+   4. Basic geometry functionalities
+2. Graphics for visulization. which supports 
+   1. Trimesh/line/point visualization (with phong shading)
+   2. ImGUI integration.
+   3. and something more...
 
-## Dependencies
+## System Dependencies
 
 Arch Linux:
 

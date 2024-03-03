@@ -26,6 +26,16 @@ struct HalfedgeEdge_t {
   HalfedgeEdge_t* pair_ = nullptr;
 
   bool IsBoundary() const { return pair_ == nullptr; }
+
+  AX_FORCE_INLINE math::vec3r Normal() const;
+
+  AX_FORCE_INLINE HalfedgeVertex_t *Tail() const { return prev_->vertex_; }
+
+  AX_FORCE_INLINE HalfedgeVertex_t *Head() const { return vertex_; }
+
+  AX_FORCE_INLINE std::pair<HalfedgeVertex_t*, HalfedgeVertex_t*> Vertices() const {
+    return std::make_pair(Head(), Tail());
+  }
 };
 
 struct HalfedgeVertex_t {
@@ -85,5 +95,14 @@ public:
   std::vector<utils::uptr<HalfedgeEdge_t>> edges_;
   std::vector<utils::uptr<HalfedgeFace_t>> faces_;
 };
+
+
+math::vec3r HalfedgeEdge_t::Normal() const {
+  auto const& A = vertex_->position_;
+  auto const& B = next_->vertex_->position_;
+  auto const& C = next_->next_->vertex_->position_;
+  return (B - A).cross(C - A);
+}
+
 
 }  // namespace ax::geo

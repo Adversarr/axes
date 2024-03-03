@@ -225,7 +225,7 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
       incidents_both.push_back(e->pair_->vertex_);
     }
   });
-  return incidents_both.size() == 2;
+  return incidents_both.size() <= 2;
 }
 
 HalfedgeEdge_t* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2) {

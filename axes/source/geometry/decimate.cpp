@@ -18,10 +18,7 @@ Status MeshDecimator::Run() {
   mesh_->ForeachVertex([&](HalfedgeVertex_t* vert) {
     math::mat3r m = math::mat3r::Zero();
     mesh_->ForeachEdgeAroundVertex(vert, [&](HalfedgeEdge_t* edge) {
-      auto A = edge->vertex_->position_;
-      auto B = edge->next_->vertex_->position_;
-      auto C = edge->next_->next_->vertex_->position_;
-      auto normal = (B - A).cross(C - A);
+      auto normal = edge->Normal();
       m += normal * normal.transpose();
     });
     Q_i[vert] = m;
@@ -67,22 +64,16 @@ Status MeshDecimator::Run() {
     std::set<HalfedgeVertex_t*> influenced_vertices = {collapse_vertex};
     math::mat3r Q_head = math::zeros<3, 3>();
     mesh_->ForeachEdgeAroundVertex(collapse_vertex, [&](HalfedgeEdge_t* e) {
-      auto A = e->vertex_->position_;
-      auto B = e->next_->vertex_->position_;
-      auto C = e->next_->next_->vertex_->position_;
-      auto normal = (B - A).cross(C - A);
+      auto normal = e->Normal();
       Q_head += normal * normal.transpose();
-      influenced_vertices.insert(e->vertex_);
+      influenced_vertices.insert(e->pair_->vertex_);
     });
     Q_i[collapse_vertex] = Q_head;
     mesh_->ForeachEdgeAroundVertex(collapse_vertex, [&](HalfedgeEdge_t* e) {
       auto v = e->pair_->vertex_;
       math::mat3r Q_v = math::zeros<3, 3>();
       mesh_->ForeachEdgeAroundVertex(v, [&Q_v](HalfedgeEdge_t* e2) {
-        auto A = e2->vertex_->position_;
-        auto B = e2->next_->vertex_->position_;
-        auto C = e2->next_->next_->vertex_->position_;
-        auto normal = (B - A).cross(C - A);
+        auto normal = e2->Normal();
         Q_v += normal * normal.transpose();
       });
       Q_i[v] = Q_v;
@@ -99,8 +90,8 @@ Status MeshDecimator::Run() {
         auto head = c.edge->vertex_->position_;
         auto tail = c.edge->pair_->vertex_->position_;
         c.target_position = (head + tail) / 2;
-        auto Q_head = Q_i.at(c.edge->vertex_), Q_tail = Q_i.at(c.edge->pair_->vertex_);
-        c.cost = c.target_position.dot(((Q_head + Q_tail) * c.target_position));
+        auto Q_head_update = Q_i.at(c.edge->vertex_), Q_tail = Q_i.at(c.edge->pair_->vertex_);
+        c.cost = c.target_position.dot(((Q_head_update + Q_tail) * c.target_position));
       }
     }
     std::make_heap(cost.begin(), cost.end());

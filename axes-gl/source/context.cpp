@@ -212,6 +212,7 @@ struct Context::Impl {
     } else {
       remove_component<gl::Lines>(axis_entity_);
     }
+    update_axes_ = false;
   }
 };
 

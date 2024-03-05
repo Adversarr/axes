@@ -25,7 +25,7 @@ StatusOr<Mesh> make_height_field(math::vecxr const& z, idx nx, idx ny) {
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   Colormap colormap(z.minCoeff(), z.maxCoeff(), false, colormap_coolwarm);
   mesh.colors_.topRows<3>() = colormap(z);
-  mesh.colors_.row(4).setOnes();
+  mesh.colors_.row(3).setOnes();
   return mesh;
 }
 

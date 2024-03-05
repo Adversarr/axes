@@ -68,13 +68,13 @@ public:
 
   template <typename Derived> void CopyFrom(DBcr<Derived> other) {
     AX_DCHECK(other.cols() == field_.size());
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] = other.col(i);
     }
   }
 
   Lattice& operator=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] = value;
     }
     return *this;
@@ -83,7 +83,7 @@ public:
   template <typename Dummy = void,
             typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
   Lattice& operator*=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] *= value;
     }
     return *this;
@@ -92,7 +92,7 @@ public:
   template <typename Dummy = void,
             typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
   Lattice& operator/=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] /= value;
     }
     return *this;
@@ -101,7 +101,7 @@ public:
   template <typename Dummy = void,
             typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
   Lattice& operator+=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] += value;
     }
     return *this;
@@ -110,7 +110,7 @@ public:
   template <typename Dummy = void,
             typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
   Lattice& operator-=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] -= value;
     }
     return *this;
@@ -119,10 +119,41 @@ public:
   template <typename Dummy = void,
             typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
   Lattice& operator=(T const& value) {
-    for (idx i = 0; i < field_.size(); ++i) {
+    for (size_t i = 0; i < field_.size(); ++i) {
       field_[i] = value;
     }
     return *this;
+  }
+
+  AX_FORCE_INLINE auto Iterate() const {
+    return utils::multi_iota<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
+  }
+
+  AX_FORCE_INLINE auto begin() const { return field_.begin(); }
+  AX_FORCE_INLINE auto end() const { return field_.end(); }
+
+  AX_FORCE_INLINE auto Enumerate() {
+    return Iterate() | utils::ranges::views::transform([this](veci<D> const& sub) {
+             return std::pair(sub, this->operator()(sub));
+           });
+  }
+
+  AX_FORCE_INLINE auto Enumerate() const {
+    return Iterate() | utils::ranges::views::transform([this](veci<D> const& sub) {
+             return std::pair(sub, static_cast<const Lattice*>(this)->operator()(sub));
+           });
+  }
+
+  template <typename Dummy = void,
+            typename = std::enable_if_t<is_scalar_v<T> && D == 2 && std::is_same_v<Dummy, Dummy>>>
+  matxxr ToMatrix() const {
+    matxxr mat(shape_[0], shape_[1]);
+    for (idx i = 0; i < shape_[0]; ++i) {
+      for (idx j = 0; j < shape_[1]; ++j) {
+        mat(i, j) = operator()(i, j);
+      }
+    }
+    return mat;
   }
 
 private:
@@ -165,6 +196,9 @@ private:
 template <idx D, typename T> class StaggeredLattice {
 public:
   using Container = Lattice<D, T>;
+
+  StaggeredLattice() = default;
+  AX_DECLARE_CONSTRUCTOR(StaggeredLattice, default, default);
 
   StaggeredLattice(veci<D> const& shape) : shape_(shape) { Reshape(shape); }
 

@@ -47,6 +47,7 @@ void init(int argc, char** argv) {
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {
+    AX_LOG(INFO) << "Running init-hook [" << name << "]";
     AX_CHECK_OK(call()) << "Init-hook [" << name << "] failed.";
   }
   init_hooks.clear();

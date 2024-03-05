@@ -12,4 +12,7 @@ axes_add_example(basic_graphics axes_gui)
 axes_add_example(optim axes)
 axes_add_example(poisson2d axes_gui)
 axes_add_example(poisson3d axes)
-axes_add_example(decimate axes_gui igl::igl_core)
+axes_add_example(decimate axes_gui)
+
+axes_add_example(lattice_poisson2d axes_gui)
+

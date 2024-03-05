@@ -88,7 +88,7 @@ void ui_render_callback(gl::UiRenderEvent) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  auto& ctx = add_resource<gl::Context>();
+  auto& ctx = get_resource<gl::Context>();
 
   connect<gl::UiRenderEvent, &ui_render_callback>();
 

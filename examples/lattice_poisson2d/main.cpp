@@ -43,20 +43,23 @@ int main(int argc, char* argv[]) {
   math::StaggeredLattice<2, pde::PoissonProblemBoundaryType> bd_t({N, N});
   bd_t.X() = pde::PoissonProblemBoundaryType::kInvalid;
   bd_t.Y() = pde::PoissonProblemBoundaryType::kInvalid;
+  math::StaggeredLattice<2, real> bd_v({N, N});
+  bd_v.X() = 0;
+  bd_v.Y() = 0;
   // Left & Right bd:
   for (idx j = 0; j < N; ++j) {
     bd_t.X()(0, j) = pde::PoissonProblemBoundaryType::kDirichlet;
     bd_t.X()(N, j) = pde::PoissonProblemBoundaryType::kDirichlet;
+    bd_v.X()(N, j) = 1;
   }
   // Top & Bottom bd:
   for (idx i = 0; i < N; ++i) {
     bd_t.Y()(i, 0) = pde::PoissonProblemBoundaryType::kDirichlet;
     bd_t.Y()(i, N) = pde::PoissonProblemBoundaryType::kDirichlet;
+    bd_v.Y()(i, 0) = (0.5 + i) * dx;
+    bd_v.Y()(i, N) = (0.5 + i) * dx;
   }
 
-  math::StaggeredLattice<2, real> bd_v({N, N});
-  bd_v.X() = 0;
-  bd_v.Y() = 0;
   problem.SetBoundaryCondition(bd_t, bd_v);
   AX_CHECK_OK(problem.CheckAvailable());
 
@@ -68,7 +71,7 @@ int main(int argc, char* argv[]) {
     if ((sub.minCoeff() > 0 && ((sub).array() - N).maxCoeff() <= 0)) {
       math::vecr<2> x = sub.cast<real>() * dx ;
       x.array() += 0.5 * dx;
-      real exact = (1 - x[0]) * std::sin(x[0]) * (1 - x[1]) * std::sin(x[1]);
+      real exact = (1 - x[0]) * std::sin(x[0]) * (1 - x[1]) * std::sin(x[1]) + x[0];
       l2_err += std::pow(sol(sub) - exact, 2) * dx * dx;
       // std::cout << "x: " << x.transpose() << " exact: " << exact << " sol: " << sol(sub) << std::endl;
     }

@@ -184,7 +184,7 @@ StatusOr<typename PoissonProblemOnLattice<dim>::RealLattice> PoissonProblemOnLat
     }
   }
 
-  math::vecxr rhs(dofs);
+  math::vecxr rhs(dofs); rhs.setZero();
   math::sp_matxxr A(dofs, dofs);
   math::Lattice<dim, idx> dof_map(cell_type_.Shape());
   dof_map = -1;
@@ -211,9 +211,8 @@ StatusOr<typename PoissonProblemOnLattice<dim>::RealLattice> PoissonProblemOnLat
       continue;
     }
     idx dof = dof_map(sub);
-    AX_DCHECK(dof >= 0) << "sub: " << sub.transpose() << ", dof: " << dof;
-
-    // The poisson operator:
+    // Eqns
+    // TODO: Now we use 5Point Stencil, we can make it more general, and accurate.
     coef.push_back({cnt_constraint, dof, a_ + (2 * dim) * c_ / (dx_ * dx_)});
     for (idx d = 0; d < dim; ++d) {
       for (idx s : {-1, 1}) {
@@ -222,35 +221,46 @@ StatusOr<typename PoissonProblemOnLattice<dim>::RealLattice> PoissonProblemOnLat
         coef.push_back({cnt_constraint, neighbor_dof, s * b_ / dx_ - c_ / (dx_ * dx_)});
       }
     }
-
     rhs[cnt_constraint] = f_(sub - math::veci<dim>::Ones());
     cnt_constraint += 1;
+  }
 
+  // BCs
+  for (auto const& [sub, t] : cell_type_.Enumerate()) {
+    if (t != PoissonProblemCellType::kGhost) {
+      continue;
+    }
+    idx dof = dof_map(sub);
     for (idx d = 0; d < dim; ++d) {
       for (idx s : {-1, 1}) {
         auto neighbor = sub + s * math::unit<dim, idx>(d);
+        if (neighbor.minCoeff() < 0 || (neighbor.array() - n_).maxCoeff() > 1) {
+          // out of boundary
+          continue;
+        }
         math::veci<dim> stagger_sub = sub - math::veci<dim>::Ones();
         if (s == 1) {
           stagger_sub(d) += 1;
         }
 
-        if (cell_type_(neighbor) == PoissonProblemCellType::kGhost) {
-          // the face is located between `sub` and `neighbour`.
+        if (cell_type_(neighbor) == PoissonProblemCellType::kInterior) {
+          AX_LOG(INFO) << "Boundary between " << sub.transpose() << " and " << neighbor.transpose();
           idx neighbor_dof = dof_map(neighbor);
           if (bc_type_(d, stagger_sub) == PoissonProblemBoundaryType::kDirichlet) {
+            AX_LOG(INFO) << "Dirichlet=" << bc_value_(d, stagger_sub);
             coef.push_back({cnt_constraint, neighbor_dof, 0.5});
             coef.push_back({cnt_constraint, dof, 0.5});
             rhs[cnt_constraint] = bc_value_(d, stagger_sub);
-            cnt_constraint++;
           } else if (bc_type_(d, stagger_sub) == PoissonProblemBoundaryType::kNeumann) {
-            coef.push_back({cnt_constraint, neighbor_dof, -1});
-            coef.push_back({cnt_constraint, dof, 1});
-            rhs[cnt_constraint] = bc_value_(d, stagger_sub) * dx_;
-            cnt_constraint++;
+            AX_LOG(INFO) << "Neumann=" << bc_value_(d, stagger_sub);
+            coef.push_back({cnt_constraint, neighbor_dof, s});
+            coef.push_back({cnt_constraint, dof, -s});
+            rhs[cnt_constraint] += bc_value_(d, stagger_sub) * dx_;
           }
         }
       }
     }
+    cnt_constraint++;
   }
 
   if (cnt_constraint > dofs) {

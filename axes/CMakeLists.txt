@@ -16,6 +16,7 @@ target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(ABSL_LIBRARIES
   absl::btree
+  absl::check
   absl::flat_hash_map
   absl::inlined_vector
   absl::status

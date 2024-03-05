@@ -14,7 +14,7 @@
 #include <absl/flags/flag.h>
 
 #include "axes/core/init.hpp"
-#include "axes/fem/elements/p1.hpp"
+#include "axes/pde/elements/p1.hpp"
 #include "axes/math/linsys/sparse/LDLT.hpp"
 
 using namespace ax;

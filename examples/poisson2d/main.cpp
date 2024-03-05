@@ -9,7 +9,7 @@
 
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
-#include "axes/fem/elements/p1.hpp"
+#include "axes/pde/elements/p1.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/primitives/height_field.hpp"
 #include "axes/math/linsys/sparse/LDLT.hpp"

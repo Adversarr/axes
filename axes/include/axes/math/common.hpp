@@ -36,6 +36,7 @@ template <typename T> using ABcr = AB<T> const &;
  *
  */
 template <int dim> using vecr = vec<real, dim>;
+template <int dim> using vecf = vec<float, dim>;
 using vec2r = vec<real, 2>;        ///< Alias for 2D vector with double precision
                                    ///< floating point number.
 using vec3r = vec<real, 3>;        ///< Alias for 3D vector with double precision
@@ -44,11 +45,11 @@ using vec4r = vec<real, 4>;        ///< Alias for 4D vector with double precisio
                                    ///< floating point number.
 using vecxr = vec<real, dynamic>;  ///< Alias for vector with double precision
                                    ///< floating point number.
-using vec2f = vec<float, 2>;       ///< Alias for 2D vector with single precision
+using vec2f = vecf<2>;       ///< Alias for 2D vector with single precision
                                    ///< floating point number.
-using vec3f = vec<float, 3>;       ///< Alias for 3D vector with single precision
+using vec3f = vecf<3>;       ///< Alias for 3D vector with single precision
                                    ///< floating point number.
-using vec4f = vec<float, 4>;       ///< Alias for 4D vector with single precision
+using vec4f = vecf<4>;       ///< Alias for 4D vector with single precision
                                    ///< floating point number.
 
 /**
@@ -76,14 +77,16 @@ using vec4i = veci<4>;  ///< Alias for 4D idx vector.
 template <typename Scalar, idx rows, idx cols> using mat = Eigen::Matrix<Scalar, rows, cols>;
 
 template <idx rows, idx cols> using matr = mat<real, rows, cols>;
-using matxxr = mat<real, dynamic, dynamic>;
+template <idx rows, idx cols> using matf = mat<float, rows, cols>;
+using matxxr = matr<dynamic, dynamic>;
+using matxxf = matf<dynamic, dynamic>;
 
 using mat2r = matr<2, 2>;
 using mat3r = matr<3, 3>;
 using mat4r = matr<4, 4>;
-using mat2f = mat<float, 2, 2>;
-using mat3f = mat<float, 3, 3>;
-using mat4f = mat<float, 4, 4>;
+using mat2f = matf<2, 2>;
+using mat3f = matf<3, 3>;
+using mat4f = matf<4, 4>;
 
 template <idx rows, idx cols> using mati = mat<idx, rows, cols>;
 using matxxi = mati<dynamic, dynamic>;
@@ -97,13 +100,12 @@ using mat4xr = matr<4, dynamic>;
 using matx2r = matr<dynamic, 2>;
 using matx3r = matr<dynamic, 3>;
 using matx4r = matr<dynamic, 4>;
-using mat2xf = mat<float, 2, dynamic>;
-using mat3xf = mat<float, 3, dynamic>;
-using mat4xf = mat<float, 4, dynamic>;
-using matx2f = mat<float, dynamic, 2>;
-using matx3f = mat<float, dynamic, 3>;
-using matx4f = mat<float, dynamic, 4>;
-
+using mat2xf = matf<2, dynamic>;
+using mat3xf = matf<3, dynamic>;
+using mat4xf = matf<4, dynamic>;
+using matx2f = matf<dynamic, 2>;
+using matx3f = matf<dynamic, 3>;
+using matx4f = matf<dynamic, 4>;
 
 using mat2xi = mati<2, dynamic>;
 using mat3xi = mati<3, dynamic>;
@@ -111,7 +113,6 @@ using mat4xi = mati<4, dynamic>;
 using matx2i = mati<dynamic, 2>;
 using matx3i = mati<dynamic, 3>;
 using matx4i = mati<dynamic, 4>;
-
 
 /****************************** Field ******************************/
 
@@ -174,6 +175,12 @@ template <typename T, size_t... seq> AX_FORCE_INLINE vec<T, sizeof...(seq)> tupl
     const utils::details::dup_tuple<T, sizeof...(seq)> &tuple, std::index_sequence<seq...>) {
   return vec<T, sizeof...(seq)>{std::get<seq>(tuple)...};
 }
+
+template <typename T, size_t ... seq> AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)>
+vector_to_tuple_impl(const vec<T, sizeof...(seq)> &vec, std::index_sequence<seq...>) {
+  return utils::DupTuple<T, sizeof...(seq)>{vec[seq]...};
+}
+
 }  // namespace details
 
 template <size_t dim> using index_tuple
@@ -189,6 +196,18 @@ template <size_t dim> using index_tuple
 template <typename T, size_t dim>
 AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
+}
+
+/**
+ * Convert a vector to a DupTuple.
+ * @tparam T The type of the elements in the vector.
+ * @tparam dim The dimension of the vector.
+ * @param vec The vector to be converted.
+ * @return A DupTuple with the same elements as the vector.
+ */
+template <typename T, size_t dim>
+AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(const vec<T, dim> &vec) {
+  return details::vector_to_tuple_impl<T>(vec, std::make_index_sequence<dim>());
 }
 
 /****************************** Constants ******************************/
@@ -329,6 +348,11 @@ template <typename Scalar = real> AX_FORCE_INLINE auto empty(idx rows, idx cols)
 
 /****************************** 9. from buffer ******************************/
 // TODO:
+
+/****************************** 10. unit ******************************/
+template <idx dim, typename Scalar = real> AX_FORCE_INLINE auto unit(idx i) {
+  return vec<Scalar, dim>::Unit(i);
+}
 
 /****************************** Iter methods ******************************/
 

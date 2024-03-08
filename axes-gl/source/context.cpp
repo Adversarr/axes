@@ -5,6 +5,7 @@
 #include "axes/gl/extprim/axes.hpp"
 #include "axes/utils/status.hpp"
 #include "impl/render_mesh.hpp"
+#include <implot.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -260,6 +261,7 @@ Context::Context() {
   /* SECT: Setup ImGUI */
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImPlot::CreateContext();
   AX_CHECK(ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true))
       << "Failed to Initialize ImGUI_GLFW";
 #ifdef __EMSCRIPTEN__
@@ -282,6 +284,7 @@ Context::~Context() {
   global_dispatcher().clear<UiRenderEvent>();
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
+  ImPlot::DestroyContext();
   ImGui::DestroyContext();
   impl_->renderers_.clear();
   impl_.reset();

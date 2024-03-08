@@ -21,7 +21,7 @@
 
 using namespace ax;
 
-ABSL_FLAG(std::string, obj_file, "jelly_low_res.obj", "The obj file to load");
+ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
 
 float ratio = 1.0f;
 
@@ -55,6 +55,7 @@ void ui_render_callback(gl::UiRenderEvent) {
   ImGui::SliderFloat("Ratio", &ratio, 0.0f, 1.0f);
   if (ImGui::Button("Run Algorithm")) {
     auto halfedge = geo::HalfedgeMesh(vertices, indices);
+    halfedge.CheckOk();
     auto beg_time = absl::Now();
     auto decimator = geo::MeshDecimator(&halfedge);
     decimator.SetRatio(ratio);

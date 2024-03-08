@@ -102,7 +102,15 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
     return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
   }
 
-  return write_npy_v10(out, mat.data(), mat.size(), 0, mat.rows(), mat.cols());
+  std::vector<real> data;
+  data.reserve(mat.cols() * mat.rows());
+  for (idx j = 0; j < mat.rows(); ++j) {
+    for (idx i = 0; i < mat.cols(); ++i) {
+      data.push_back(mat(j, i));
+    }
+  }
+
+  return write_npy_v10(out, data.data(), mat.size(), 0, mat.rows(), mat.cols());
 }
 
 }  // namespace ax::math

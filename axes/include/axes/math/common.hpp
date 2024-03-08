@@ -221,6 +221,8 @@ AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(const vec<T, dim> &vec) 
  */
 template <typename Scalar = real> constexpr Scalar pi = static_cast<Scalar>(M_PI);
 template <typename Scalar = real> constexpr Scalar pi_radian = static_cast<Scalar>(0.017453292519943);
+template <typename Scalar = real> constexpr Scalar nan = std::numeric_limits<Scalar>::quiet_NaN();
+template <typename Scalar = real> constexpr Scalar inf = std::numeric_limits<Scalar>::infinity();
 
 /****************************** Common Ops ******************************/
 

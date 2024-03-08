@@ -20,6 +20,7 @@
         "opengl3-binding"
       ]
     },
+    "implot",
     "glad"
   ]
 }

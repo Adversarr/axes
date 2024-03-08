@@ -4,6 +4,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Stb REQUIRED)
+find_package(implot CONFIG REQUIRED)
 
 set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shader)
@@ -20,7 +21,7 @@ target_include_directories(axes_gui PUBLIC ${Stb_INCLUDE_DIR}
 
 target_link_libraries(axes_gui 
   PUBLIC axes 
-  PUBLIC glfw glad::glad imgui::imgui OpenGL::GLU)
+  PUBLIC glfw glad::glad imgui::imgui OpenGL::GLU implot::implot)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
 axes_set_warn_levels(axes_gui)

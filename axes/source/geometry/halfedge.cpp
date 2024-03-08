@@ -38,16 +38,17 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
     e_ki->next_ = e_ij.get();
     e_ki->prev_ = e_jk.get();
     e_ki->vertex_ = vertices_[i].get();
+    e_ij->pair_ = e_jk->pair_ = e_ki->pair_ = nullptr;
 
     vertices_[i]->halfedge_entry_ = e_ki.get();
     vertices_[j]->halfedge_entry_ = e_ij.get();
     vertices_[k]->halfedge_entry_ = e_jk.get();
 
     // Move the unique pointers into the mesh
-    faces_.push_back(std::move(fijk));
-    edges_.push_back(std::move(e_ij));
-    edges_.push_back(std::move(e_jk));
-    edges_.push_back(std::move(e_ki));
+    faces_.emplace_back(std::move(fijk));
+    edges_.emplace_back(std::move(e_ij));
+    edges_.emplace_back(std::move(e_jk));
+    edges_.emplace_back(std::move(e_ki));
   }
 
   std::map<std::pair<HalfedgeVertex_t*, HalfedgeVertex_t*>, HalfedgeEdge_t*> edge_map;
@@ -56,30 +57,38 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
     auto ht = std::make_pair(head, tail);
     if (auto it = edge_map.find(std::make_pair(tail, head)); it != edge_map.end()) {
       establish_pair(e.get(), it->second);
+      edge_map.erase(it);
     } else {
       edge_map.emplace(ht, e.get());
     }
   }
 
   // For those on the boundary, fix the pair:
-  for (auto& e : edges_) {
+  size_t interior_edges = edges_.size();
+  for (size_t i = 0; i < interior_edges; ++i) {
+    auto& e = edges_[i];
     if (e->pair_ == nullptr) {
       auto new_edge = std::make_unique<HalfedgeEdge_t>();
-      new_edge->vertex_ = e->next_->next_->vertex_;
-      new_edge->face_ = e->face_;
+      new_edge->vertex_ = e->Tail();
+      new_edge->face_ = nullptr;
       establish_pair(e.get(), new_edge.get());
+      edges_.emplace_back(std::move(new_edge));
     }
   }
 
   for (auto& e : edges_) {
     if (e->next_ == nullptr) {
-      for (auto e2 = e->pair_; e2 != e.get(); e2 = e2->next_->pair_) {
+      AX_DCHECK(e->IsBoundary()) << "Non-Boundary edge should have `next` initialized.";
+      bool found = false;
+      for (auto e2 = e->pair_; e2 != e.get(); e2 = e2->prev_->pair_) {
         if (e2->prev_ == nullptr) {
           e->next_ = e2;
           e2->prev_ = e.get();
+          found = true;
           break;
         }
       }
+      AX_DCHECK(found) << "No next edge found for boundary edge: " << e;
     }
   }
 
@@ -87,7 +96,6 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
   for (auto [id, e] : utils::enumerate(edges_)) {
     AX_CHECK(e->prev_ != nullptr);
     AX_CHECK(e->next_ != nullptr);
-    AX_CHECK(e->face_ != nullptr);
     AX_CHECK(e->vertex_ != nullptr);
     AX_CHECK(e->pair_ != nullptr);
   }
@@ -116,13 +124,13 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
     math::vec3i ijk;
     for (idx i = 0; i < 3; ++i) {
       if (auto it = vertex_map.find(e->vertex_); it == vertex_map.end()) {
-        AX_LOG(INFO) << "Face: " << id;
-        AX_LOG(INFO) << "Edge: " << e;
-        AX_LOG(INFO) << "Edge->Vertex: " << e->vertex_;
-        AX_LOG(INFO) << "Edge->Next: " << e->next_;
-        AX_LOG(INFO) << "Edge->Prev: " << e->prev_;
-        AX_LOG(INFO) << "Edge->Pair: " << e->pair_;
-        AX_LOG(INFO) << "Edge->Face: " << e->face_;
+        AX_LOG(ERROR) << "Face: " << id;
+        AX_LOG(ERROR) << "Edge: " << e;
+        AX_LOG(ERROR) << "Edge->Vertex: " << e->vertex_;
+        AX_LOG(ERROR) << "Edge->Next: " << e->next_;
+        AX_LOG(ERROR) << "Edge->Prev: " << e->prev_;
+        AX_LOG(ERROR) << "Edge->Pair: " << e->pair_;
+        AX_LOG(ERROR) << "Edge->Face: " << e->face_;
       } else {
         ijk[i] = vertex_map.at(e->vertex_);
       }
@@ -143,25 +151,34 @@ HalfedgeFaceHandle HalfedgeMesh::GetFace(idx idx) const {
 }
 
 void HalfedgeMesh::RemoveEdgeInternal(HalfedgeEdge_t* edge) {
-  AX_DLOG(INFO) << "Removing edge: " << edge;
   auto it = std::find_if(edges_.begin(), edges_.end(),
                          [edge](auto const& e) { return e.get() == edge; });
   AX_DCHECK(it != edges_.end());
-
   std::swap(*it, edges_.back());
-
-  if (edge->vertex_->halfedge_entry_ == edge) {
-    edge->vertex_->halfedge_entry_ = edge->next_->pair_;
-  }
-
   edges_.pop_back();
 }
 
 void HalfedgeMesh::RemoveFaceInternal(HalfedgeFace_t* face) {
   auto it = std::find_if(faces_.begin(), faces_.end(),
                          [face](auto const& f) { return f.get() == face; });
+  AX_DCHECK(it != faces_.end());
   std::swap(*it, faces_.back());
   faces_.pop_back();
+}
+
+void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex_t* vert) {
+  auto it = std::find_if(vertices_.begin(), vertices_.end(),
+                         [vert](auto const& v) { return v.get() == vert; });
+  AX_DCHECK(it != vertices_.end());
+  std::swap(*it, vertices_.back());
+
+#ifndef NDEBUG
+  auto ite = std::find_if(edges_.begin(), edges_.end(),
+                         [vert](auto const& e) { return e->Head() == vert; });
+  AX_DCHECK(ite == edges_.end())
+    << "After you delete the vertex, there should be no edge pointing to it." << ite->get();
+#endif
+  vertices_.pop_back();
 }
 
 HalfedgeVertexHandle HalfedgeMesh::GetVertex(idx idx) const {
@@ -179,47 +196,76 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_
    * c--->b
    * \  /
    *  d */
+  AX_DCHECK(std::find_if(edges_.begin(), edges_.end(), [edge](const auto& e) {
+    return e.get() == edge;
+  }) != edges_.end());
 
   // The vertex to collapse to
   auto head_vertex = edge->Head();
   head_vertex->position_= target_position;
   HalfedgeEdge_t* pair = edge->pair_;
-  auto tail_vertex = pair->Head();
+  auto tail_vertex = edge->Tail();
   AX_DCHECK(head_vertex != tail_vertex);
   // Assign all c to b.
   ForeachEdgeAroundVertex(tail_vertex,
-                          [head_vertex](HalfedgeEdge_t* e) { e->vertex_ = head_vertex; });
+                          [head_vertex](HalfedgeEdge_t* e) {
+                            e->vertex_ = head_vertex;
+                          });
+
+  head_vertex->halfedge_entry_ = edge->next_->pair_;
+  // AX_DLOG(INFO) << "Assigning entry[" << head_vertex << "] <- " << edge->next_->pair_;
+  if (!edge->IsBoundary()) {
+    edge->next_->vertex_->halfedge_entry_ = edge->prev_->pair_;
+    // AX_DLOG(INFO) << "Assigning entry[" << edge->next_->vertex_ << "] <- " << edge->prev_->pair_;
+  }
+  if (!edge->pair_->IsBoundary()) {
+    edge->pair_->next_->vertex_->halfedge_entry_ = edge->pair_->prev_->pair_;
+    // AX_DLOG(INFO) << "Assigning entry[" << edge->pair_->next_->vertex_ << "] <- " << edge->pair_->prev_->pair_;
+  }
 
   // Fix the pair of the edge to be removed
-  establish_pair(edge->next_->pair_, edge->prev_->pair_);
-  establish_pair(pair->next_->pair_, pair->prev_->pair_);
-  head_vertex->halfedge_entry_ = edge->next_->pair_;
-  edge->next_->vertex_->halfedge_entry_ = edge->prev_->pair_;
-  edge->pair_->next_->vertex_->halfedge_entry_ = edge->pair_->prev_->pair_;
+  if (!edge->IsBoundary()) {
+    establish_pair(edge->next_->pair_, edge->prev_->pair_);
+  } else {
+    std::tie(edge->next_->prev_, edge->prev_->next_) = {edge->prev_, edge->next_};
+  }
+  if (!pair->IsBoundary()) {
+    establish_pair(pair->next_->pair_, pair->prev_->pair_);
+  } else {
+    std::tie(pair->next_->prev_, pair->prev_->next_) = {pair->prev_, pair->next_};
+  }
+
 
   // Do remove the edge
-  RemoveFaceInternal(edge->face_);
-  RemoveFaceInternal(pair->face_);
-  RemoveEdgeInternal(pair->prev_);
-  RemoveEdgeInternal(pair->next_);
-  RemoveEdgeInternal(edge->prev_);
-  RemoveEdgeInternal(edge->next_);
-  RemoveEdgeInternal(pair);
+  if (edge->face_ != nullptr) {
+    RemoveFaceInternal(edge->face_);
+    RemoveEdgeInternal(edge->prev_);
+    RemoveEdgeInternal(edge->next_);
+  }
+  if (pair->face_ != nullptr) {
+    RemoveFaceInternal(pair->face_);
+    RemoveEdgeInternal(pair->prev_);
+    RemoveEdgeInternal(pair->next_);
+  }
   RemoveEdgeInternal(edge);
+  RemoveEdgeInternal(pair);
   RemoveVertexInternal(tail_vertex);
 }
 
 bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
+  if (edge->IsBoundary()) {
+    return false;
+  }
   // $p, q$ are boundaries, but $(p, q)$ is not a boundary edge.
   HalfedgeEdge_t* p_bd_edge = nullptr;
   HalfedgeEdge_t* q_bd_edge = nullptr;
   auto [head, tail] = edge->HeadAndTail();
-  ForeachEdgeAroundVertex(edge->vertex_, [&p_bd_edge](HalfedgeEdge_t* e) {
+  ForeachEdgeAroundVertex(head, [&p_bd_edge](HalfedgeEdge_t* e) {
     if (e->pair_->face_ == nullptr) {
       p_bd_edge = e;
     }
   });
-  ForeachEdgeAroundVertex(edge->pair_->vertex_, [&q_bd_edge](HalfedgeEdge_t* e) {
+  ForeachEdgeAroundVertex(tail, [&q_bd_edge](HalfedgeEdge_t* e) {
     if (e->pair_->face_ == nullptr) {
       q_bd_edge = e;
     }
@@ -258,6 +304,9 @@ HalfedgeEdge_t* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVe
 
 void HalfedgeMesh::ForeachEdgeAroundVertex(HalfedgeVertex_t* vert,
                                            std::function<void(HalfedgeEdge_t*)> const& fn) {
+  AX_DCHECK(std::find_if(vertices_.begin(), vertices_.end(), [vert](const auto& e) {
+      return e.get() == vert;
+    }) != vertices_.end()) << vert;
   auto beg = vert->halfedge_entry_;
   idx rec_guard = 100;
   do {
@@ -292,24 +341,21 @@ void HalfedgeMesh::ForeachVertex(std::function<void(HalfedgeVertex_t*)> const& f
   }
 }
 
-void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex_t* vert) {
-  auto it = std::find_if(vertices_.begin(), vertices_.end(),
-                         [vert](auto const& v) { return v.get() == vert; });
-  AX_DCHECK(it != vertices_.end());
-  std::swap(*it, vertices_.back());
-  vertices_.pop_back();
-}
 
-bool HalfedgeMesh::CheckOk() const noexcept {
+bool HalfedgeMesh::CheckOk() noexcept {
   absl::flat_hash_set<HalfedgeVertex_t*> vertices;
   for (auto const& v : vertices_) {
+    AX_CHECK(v->halfedge_entry_ != nullptr);
     vertices.insert(v.get());
+    ForeachEdgeAroundVertex(v.get(), [&](HalfedgeEdge_t* e) {
+      AX_CHECK(e->vertex_ == v.get()) << "Edge: " << e << " Vertex: " << e->vertex_;
+    });
   }
   absl::flat_hash_set<HalfedgeEdge_t*> edges;
   for (auto const& e : edges_) {
     edges.insert(e.get());
   }
-  absl::flat_hash_set<HalfedgeFace_t*> faces;
+  absl::flat_hash_set<HalfedgeFace_t*> faces{nullptr};
   for (auto const& f : faces_) {
     faces.insert(f.get());
   }
@@ -319,7 +365,6 @@ bool HalfedgeMesh::CheckOk() const noexcept {
     AX_CHECK(edges.contains(e->next_));
     AX_CHECK(edges.contains(e->prev_));
     AX_CHECK(edges.contains(e->pair_)) << "Edge: " << e << " Pair: " << e->pair_;
-    AX_CHECK(e->next_->next_->next_ == e.get()) << "Edge: " << e << " Next: " << e->next_;
     AX_CHECK(e->pair_->pair_ == e.get());
     AX_CHECK(e->pair_->vertex_ == e->prev_->vertex_);
   }

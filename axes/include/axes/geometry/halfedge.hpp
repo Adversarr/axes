@@ -38,7 +38,7 @@ struct HalfedgeEdge_t {
   HalfedgeFace_t* face_ = nullptr;
   HalfedgeEdge_t* pair_ = nullptr;
 
-  bool IsBoundary() const { return pair_ == nullptr; }
+  bool IsBoundary() const { return face_ == nullptr; }
 
   AX_FORCE_INLINE math::vec3r Normal() const;
 
@@ -178,7 +178,7 @@ public:
   /************************* SECT: Metadata Retrival *************************/
   AX_NODISCARD idx NVertices() const noexcept { return static_cast<idx>(vertices_.size()); }
   AX_NODISCARD idx NEdges() const noexcept { return static_cast<idx>(edges_.size()); }
-  AX_NODISCARD bool CheckOk() const noexcept;
+  AX_NODISCARD bool CheckOk() noexcept;
 
 
 private:
@@ -191,6 +191,12 @@ private:
 };
 
 math::vec3r HalfedgeEdge_t::Normal() const {
+  if (face_ == nullptr) {
+    if (pair_->face_ == nullptr) {
+      return math::vec3r::Zero();
+    }
+    return pair_->Normal();
+  }
   auto const& A = vertex_->position_;
   auto const& B = next_->vertex_->position_;
   auto const& C = next_->next_->vertex_->position_;

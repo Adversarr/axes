@@ -11,7 +11,6 @@ enum class PoissonProblemBoundaryType {
 
 enum class PoissonProblemCellType {
   kInterior,  // Inside the domain,  will solve
-  kGhost,     // On the boundary,    will solve, help to solve the boundary conditions
   kOuter,     // Out of boundary,    will not solve, and will not be used
   kDirect,    // Directly specified, will not solve, but will be used,
               // e.g. Dirichlet boundary condition at cell center.
@@ -19,7 +18,7 @@ enum class PoissonProblemCellType {
 
 /**
  * @brief Declares a Poisson problem with constant coefficient. The problem is defined as
- *    -∇·(c ∇u) + b ∇·u + a u = f
+ *    -∇·(c ∇u) + b·∇u + a u = f
  * where a, b, c is a constant coefficient.
  * @note c could be a scalar or a lattice.
  * @tparam dim
@@ -44,7 +43,7 @@ public:
   void ReportDomain();
 
   void SetA(real a);
-  void SetB(real b);
+  void SetB(math::vecr<dim> const& b);
   void SetC(real c);
   void SetSource(RealLattice const& f);
 
@@ -56,7 +55,7 @@ private:
   real dx_;
   idx n_;
   real c_;
-  real b_;
+  math::vecr<dim> b_;
   real a_;
   RealLattice f_;
 

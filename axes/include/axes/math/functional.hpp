@@ -155,20 +155,14 @@ template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(DBcr<A> mv) {
 }
 
 template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>,
-                "all() is only available for bool vectors");
   return mv.all();
 }
 
 template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>,
-                "all() is only available for bool vectors");
   return mv.any();
 }
 
 template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) {
-  static_assert(std::is_same_v<typename A::ScalarType, bool>,
-                "all() is only available for bool vectors");
   return mv.count();
 }
 

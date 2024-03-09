@@ -2,33 +2,32 @@
 
 #include <Eigen/SparseCholesky>
 
-#define is_interior(sub) ((sub).minCoeff() > 0 && ((sub).array() - n_).maxCoeff() <= 0)
+#define is_interior(sub) ((sub).minCoeff() >= 0 && ((sub).array() - n_).maxCoeff() < 0)
 
 namespace ax::pde {
 
 template <idx dim> PoissonProblemOnLattice<dim>::PoissonProblemOnLattice(idx n, real dx) {
   n_ = n;
   dx_ = dx;
-  math::veci<dim> shape, actual_shape;
-  actual_shape.setConstant(n);
-  shape.setConstant(n + 2);
+  math::veci<dim> shape;
+  shape.setConstant(n);
 
   cell_type_ = math::Lattice<dim, PoissonProblemCellType>(shape);
   cell_type_ = PoissonProblemCellType::kOuter;
 
-  f_ = RealLattice(actual_shape);
+  f_ = RealLattice(shape);
   f_ = 0;
 
   solution_ = RealLattice(shape);
   a_ = 0;
   b_.setZero();
   c_ = 1;
-  bc_value_ = math::StaggeredLattice<dim, real>(actual_shape);
-  bc_type_ = math::StaggeredLattice<dim, PoissonProblemBoundaryType>(actual_shape);
+  bc_value_ = math::StaggeredLattice<dim, real>(shape);
+  bc_type_ = math::StaggeredLattice<dim, PoissonProblemBoundaryType>(shape);
 }
 
 template <idx dim> void PoissonProblemOnLattice<dim>::SetSource(RealLattice const& f) {
-  AX_CHECK((f.Shape().array() == f_.Shape().array()).all())
+  AX_CHECK(math::all(f.Shape().array() == f_.Shape().array()))
       << "Source shape mismatch:"
       << "f: " << f.Shape().transpose() << ", desired: " << f_.Shape().transpose();
   f_ = f;
@@ -37,9 +36,10 @@ template <idx dim> void PoissonProblemOnLattice<dim>::SetSource(RealLattice cons
 template <idx dim> void PoissonProblemOnLattice<dim>::SetDomain(
     math::Lattice<dim, PoissonProblemCellType> const& domain) {
   cell_type_ = PoissonProblemCellType::kOuter;
-  for (auto const& sub : domain.Iterate()) {
-    cell_type_(sub + math::ones<dim, 1, idx>()) = domain(sub);
-  }
+  AX_CHECK((domain.Shape().array() == cell_type_.Shape().array()).all())
+      << "Domain shape mismatch:"
+      << "domain: " << domain.Shape().transpose() << ", desired: " << cell_type_.Shape().transpose();
+  cell_type_ = domain;
 }
 
 char to_char(PoissonProblemCellType t) {
@@ -89,26 +89,16 @@ template <idx dim> void PoissonProblemOnLattice<dim>::SetC(real c) {
 }
 
 template <idx dim> Status PoissonProblemOnLattice<dim>::CheckAvailable() {
-  // Check if the domain is set
-  for (auto const& sub : cell_type_.Iterate()) {
-    if (!is_interior(sub)) {
-      if (cell_type_(sub) == PoissonProblemCellType::kInterior ||
-          cell_type_(sub) == PoissonProblemCellType::kDirect) {
-        AX_LOG(ERROR) << "sub" << to_char(cell_type_(sub)) << ": " << sub.transpose()
-                      << ", shape: " << cell_type_.Shape().transpose();
-        return utils::InternalError("Enlarged Lattice have interior on the boundaries.");
-      }
-      continue;
-    }
-  }
-
   // Check if the boundary condition is set
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
-    if (is_interior(sub) && cell_type_(sub) == PoissonProblemCellType::kInterior) {
+    if (cell_type_(sub) == PoissonProblemCellType::kInterior) {
       for (idx d = 0; d < dim; ++d) {
         for (idx s : {-1, 1}) {
           auto neighbor = sub + s * math::unit<dim, idx>(d);
-          math::veci<dim> stagger_sub = sub - math::veci<dim>::Ones();
+          if (! is_interior(neighbor)) {
+            continue;
+          }
+          math::veci<dim> stagger_sub = sub;
           if (s == 1) {
             stagger_sub(d) += 1;
           }
@@ -173,33 +163,35 @@ StatusOr<typename PoissonProblemOnLattice<dim>::RealLattice> PoissonProblemOnLat
     if (cell_type_(sub) != PoissonProblemCellType::kInterior) {
       continue;
     }
+
     // Eqns
     // TODO: Now we use 5Point Stencil, we can make it more general, and accurate.
     real local_center = a_ + (2 * dim) * c_dx_dx;
-    real local_rhs = f_(sub - math::veci<dim>::Ones());
+    real local_rhs = f_(sub);
     for (idx d = 0; d < dim; ++d) {
       for (int i = 0; i < 2; ++i) {
         idx s = si[i];
         auto neighbor = sub + s * math::unit<dim, idx>(d);
-        math::veci<dim> stagger_sub = sub - math::veci<dim>::Ones();
+        math::veci<dim> stagger_sub = sub;
         if (s == 1) {
           stagger_sub(d) += 1;
         }
-
-        if (cell_type_(neighbor) == PoissonProblemCellType::kInterior) {
+        auto bc_val = bc_value_(d, stagger_sub);
+        auto bc_type = bc_type_(d, stagger_sub);
+        if (bc_type == PoissonProblemBoundaryType::kDirichlet) {
+          AX_DLOG(INFO) << "Dirichlet: " << sub.transpose() << ", " << neighbor.transpose();
+          local_center += c_dx_dx;
+          local_rhs += c_dx_dx * bc_val * 2;
+        } else if (bc_type == PoissonProblemBoundaryType::kNeumann) {
+          AX_DLOG(INFO) << "Neumann: " << sub.transpose() << ", " << neighbor.transpose();
+          local_center -= c_dx_dx;
+          local_rhs += c_dx_dx * bc_val * dx_;
+        } else if (!is_interior(neighbor)) {
+          return utils::InvalidArgumentError("Outer (out-of-bd) cell should not be used.");
+        } else if (cell_type_(neighbor) == PoissonProblemCellType::kInterior) {
           coef.push_back({cnt_constraint, dof_map(neighbor), -c_dx_dx});
         } else if (cell_type_(neighbor) == PoissonProblemCellType::kOuter) {
-          auto bc_val = bc_value_(d, stagger_sub);
-          auto bc_type = bc_type_(d, stagger_sub);
-          if (bc_type == PoissonProblemBoundaryType::kDirichlet) {
-            AX_DLOG(INFO) << "Dirichlet: " << sub.transpose() << ", " << neighbor.transpose();
-            local_center += c_dx_dx;
-            local_rhs += c_dx_dx * bc_val * 2;
-          } else if (bc_type == PoissonProblemBoundaryType::kNeumann) {
-            AX_DLOG(INFO) << "Neumann: " << sub.transpose() << ", " << neighbor.transpose();
-            local_center -= c_dx_dx;
-            local_rhs += c_dx_dx * bc_val * dx_;
-          }
+          return utils::InvalidArgumentError("Outer cell should not be used.");
         } else if (cell_type_(neighbor) == PoissonProblemCellType::kDirect) {
           local_rhs += c_dx_dx * solution_(neighbor);
         }
@@ -232,9 +224,7 @@ StatusOr<typename PoissonProblemOnLattice<dim>::RealLattice> PoissonProblemOnLat
   RealLattice solution(f_.Shape());
   for (idx i = 0; i < dofs; ++i) {
     auto v = dof_map_inv[i];
-    if (is_interior(v)) {
-      solution(v - math::veci<dim>::Ones()) = sol[i];
-    }
+    solution(v) = sol[i];
   }
   return solution;
 }

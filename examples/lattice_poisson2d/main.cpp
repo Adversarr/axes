@@ -2,7 +2,6 @@
 
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
-#include "axes/gl/context.hpp"
 #include "axes/gl/primitives/height_field.hpp"
 #include "axes/gl/utils.hpp"
 #include "axes/pde/poisson/lattice.hpp"
@@ -13,11 +12,11 @@ real dx = 1.0 / N;
 
 ABSL_FLAG(int, N, 10, "Number of cells in each direction");
 
-real exact_solution(real x, real y) { return 2 * (x * x - y * y); }
+real exact_solution(real x, real y) { return 0.5 * (x * x - y * y); }
 
-real grad_x_exact_solution(real x, real y) { return 4 * x; }
+real grad_x_exact_solution(real x, real y) { return x; }
 
-real grad_y_exact_solution(real x, real y) { return -4 * y; }
+real grad_y_exact_solution(real x, real y) { return -y; }
 
 int main(int argc, char* argv[]) {
   ax::gl::init(argc, argv);
@@ -34,12 +33,6 @@ int main(int argc, char* argv[]) {
 
   math::Lattice<2, real> f(N, N);
   f = 0;
-  for (auto const& sub : f.Iterate()) {
-    real x = (sub[0] + 0.5) * dx;
-    real y = (sub[1] + 0.5) * dx;
-    // f(sub) = -2 * (-1 + x) * std::cos(y) * std::sin(x) -
-    //          2 * (-1 + y) * (std::cos(x) + std::sin(x) - x * std::sin(x)) * std::sin(y);
-  }
   problem.SetSource(f);
 
   for (auto const& sub : domain.Iterate()) {
@@ -77,15 +70,10 @@ int main(int argc, char* argv[]) {
   real l2_err = 0;
   for (auto const& sub : sol.Iterate()) {
     if (sub.minCoeff() > 0 && (sub.array() - N).maxCoeff() <= 0) {
-      // real x = (sub[0] + 0.5) * dx;
-      // real y = (sub[1] + 0.5) * dx;
-      // real exact = (1 - x) * std::sin(x) * (1 - y) * std::sin(y);
       real x = (sub[0] + 0.5) * dx;
       real y = (sub[1] + 0.5) * dx;
       real exact = exact_solution(x, y);
       l2_err += std::pow(sol(sub) - exact, 2) * dx * dx;
-      // std::cout << "x: " << x.transpose() << " exact: " << exact << " sol: " << sol(sub) <<
-      // std::endl;
     }
   }
 
@@ -98,11 +86,7 @@ int main(int argc, char* argv[]) {
   AX_CHECK_OK(height_field);
   auto& mesh = add_component<gl::Mesh>(ent, height_field.value());
   mesh.flush_ = true;
-  auto& ctx = get_resource<gl::Context>();
-  while (!ctx.GetWindow().ShouldClose()) {
-    AX_CHECK_OK(ctx.TickLogic());
-    AX_CHECK_OK(ctx.TickRender());
-  }
+  AX_CHECK_OK(gl::enter_main_loop());
   clean_up();
   return 0;
 }

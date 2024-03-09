@@ -28,5 +28,13 @@ void init(int argc, char** argv) {
   ::ax::init(argc, argv);
 }
 
+Status enter_main_loop() {
+  auto & c = get_resource<Context>();
+  while (!c.GetWindow().ShouldClose()) {
+    AX_RETURN_NOTOK(c.TickLogic());
+    AX_RETURN_NOTOK(c.TickRender());
+  }
+  AX_RETURN_OK();
+}
 
 }

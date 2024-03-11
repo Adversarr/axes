@@ -128,11 +128,13 @@ using field1r = fieldr<1>;
 using field2r = fieldr<2>;
 using field3r = fieldr<3>;
 using field4r = fieldr<4>;
+using fieldxr = fieldr<dynamic>;
 
 using field1i = fieldi<1>;
 using field2i = fieldi<2>;
 using field3i = fieldi<3>;
 using field4i = fieldi<4>;
+using fieldxi = fieldi<dynamic>;
 
 /******************************************************************************
  * Matrix Meta data getter.

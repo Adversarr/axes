@@ -9,9 +9,12 @@ using namespace ::openvdb;
 }
 /************************* SECT: Real Scalar Grid *************************/
 using RealGrid = openvdb::DoubleGrid;
+using RealTree = openvdb::DoubleTree;
 using RealGridPtr = RealGrid::Ptr;
 using RealGridConstPtr = RealGrid::ConstPtr;
-using RealGridTree = RealGrid::TreeType;
+using RealTreePtr = RealTree::Ptr;
+using RealTreeConstPtr = RealTree::ConstPtr;
+
 
 /************************* SECT: Real Vector Field *************************/
 using Vec3r = openvdb::Vec3d;

@@ -22,6 +22,8 @@
     },
     "implot",
     "glad",
-    "openvdb"
+    "openvdb",
+    "blosc",
+    "zlib"
   ]
 }

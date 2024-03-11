@@ -1,4 +1,5 @@
 #include <absl/flags/flag.h>
+#include <cmath>
 #include <imgui.h>
 #include <implot.h>
 
@@ -102,7 +103,7 @@ void recompute() {
   for (idx i = 0; i < grid.size(); ++i) {
     real x = grid[i];
     real x0 = solve_x0(x - alpha * t, beta * t);
-    if (isnan(x0)) {
+    if (std::isnan(x0)) {
       AX_LOG(ERROR) << "Failed to solve x0 at x = " << x;
     }
     real u = math::sin(x0) * beta + alpha;

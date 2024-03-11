@@ -2,6 +2,12 @@
 #include <absl/flags/flag.h>
 #include <igl/readOBJ.h>
 #include <imgui.h>
+#include <openvdb/points/AttributeArray.h>
+#include <openvdb/points/PointConversion.h>
+#include <openvdb/points/PointCount.h>
+#include <openvdb/points/PointRasterizeTrilinear.h>
+#include <openvdb/tools/GridOperators.h>
+#include <openvdb/tools/VolumeToMesh.h>
 
 #include <axes/gl/utils.hpp>
 
@@ -16,10 +22,7 @@
 #include "axes/gl/primitives/mesh.hpp"
 #include "axes/gl/primitives/points.hpp"
 #include "axes/utils/asset.hpp"
-
 #include "axes/vdb/common.hpp"
-
-#include <openvdb/tools/PointScatter.h>
 
 using namespace ax;
 ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
@@ -31,8 +34,11 @@ math::field3r vertices;
 math::field3i indices;
 math::field3r point_cloud_position, point_cloud_normal;
 
-vdb::RealGridPtr normal_grid;
-
+real voxel_size;
+vdb::Vec3rGridPtr normal_grid;
+openvdb::points::PointDataGrid::Ptr point_data_grid;
+openvdb::tools::PointIndexGrid::Ptr point_index_grid;
+openvdb::math::Transform::Ptr transform;
 
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("Mesh to Point Cloud");
@@ -50,6 +56,8 @@ void ui_callback(gl::UiRenderEvent) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   connect<gl::UiRenderEvent, &ui_callback>();
+
+  openvdb::initialize();
 
   file = utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_obj_file));
   AX_LOG(INFO) << "Reading " << std::quoted(file);
@@ -97,17 +105,77 @@ int main(int argc, char** argv) {
     point_cloud.point_size_ = 3;
   }
 
-  { // Setup VDB Normal Tree
+  {  // Setup VDB Normal Tree
+    std::vector<openvdb::Vec3R> positions, normals;
+    positions.reserve(point_cloud_position.cols());
+    normals.reserve(point_cloud_normal.cols());
+    for (auto p : math::each(point_cloud_position)) {
+      positions.push_back(openvdb::Vec3R(p.x(), p.y(), p.z()));
+    }
+    for (auto n : math::each(point_cloud_normal)) {
+      normals.push_back(openvdb::Vec3R(n.x(), n.y(), n.z()));
+    }
+
+    openvdb::points::PointAttributeVector<openvdb::Vec3R> position_wrapper(positions);
+    openvdb::points::PointAttributeVector<openvdb::Vec3R> normals_wrapper(normals);
+
+    int points_per_voxel = 8;
+    voxel_size = openvdb::points::computeVoxelSize(position_wrapper, points_per_voxel);
+    transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+
+    point_index_grid = openvdb::tools::createPointIndexGrid<openvdb::tools::PointIndexGrid>(
+        position_wrapper, *transform);
+    point_data_grid = openvdb::points::createPointDataGrid<openvdb::points::NullCodec,
+                                                           openvdb::points::PointDataGrid>(
+        *point_index_grid, position_wrapper, *transform);
+    point_data_grid->setName("Points");
+    using Codec = openvdb::points::NullCodec;
+    openvdb::points::TypedAttributeArray<vdb::Vec3r, Codec>::registerType();
+    openvdb::NamePair normal_attrribute
+        = openvdb::points::TypedAttributeArray<vdb::Vec3r, Codec>::attributeType();
+    openvdb::points::appendAttribute(point_data_grid->tree(), "normal", normal_attrribute);
+    openvdb::points::populateAttribute(point_data_grid->tree(), point_index_grid->tree(), "normal",
+                                       normals_wrapper);
+    auto normal_tree = openvdb::DynamicPtrCast<vdb::Vec3rTree>(
+        openvdb::points::rasterizeTrilinear<true, vdb::Vec3r>(point_data_grid->tree(), "normal"));
+    normal_grid = vdb::Vec3rGrid::create(normal_tree)->deepCopy();
+    normal_grid->setTransform(transform);
+  }
+  
+  {
     vdb_tree = create_entity();
-
-    normal_grid = vdb::RealGrid::create();
-    normal_grid->setName("Normal Grid");
-
-    // openvdb::tools::DenseUniformPointScatter openvdb_scatter(*normal_grid);
-    //
-    openvdb::tools::DenseUniformPointScatter<vdb::Vec3rGrid, > scatter;
+    idx active_cnt = normal_grid->activeVoxelCount();
+    auto& points = add_component<gl::Points>(vdb_tree);
+    points.colors_.resize(4, active_cnt);
+    points.colors_.setConstant(1);
+    points.vertices_.resize(3, active_cnt);
+    points.point_size_ = 3;
+    idx cnt = 0;
+    for (auto iter = normal_grid->beginValueOn(); iter.test(); ++iter) {
+      auto value = *iter;
+      AX_LOG(INFO) << "Coord: " << iter.getCoord() << "Value: " << value;
+      auto position = transform->indexToWorld(iter.getCoord());
+      points.vertices_.col(cnt++) = math::vec3r(position.x(), position.y(), position.z());
+    }
   }
 
+  {
+    auto divergence = openvdb::tools::divergence(*normal_grid);
+    openvdb::tools::VolumeToMesh mesher(0, 0, true);
+    mesher(*divergence);
+
+    reconstructed = create_entity();
+    auto& mesh = add_component<gl::Points>(reconstructed);
+    idx n_points = mesher.pointListSize();
+    mesh.vertices_.resize(3, n_points);
+    idx n_triangles = mesher.polygonPoolListSize();
+    for (idx i = 0; i < n_points; ++i) {
+      auto p = mesher.pointList()[i];
+      mesh.vertices_.col(i) = math::vec3r(p.x(), p.y(), p.z());
+    }
+    mesh.colors_.resize(4, n_points);
+    mesh.colors_.setConstant(1);
+  }
   AX_CHECK_OK(ax::gl::enter_main_loop());
   ax::clean_up();
   return 0;

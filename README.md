@@ -43,5 +43,7 @@ yay -S libmount
 yay -S liblzma
 yay -S clang15
 yay -S xz dbus
+# For OpenVDB
+yay -S boost blosc tbb
 ```
 

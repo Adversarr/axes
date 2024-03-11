@@ -42,7 +42,7 @@ TEST_CASE("Lattice2D") {
  *
  */
 TEST_CASE("StaggeredLattice2D") {
-  ax::math::StaggeredLattice<2, float> lattice({2, 2});
+  ax::math::StaggeredLattice<2, float> lattice(2, 2);
   CHECK(lattice.Shape() == ax::math::veci<2>{2, 2});
   CHECK(lattice.X().Shape() == ax::math::veci<2>{3, 2});
   CHECK(lattice.Y().Shape() == ax::math::veci<2>{2, 3});

@@ -4,11 +4,13 @@ find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(libigl CONFIG REQUIRED)
+find_package(blosc CONFIG REQUIRED)
 find_package(OpenVDB CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 # Library axes-core
 file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
-  ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
 add_library(axes ${AXES_CORE_SOURCE})
@@ -27,6 +29,7 @@ set(ABSL_LIBRARIES
   absl::log_flags
   absl::flags_parse
   absl::flags_usage
+  absl::failure_signal_handler
   absl::statusor)
 
 target_link_libraries(axes
@@ -37,7 +40,11 @@ target_link_libraries(axes
   range-v3::range-v3
   OpenVDB::openvdb
   igl::igl_core
+  blosc
+  ZLIB::ZLIB
 )
+
+target_compile_options(axes PUBLIC -ftime-trace)
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
@@ -45,11 +52,6 @@ if(OpenMP_CXX_FOUND)
   target_compile_definitions(axes PRIVATE "AXES_HAS_OPENMP")
 endif()
 
-if(AXES_INSTALL_SIGNAL_HANDLER)
-  target_link_libraries(axes PRIVATE absl::failure_signal_handler)
-
-  target_compile_definitions(axes PRIVATE "AXES_INSTALL_SIGNAL_HANDLER")
-endif()
 
 if(AXES_DEBUG_INTERNAL)
   target_compile_definitions(axes PUBLIC "AXES_DEBUG_INTERNAL")

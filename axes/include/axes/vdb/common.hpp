@@ -14,8 +14,12 @@ using RealGridConstPtr = RealGrid::ConstPtr;
 using RealGridTree = RealGrid::TreeType;
 
 /************************* SECT: Real Vector Field *************************/
+using Vec3r = openvdb::Vec3d;
 using Vec3rGrid = openvdb::Vec3DGrid;
-using VecrGridPtr = typename Vec3rGrid::Ptr;
-using VecrGridConstPtr = typename Vec3rGrid::ConstPtr;
+using Vec3rGridPtr = typename Vec3rGrid::Ptr;
+using Vec3rGridConstPtr = typename Vec3rGrid::ConstPtr;
+using Vec3rTree = openvdb::Vec3DTree;
+using Vec3rTreePtr = openvdb::Vec3DTree::Ptr;
+using Vec3rTreeConstPtr = openvdb::Vec3DTree::ConstPtr;
 
 }  // namespace ax::vdb

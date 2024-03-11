@@ -25,3 +25,5 @@
 #include "math/sparse.hpp"
 #include "optim/optimizer_base.hpp"
 #include "utils/status.hpp"
+
+#include "vdb/common.hpp"

@@ -1,11 +1,14 @@
 #include "axes/gl/context.hpp"
 
+#include <implot.h>
+
 #include "axes/core/entt.hpp"
 #include "axes/geometry/primitives.hpp"
 #include "axes/gl/extprim/axes.hpp"
 #include "axes/utils/status.hpp"
 #include "impl/render_mesh.hpp"
-#include <implot.h>
+#include "impl/render_point.hpp"
+#include "impl/render_line.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -17,7 +20,6 @@
 #include "axes/core/echo.hpp"
 #include "axes/gl/config.hpp"
 #include "axes/gl/details/gl_call.hpp"
-#include "impl/render_line.hpp"
 
 namespace ax::gl {
 
@@ -275,6 +277,7 @@ Context::Context() {
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
+  impl_->renderers_.emplace_back(std::make_unique<PointRenderer>());
   for (auto& renderer : impl_->renderers_) {
     AX_CHECK_OK(renderer->Setup());
   }

@@ -21,6 +21,7 @@
       ]
     },
     "implot",
-    "glad"
+    "glad",
+    "openvdb"
   ]
 }

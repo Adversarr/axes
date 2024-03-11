@@ -5,7 +5,11 @@ namespace ax::gl {
 
 struct Points {
   math::field3r vertices_;
-  math::field3r colors_;
+  math::field4r colors_;
+
+  real point_size_{1.0};
+  bool flush_{true};
+  bool use_global_model_{true};
 };
 
 }  // namespace ax::gl

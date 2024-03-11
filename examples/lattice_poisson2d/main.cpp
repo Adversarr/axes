@@ -1,17 +1,19 @@
 #include <absl/flags/flag.h>
-
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
 #include "axes/gl/primitives/height_field.hpp"
 #include "axes/gl/utils.hpp"
 #include "axes/pde/poisson/lattice.hpp"
+#include "axes/math/init.hpp"
 
 using namespace ax;
 idx N = 10;
 real dx = 1.0 / N;
-
 ABSL_FLAG(int, N, 10, "Number of cells in each direction");
 
+// Example Log [x^2 + y^2] in [1, 2]x[1, 2]
+// Rhs = 0.
+// grad= [2x, 2y]/(x^2 + y^2)
 real exact_solution(real x, real y) { return 0.5 * (x * x - y * y); }
 
 real grad_x_exact_solution(real x, real y) { return x; }
@@ -20,30 +22,24 @@ real grad_y_exact_solution(real x, real y) { return -y; }
 
 int main(int argc, char* argv[]) {
   ax::gl::init(argc, argv);
+  math::init_parallel();
+
   N = absl::GetFlag(FLAGS_N);
   dx = 1.0 / N;
-  pde::PoissonProblemOnLattice<2> problem(N, dx);
-  problem.SetC(1);
-  problem.SetA(0);
+  pde::PoissonProblemCellCentered<2> problem(N, dx);
 
-  // Example Log [x^2 + y^2] in [1, 2]x[1, 2]
-  // Rhs = 0.
-  // grad= [2x, 2y]/(x^2 + y^2)
-  auto domain = math::Lattice<2, pde::PoissonProblemCellType>(N, N);
-
+  math::Lattice<2, pde::PoissonProblemCellType> domain(N, N);
   math::Lattice<2, real> f(N, N);
   f = 0;
+  domain = pde::PoissonProblemCellType::kInterior;
   problem.SetSource(f);
-
-  for (auto const& sub : domain.Iterate()) {
-    domain(sub) = pde::PoissonProblemCellType::kInterior;
-  }
   problem.SetDomain(domain);
 
-  math::StaggeredLattice<2, pde::PoissonProblemBoundaryType> bd_t({N, N});
+  math::StaggeredLattice<2, pde::PoissonProblemBoundaryType> bd_t(N, N);
+  math::StaggeredLattice<2, real> bd_v(N, N);
+
   bd_t.X() = pde::PoissonProblemBoundaryType::kInvalid;
   bd_t.Y() = pde::PoissonProblemBoundaryType::kInvalid;
-  math::StaggeredLattice<2, real> bd_v({N, N});
   bd_v.X() = 0;
   bd_v.Y() = 0;
   // Left & Right bd:
@@ -78,8 +74,10 @@ int main(int argc, char* argv[]) {
   }
 
   l2_err = std::sqrt(l2_err);
-  std::cout << "L2 error: " << l2_err << std::endl;
+  AX_LOG(WARNING) << "L2 error: " << l2_err << std::endl;
 
+
+  // Visualize the solution
   auto ent = create_entity();
   math::vecxr val = sol.ToMatrix().reshaped();
   auto height_field = gl::make_height_field(val, N, N);

@@ -1,5 +1,7 @@
 #pragma once
 #include "axes/math/lattice.hpp"
+#include "axes/utils/opt.hpp"
+#include "axes/math/linsys/sparse.hpp"
 
 namespace ax::pde {
 
@@ -18,44 +20,46 @@ enum class PoissonProblemCellType {
 
 /**
  * @brief Declares a Poisson problem with constant coefficient. The problem is defined as
- *    -∇·(c ∇u) + b·∇u + a u = f
- * where a, b, c is a constant coefficient.
- * @note c could be a scalar or a lattice.
+ *    -∇·∇ u + a u = f
+ * where a is a constant coefficient.
  * @tparam dim
  */
-template <idx dim> class PoissonProblemOnLattice {
+template <idx dim> class PoissonProblemCellCentered : public utils::Tunable {
 public:
   using RealLattice = ax::math::Lattice<dim, real>;
   using veci = ax::math::veci<dim>;
   static constexpr real invalid_value = std::numeric_limits<real>::infinity();
+  // Constructor
+  PoissonProblemCellCentered(idx n, real dx);
 
-  StatusOr<RealLattice> Solve() const;
-
+  // Check if the problem is available
   Status CheckAvailable();
 
-  PoissonProblemOnLattice(idx n, real dx);
+  // Solve the problem
+  StatusOr<RealLattice> Solve();
 
+  // If the boundaries are unchanged, we can solve the problem more efficiently
+  StatusOr<RealLattice> SolveUnchanged(math::vecxr const& source);
+
+  // Domain and boundary conditions
   void SetDomain(math::Lattice<dim, PoissonProblemCellType> const& domain);
-
+  void SetSource(RealLattice const& f);
   void SetBoundaryCondition(math::StaggeredLattice<dim, PoissonProblemBoundaryType> const& bc_type,
                             math::StaggeredLattice<dim, real> const& bc_value);
-
   void ReportDomain();
 
+  // PDE coefficients
   void SetA(real a);
-  void SetB(math::vecr<dim> const& b);
-  void SetC(real c);
-  void SetSource(RealLattice const& f);
-
   void SetDx(real dx);
 
+  // Derived from Tunable
+  virtual Status SetOptions(utils::Opt const& option);
+  virtual utils::Opt GetOptions() const;
 
 private:
   // Problem definition
   real dx_;
   idx n_;
-  real c_;
-  math::vecr<dim> b_;
   real a_;
   RealLattice f_;
 
@@ -66,6 +70,14 @@ private:
   // Solution lattice, including ghost cells and outer cells
   RealLattice solution_;
   math::Lattice<dim, PoissonProblemCellType> cell_type_;
+
+  // Helpers for SolverUnchanged.
+  math::vecxr bc_source_;
+  math::Lattice<dim, idx> dof_map_;
+
+  // Solver
+  utils::uptr<math::SparseSolverBase> sparse_solver_;
+  std::string sparse_solver_name_;
 };
 
 }  // namespace ax::pde

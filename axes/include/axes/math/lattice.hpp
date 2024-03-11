@@ -200,6 +200,10 @@ public:
   StaggeredLattice() = default;
   AX_DECLARE_CONSTRUCTOR(StaggeredLattice, default, default);
 
+
+  template<typename ... Idxs>
+  StaggeredLattice(Idxs... shape) : StaggeredLattice(veci<D>{shape...}) {}
+
   StaggeredLattice(veci<D> const& shape) : shape_(shape) { Reshape(shape); }
 
   void Reshape(veci<D> const& shape) {

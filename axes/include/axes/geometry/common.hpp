@@ -171,10 +171,21 @@ private:
   container vertices_;
 };
 
+/************************* SECT: Type Definitions *************************/
+
 using Quadrahedron2 = Quadrahedron<2>;
 using Quadrahedron3 = Quadrahedron<3>;
 
 using SurfaceMesh = std::pair<math::field3r, math::field3i>;
 using TetraMesh = std::pair<math::field3r, math::field4i>;
+
+template <idx dim>
+using PointCloudN = math::fieldr<dim>;
+
+using PointCloud2 = PointCloudN<2>;
+using PointCloud3 = PointCloudN<3>;
+
+template <idx dim>
+using PointCloudWithNormal = std::pair<PointCloudN<dim>, math::fieldr<dim>>;
 
 }  // namespace ax::geo

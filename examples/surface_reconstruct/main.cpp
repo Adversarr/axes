@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     original = create_entity();
     auto& mesh = add_component<gl::Mesh>(original);
     std::tie(mesh.vertices_, mesh.indices_) = std::make_pair(vertices, indices);
-    mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+    mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_, geo::face_angle_avg);
     mesh.colors_.resize(4, mesh.vertices_.cols());
     mesh.colors_.setConstant(1);
     mesh.colors_.topRows(3) = mesh.normals_;

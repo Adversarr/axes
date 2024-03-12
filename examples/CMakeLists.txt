@@ -16,4 +16,5 @@ axes_add_example(decimate axes_gui)
 axes_add_example(lattice_poisson2d axes_gui)
 axes_add_example(char_burgers axes_gui)
 axes_add_example(surface_reconstruct axes_gui)
+axes_add_example(normal axes_gui)
 

@@ -103,4 +103,14 @@ AX_FORCE_INLINE auto psolve(MBcr<A> a, MBcr<B> b) {
   return a.completeOrthogonalDecomposition().solve(b);
 }
 
+/****************************** angle ******************************/
+template <typename A, typename B>
+AX_FORCE_INLINE auto angle(MBcr<A> a, MBcr<B> b) {
+  auto norm_a = norm(a);
+  auto norm_b = norm(b);
+  auto cos_theta = dot(a, b) / (norm_a * norm_b);
+  return math::acos(math::clamp(cos_theta, -1.0, 1.0));
+}
+
+
 }  // namespace ax::math

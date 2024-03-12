@@ -79,7 +79,14 @@ public:
 
   AX_FORCE_INLINE auto Normal() const noexcept { return math::cross(b_ - a_, c_ - a_); }
 
-  // TODO: methods
+  AX_FORCE_INLINE auto Area() const noexcept { return math::norm(Normal()) / 2; }
+
+  AX_FORCE_INLINE auto Angle(idx i) const noexcept {
+    auto const& a = i == 0 ? a_ : (i == 1 ? b_ : c_);
+    auto const& b = i == 0 ? b_ : (i == 1 ? c_ : a_);
+    auto const& c = i == 0 ? c_ : (i == 1 ? a_ : b_);
+    return math::angle(b-a, c-a);
+  }
 
 private:
   value_type a_;
@@ -88,7 +95,7 @@ private:
 };
 
 using Traingle2 = TriangleN<2>;
-using Traingle3 = TriangleN<3>;
+using Triangle3 = TriangleN<3>;
 
 /****************************** Tetrahedron ******************************/
 

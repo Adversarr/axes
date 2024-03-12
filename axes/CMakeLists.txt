@@ -40,7 +40,7 @@ target_link_libraries(axes
   range-v3::range-v3
   OpenVDB::openvdb
   igl::igl_core
-  blosc
+  blosc_static
   ZLIB::ZLIB
 )
 

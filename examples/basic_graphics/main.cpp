@@ -13,6 +13,7 @@
 #include "axes/gl/colormap.hpp"
 #include "axes/gl/primitives/lines.hpp"
 #include "axes/gl/primitives/mesh.hpp"
+#include "axes/gl/primitives/quiver.hpp"
 #include "axes/gl/window.hpp"
 #include "axes/utils/time.hpp"
 
@@ -120,6 +121,16 @@ int main(int argc, char** argv) {
   ctx.GetCamera().SetProjectionMode(true);
   mesh.use_lighting_ = true;
   mesh.is_flat_ = false;
+
+  auto& quiver = add_component<gl::Quiver>(create_entity());  // Quiver
+  quiver.flush_ = true;
+  quiver.positions_.resize(3, 4);
+  quiver.positions_.setRandom();
+  quiver.directions_ = quiver.positions_;
+  quiver.colors_.resize(4, 4);
+  quiver.colors_.setConstant(1);
+  quiver.colors_.row(1).setConstant(0.3);
+
 
   bool rotate = absl::GetFlag(FLAGS_rotate);
 

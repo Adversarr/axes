@@ -9,6 +9,7 @@
 #include "impl/render_mesh.hpp"
 #include "impl/render_point.hpp"
 #include "impl/render_line.hpp"
+#include "impl/render_quiver.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -278,6 +279,8 @@ Context::Context() {
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<PointRenderer>());
+  impl_->renderers_.emplace_back(std::make_unique<QuiverRenderer>());
+
   for (auto& renderer : impl_->renderers_) {
     AX_CHECK_OK(renderer->Setup());
   }

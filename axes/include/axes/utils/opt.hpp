@@ -116,7 +116,7 @@ template <typename T> StatusOr<bool> sync_to_field(T& value, Opt const& options,
   return true;
 }
 #define AX_SYNC_OPT(opt, type, var)                                         \
-  if (auto status = sync_to_field<type>(var##_, opt, #var); !status.ok()) { \
+  if (auto status = ::ax::utils::sync_to_field<type>(var##_, opt, #var); !status.ok()) { \
     return status.status();                                                 \
   }
 

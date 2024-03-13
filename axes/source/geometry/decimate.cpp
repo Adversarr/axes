@@ -52,7 +52,7 @@ Status MeshDecimator::Run() {
       math::mat4r Q_modified = math::eye<4>();
       Q_modified.topRows<3>() = Q.leftCols<3>().transpose();
       auto qr = Q_modified.colPivHouseholderQr();
-      auto solution = qr.solve(math::vec4r{0, 0, 0, 1}).eval();
+      auto solution =  qr.solve(math::vec4r{0, 0, 0, 1}).eval();
       ci.target_position = solution.head<3>();
     }
     ci.cost = eval_cost(Q, ci.target_position);

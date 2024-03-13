@@ -23,9 +23,12 @@
 #include "axes/vdb/volumetomesh.hpp"
 #include "solve_poisson.hpp"
 
+#undef ERROR
+
 using namespace ax;
 ABSL_FLAG(std::string, obj_file, "box_naive.obj", "The obj file to load");
 ABSL_FLAG(real, voxel_size, -1, "The voxel size for the point cloud");
+ABSL_FLAG(idx, sample, 10, "Number of points sampled each face");
 
 Entity original, vdb_tree, reconstructed;
 
@@ -52,7 +55,7 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Text("Vertices: %td", vertices.cols());
   ImGui::Text("Indices: %td", indices.cols());
   ImGui::Text("Point Cloud: %td", point_cloud_position.cols());
-  real min = -20.0, max = 20.0;
+  real min = -50.0, max = 50.0;
   if (ImGui::SliderFloat("Ratio", &ratio, min, max)) {
     auto& mesh = get_component<gl::Mesh>(reconstructed);
     vdb::VolumeToMesh mesher(ratio);
@@ -103,10 +106,11 @@ int main(int argc, char** argv) {
     mesh.flush_ = false;
 
     math::field3r interp;
+    N_sample = absl::GetFlag(FLAGS_sample);
     interp.resize(3, N_sample);
     for (auto p: math::each(interp)) {
-      real x = random() / ((real) RAND_MAX);
-      real y = random() / ((real) RAND_MAX) * (1 - x);
+      real x = rand() / ((real) RAND_MAX);
+      real y = rand() / ((real) RAND_MAX) * (1 - x);
       real z = 1 - x - y;
       p = math::vec3r(x, y, z);
     }

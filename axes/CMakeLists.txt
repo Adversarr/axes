@@ -32,6 +32,12 @@ set(ABSL_LIBRARIES
   absl::failure_signal_handler
   absl::statusor)
 
+ if (MSVC)
+    set(BLOSC_LIB blosc_shared)
+ else()
+    set(BLOSC_LIB blosc_static)
+ endif()
+
 target_link_libraries(axes
   PUBLIC
   Eigen3::Eigen
@@ -40,7 +46,7 @@ target_link_libraries(axes
   range-v3::range-v3
   OpenVDB::openvdb
   igl::igl_core
-  blosc_static
+  ${BLOSC_LIB}
   ZLIB::ZLIB
 )
 

@@ -85,9 +85,12 @@ math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i con
     math::vec3r const& c = vertices.col(indices(2, i));
     geo::Triangle3 const triangle(a, b, c);
 
+    math::vec3r const normal = triangle.Normal().normalized();
+
     for (int j = 0; j < 3; ++j) {
-      vertex_normals.col(indices(j, i)) += triangle.Normal() * triangle.Angle(j);
-      vertex_angle_sum(indices(j, i)) += triangle.Angle(j);
+      real angle = triangle.Angle(j);
+      vertex_normals.col(indices(j, i)) += normal * angle;
+      vertex_angle_sum(indices(j, i)) += angle;
     }
   }
 

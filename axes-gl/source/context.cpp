@@ -152,13 +152,21 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       // Rotate the world model matrix.
       dx *= mouse_sensitivity_ * 0.005;
       dy *= mouse_sensitivity_ * 0.005;
-      model_rotate_x_ += static_cast<f32>(dx);
-      model_rotate_y_ += static_cast<f32>(dy);
       math::mat3f rx
-          = Eigen::AngleAxis<f32>(model_rotate_y_, math::vec3f::UnitX()).toRotationMatrix();
+          = Eigen::AngleAxis<f32>(dy, math::vec3f::UnitX()).toRotationMatrix();
       math::mat3f ry
-          = Eigen::AngleAxis<f32>(-model_rotate_x_, math::vec3f::UnitY()).toRotationMatrix();
-      model_.topLeftCorner<3, 3>() = (rx * ry).cast<f32>();
+          = Eigen::AngleAxis<f32>(-dx, math::vec3f::UnitY()).toRotationMatrix();
+
+      model_.topLeftCorner<3, 3>() *= (rx * ry).cast<f32>();
+
+
+      // model_rotate_x_ += static_cast<f32>(dx);
+      // model_rotate_y_ += static_cast<f32>(dy);
+      // math::mat3f rx
+      //     = Eigen::AngleAxis<f32>(model_rotate_y_, math::vec3f::UnitX()).toRotationMatrix();
+      // math::mat3f ry
+      //     = Eigen::AngleAxis<f32>(-model_rotate_x_, math::vec3f::UnitY()).toRotationMatrix();
+      // model_.topLeftCorner<3, 3>() = (rx * ry).cast<f32>();
     }
   }
   prev_cursor_pos_ = evt.pos_;

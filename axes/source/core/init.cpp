@@ -10,6 +10,8 @@
 #include "axes/core/echo.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/utils/common.hpp"
+#include <openvdb/openvdb.h>
+
 
 namespace ax {
 
@@ -44,6 +46,9 @@ void init(int argc, char** argv) {
   /****************************** Setup Entt Registry ******************************/
   registry_p = std::make_unique<entt::registry>();
   dispatcher_p = std::make_unique<entt::dispatcher>();
+
+  /****************************** Vdb ******************************/
+  openvdb::initialize();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {

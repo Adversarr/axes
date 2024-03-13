@@ -4,9 +4,7 @@
 #include "axes/math/common.hpp"
 
 namespace ax::vdb {
-namespace openvdb {
-using namespace ::openvdb;
-}
+
 /************************* SECT: Real Scalar Grid *************************/
 using RealGrid = openvdb::DoubleGrid;
 using RealTree = openvdb::DoubleTree;
@@ -24,5 +22,9 @@ using Vec3rGridConstPtr = typename Vec3rGrid::ConstPtr;
 using Vec3rTree = openvdb::Vec3DTree;
 using Vec3rTreePtr = openvdb::Vec3DTree::Ptr;
 using Vec3rTreeConstPtr = openvdb::Vec3DTree::ConstPtr;
+
+using Coord = openvdb::Coord;
+using CoordBBox = openvdb::CoordBBox;
+
 
 }  // namespace ax::vdb

@@ -3,10 +3,7 @@
 #include <igl/readOBJ.h>
 #include <imgui.h>
 #include <openvdb/tools/GridOperators.h>
-#include <openvdb/tools/PoissonSolver.h>
 #include <openvdb/tools/VolumeToMesh.h>
-#include <openvdb/tools/ChangeBackground.h>
-
 #include <axes/gl/utils.hpp>
 
 #include "axes/components/name.hpp"
@@ -24,6 +21,7 @@
 #include "axes/utils/asset.hpp"
 #include "axes/vdb/pointcloud.hpp"
 #include "axes/vdb/volumetomesh.hpp"
+#include "solve_poisson.hpp"
 
 using namespace ax;
 ABSL_FLAG(std::string, obj_file, "box_naive.obj", "The obj file to load");
@@ -38,7 +36,7 @@ math::field3r point_cloud_position, point_cloud_normal;
 
 float ratio = 0;
 
-idx N_sample = 40;
+idx N_sample = 10;
 
 real voxel_size;
 vdb::Vec3rGridPtr normal_grid;
@@ -54,7 +52,7 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Text("Vertices: %td", vertices.cols());
   ImGui::Text("Indices: %td", indices.cols());
   ImGui::Text("Point Cloud: %td", point_cloud_position.cols());
-  real min = -5.0, max = 5.0;
+  real min = -20.0, max = 20.0;
   if (ImGui::SliderFloat("Ratio", &ratio, min, max)) {
     auto& mesh = get_component<gl::Mesh>(reconstructed);
     vdb::VolumeToMesh mesher(ratio);
@@ -132,7 +130,7 @@ int main(int argc, char** argv) {
   transform = pg.Transform();
 
   ax::math::field1r ones = math::ones<1>(point_cloud_position.cols());
-  normal_grid = pg.TransferStaggered("normal", point_cloud_normal);
+  normal_grid = pg.TransferCellCenter("normal", point_cloud_normal);
   auto ones_grid = pg.TransferCellCenter("ones", ones);
 
   { // Visualize the normal grid
@@ -176,39 +174,21 @@ int main(int argc, char** argv) {
   }
 
   auto divergence = openvdb::tools::divergence(*normal_grid);
-  AX_LOG(INFO) << "before: active=" << divergence->activeVoxelCount();
-  for (auto it = divergence->beginValueOff(); it; ++it) {
-    it.setValue(0);
-  }
-  AX_LOG(INFO) << "after: active=" << divergence->activeVoxelCount();
-
-
+  divergence->tree().voxelizeActiveTiles();
   openvdb::CoordBBox bbox = divergence->evalActiveVoxelBoundingBox();
-  for (auto iter = divergence->beginValueOn(); iter; ++iter) {
-    auto val = *iter;
-    iter.setValue(-val);
-  }
+
+  // auto divergence_filled = vdb::RealGrid::create();
+  // divergence_filled->fill(bbox, 0);
+  // for (auto iter = divergence->beginValueOn(); iter; ++iter) {
+  //   divergence_filled->tree().setValue(iter.getCoord(), *iter);
+  // }
+  // divergence_filled->setTransform(transform);
+
   AX_LOG(INFO) << "Lower Bounds: " << bbox.min();
   AX_LOG(INFO) << "Upper Bounds: " << bbox.max();
 
-  openvdb::math::pcg::State state = openvdb::math::pcg::terminationDefaults<double>();
-  openvdb::util::NullInterrupter interrupter;
 
-  auto boundary = [&bbox](const openvdb::Coord& ijk, const openvdb::Coord& neighbor, double& source,
-                          double& diagonal) {
-    // if (!bbox.isInside(ijk)) {
-    //   diagonal -= 1;
-    // }
-  };
-  {
-    auto solution_tree = openvdb::tools::poisson::solveWithBoundaryConditions(
-        divergence->tree(), boundary, state, interrupter);
-    auto solution = openvdb::DoubleGrid::create(solution_tree);
-    distance = solution;
-
-    AX_LOG(INFO) << "Poisson Equation solved. activeVoxelCount=" << distance->activeVoxelCount()
-                 << "\tOriginal BBox Size=" << divergence->evalActiveVoxelBoundingBox().volume();
-  }
+  distance = solve_poisson(divergence);
   vdb::VolumeToMesh mesher(ratio);
   auto mesh = mesher(distance);
 

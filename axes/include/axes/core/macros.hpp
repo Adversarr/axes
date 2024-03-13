@@ -93,14 +93,6 @@
 #  endif
 #endif
 
-#ifndef AX_UNREACHABLE
-#  if __cplusplus >= 201703L
-#    define AX_UNREACHABLE [[unreachable]]
-#  else
-#    define AX_UNREACHABLE
-#  endif
-#endif
-
 #ifndef AX_LIKELY
 #  if __cplusplus >= 201703L
 #    define AX_LIKELY [[likely]]

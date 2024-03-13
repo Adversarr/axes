@@ -1,9 +1,11 @@
 #include "render_mesh.hpp"
 
 #include <glad/glad.h>
+#include <imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "axes/components/name.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/geometry/normal.hpp"
 #include "axes/gl/context.hpp"
@@ -45,6 +47,7 @@ Status MeshRenderer::TickRender() {
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, md] : view_component<MeshRenderData>().each()) {
+    if (!md.enable_) continue;
     if (md.use_global_model_) {
       AX_CHECK_OK(prog_.SetUniform("model", model));
     } else {
@@ -201,6 +204,25 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   AX_DLOG(INFO) << "MeshRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
+}
+
+void MeshRenderer::RenderGui() {
+  if (ImGui::TreeNode("MeshRenderer")) {
+    for (auto [ent, mesh] : view_component<MeshRenderData>().each()) {
+      ImGui::PushID(&mesh.enable_);
+      ImGui::Checkbox("Enable", &mesh.enable_);
+      ImGui::PopID();
+      ImGui::SameLine();
+      ImGui::Text("Entity: %d, #v=%ld, #e=%ld, #i=%ld", entt::to_integral(ent),
+                  mesh.vertices_.size(), mesh.indices_.size(), mesh.instances_.size());
+      auto* name = try_get_component<cmpt::Name>(ent);
+      if (name != nullptr) {
+        ImGui::SameLine();
+        ImGui::Text("Name: %s", name->value_.c_str());
+      }
+    }
+    ImGui::TreePop();
+  }
 }
 
 }  // namespace ax::gl

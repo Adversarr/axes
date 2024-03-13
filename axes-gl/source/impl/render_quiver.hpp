@@ -15,7 +15,7 @@ struct QuiverRenderVertexData {
 struct QuiverRenderData {
   std::vector<QuiverRenderVertexData> vertices_;
   Vao vao_;
-
+  bool enable_{true};
   bool use_global_model_{true};
   QuiverRenderData(Quiver const& quiver);
   ~QuiverRenderData();
@@ -27,6 +27,7 @@ public:
   virtual ~QuiverRenderer();
   virtual Status TickRender();
   virtual Status TickLogic();
+  void RenderGui() final;
   virtual Status Erase(Entity entity);
   virtual Status Setup();
   virtual Status CleanUp();

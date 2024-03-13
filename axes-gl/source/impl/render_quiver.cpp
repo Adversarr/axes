@@ -1,11 +1,13 @@
 #include "render_quiver.hpp"
 
+#include "axes/components/name.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/details/gl_call.hpp"
 #include "axes/gl/helpers.hpp"
 #include "axes/gl/program.hpp"
 #include "axes/utils/asset.hpp"
 #include "axes/utils/status.hpp"
+#include <imgui.h>
 
 namespace ax::gl {
 
@@ -40,6 +42,9 @@ Status QuiverRenderer::TickRender() {
   AX_CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, quiver_data] : view_component<QuiverRenderData>().each()) {
+    if (! quiver_data.enable_){
+      continue;
+    }
     if (quiver_data.use_global_model_) {
       AX_CHECK_OK(prog_.SetUniform("model", model));
     } else {
@@ -125,5 +130,24 @@ QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
 }
 
 QuiverRenderData::~QuiverRenderData() {}
+
+void QuiverRenderer::RenderGui() {
+  if (ImGui::TreeNode("QuiverRenderer")) {
+    for (auto [ent, quiver] : view_component<QuiverRenderData>().each()) {
+      ImGui::PushID(entt::to_integral(ent));
+      ImGui::Checkbox("Enable", &quiver.enable_);
+      ImGui::PopID();
+      ImGui::SameLine();
+      ImGui::Text("Entity: %d, #v=%ld", entt::to_integral(ent), quiver.vertices_.size());
+
+      auto* name = try_get_component<cmpt::Name>(ent);
+      if (name != nullptr) {
+        ImGui::SameLine();
+        ImGui::Text("Name: %s", name->value_.c_str());
+      }
+    }
+    ImGui::TreePop();
+  }
+}
 
 }  // namespace ax::gl

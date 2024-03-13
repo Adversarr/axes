@@ -2,13 +2,14 @@
 
 #include <implot.h>
 
+#include "axes/components/name.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/geometry/primitives.hpp"
 #include "axes/gl/extprim/axes.hpp"
 #include "axes/utils/status.hpp"
+#include "impl/render_line.hpp"
 #include "impl/render_mesh.hpp"
 #include "impl/render_point.hpp"
-#include "impl/render_line.hpp"
 #include "impl/render_quiver.hpp"
 
 #define GLFW_INCLUDE_NONE
@@ -179,26 +180,34 @@ void Context::Impl::OnUiRender(UiRenderEvent const&) {
   ImGui::SetNextWindowSize(ImVec2(500, h));
   ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
   if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-    ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
-    ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(),
-                camera_.GetPosition().y(), camera_.GetPosition().z());
-    ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
-    ImGui::Checkbox("Perspective", &camera_.use_perspective_);
-    update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
-    update_light_ = ImGui::Checkbox("Render light", &render_light_);
-    update_light_ |= ImGui::InputFloat3("Light", &light_.position_.x());
-    update_light_ |= ImGui::SliderFloat("Light Ambi", &light_.ambient_strength_, 0.0f, 1.0f);
-    update_light_ |= ImGui::SliderFloat("Light Diff", &light_.diffuse_strength_, 0.0f, 1.0f);
-    update_light_ |= ImGui::SliderFloat("Light Spec", &light_.specular_strength_, 0.0f, 1.0f);
+    if (ImGui::CollapsingHeader("Scene")) {
+      ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
+      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(),
+                  camera_.GetPosition().y(), camera_.GetPosition().z());
+      ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
+      ImGui::Checkbox("Perspective", &camera_.use_perspective_);
+      update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
+      update_light_ = ImGui::Checkbox("Render light", &render_light_);
+      update_light_ |= ImGui::InputFloat3("Light", &light_.position_.x());
+      update_light_ |= ImGui::SliderFloat("Light Ambi", &light_.ambient_strength_, 0.0f, 1.0f);
+      update_light_ |= ImGui::SliderFloat("Light Diff", &light_.diffuse_strength_, 0.0f, 1.0f);
+      update_light_ |= ImGui::SliderFloat("Light Spec", &light_.specular_strength_, 0.0f, 1.0f);
+      ImGui::ColorEdit3("Clear Color", &clear_color_.x());
+    }
 
-    ImGui::ColorEdit3("Clear Color", &clear_color_.x());
-    ImGui::Text("Help: ");
-    ImGui::BulletText("Use WASD to move camera");
-    ImGui::BulletText("Use HJKL to rotate camera");
-    ImGui::BulletText("Use Alt+Mouse to rotate camera");
-    ImGui::BulletText("Use Shift+Mouse to move camera");
-    ImGui::BulletText("Use Ctrl+Mouse to zoom (also move) camera");
-    ImGui::BulletText("Use Space+Mouse to rotate the whole world");
+    if (ImGui::CollapsingHeader("Help & Shortcuts")) {
+      ImGui::BulletText("Use HJKL to rotate camera");
+      ImGui::BulletText("Use WASD to move camera");
+      ImGui::BulletText("Use Alt+Mouse to rotate camera");
+      ImGui::BulletText("Use Shift+Mouse to move camera");
+      ImGui::BulletText("Use Ctrl+Mouse to zoom (also move) camera");
+      ImGui::BulletText("Use Space+Mouse to rotate the whole world");
+    }
+    if (ImGui::CollapsingHeader("Renderers")) {
+      for (auto& renderer : renderers_) {
+        renderer->RenderGui();
+      }
+    }
   }
   ImGui::End();
 }
@@ -251,8 +260,8 @@ Context::Context() {
   impl_->light_.ambient_strength_ = 0.1f;
   impl_->prev_cursor_pos_ = impl_->window_.GetCursorPos();
 
-  impl_->axis_entity_ = create_entity();
-  impl_->light_entity_ = create_entity();
+  impl_->axis_entity_ = cmpt::create_named_entity("SceneAxis");
+  impl_->light_entity_ = cmpt::create_named_entity("SceneLight");
 
   /* SECT: Listen on Signals */
   connect<KeyboardEvent, &Impl::OnKey>(*impl_);

@@ -5,9 +5,11 @@
 #include <openvdb/tools/GridOperators.h>
 #include <openvdb/tools/PoissonSolver.h>
 #include <openvdb/tools/VolumeToMesh.h>
+#include <openvdb/tools/ChangeBackground.h>
 
 #include <axes/gl/utils.hpp>
 
+#include "axes/components/name.hpp"
 #include "axes/core/echo.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/core/init.hpp"
@@ -36,7 +38,7 @@ math::field3r point_cloud_position, point_cloud_normal;
 
 float ratio = 0;
 
-idx N_sample = 20;
+idx N_sample = 40;
 
 real voxel_size;
 vdb::Vec3rGridPtr normal_grid;
@@ -88,7 +90,7 @@ int main(int argc, char** argv) {
   std::tie(vertices, indices) = obj_result.value();
 
   {  // Setup Original
-    original = create_entity();
+    original = cmpt::create_named_entity("Input Mesh");
     auto& mesh = add_component<gl::Mesh>(original);
     std::tie(mesh.vertices_, mesh.indices_) = std::make_pair(vertices, indices);
     mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_, geo::face_angle_avg);
@@ -129,7 +131,9 @@ int main(int argc, char** argv) {
   point_index_grid = pg.IndexGrid();
   transform = pg.Transform();
 
+  ax::math::field1r ones = math::ones<1>(point_cloud_position.cols());
   normal_grid = pg.TransferStaggered("normal", point_cloud_normal);
+  auto ones_grid = pg.TransferCellCenter("ones", ones);
 
   { // Visualize the normal grid
     idx active_cnt = normal_grid->activeVoxelCount();
@@ -157,22 +161,33 @@ int main(int argc, char** argv) {
 
 
   {
-    // vdb_tree = create_entity();
-    // idx active_cnt = normal_grid->activeVoxelCount();
-    // auto& points = add_component<gl::Points>(vdb_tree);
-    // points.colors_.resize(4, active_cnt);
-    // points.colors_.setConstant(1);
-    // points.vertices_.resize(3, active_cnt);
-    // points.point_size_ = 3;
-    // idx cnt = 0;
-    // for (auto iter = normal_grid->beginValueOn(); iter.test(); ++iter) {
-    //   auto position = transform->indexToWorld(iter.getCoord());
-    //   points.vertices_.col(cnt++) = math::vec3r(position.x(), position.y(), position.z());
-    // }
+    vdb_tree = cmpt::create_named_entity("Vdb Tree");
+    idx active_cnt = normal_grid->activeVoxelCount();
+    auto& points = add_component<gl::Points>(vdb_tree);
+    points.colors_.resize(4, active_cnt);
+    points.colors_.setConstant(1);
+    points.vertices_.resize(3, active_cnt);
+    points.point_size_ = 3;
+    idx cnt = 0;
+    for (auto iter = normal_grid->beginValueOn(); iter.test(); ++iter) {
+      auto position = transform->indexToWorld(iter.getCoord());
+      points.vertices_.col(cnt++) = math::vec3r(position.x(), position.y(), position.z());
+    }
   }
 
   auto divergence = openvdb::tools::divergence(*normal_grid);
+  AX_LOG(INFO) << "before: active=" << divergence->activeVoxelCount();
+  for (auto it = divergence->beginValueOff(); it; ++it) {
+    it.setValue(0);
+  }
+  AX_LOG(INFO) << "after: active=" << divergence->activeVoxelCount();
+
+
   openvdb::CoordBBox bbox = divergence->evalActiveVoxelBoundingBox();
+  for (auto iter = divergence->beginValueOn(); iter; ++iter) {
+    auto val = *iter;
+    iter.setValue(-val);
+  }
   AX_LOG(INFO) << "Lower Bounds: " << bbox.min();
   AX_LOG(INFO) << "Upper Bounds: " << bbox.max();
 
@@ -197,7 +212,7 @@ int main(int argc, char** argv) {
   vdb::VolumeToMesh mesher(ratio);
   auto mesh = mesher(distance);
 
-  reconstructed = create_entity();
+  reconstructed = cmpt::create_named_entity("Reconstructed Mesh");
   auto& mesh_reconstructed = add_component<gl::Mesh>(reconstructed);
   std::tie(mesh_reconstructed.vertices_, mesh_reconstructed.indices_) = mesh;
 

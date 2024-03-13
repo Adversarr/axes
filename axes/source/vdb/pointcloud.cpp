@@ -53,4 +53,52 @@ Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r
   return transferred_grid;
 }
 
+Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3r const& field) {
+  idx cnt = field.cols();
+  std::vector<openvdb::Vec3R> values;
+  values.reserve(cnt);
+  for (auto v : math::each(field)) {
+    values.push_back(openvdb::Vec3R(v.x(), v.y(), v.z()));
+  }
+  openvdb::points::PointAttributeVector<openvdb::Vec3R> value_wrapper(values);
+
+  using Codec = openvdb::points::NullCodec;
+  openvdb::points::TypedAttributeArray<vdb::Vec3r, Codec>::registerType();
+  openvdb::NamePair transfer_attribute
+      = openvdb::points::TypedAttributeArray<vdb::Vec3r, Codec>::attributeType();
+  openvdb::points::appendAttribute(point_data_grid_->tree(), name, transfer_attribute);
+  openvdb::points::populateAttribute(point_data_grid_->tree(), point_index_grid_->tree(), name,
+                                     value_wrapper);
+
+  auto transferred_tree = openvdb::DynamicPtrCast<vdb::Vec3rTree>(
+      openvdb::points::rasterizeTrilinear<false, vdb::Vec3r>(point_data_grid_->tree(), name));
+  auto transferred_grid = vdb::Vec3rGrid::create(transferred_tree)->deepCopy();
+  transferred_grid->setTransform(transform_);
+  return transferred_grid;
+}
+
+
+RealGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field1r const& field) {
+  idx cnt = field.cols();
+  std::vector<real> values;
+  values.reserve(cnt);
+  for (auto v : math::each(field)) {
+    values.push_back(v.x());
+  }
+  openvdb::points::PointAttributeVector<real> value_wrapper(values);
+
+  using Codec = openvdb::points::NullCodec;
+  openvdb::points::TypedAttributeArray<real, Codec>::registerType();
+  openvdb::NamePair transfer_attribute = openvdb::points::TypedAttributeArray<real, Codec>::attributeType();
+  openvdb::points::appendAttribute(point_data_grid_->tree(), name, transfer_attribute);
+  openvdb::points::populateAttribute(point_data_grid_->tree(), point_index_grid_->tree(), name,
+                                     value_wrapper);
+
+  auto transferred_tree = openvdb::DynamicPtrCast<vdb::RealTree>(
+      openvdb::points::rasterizeTrilinear<false, real>(point_data_grid_->tree(), name));
+  auto transferred_grid = vdb::RealGrid::create(transferred_tree)->deepCopy();
+  transferred_grid->setTransform(transform_);
+  return transferred_grid;
+}
+
 }  // namespace ax::vdb

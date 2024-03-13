@@ -14,6 +14,7 @@ public:
   virtual Status Erase(entt::entity entity) = 0;
   virtual Status Setup() = 0;
   virtual Status CleanUp() = 0;
+  virtual void RenderGui() {}
 };
 
 }  // namespace ax::gl

@@ -1,9 +1,11 @@
 #include "render_line.hpp"
 
 #include <glad/glad.h>
+#include <imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "axes/components/name.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/details/gl_call.hpp"
@@ -17,9 +19,11 @@ namespace ax::gl {
 LineRenderer::LineRenderer() {}
 
 Status LineRenderer::Setup() {
-  AX_ASSIGN_OR_RETURN(vs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex));
+  AX_ASSIGN_OR_RETURN(
+      vs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex));
 
-  AX_ASSIGN_OR_RETURN(fs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment));
+  AX_ASSIGN_OR_RETURN(
+      fs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment));
 
   AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
 
@@ -38,6 +42,7 @@ Status LineRenderer::TickRender() {
   AX_CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, line_data] : view_component<LineRenderData>().each()) {
+    if (!line_data.enable_) continue;
     if (line_data.use_global_model_) {
       AX_CHECK_OK(prog_.SetUniform("model", model));
     } else {
@@ -45,13 +50,14 @@ Status LineRenderer::TickRender() {
     }
     if (line_data.instance_data_.size() > 0) {
       AXGL_WITH_BINDR(line_data.vao_) {
-        AX_RETURN_NOTOK(line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
-                                                             Type::kUnsignedInt, 0, line_data.instance_data_.size()));
+        AX_RETURN_NOTOK(line_data.vao_.DrawElementsInstanced(
+            PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0,
+            line_data.instance_data_.size()));
       }
     } else {
       AXGL_WITH_BINDR(line_data.vao_) {
-        AX_RETURN_NOTOK(
-            line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
+        AX_RETURN_NOTOK(line_data.vao_.DrawElements(
+            PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
       }
     }
   }
@@ -157,7 +163,8 @@ LineRenderData::LineRenderData(const Lines& lines) {
         AX_CHECK_OK(vao_.EnableAttrib(2));
         AX_CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, sizeof(LineInstanceData), 0));
         AX_CHECK_OK(vao_.EnableAttrib(3));
-        AX_CHECK_OK(vao_.SetAttribPointer(3, 4, Type::kFloat, false, sizeof(LineInstanceData), sizeof(glm::vec3)));
+        AX_CHECK_OK(vao_.SetAttribPointer(3, 4, Type::kFloat, false, sizeof(LineInstanceData),
+                                          sizeof(glm::vec3)));
         AX_CHECK_OK(vao_.SetAttribDivisor(2, 1));
         AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
       }
@@ -169,5 +176,24 @@ LineRenderData::LineRenderData(const Lines& lines) {
 }
 
 LineRenderData::~LineRenderData() {}
+
+void LineRenderer::RenderGui() {
+  if (ImGui::TreeNode("LineRenderer")) {
+    for (auto [ent, mesh] : view_component<LineRenderData>().each()) {
+      ImGui::PushID(&mesh.enable_);
+      ImGui::Checkbox("Enable", &mesh.enable_);
+      ImGui::PopID();
+      ImGui::SameLine();
+      ImGui::Text("Entity: %d, #v=%ld, #e=%ld", entt::to_integral(ent), mesh.vertices_.size(),
+                  mesh.indices_.size());
+      auto* name = try_get_component<cmpt::Name>(ent);
+      if (name != nullptr) {
+        ImGui::SameLine();
+        ImGui::Text("Name: %s", name->value_.c_str());
+      }
+    }
+    ImGui::TreePop();
+  }
+}
 
 }  // namespace ax::gl

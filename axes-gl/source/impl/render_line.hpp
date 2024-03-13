@@ -26,7 +26,7 @@ struct LineRenderData {
   std::vector<GLuint> indices_;
 
   Vao vao_;
-
+  bool enable_{true};
   bool use_global_model_{true};
   LineRenderData(Lines const& line);
   ~LineRenderData();
@@ -39,6 +39,7 @@ public:
   virtual Status TickRender();
   virtual Status TickLogic();
   virtual Status Erase(Entity entity);
+  void RenderGui() final;
   virtual Status Setup();
   virtual Status CleanUp();
 

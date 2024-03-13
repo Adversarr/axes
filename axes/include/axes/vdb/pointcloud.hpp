@@ -23,6 +23,7 @@ public:
   Vec3rGridPtr TransferStaggered(std::string const& name, math::field3r const& field);
 
   Vec3rGridPtr TransferCellCenter(std::string const& name, math::field3r const& field);
+  RealGridPtr TransferCellCenter(std::string const& name, math::field1r const& field);
 
 private:
   PointDataGrid::Ptr point_data_grid_;

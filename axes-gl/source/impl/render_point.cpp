@@ -3,7 +3,9 @@
 #include <glad/glad.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
 
+#include "axes/components/name.hpp"
 #include "axes/core/entt.hpp"
 #include "axes/gl/context.hpp"
 #include "axes/gl/details/gl_call.hpp"
@@ -43,6 +45,9 @@ Status PointRenderer::TickRender() {
   AX_CHECK_OK(prog_.SetUniform("projection", projection));
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, point_data] : view_component<PointRenderData>().each()) {
+    if (!point_data.enable_) {
+      continue;
+    }
     AX_CHECK_OK(prog_.SetUniform("psize", point_data.point_size_));
     if (point_data.use_global_model_) {
       AX_CHECK_OK(prog_.SetUniform("model", model));
@@ -133,5 +138,25 @@ PointRenderData::PointRenderData(const Points& point) {
 }
 
 PointRenderData::~PointRenderData() {}
+
+void PointRenderer::RenderGui() {
+  if (ImGui::TreeNode("PointRenderer")) {
+    for (auto [ent, point_data] : view_component<PointRenderData>().each()) {
+      ImGui::PushID(entt::to_integral(ent));
+      ImGui::Checkbox("Enable", &point_data.enable_);
+      ImGui::PopID();
+
+      ImGui::SameLine();
+      ImGui::Text("Entity: %d, #v=%ld", entt::to_integral(ent), point_data.vertices_.size());
+      auto* name = try_get_component<cmpt::Name>(ent);
+      if (name != nullptr) {
+        ImGui::SameLine();
+        ImGui::Text("Name: %s", name->value_.c_str());
+      }
+    }
+
+    ImGui::TreePop();
+  }
+}
 
 }  // namespace ax::gl

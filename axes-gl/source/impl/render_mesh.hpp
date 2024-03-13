@@ -27,6 +27,7 @@ struct MeshRenderData {
   std::vector<GLuint> indices_;
   Vao vao_;
 
+  bool enable_{true};
   bool use_global_model_{false};
   bool is_flat_{false};
   bool use_lighting_{false};
@@ -39,6 +40,7 @@ public:
   virtual ~MeshRenderer();
   virtual Status TickRender();
   virtual Status TickLogic();
+  void RenderGui() final;
   virtual Status Erase(Entity entity);
   virtual Status Setup();
   virtual Status CleanUp();

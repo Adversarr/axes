@@ -22,6 +22,8 @@ struct PointRenderData {
 
   Vao vao_;
 
+  bool enable_{true};
+
   bool use_global_model_{true};
   PointRenderData(Points const& point);
   ~PointRenderData();
@@ -33,6 +35,7 @@ public:
   virtual ~PointRenderer();
   virtual Status TickRender();
   virtual Status TickLogic();
+  void RenderGui() final;
   virtual Status Erase(Entity entity);
   virtual Status Setup();
   virtual Status CleanUp();

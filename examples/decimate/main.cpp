@@ -4,7 +4,6 @@
 #include <imgui.h>
 
 #include <axes/gl/utils.hpp>
-#include <fstream>
 
 #include "axes/core/echo.hpp"
 #include "axes/core/entt.hpp"

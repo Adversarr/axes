@@ -152,10 +152,13 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       // Rotate the world model matrix.
       dx *= mouse_sensitivity_ * 0.005;
       dy *= mouse_sensitivity_ * 0.005;
+      auto up = camera_.GetUp();
+      auto right = camera_.GetRight();
+
       math::mat3f rx
-          = Eigen::AngleAxis<f32>(dy, math::vec3f::UnitX()).toRotationMatrix();
+          = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
       math::mat3f ry
-          = Eigen::AngleAxis<f32>(-dx, math::vec3f::UnitY()).toRotationMatrix();
+          = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
 
       model_.topLeftCorner<3, 3>() *= (rx * ry).cast<f32>();
 

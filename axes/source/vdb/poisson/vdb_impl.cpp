@@ -12,7 +12,14 @@ StatusOr<RealGridPtr> VdbPoissonSolver::operator()(RealGridPtr source) {
   state.success = false;
 
   openvdb::util::NullInterrupter interrupter;
-  auto solution_tree = openvdb::tools::poisson::solve(source->tree(), state, interrupter);
+  RealTreePtr solution_tree;
+
+  if (!boundary_condition_) {
+    solution_tree = openvdb::tools::poisson::solve(source->tree(), state, interrupter);
+  } else {
+    solution_tree = openvdb::tools::poisson::solveWithBoundaryConditions(
+        source->tree(), boundary_condition_, state, interrupter);
+  }
   return RealGrid::create(solution_tree);
 }
 

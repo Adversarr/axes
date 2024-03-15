@@ -8,7 +8,7 @@
 
 namespace ax::math {
 
-enum SparseSolverKind : idx {
+enum class SparseSolverKind : idx {
   // Direct
   kLDLT,
   kLLT,
@@ -23,6 +23,8 @@ enum SparseSolverKind : idx {
 
 class SparseSolverBase : public LinsysSolverBase<LinsysProblem_Sparse> {
 public:
+  SparseSolverBase();
+
   static utils::uptr<SparseSolverBase> Create(SparseSolverKind kind);
 
   inline void SetPreconditioner(utils::uptr<PreconditionerBase> preconditioner) {
@@ -30,6 +32,8 @@ public:
   }
 
   virtual ~SparseSolverBase() = default;
+
+  virtual SparseSolverKind Kind() const = 0;
 
 protected:
   utils::uptr<PreconditionerBase> preconditioner_{nullptr};

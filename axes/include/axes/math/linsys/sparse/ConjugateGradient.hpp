@@ -9,9 +9,18 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
+  Status SetOptions(utils::Opt const &) final;
+
+  utils::Opt GetOptions() const final;
+
+  SparseSolverKind Kind() const final { return SparseSolverKind::kConjugateGradient; }
+
 private:
-  Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower | Eigen::Upper,
-                           Eigen::DiagonalPreconditioner<real>>
+  Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower,
+                           Eigen::IncompleteCholesky<real, Eigen::Lower, Eigen::AMDOrdering<idx>>>
       solver_;
+
+  idx max_iter_ = 100;
+  real tol_ = 1e-6;
 };
 }  // namespace ax::math

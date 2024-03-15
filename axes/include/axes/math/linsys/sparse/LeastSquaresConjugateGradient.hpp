@@ -9,6 +9,8 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
+  SparseSolverKind Kind() const final { return SparseSolverKind::kLeastSquaresConjugateGradient; }
+
 private:
   Eigen::LeastSquaresConjugateGradient<sp_matxxr> solver_;
 };

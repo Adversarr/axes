@@ -12,23 +12,25 @@ namespace ax::math {
 
 utils::uptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
   switch (kind) {
-    case kLDLT:
+    case SparseSolverKind::kLDLT:
       return std::make_unique<SparseSolver_LDLT>();
-    case kLLT:
+    case SparseSolverKind::kLLT:
       return std::make_unique<SparseSolver_LLT>();
-    case kLU:
+    case SparseSolverKind::kLU:
       return std::make_unique<SparseSolver_LU>();
-    case kQR:
+    case SparseSolverKind::kQR:
       return std::make_unique<SparseSolver_QR>();
-    case kConjugateGradient:
+    case SparseSolverKind::kConjugateGradient:
       return std::make_unique<SparseSolver_ConjugateGradient>();
-    case kLeastSquaresConjugateGradient:
+    case SparseSolverKind::kLeastSquaresConjugateGradient:
       return std::make_unique<SparseSolver_LeastSquaresConjugateGradient>();
-    case kBiCGSTAB:
+    case SparseSolverKind::kBiCGSTAB:
       return std::make_unique<SparseSolver_BiCGSTAB>();
     default:
       return nullptr;
   }
 }
+
+SparseSolverBase::SparseSolverBase() {}
 
 }  // namespace ax::math

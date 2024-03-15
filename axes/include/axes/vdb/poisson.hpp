@@ -21,7 +21,7 @@ public:
   static utils::uptr<PoissonSolverBase> Create(PoissonSolverKind kind);
 
   void SetBoundaryCondition(BcFunc boundary_condition);
-private:
+protected:
   BcFunc boundary_condition_;
 };
 

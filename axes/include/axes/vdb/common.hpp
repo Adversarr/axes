@@ -1,7 +1,7 @@
 #pragma once
 #include <openvdb/openvdb.h>
 
-#include "axes/math/common.hpp"
+#include "axes/core/common.hpp"
 
 namespace ax::vdb {
 
@@ -12,7 +12,6 @@ using RealGridPtr = RealGrid::Ptr;
 using RealGridConstPtr = RealGrid::ConstPtr;
 using RealTreePtr = RealTree::Ptr;
 using RealTreeConstPtr = RealTree::ConstPtr;
-
 
 /************************* SECT: Real Vector Field *************************/
 using Vec3r = openvdb::Vec3d;
@@ -25,6 +24,5 @@ using Vec3rTreeConstPtr = openvdb::Vec3DTree::ConstPtr;
 
 using Coord = openvdb::Coord;
 using CoordBBox = openvdb::CoordBBox;
-
 
 }  // namespace ax::vdb

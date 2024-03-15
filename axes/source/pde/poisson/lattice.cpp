@@ -27,8 +27,8 @@ template <idx dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(i
   dof_map_ = -1;
 
   // default sparse solver is ldlt.
-  sparse_solver_name_ = "LDLT";
-  sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kLDLT);
+  sparse_solver_name_ = "ConjugateGradient";
+  sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
 }
 
 template <idx dim> void PoissonProblemCellCentered<dim>::SetSource(RealLattice const& f) {

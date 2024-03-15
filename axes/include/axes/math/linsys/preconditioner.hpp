@@ -6,15 +6,17 @@
 
 namespace ax::math {
 
-enum PreconditionerKind : idx { kIdentity, kDiagonal, kIncompleteCholesky, kIncompleteLU };
+enum class PreconditionerKind : idx { kIdentity, kDiagonal, kIncompleteCholesky, kIncompleteLU };
 
-class PreconditionerBase {
+class PreconditionerBase : public utils::Tunable {
 public:
   static utils::uptr<PreconditionerBase> Create(PreconditionerKind kind);
 
   virtual ~PreconditionerBase() = default;
   virtual Status Analyse(LinsysProblem_Sparse const &problem) = 0;
   virtual vecxr Solve(vecxr const &b, vecxr const &x0) = 0;
+
+  virtual PreconditionerKind Kind() const = 0;
 };
 
 }  // namespace ax::math

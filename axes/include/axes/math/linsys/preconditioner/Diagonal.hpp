@@ -9,6 +9,8 @@ public:
 
   vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
+  PreconditionerKind Kind() const final { return PreconditionerKind::kDiagonal; }
+
 private:
   Eigen::DiagonalPreconditioner<real> impl_;
 };

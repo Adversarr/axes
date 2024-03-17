@@ -154,17 +154,11 @@ template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(DBcr<A> mv) {
   return mv.trace();
 }
 
-template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) {
-  return mv.all();
-}
+template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) { return mv.all(); }
 
-template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) {
-  return mv.any();
-}
+template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) { return mv.any(); }
 
-template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) {
-  return mv.count();
-}
+template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) { return mv.count(); }
 
 /****************************** argxxx ******************************/
 
@@ -187,6 +181,17 @@ using std::clamp;
 using std::fmod;
 using std::lgamma;
 using std::tgamma;
+
+template <idx dim> math::veci<dim> imod(const math::veci<dim>& a, const math::veci<dim>& b) {
+  math::veci<dim> output;
+#ifdef __clang__
+#pragma unroll
+#endif
+  for (idx d = 0; d < dim; ++d) {
+    output[d] = a[d] % b[d];
+  }
+  return output;
+}
 
 namespace details {
 constexpr real factorials[32] = {1.0,

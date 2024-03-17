@@ -1,7 +1,7 @@
 #include "axes/pde/poisson/lattice.hpp"
 
-#include <Eigen/SparseCholesky>
 #include <Eigen/IterativeLinearSolvers>
+#include <Eigen/SparseCholesky>
 
 #define is_interior(sub) ((sub).minCoeff() >= 0 && ((sub).array() - n_).maxCoeff() < 0)
 
@@ -21,10 +21,9 @@ template <idx dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(i
 
   solution_ = RealLattice(shape);
   a_ = 0;
-  bc_value_ = math::StaggeredLattice<dim, real>(shape);
-  bc_type_ = math::StaggeredLattice<dim, PoissonProblemBoundaryType>(shape);
-  dof_map_ = math::Lattice<dim, idx>(shape);
-  dof_map_ = -1;
+  bc_value_.Reshape(shape, math::staggered);
+  bc_type_.Reshape(shape, math::staggered);
+  dof_map_.Reshape(shape);
 
   // default sparse solver is ldlt.
   sparse_solver_name_ = "ConjugateGradient";
@@ -43,7 +42,8 @@ template <idx dim> void PoissonProblemCellCentered<dim>::SetDomain(
   cell_type_ = PoissonProblemCellType::kOuter;
   AX_CHECK((domain.Shape().array() == cell_type_.Shape().array()).all())
       << "Domain shape mismatch:"
-      << "domain: " << domain.Shape().transpose() << ", desired: " << cell_type_.Shape().transpose();
+      << "domain: " << domain.Shape().transpose()
+      << ", desired: " << cell_type_.Shape().transpose();
   cell_type_ = domain;
 }
 
@@ -66,8 +66,8 @@ template <idx dim> void PoissonProblemCellCentered<dim>::ReportDomain() {
 }
 
 template <idx dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
-    math::StaggeredLattice<dim, PoissonProblemBoundaryType> const& bc_type,
-    math::StaggeredLattice<dim, real> const& bc_value) {
+    math::Lattice<dim, std::array<PoissonProblemBoundaryType, dim>> const& bc_type,
+    math::Lattice<dim, math::vecr<dim>> const& bc_value) {
   AX_CHECK((bc_type.Shape().array() == bc_value.Shape().array()).all())
       << "Boundary condition shape mismatch:"
       << "bc_type: " << bc_type.Shape().transpose()
@@ -76,6 +76,9 @@ template <idx dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
   AX_CHECK((bc_type.Shape().array() == (bc_type_.Shape()).array()).all())
       << "Boundary condition shape mismatch:"
       << "bc_type: " << bc_type.Shape().transpose() << "desired: " << bc_type_.Shape().transpose();
+
+  AX_CHECK(bc_type.IsStaggered()) << "Boundary condition should be staggered.";
+  AX_CHECK(bc_value.IsStaggered()) << "Boundary condition should be staggered.";
 
   bc_type_ = bc_type;
   bc_value_ = bc_value;
@@ -98,29 +101,36 @@ template <idx dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
       for (idx d = 0; d < dim; ++d) {
         for (idx s : {-1, 1}) {
           auto neighbor = sub + s * math::unit<dim, idx>(d);
-          if (! is_interior(neighbor)) {
+          if (!cell_type_.IsSubValid(neighbor, math::cell_center)) {
             continue;
           }
-          math::veci<dim> stagger_sub = sub;
-          if (s == 1) {
-            stagger_sub(d) += 1;
-          }
+
+          /**
+           *   +-----+
+           *   |     |
+           *  -1  c  1
+           *   |     |
+           *   +-----+
+           */
+          math::veci<dim> stagger_sub = s == -1 ? sub : neighbor;
 
           if (cell_type_(neighbor) == PoissonProblemCellType::kOuter) {
             // Check if the boundary condition is set
-            if (bc_type_(d, stagger_sub) == PoissonProblemBoundaryType::kInvalid) {
+            if (bc_type_(stagger_sub)[d] == PoissonProblemBoundaryType::kInvalid) {
               AX_LOG(ERROR) << "sub" << to_char(cell_type_(sub)) << ": " << sub.transpose()
                             << ", neighbour" << to_char(cell_type_(neighbor)) << ": "
                             << neighbor.transpose() << ", boundary type is Invalid";
               return utils::InvalidArgumentError("G-I face should have boundary condition.");
             }
-          } else if (cell_type_(neighbor) == PoissonProblemCellType::kInterior ||
-                     cell_type_(neighbor) == PoissonProblemCellType::kDirect) {
+          } else if (cell_type_(neighbor) == PoissonProblemCellType::kInterior
+                     || cell_type_(neighbor) == PoissonProblemCellType::kDirect) {
             // Check there is no boundary condition set on the interior face.
-            if (bc_type_(d, stagger_sub) != PoissonProblemBoundaryType::kInvalid) {
+            if (bc_type_(stagger_sub)[d] != PoissonProblemBoundaryType::kInvalid) {
               AX_LOG(ERROR) << "sub" << to_char(cell_type_(sub)) << ": " << sub.transpose()
                             << ", neighbour" << to_char(cell_type_(neighbor)) << ": "
-                            << neighbor.transpose() << ", boundary type is not Invalid";
+                            << neighbor.transpose() << "BC Sub=" << stagger_sub.transpose()
+                            << " d=" << d
+                            << ", boundary type is not Invalid." << static_cast<int>(bc_type_(stagger_sub)[d]);
               return utils::InvalidArgumentError("I-I face should not have boundary condition.");
             }
           }
@@ -131,8 +141,8 @@ template <idx dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
   AX_RETURN_OK();
 }
 
-template <idx dim>
-StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice> PoissonProblemCellCentered<dim>::Solve() {
+template <idx dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
+PoissonProblemCellCentered<dim>::Solve() {
   AX_DLOG(INFO) << "PoissonProblemOnLattice Options:" << GetOptions();
 
   idx dofs = 0;
@@ -146,19 +156,15 @@ StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice> PoissonProblemCe
   rhs.setZero();
   bc_source_.resize(dofs);
   bc_source_.setZero();
-  dof_map_ = -1;
 
   math::sp_matxxr A(dofs, dofs);
-  std::map<idx, math::veci<dim>> dof_map__inv;
   idx cnt = 0;
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     if (t == PoissonProblemCellType::kInterior) {
       dof_map_(sub) = cnt;
-      dof_map__inv[cnt] = sub;
       cnt += 1;
     }
   }
-
   // build matrix
   math::sp_coeff_list coef;
   coef.reserve(dofs * 5);  // 5 point stencil
@@ -184,8 +190,8 @@ StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice> PoissonProblemCe
         if (s == 1) {
           stagger_sub(d) += 1;
         }
-        auto bc_val = bc_value_(d, stagger_sub);
-        auto bc_type = bc_type_(d, stagger_sub);
+        auto bc_val = bc_value_(stagger_sub)[d];
+        auto bc_type = bc_type_(stagger_sub)[d];
         if (bc_type == PoissonProblemBoundaryType::kDirichlet) {
           AX_DLOG(INFO) << "Dirichlet: " << sub.transpose() << ", " << neighbor.transpose();
           local_center += c;
@@ -240,15 +246,12 @@ StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice> PoissonProblemCe
   return solution;
 }
 
-template<idx dim>
-StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice> 
+template <idx dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
 PoissonProblemCellCentered<dim>::SolveUnchanged(math::vecxr const& source) {
   if (source.size() != bc_source_.size()) {
     return utils::InvalidArgumentError("Source size mismatch.");
   }
-  auto result = sparse_solver_->Solve(
-    bc_source_ + source,
-    math::vecxr::Zero(bc_source_.size()));
+  auto result = sparse_solver_->Solve(bc_source_ + source, math::vecxr::Zero(bc_source_.size()));
   if (!result.ok()) {
     return result.status();
   }

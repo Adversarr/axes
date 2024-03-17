@@ -1,7 +1,5 @@
 #pragma once
-
-#include <range/v3/range.hpp>
-#include <range/v3/view.hpp>
+#include <range/v3/core.hpp>
 
 /**
  * NOTE: Export all ranges and views from the ranges-v3 library.

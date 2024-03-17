@@ -5,13 +5,13 @@
 
 namespace ax::pde {
 
-enum class PoissonProblemBoundaryType {
+enum class PoissonProblemBoundaryType : int {
   kDirichlet,
   kNeumann,
   kInvalid
 };
 
-enum class PoissonProblemCellType {
+enum class PoissonProblemCellType : int {
   kInterior,  // Inside the domain,  will solve
   kOuter,     // Out of boundary,    will not solve, and will not be used
   kDirect,    // Directly specified, will not solve, but will be used,
@@ -44,8 +44,8 @@ public:
   // Domain and boundary conditions
   void SetDomain(math::Lattice<dim, PoissonProblemCellType> const& domain);
   void SetSource(RealLattice const& f);
-  void SetBoundaryCondition(math::StaggeredLattice<dim, PoissonProblemBoundaryType> const& bc_type,
-                            math::StaggeredLattice<dim, real> const& bc_value);
+  void SetBoundaryCondition(math::Lattice<dim, std::array<PoissonProblemBoundaryType, dim>> const& bc_type,
+                            math::Lattice<dim, math::vecr<dim>> const& bc_value);
   void ReportDomain();
 
   // PDE coefficients
@@ -64,8 +64,8 @@ private:
   RealLattice f_;
 
   // Boundary conditions
-  math::StaggeredLattice<dim, real> bc_value_;
-  math::StaggeredLattice<dim, PoissonProblemBoundaryType> bc_type_;
+  math::Lattice<dim, math::vecr<dim>> bc_value_;
+  math::Lattice<dim, std::array<PoissonProblemBoundaryType, dim>> bc_type_;
 
   // Solution lattice, including ghost cells and outer cells
   RealLattice solution_;

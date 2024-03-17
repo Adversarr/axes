@@ -59,6 +59,10 @@ template <typename Derived, typename = std::enable_if_t<is_eigen_v<Derived>>> st
 template <typename Derived> constexpr idx rows_v = details::EigenInfo<Derived>::rows;
 template <typename Derived> constexpr idx cols_v = details::EigenInfo<Derived>::cols;
 
+template <typename Derived> constexpr bool is_vector_v = (cols_v<Derived> == 1);
+template <typename Derived> constexpr bool is_row_vector_v = (rows_v<Derived> == 1);
+
+
 template <typename A, typename B> constexpr bool same_rows_v = rows_v<A> == rows_v<B>;
 template <typename A, typename B> constexpr bool same_cols_v = cols_v<A> == cols_v<B>;
 template <typename A, typename B> constexpr bool same_shape_v = same_rows_v<A, B> && same_cols_v<A, B>;

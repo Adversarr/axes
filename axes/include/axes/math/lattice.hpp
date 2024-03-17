@@ -2,11 +2,16 @@
 #include "axes/core/echo.hpp"
 #include "axes/math/common.hpp"
 #include "axes/math/functional.hpp"
-#include "axes/math/range.hpp"
+#include "axes/math/ndrange.hpp"
 #include "axes/math/traits.hpp"
 #include "axes/utils/common.hpp"
 
 namespace ax::math {
+
+struct cell_center_t {};
+struct staggered_t {};
+constexpr cell_center_t cell_center;
+constexpr staggered_t staggered;
 
 /**
  * @brief Lattice represents a grid which stores the value at the center of each cell.
@@ -26,37 +31,64 @@ template <idx D, typename T> class Lattice {
 public:
   using Container = std::vector<T>;
 
-  explicit Lattice(veci<D> const& shape) : shape_(shape) { Reshape(shape); }
+  explicit Lattice(veci<D> const& shape, cell_center_t = cell_center)
+      : shape_(shape), is_staggered_(false) {
+    Reshape(shape);
+  }
+
+  explicit Lattice(veci<D> const& shape, staggered_t) : shape_(shape), is_staggered_(true) {
+    Reshape(shape, staggered);
+  }
+
+  AX_FORCE_INLINE bool IsSubValid(veci<D> const& sub, cell_center_t = cell_center) const {
+    return (sub.array() >= 0).all() && (sub.array() < shape_.array()).all();
+  }
+
+  AX_FORCE_INLINE bool IsSubValid(veci<D> const& sub, staggered_t) const {
+    return (sub.array() >= 0).all() && (sub.array() <= shape_.array()).all();
+  }
 
   Lattice() : shape_(veci<D>::Zero()) {}
 
   AX_DECLARE_CONSTRUCTOR(Lattice, default, default);
 
-  template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>> Lattice(Idx... shape)
-      : Lattice(veci<D>{shape...}) {}
+  template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
+  Lattice(Idx... shape, cell_center_t = cell_center) : Lattice(veci<D>{shape...}) {}
 
+  template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
+  Lattice(Idx... shape, staggered_t) : Lattice(veci<D>{shape...}, staggered) {}
+
+  bool IsStaggered() const { return is_staggered_; }
   veci<D> const& Shape() const { return shape_; }
 
-  void Reshape(veci<D> const& shape) {
+  void Reshape(veci<D> const& shape, cell_center_t = cell_center) {
     shape_ = shape;
     strides_[D - 1] = 1;
     for (idx i = D - 1; i > 0; --i) {
       strides_[i - 1] = strides_[i] * shape_[i];
     }
     field_.resize(math::prod(shape));
+    is_staggered_ = false;
+  }
+
+  void Reshape(veci<D> const& shape, staggered_t) {
+    shape_ = shape;
+    auto shape_plus_one = shape + veci<D>::Ones();
+    strides_[D - 1] = 1;
+    for (idx i = D - 1; i > 0; --i) {
+      strides_[i - 1] = strides_[i] * shape_plus_one[i];
+    }
+    field_.resize(math::prod(shape_plus_one));
+    is_staggered_ = true;
   }
 
   veci<D> const& Strides() const { return strides_; }
-
   T& operator()(veci<D> const& sub) { return field_[sub2ind(strides_, sub)]; }
-
   T const& operator()(veci<D> const& sub) const { return field_[sub2ind(strides_, sub)]; }
-
   template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
   T& operator()(Idx... idx) {
     return field_[sub2ind(strides_, veci<D>{idx...})];
   }
-
   template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
   T const& operator()(Idx... idx) const {
     return field_[sub2ind(strides_, veci<D>{idx...})];
@@ -126,26 +158,28 @@ public:
   }
 
   AX_FORCE_INLINE auto Iterate() const {
-    return utils::multi_iota<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
+    return utils::ndrange<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
   }
 
   AX_FORCE_INLINE auto begin() const { return field_.begin(); }
   AX_FORCE_INLINE auto end() const { return field_.end(); }
+  AX_FORCE_INLINE auto begin() { return field_.begin(); }
+  AX_FORCE_INLINE auto end() { return field_.end(); }
 
   AX_FORCE_INLINE auto Enumerate() {
     return Iterate() | utils::ranges::views::transform([this](veci<D> const& sub) {
-             return std::pair(sub, this->operator()(sub));
+             return std::make_pair(sub, this->operator()(sub));
            });
   }
 
   AX_FORCE_INLINE auto Enumerate() const {
     return Iterate() | utils::ranges::views::transform([this](veci<D> const& sub) {
-             return std::pair(sub, static_cast<const Lattice*>(this)->operator()(sub));
+             return std::make_pair(sub, static_cast<const Lattice*>(this)->operator()(sub));
            });
   }
 
-  template <typename Dummy = void,
-            typename = std::enable_if_t<is_scalar_v<T> && D == 2 && std::is_same_v<Dummy, Dummy>>>
+  template <typename Dummy = void, typename = std::enable_if_t<std::is_same_v<T, real> && D == 2
+                                                               && std::is_same_v<Dummy, Dummy>>>
   matxxr ToMatrix() const {
     matxxr mat(shape_[0], shape_[1]);
     for (idx i = 0; i < shape_[0]; ++i) {
@@ -158,136 +192,32 @@ public:
 
 private:
   AX_FORCE_INLINE idx sub2ind(veci<D> const& strides, veci<D> const& sub) const {
-    // TODO: Check if sub is within the shape.
+    // Check if sub is within the shape.
     AX_DCHECK(sub.minCoeff() >= 0)
         << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
-    AX_DCHECK((sub.array() < shape_.array()).all())
+    AX_DCHECK(is_staggered_ || (sub.array() < shape_.array()).all())
         << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
+    AX_DCHECK(!is_staggered_ || (sub.array() <= shape_.array()).all())
+        << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
+
     return (sub.dot(strides));
   }
 
   Container field_;
   veci<D> shape_;
   veci<D> strides_;
+  bool is_staggered_ = false;
 };
 
-/**
- * @brief StaggeredLattice represents a grid which stores the value at the faces of each cell.
- *
- *  ^ y
- *  |
- *  +--yt--+
- *  |      |
- *  xl     xr
- *  |      |   x
- *  +--yb--+-- >
- *
- * The subscript is (k, i, j) where k is the direction, i is the x-axis, and j is the y-axis. e.g.
- *   - xl subscript is (0, 0, 0), xr is (0, 1, 0), yt is (1, 0, 0), and yb is (1, 0, 1).
- *
- * Possible Usage is a velocity field in fluid simulation.
- *
- * @note This implementation use AOS (Array of Structure) instead of SOA (Structure of Array) for
- * simplicity. This may not affect the performance significantly.
- *
- * @tparam D
- * @tparam Scalar
- */
-template <idx D, typename T> class StaggeredLattice {
-public:
-  using Container = Lattice<D, T>;
-
-  StaggeredLattice() = default;
-  AX_DECLARE_CONSTRUCTOR(StaggeredLattice, default, default);
-
-
-  template<typename ... Idxs>
-  StaggeredLattice(Idxs... shape) : StaggeredLattice(veci<D>{shape...}) {}
-
-  StaggeredLattice(veci<D> const& shape) : shape_(shape) { Reshape(shape); }
-
-  void Reshape(veci<D> const& shape) {
-    shape_ = shape;
-    for (idx i = 0; i < D; ++i) {
-      fields_[i].Reshape(shape + math::unit<D, idx>(i));
-    }
+template<idx D, typename T>
+T interpolate(Lattice<D, T> const& lattice, vecr<D> const& pos, cell_center_t) {
+  veci<D> sub = (pos.array() + 0.5).template cast<idx>();
+  vecr<D> weights = pos - sub.template cast<real>();
+  T result = 0;
+  for (auto const& [s, w] : utils::zip(lattice.Iterate(), weights)) {
+    result += lattice(s) * (1 - w);
   }
-
-  Container const& operator[](idx i) const { return fields_[i]; }
-  Container& operator[](idx i) { return fields_[i]; }
-
-  veci<D> const& Shape() const { return shape_; }
-
-  template <typename Dummy = void,
-            typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
-  Lattice<D, vec<T, D>> ToCellCentered() const {
-    Lattice<D, vec<T, D>> cell_centered(shape_);
-    for (idx i = 0; i < D; ++i) {
-      veci<D> sub = math::unit<D, idx>(i);
-      for (auto ijk_t : utils::multi_iota<D>(shape_)) {
-        veci<D> ijk = math::tuple_to_vector<idx, D>(ijk_t);
-        cell_centered(ijk)[i] = 0.5 * (fields_[i](ijk + sub) + fields_[i](ijk));
-      }
-    }
-    return cell_centered;
-  }
-
-  template <typename Dummy = void,
-            typename = std::enable_if_t<is_scalar_v<T> && std::is_same_v<Dummy, Dummy>>>
-  Lattice<D, T> Divergence() const {
-    Lattice<D, T> div(shape_);
-    for (auto ijk_t : utils::multi_iota<D>(shape_)) {
-      // veci<D> ijk = math::tuple_to_vector<idx, D>(static_cast<utils::idx_tuple<D>>(ijk_t));
-      veci<D> ijk = math::tuple_to_vector<idx, D>(ijk_t);
-      T sum = 0;
-      for (idx i = 0; i < D; ++i) {
-        veci<D> sub = math::unit<D, idx>(i);
-        sum += fields_[i](ijk + sub) - fields_[i](ijk);
-      }
-      div(ijk) = sum;
-    }
-    return div;
-  }
-
-  AX_FORCE_INLINE T& operator()(idx i, veci<D> const& sub) { return fields_[i](sub); }
-  AX_FORCE_INLINE T const& operator()(idx i, veci<D> const& sub) const { return fields_[i](sub); }
-
-  template <typename... Idx> AX_FORCE_INLINE T& operator()(idx i, Idx... sub) {
-    return fields_[i](sub...);
-  }
-
-  template <typename... Idx> AX_FORCE_INLINE T const& operator()(idx i, Idx... sub) const {
-    return fields_[i](sub...);
-  }
-
-  AX_FORCE_INLINE Container& X() { return fields_[0]; }
-  AX_FORCE_INLINE Container const& X() const { return fields_[0]; }
-
-  template <typename Dummy = void,
-            typename = std::enable_if_t<std::is_same_v<Dummy, Dummy> && D >= 2>>
-  AX_FORCE_INLINE Container& Y() {
-    return fields_[1];
-  }
-  template <typename Dummy = void,
-            typename = std::enable_if_t<std::is_same_v<Dummy, Dummy> && D >= 2>>
-  AX_FORCE_INLINE Container const& Y() const {
-    return fields_[1];
-  }
-
-  template <typename Dummy = void,
-            typename = std::enable_if_t<std::is_same_v<Dummy, Dummy> && D >= 3>>
-  AX_FORCE_INLINE Container& Z() {
-    return fields_[2];
-  }
-  template <typename Dummy = void,
-            typename = std::enable_if_t<std::is_same_v<Dummy, Dummy> && D >= 3>>
-  AX_FORCE_INLINE Container const& Z() const {
-    return fields_[2];
-  }
-
-private:
-  std::array<Container, D> fields_;
-  veci<D> shape_;
-};
+  return result;
+}
 
 }  // namespace ax::math

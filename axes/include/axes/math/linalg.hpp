@@ -106,10 +106,13 @@ AX_FORCE_INLINE auto psolve(MBcr<A> a, MBcr<B> b) {
 /****************************** angle ******************************/
 template <typename A, typename B>
 AX_FORCE_INLINE auto angle(MBcr<A> a, MBcr<B> b) {
+  static_assert(A::ColsAtCompileTime == 1, "angle requires vectors(A)");
+  static_assert(B::ColsAtCompileTime == 1, "angle requires vectors(B)");
+
   auto norm_a = norm(a);
   auto norm_b = norm(b);
   auto cos_theta = dot(a, b) / (norm_a * norm_b);
-  return math::acos(math::clamp(cos_theta, -1.0, 1.0));
+  return acos(clamp(cos_theta, -1.0, 1.0));
 }
 
 

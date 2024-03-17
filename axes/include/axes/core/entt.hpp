@@ -18,6 +18,9 @@ AX_FORCE_INLINE entt::entity create_entity() { return global_registry().create()
 
 AX_FORCE_INLINE void destroy_entity(Entity entity) { global_registry().destroy(entity); }
 
+using entt::to_integral;
+using entt::to_entity;
+
 /****************************** Component ******************************/
 
 template <typename... Components> AX_FORCE_INLINE auto view_component() {
@@ -72,7 +75,7 @@ template <typename Event> void emit_enqueue(Event&& event) {
 
 template <typename Event> void trigger_queue() { global_dispatcher().update<Event>(); }
 
-inline void trigger_queue() { global_dispatcher().update(); }
+AX_FORCE_INLINE void trigger_queue() { global_dispatcher().update(); }
 
 template <typename Event, auto Candidate, typename... Args>
 entt::connection connect(Args&&... args) {

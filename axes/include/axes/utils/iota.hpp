@@ -1,4 +1,6 @@
 #pragma once
+#include <range/v3/view.hpp>  // IWYU pragma: export
+
 #include "axes/core/common.hpp"
 #include "axes/utils/dup_tuple.hpp"  // IWYU pragma: export
 #include "ranges.hpp"                // IWYU pragma: export

@@ -147,8 +147,8 @@ int main(int argc, char** argv) {
   beta = absl::GetFlag(FLAGS_beta);
 
   // Do computation
-  real x_min = -math::pi<real>;
-  real x_max = math::pi<real>;
+  real x_min = 0 * math::pi<real>;
+  real x_max = 2 * math::pi<real>;
   grid = math::linspace(x_min, x_max, nx);
   idx nt = absl::GetFlag(FLAGS_nt);
   u_x_t.resize(nx, nt + 1);

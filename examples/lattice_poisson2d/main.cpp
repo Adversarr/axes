@@ -28,33 +28,36 @@ int main(int argc, char* argv[]) {
   dx = 1.0 / N;
   pde::PoissonProblemCellCentered<2> problem(N, dx);
 
-  math::Lattice<2, pde::PoissonProblemCellType> domain(N, N);
-  math::Lattice<2, real> f(N, N);
+  math::Lattice<2, pde::PoissonProblemCellType> domain({N, N});
+  math::Lattice<2, real> f({N, N});
   f = 0;
   domain = pde::PoissonProblemCellType::kInterior;
   problem.SetSource(f);
   problem.SetDomain(domain);
 
-  math::StaggeredLattice<2, pde::PoissonProblemBoundaryType> bd_t(N, N);
-  math::StaggeredLattice<2, real> bd_v(N, N);
 
-  bd_t.X() = pde::PoissonProblemBoundaryType::kInvalid;
-  bd_t.Y() = pde::PoissonProblemBoundaryType::kInvalid;
-  bd_v.X() = 0;
-  bd_v.Y() = 0;
+  math::Lattice<2, std::array<pde::PoissonProblemBoundaryType, 2>> bd_t({N, N}, math::staggered);
+  math::Lattice<2, math::vec2r> bd_v({N, N}, math::staggered);
+  bd_v = math::zeros<2>();
+
+  for (auto& t: bd_t) {
+    t[0] = pde::PoissonProblemBoundaryType::kInvalid;
+    t[1] = pde::PoissonProblemBoundaryType::kInvalid;
+  }
+
   // Left & Right bd:
   for (idx j = 0; j < N; ++j) {
-    bd_t.X()(0, j) = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 0
-    bd_t.X()(N, j) = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 1
-    bd_v.X()(0, j) = exact_solution(0, (0.5 + j) * dx);
-    bd_v.X()(N, j) = exact_solution(1, (0.5 + j) * dx);
+    bd_t(0, j)[0] = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 0
+    bd_t(N, j)[0] = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 1
+    bd_v(0, j)[0] = exact_solution(0, (0.5 + j) * dx);
+    bd_v(N, j)[0] = exact_solution(1, (0.5 + j) * dx);
   }
   // Top & Bottom bd:
   for (idx i = 0; i < N; ++i) {
-    bd_t.Y()(i, 0) = pde::PoissonProblemBoundaryType::kNeumann;  // y = 0
-    bd_t.Y()(i, N) = pde::PoissonProblemBoundaryType::kNeumann;  // y = 1
-    bd_v.Y()(i, 0) = -grad_y_exact_solution((0.5 + i) * dx, 0);
-    bd_v.Y()(i, N) = grad_y_exact_solution((0.5 + i) * dx, 1);
+    bd_t(i, 0)[1] = pde::PoissonProblemBoundaryType::kNeumann;  // y = 0
+    bd_t(i, N)[1] = pde::PoissonProblemBoundaryType::kNeumann;  // y = 1
+    bd_v(i, 0)[1] = -grad_y_exact_solution((0.5 + i) * dx, 0);
+    bd_v(i, N)[1] = grad_y_exact_solution((0.5 + i) * dx, 1);
   }
 
   problem.SetBoundaryCondition(bd_t, bd_v);

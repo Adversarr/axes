@@ -12,7 +12,7 @@ AX_FORCE_INLINE auto multi_iota_from_vector_impl(math::DBcr<Derived> ends, std::
 }  // namespace details
 
 template<idx dim>
-AX_FORCE_INLINE auto multi_iota(math::veci<dim> const& ends) {
+AX_FORCE_INLINE auto ndrange(math::veci<dim> const& ends) {
   return details::multi_iota_from_vector_impl(ends, std::make_index_sequence<dim>{});
 }
 

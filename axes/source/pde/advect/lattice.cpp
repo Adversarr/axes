@@ -1,4 +1,4 @@
-// #include "axes/pde/advect/lattice.hpp"
+#include "axes/pde/advect/lattice.hpp"
 
 // #include "axes/math/range.hpp"
 

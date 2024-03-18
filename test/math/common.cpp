@@ -1,3 +1,4 @@
+#include "axes/math/functional.hpp"
 #include "axes/utils/iota.hpp"
 #include <doctest/doctest.h>
 
@@ -76,7 +77,7 @@ TEST_CASE("diag") {
 }
 
 TEST_CASE("iter") {
-  auto f = create_field<field3i>(2);
+  auto f = make_field<field3i>(2);
   for (auto v3i: each(f)) {
     v3i.setOnes();
   }
@@ -128,4 +129,17 @@ TEST_CASE("mult-iota") {
       }
     }
   }
+}
+
+TEST_CASE("constructor") {
+  using namespace ax::math;
+  auto f0 = make_zeros<float>();
+  CHECK(f0 == 0.0f);
+  auto f1 = make_ones<float>();
+  CHECK(f1 == 1.0f);
+  auto v3f0 = make_zeros<vec3f>();
+  CHECK(v3f0 == vec3f::Zero());
+
+  auto v3f1 = make_ones<vec3f>();
+  CHECK(v3f1 == vec3f::Ones());
 }

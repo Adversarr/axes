@@ -158,7 +158,7 @@ public:
   }
 
   AX_FORCE_INLINE auto Iterate() const {
-    return utils::ndrange<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
+    return math::ndrange<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
   }
 
   AX_FORCE_INLINE auto begin() const { return field_.begin(); }
@@ -209,13 +209,50 @@ private:
   bool is_staggered_ = false;
 };
 
-template<idx D, typename T>
-T interpolate(Lattice<D, T> const& lattice, vecr<D> const& pos, cell_center_t) {
-  veci<D> sub = (pos.array() + 0.5).template cast<idx>();
-  vecr<D> weights = pos - sub.template cast<real>();
-  T result = 0;
-  for (auto const& [s, w] : utils::zip(lattice.Iterate(), weights)) {
-    result += lattice(s) * (1 - w);
+template <idx D, typename T>
+T lerp_inside(Lattice<D, T> const& lattice, vecr<D> const& pos, cell_center_t = cell_center) {
+  veci<D> sub = floor(pos).template cast<idx>();
+  vecr<D> rel_pos = pos - sub.template cast<real>();
+  T result;
+  zeros_(result);
+  for (idx i = 0; i < (1 << D); ++i) {
+    veci<D> offset;
+    for (idx j = 0; j < D; ++j) {
+      offset[j] = (i >> j) & 1;
+    }
+    veci<D> off_sub = sub + offset;
+    vecr<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
+    auto weight = abs(prod(opposite_rel_pos));
+    result += lattice(off_sub) * weight;
+  }
+  return result;
+}
+
+template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D> const& pos,
+                                            bool periodic, T default_value = {},
+                                            cell_center_t = cell_center) {
+  veci<D> sub = floor(pos).template cast<idx>();
+  vecr<D> rel_pos = pos - sub.template cast<real>();
+  T result;
+  zeros_(result);
+  for (idx i = 0; i < (1 << D); ++i) {
+    veci<D> offset;
+    for (idx j = 0; j < D; ++j) {
+      offset[j] = (i >> j) & 1;
+    }
+    veci<D> off_sub = sub + offset;
+    vecr<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
+    auto weight = abs(prod(opposite_rel_pos));
+    if (lattice.IsSubValid(off_sub)) {
+      result += lattice(off_sub) * weight;
+    } else if (periodic) {
+      for (idx j = 0; j < D; ++j) {
+        off_sub[j] = (off_sub[j] + lattice.Shape()[j]) % lattice.Shape()[j];
+      }
+      result += lattice(off_sub) * weight;
+    } else {
+      result += default_value * weight;
+    }
   }
   return result;
 }

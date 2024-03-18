@@ -1,13 +1,13 @@
 #pragma once
 #include "axes/math/common.hpp"
 #include "axes/utils/iota.hpp"
-namespace ax::utils {
+namespace ax::math {
 
 /****************************** iota ******************************/
 namespace details {
 template<typename Derived, size_t ... seq>
 AX_FORCE_INLINE auto multi_iota_from_vector_impl(math::DBcr<Derived> ends, std::index_sequence<seq...>) {
-  return multi_iota(ends[seq]...);
+  return utils::multi_iota(ends[seq]...);
 }
 }  // namespace details
 

@@ -24,4 +24,23 @@ private:
   real c_ = 1.0;
 };
 
+template<idx dim, typename T>
+math::Lattice<dim, T> semi_lagrangian(const math::Lattice<dim, T>& u, const math::Lattice<dim, math::vecr<dim>>& v,
+                                      real dt, bool periodic) {
+  math::Lattice<dim, T> output(u.Shape());
+  T dv; math::zeros_(dv);
+  for (auto ijk : math::ndrange<dim>(u.Shape())) {
+    auto i = math::tuple_to_vector(ijk);
+    // TODO: Implement staggerred version.
+    if (u.IsStaggered()) {
+      // auto vel = interpolate<dim>(velocity_, X, periodic);
+      // output(i) = math::lerp_outside(u, X, periodic, dv, math::staggered);
+    } else {
+      math::vecr<dim> X = i.template cast<real>() - dt * v(i);
+      output(i) = math::lerp_outside(u, X, periodic, dv, math::cell_center);
+    }
+  }
+  return output;
+}
+
 }  // namespace ax::pde

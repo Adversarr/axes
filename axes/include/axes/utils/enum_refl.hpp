@@ -4,12 +4,25 @@
 
 #include "common.hpp"
 
+/**
+ * @namespace ax::utils
+ * @brief Contains utility functions for working with enums.
+ */
 namespace ax::utils {
 
 namespace details {
 
+/**
+ * @brief Meta builder for enum reflection.
+ * @tparam Enum The enum type.
+ */
 template <typename Enum> struct EnumReflectorMetaBuild {};
 
+/**
+ * @brief Retrieves the meta information for the given enum type.
+ * @tparam Enum The enum type.
+ * @return The meta information for the enum type.
+ */
 template <typename Enum> EnumReflectorMetaBuild<Enum> const& get_meta() {
   static EnumReflectorMetaBuild<Enum> meta;
   return meta;
@@ -17,6 +30,12 @@ template <typename Enum> EnumReflectorMetaBuild<Enum> const& get_meta() {
 
 }  // namespace details
 
+/**
+ * @brief Reflects an enum value from its string representation.
+ * @tparam Enum The enum type.
+ * @param name The string representation of the enum value.
+ * @return An optional containing the reflected enum value, or std::nullopt if the string representation is invalid.
+ */
 template <typename Enum> std::optional<Enum> reflect_enum(std::string const& name) {
   auto const& string_to_enum = details::get_meta<Enum>().string_to_enum_;
   if (auto it = string_to_enum.find(name); it != string_to_enum.end()) {
@@ -26,10 +45,21 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string const& nam
   }
 }
 
+/**
+ * @brief Retrieves the names of all enum values.
+ * @tparam Enum The enum type.
+ * @return A vector containing the names of all enum values.
+ */
 template <typename Enum> std::vector<std::string> const& reflect_names() {
   return details::get_meta<Enum>().names_;
 }
 
+/**
+ * @brief Reflects the string representation of an enum value.
+ * @tparam Enum The enum type.
+ * @param val The enum value.
+ * @return An optional containing the string representation of the enum value, or std::nullopt if the enum value is invalid.
+ */
 template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
   auto const& enum_to_string = details::get_meta<Enum>().enum_to_string_;
   if (auto it = enum_to_string.find(val); it != enum_to_string.end()) {
@@ -39,6 +69,13 @@ template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
   }
 }
 
+/**
+ * @brief Creates an object of type T based on the enum value's name.
+ * @tparam Enum The enum type.
+ * @tparam T The object type to create.
+ * @param name The name of the enum value.
+ * @return A unique pointer to the created object, or nullptr if the enum value is invalid.
+ */
 template <typename Enum, typename T> uptr<T> reflect_create(std::string_view name) {
   std::optional<Enum> val = reflect_enum<Enum>(name);
   if (!val.has_value()) {

@@ -4,6 +4,15 @@
 
 namespace ax::geo {
 
+struct EdgeCollapseCost {
+  HalfedgeEdge_t* edge;
+  math::vec3r target_position;
+  real cost;
+  bool operator<(EdgeCollapseCost const& other) const {
+    return cost > other.cost;
+  }
+};
+
 MeshDecimator::MeshDecimator(HalfedgeMesh* mesh) : mesh_(mesh), target_count_(mesh->NVertices()) {}
 
 MeshDecimator& MeshDecimator::SetRatio(real ratio) {

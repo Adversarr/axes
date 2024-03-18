@@ -1,9 +1,18 @@
 #pragma once
 
 #include "axes/math/common.hpp"
-
 namespace ax::geo {
 
+/**
+ * @brief Generates a meshgrid of points given x and y vectors.
+ *
+ * This function generates a meshgrid of points by combining the elements of the x and y vectors.
+ * The resulting meshgrid is represented as a 2D field of points.
+ *
+ * @param x The x vector.
+ * @param y The y vector.
+ * @return A 2D field of points representing the meshgrid.
+ */
 inline math::field2r meshgrid(math::vec2r x, math::vec2r y) {
   idx nx = x.size();
   idx ny = y.size();
@@ -16,6 +25,16 @@ inline math::field2r meshgrid(math::vec2r x, math::vec2r y) {
   return X;
 }
 
+/**
+ * @brief Generates a grid of triangles for a given number of points in the x and y directions.
+ *
+ * This function generates a grid of triangles for a given number of points in the x and y
+ * directions. The resulting grid is represented as a 2D field of triangles.
+ *
+ * @param nx The number of points in the x direction.
+ * @param ny The number of points in the y direction.
+ * @return A 2D field of triangles representing the grid.
+ */
 inline math::field3i make_grid_triangles(idx nx, idx ny) {
   math::field3i triangles(3, 2 * (nx - 1) * (ny - 1));
   idx id = 0;

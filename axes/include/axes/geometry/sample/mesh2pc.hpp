@@ -7,11 +7,36 @@ namespace ax::geo {
 
 /************************* SECT: Mesh to Point Cloud *************************/
 
+/**
+ * @brief A class that samples a mesh to generate a point cloud.
+ *
+ * This class takes a surface mesh and a set of interpolations as input, and provides a method to sample
+ * the mesh based on an input field. The resulting sampled points are stored in a field.
+ *
+ * @tparam dim The dimension of the mesh.
+ */
 template <idx dim> class MeshPointCloudSampler {
 public:
+  /**
+   * @brief Constructs a MeshPointCloudSampler object.
+   *
+   * @param mesh The surface mesh to sample.
+   * @param interpolations The interpolations to use for sampling.
+   */
   MeshPointCloudSampler(SurfaceMesh const& mesh, math::fieldr<dim> const& interpolations)
       : vertices_(mesh.first), indices_(mesh.second), interpolations_(interpolations) {}
 
+  /**
+   * @brief Samples the mesh based on the input field.
+   *
+   * This method takes an input field and samples the mesh based on it. The sampled points are stored
+   * in a field of the specified output dimension.
+   *
+   * @tparam out_dim The dimension of the output field.
+   * @param input The input field to use for sampling.
+   * @return A StatusOr object containing the sampled points as a field of the specified output dimension.
+   *         If an error occurs during sampling, an error status is returned.
+   */
   template <idx out_dim>
   StatusOr<math::fieldr<out_dim>> Sample(math::fieldr<out_dim> const& input) const {
     idx n_interp = interpolations_.cols();
@@ -38,9 +63,9 @@ public:
   }
 
 private:
-  math::fieldr<dim> const vertices_;
-  math::fieldi<dim> const indices_;
-  math::fieldr<dim> const interpolations_;
+  math::fieldr<dim> const vertices_;        ///< The vertices of the mesh.
+  math::fieldi<dim> const indices_;         ///< The indices of the mesh.
+  math::fieldr<dim> const interpolations_;  ///< The interpolations to use for sampling.
 };
 
 }  // namespace ax::geo

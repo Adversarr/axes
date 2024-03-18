@@ -66,9 +66,9 @@ void clean_up() {
   clean_up_hooks.clear();
 }
 
-void hook_init(const char* name, std::function<Status()> f) { init_hooks.push_back({name, f}); }
+void add_init_hook(const char* name, std::function<Status()> f) { init_hooks.push_back({name, f}); }
 
-void hook_clean_up(const char* name, std::function<Status()> f) {
+void add_clean_up_hook(const char* name, std::function<Status()> f) {
   clean_up_hooks.push_back({name, f});
 }
 

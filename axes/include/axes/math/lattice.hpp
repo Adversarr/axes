@@ -213,8 +213,7 @@ template <idx D, typename T>
 T lerp_inside(Lattice<D, T> const& lattice, vecr<D> const& pos, cell_center_t = cell_center) {
   veci<D> sub = floor(pos).template cast<idx>();
   vecr<D> rel_pos = pos - sub.template cast<real>();
-  T result;
-  zeros_(result);
+  T result = math::make_zeros<T>();
   for (idx i = 0; i < (1 << D); ++i) {
     veci<D> offset;
     for (idx j = 0; j < D; ++j) {
@@ -233,8 +232,7 @@ template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D
                                             cell_center_t = cell_center) {
   veci<D> sub = floor(pos).template cast<idx>();
   vecr<D> rel_pos = pos - sub.template cast<real>();
-  T result;
-  zeros_(result);
+  T result = math::make_zeros<T>();
   for (idx i = 0; i < (1 << D); ++i) {
     veci<D> offset;
     for (idx j = 0; j < D; ++j) {
@@ -256,5 +254,7 @@ template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D
   }
   return result;
 }
+
+
 
 }  // namespace ax::math

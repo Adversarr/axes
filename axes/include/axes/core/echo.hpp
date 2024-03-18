@@ -1,3 +1,9 @@
+/**
+ * @file echo.hpp
+ * @brief This file provides a set of macros that wrap around the absl logging and checking
+ *
+ */
+
 #pragma once
 #include <absl/log/absl_check.h>   // IWYU pragma: export
 #include <absl/log/absl_log.h>     // IWYU pragma: export

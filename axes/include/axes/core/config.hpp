@@ -20,8 +20,12 @@ using f32 = float;   ///< Alias for single precision floating point number.
 using f64 = double;  ///< Alias for double precision floating point number.
 using real = f64;    ///< Alias for double precision floating point number.
 
+using EnumUnderlyingType = std::int32_t;  ///< Alias for enum underlying type.
+
 #ifndef REAL_PRID
 #  define REAL_PRID "d"  ///< The printf format string for Real.
 #endif
 
 }  // namespace ax
+
+#define AX_DECLARE_ENUM(EnumName) enum class EnumName : ax::EnumUnderlyingType

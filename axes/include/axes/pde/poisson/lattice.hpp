@@ -8,6 +8,7 @@ namespace ax::pde {
 enum class PoissonProblemBoundaryType : int {
   kDirichlet,
   kNeumann,
+  kPeriodic,
   kInvalid
 };
 

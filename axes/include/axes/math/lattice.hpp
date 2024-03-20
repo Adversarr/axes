@@ -241,15 +241,11 @@ template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D
     veci<D> off_sub = sub + offset;
     vecr<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
     auto weight = abs(prod(opposite_rel_pos));
-    if (lattice.IsSubValid(off_sub)) {
-      result += lattice(off_sub) * weight;
-    } else if (periodic) {
-      for (idx j = 0; j < D; ++j) {
-        off_sub[j] = (off_sub[j] + lattice.Shape()[j]) % lattice.Shape()[j];
-      }
-      result += lattice(off_sub) * weight;
+    if (lattice.IsSubValid(off_sub) || periodic) {
+      result += lattice(math::imod<D>(off_sub + lattice.Shape(), lattice.Shape())) * weight;
     } else {
       result += default_value * weight;
+      std::cout << "default value: " << default_value << std::endl;
     }
   }
   return result;

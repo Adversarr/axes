@@ -32,38 +32,42 @@ private:
   real c_ = 1.0;
 };
 
-
 /**
  * @brief Semi-Lagrangian advection method for a scalar lattice.
  *
  * @tparam dim The dimension of the lattice.
  * @tparam T The type of the lattice values.
  * @param u The scalar lattice to advect.
- * @param v The velocity lattice, should be staggered.
+ * @param v The velocity lattice, should not be staggered.
  * @param dt The time step.
- * @param periodic Whether the lattice has periodic boundary conditions.
  * @return The advected lattice.
  */
-template <idx dim, typename T>
-math::Lattice<dim, T> semi_lagrangian(const math::Lattice<dim, T>& u,
-                                      const math::Lattice<dim, math::vecr<dim>>& v, real dt,
-                                      bool periodic) {
-  math::Lattice<dim, T> output(u.Shape());
-  T dv = math::make_zeros<T>();
-  for (auto ijk : math::ndrange<dim>(u.Shape())) {
-    auto i = math::tuple_to_vector(ijk);
+template <idx dim>
+math::Lattice<dim, math::vecr<dim>> semi_lagrangian(const math::Lattice<dim, math::vecr<dim>>& u,
+                                                    const math::Lattice<dim, math::vecr<dim>>& v,
+                                                    real dt, bool periodic) {
+  math::Lattice<dim, math::vecr<dim>> output(v.Shape());
+  for (auto ijk : math::ndrange<dim>(v.Shape())) {
+    math::veci<dim> i = math::tuple_to_vector<idx, dim>(ijk);
     math::vecr<dim> velocity = v(i);
-    if_likely(all(i < u.Shape()) || periodic) {
-#pragma unroll
-      for (idx d = 0; d < dim; ++d) {
-        velocity[d] += v(math::imod(i + math::unit<dim, idx>(d), u.Shape()))[d];
-      }
-      velocity *= 0.5;
-    }
-    math::vecr<dim> X = backtrace(i.template cast<real>(), velocity, dt);
-    output(i) = math::lerp_outside(u, X, periodic, dv, math::cell_center);
+    math::vecr<dim> X = backtrace<dim>(i.template cast<real>(), velocity, dt);
+    output(i) = math::lerp_outside<dim>(u, X, periodic);
   }
   return output;
+}
+
+template <idx dim>
+math::Lattice<dim, math::vecr<dim>> bfecc(const math::Lattice<dim, math::vecr<dim>>& u,
+                                          const math::Lattice<dim, math::vecr<dim>>& v, real dt,
+                                          bool periodic) {
+  math::Lattice<dim, math::vecr<dim>> x0 = semi_lagrangian<dim>(u, v, dt, periodic);
+  math::Lattice<dim, math::vecr<dim>> x1 = semi_lagrangian<dim>(x0, v, -dt, periodic);
+  math::Lattice<dim, math::vecr<dim>> x2(u.Shape());
+  for (auto ijk : math::ndrange<dim>(u.Shape())) {
+    math::veci<dim> i = math::tuple_to_vector<idx, dim>(ijk);
+    x2(i) = x0(i) + 0.5 * (x1(i) - u(i));
+  }
+  return x2;
 }
 
 /**

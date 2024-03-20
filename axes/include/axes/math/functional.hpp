@@ -79,7 +79,7 @@ AX_FORCE_INLINE auto inverse(Scalar x) {
 #define IMPLEMENT_UNARY(FUNC, OP)                                                             \
   template <typename Derived> AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
   template <typename Derived> AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
-#define A_OP_M(OP) array().OP().matrix()
+#define A_OP_M(OP) array().OP().matrix
 #define IMPLEMENT_AOPM_UNARY(FUNC) IMPLEMENT_UNARY(FUNC, A_OP_M(FUNC))
 
 IMPLEMENT_UNARY(abs, cwiseAbs)
@@ -118,7 +118,14 @@ IMPLEMENT_AOPM_UNARY(atanh)
 
 /****************************** Nearest integer ******************************/
 IMPLEMENT_AOPM_UNARY(round)
-IMPLEMENT_AOPM_UNARY(floor)
+template <typename Derived>
+__attribute__((always_inline)) inline auto floor(MBcr<Derived> mv) {
+  return mv.array().floor().matrix();
+}
+template <typename Derived>
+__attribute__((always_inline)) inline auto floor(ABcr<Derived> mv) {
+  return mv.floor();
+}
 IMPLEMENT_AOPM_UNARY(ceil)
 IMPLEMENT_AOPM_UNARY(rint)
 

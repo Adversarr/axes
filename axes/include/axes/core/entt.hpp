@@ -18,7 +18,7 @@ namespace ax {
 entt::registry& global_registry();
 
 using Entity = entt::entity; ///< Alias for entt::entity
-
+using EntityID = entt::entt_traits<Entity>::entity_type;
 /****************************** Entity ******************************/
 
 /**

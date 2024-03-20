@@ -256,7 +256,7 @@ AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tuple_impl(
  * @param tuple The DupTuple to be converted.
  * @return A vector with the same elements as the DupTuple.
  */
-template <typename T, size_t dim>
+template <typename T, idx dim>
 AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
 }

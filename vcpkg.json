@@ -21,6 +21,7 @@
       ]
     },
     "implot",
+    "imgui-node-editor",
     "glad",
     "openvdb",
     "blosc",

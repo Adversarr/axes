@@ -1,7 +1,6 @@
 #include "axes/optim/common.hpp"
 
 #include "axes/core/echo.hpp"
-#include "common.hpp"
 
 namespace ax::optim {
 

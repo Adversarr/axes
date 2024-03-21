@@ -12,7 +12,7 @@
 #pragma once
 #include "axes/math/common.hpp"
 
-namespace ax::fem {
+namespace ax::pde::elements {
 
 template <typename Derived> struct ConformingElementBase {
   using impl_type = Derived;
@@ -21,4 +21,4 @@ template <typename Derived> struct ConformingElementBase {
   using scalar_type = typename Derived::scalar_type;
 };
 
-}  // namespace ax::fem
+}  // namespace ax::pde::elements

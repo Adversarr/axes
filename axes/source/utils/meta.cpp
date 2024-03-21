@@ -13,7 +13,7 @@ void initialize_type_meta_registry() {
     AX_LOG(WARNING) << "TypeMeta registry already initialized";
     return;
   }
-  add_resource<MetaRegistry>(std::make_shared<MetaRegistry>());
+  add_resource<MetaRegistry>();
 }
 
 }

@@ -2,6 +2,8 @@
 #include <memory>
 #include <variant>
 
+#include "axes/core/common.hpp"  // IWYU pragma: export
+
 namespace ax::utils {
 
 /****************************** Commonly Used Pointer Decl ******************************/

@@ -5,15 +5,21 @@
  */
 
 #pragma once
-#include "axes/core/entt.hpp"
+#include <tuple>
+#include <typeindex>
+
 #include "axes/utils/common.hpp"
-#include "axes/utils/meta.hpp"
 
 namespace ax::graph {
 
-  class Graph;
+class Graph;
 class GraphExecutorBase;
-
+class DataLoadBase;
+template <typename PayloadType> class DataLoad;
+class Pin;
+class NodeBase;
+class NodeDescriptor;
+class NodeDescriptorFactoryBase;
 
 AX_DECLARE_ENUM(PinIOType){
     kInput = 0,   // Input pin
@@ -26,41 +32,58 @@ AX_DECLARE_ENUM(PinStatus){
 };
 
 /************************* SECT: DataLoad *************************/
-template <typename PayloadType> class DataLoad;
+
 /**
  * @brief DataLoadBase class: The base class of DataLoad.
  */
 class DataLoadBase {
 public:
   bool HasChanged() const noexcept { return changed_; }
-  
+
   void ResetChanged() noexcept { changed_ = false; }
 
+  Pin* GetSource() const { return source_; }
+
+  std::vector<Pin*> const& GetConnections() const { return connections_; }
 protected:
-  explicit DataLoadBase(void* data);
+  friend class Graph;
+  void AddOutputConnection(Pin* pin) { connections_.push_back(pin); }
+  void AddInputConnection(Pin* pin) { connections_.push_back(pin); }
+  void RemoveOutputConnection(Pin* pin) {
+    auto it = std::find(connections_.begin(), connections_.end(), pin);
+    if (it != connections_.end()) {
+      connections_.erase(it);
+    }
+  }
+
+  explicit DataLoadBase(std::type_index type, void* data);
 
   virtual ~DataLoadBase() = default;
 
-  template<typename Payload = void>
-  Payload* GetPayload() noexcept { return static_cast<Payload*>(data_); }
+  template <typename Payload = void> Payload* GetPayload() noexcept {
+    return static_cast<Payload*>(data_);
+  }
 
   void WritePayload(void* data) noexcept {
     data_ = data;
     changed_ = true;
   }
 
-
   template <typename PayloadType> DataLoad<PayloadType>* Cast(PayloadType* = nullptr) noexcept {
     return static_cast<DataLoad<PayloadType>*>(this);
   }
 
-  template <typename PayloadType> DataLoad<PayloadType> const* Cast(PayloadType* = nullptr) const noexcept {
+  template <typename PayloadType>
+  DataLoad<PayloadType> const* Cast(PayloadType* = nullptr) const noexcept {
     return static_cast<DataLoad<PayloadType> const*>(this);
   }
 
 private:
   void* data_;
+  Pin* source_;
+  std::vector<Pin*> connections_;
   bool changed_;
+  std::type_index const type_;
 };
 
 /**
@@ -68,10 +91,9 @@ private:
  */
 template <typename PayloadType> class DataLoad : public DataLoadBase {
 public:
-  DataLoad() : data_(std::make_unique<PayloadType>()), DataLoadBase(data_.get()) {}
-
-  template<typename ... Args>
-  explicit DataLoad(Args&& ... args) : data_(std::make_unique<PayloadType>(std::forward<Args>(args)...)) {}
+  template <typename... Args> explicit DataLoad(Args&&... args)
+      : data_(std::make_unique<PayloadType>(std::forward<Args>(args)...)),
+        DataLoadBase(typeid(PayloadType), data_.get()) {}
 
   virtual ~DataLoad() = default;
 
@@ -89,8 +111,7 @@ public:
     DataLoadBase::WritePayload(data_.get());
   }
 
-  template <typename ... Args>
-  void EmplacePayload(Args&& ... args) {
+  template <typename... Args> void EmplacePayload(Args&&... args) {
     data_ = std::make_unique<PayloadType>(std::forward<Args>(args)...);
     DataLoadBase::WritePayload(data_.get());
   }
@@ -104,25 +125,47 @@ private:
   std::unique_ptr<PayloadType> data_;
 };
 
+/************************* SECT: DataLoad Creator *************************/
+
+/**
+ * @brief DataLoadCreatorBase class
+ *
+ * This class is used to create the DataLoad object.
+ */
+struct DataLoadCreatorBase {
+  virtual std::unique_ptr<DataLoadBase> operator()() const = 0;
+};
+
+/**
+ * @brief DataLoadCreatorImpl class
+ *
+ * This class is used to create the DataLoad object.
+ */
+template <typename Payload> struct DataLoadCreatorImpl : DataLoadCreatorBase {
+  std::unique_ptr<DataLoadBase> operator()() const override {
+    return std::make_unique<DataLoad<Payload>>();
+  }
+};
+
 /************************* SECT: Pin Information *************************/
 
 /**
- * @brief PinInfo class
+ * @brief PinDescriptor class
  *
  * This class is used to store the information of a pin.
  * It contains the type of the pin, the name, description, default value of the pin.
- * The PinInfo does not store the actual data of the pin, it only stores the information of the pin.
  */
 class PinDescriptor {
 public:
   explicit PinDescriptor(PinIOType io_type, std::type_index tindex, std::string const& name,
-                   std::string const& description = "", void* default_value=nullptr);
+                         std::string const& description, void* default_value, size_t type_size);
 
   std::type_index GetType() const;
   std::string GetName() const;
   std::string GetDescription() const;
   PinIOType GetIOType() const;
   bool GetDefaultValue(void* data_write_buffer);
+  std::unique_ptr<DataLoadBase> CreateDataLoad() const;
 
 private:
   std::type_index type_;
@@ -130,38 +173,33 @@ private:
   std::string description_;
   PinIOType io_type_;
   void* default_value_;
+  size_t type_size_;
 };
 
-template <typename T>
-PinDescriptor make_input_pin_descriptor(std::string const& name, std::string const& description = "", void* default_value) {
-  return PinDescriptor(PinIOType::kInput, typeid(T), name, description, default_value);
+template <typename T> PinDescriptor make_input_pin_descriptor(std::string const& name,
+                                                              std::string const& description = "",
+                                                              void* default_value = nullptr) {
+  return PinDescriptor(PinIOType::kInput, typeid(T), name, description, default_value, sizeof(T));
 }
 
 template <typename T>
 PinDescriptor make_output_pin_descriptor(std::string const& name,
                                          std::string const& description = "") {
-  return PinDescriptor(PinIOType::kOutput, typeid(T), name, description);
+  return PinDescriptor(PinIOType::kOutput, typeid(T), name, description, nullptr, 0);
 }
 
 /************************* SECT: Pin IO *************************/
 
 /**
- * @brief PinIO class This class is used to store the data of a pin.
+ * @brief Pin class This class is used to store the data of a pin.
  *
  * It contains the information of the pin, and one optional POINTER to the actual data of the pin.
- * The PinIO does not store the information of the pin, it only stores the data of the pin.
+ * The Pin does not store the information of the pin, it only stores the data of the pin.
  */
-class PinIO {
+class Pin {
 public:
-  AX_DECLARE_CONSTRUCTOR(PinIO, delete, delete);
-  /************************* SECT: Connectivity *************************/
-  bool IsConnected();
-
-  bool CheckConnect(PinIO const& another);
-
-  void Connect(PinIO const& another);
-
-  void Disconnect();
+  AX_DECLARE_CONSTRUCTOR(Pin, delete, delete);
+  Pin(PinDescriptor const* descriptor, NodeBase const* node);
 
   /************************* SECT: Data *************************/
   void AttachData(DataLoadBase* dataload);
@@ -169,8 +207,9 @@ public:
 
 private:
   DataLoadBase* dataload_;
+  PinDescriptor const* descriptor_;
+  NodeBase const* node_;
 };
-
 
 /************************* SECT: Node *************************/
 
@@ -187,50 +226,53 @@ AX_DECLARE_ENUM(NodeTriggerStrategy){
     kActive   // Trigger node every frame
 };
 
-class NodeDescriptorFactoryBase;
-
 class NodeBase {
 public:
+  NodeBase(NodeDescriptor* descriptor);
+
+  virtual ~NodeBase() = default;
+
   virtual Status Run() = 0;
 
   virtual Status Setup();
 
   virtual Status CleanUp();
 
-  std::vector<DataLoadBase*> const& GetInputData();
+  std::vector<Pin> const& GetInputData();
 
-  std::vector<DataLoadBase*> const& GetOutputData();
+  std::vector<Pin> const& GetOutputData();
 
-  void SetInputSize(size_t size) { input_data_.resize(size); }
-  void SetOutputSize(size_t size) { output_data_.resize(size); }
-
-//protected:
-  template <typename... Args> std::tuple<Args const&...> RetriveInput() {
-    return RetriveInputImpl(std::make_index_sequence<sizeof...(Args)>);
+  template <typename... Args> std::tuple<Args const&...> RetreiveInput() {
+    return RetriveInputImpl(std::make_index_sequence<sizeof...(Args)>());
   }
 
-  template <typename... Args, size_t... i> auto RetriveInputImpl(std::index_sequence<i...>) {
-    return std::tuple<Args const&...>{input_data_[i]->template GetPayload<Args>()};
-  }
-
-  template <typename... Args> auto RetriveOutput() {
+  template <typename... Args> std::tuple<Args&...> SendOutput() {
     return RetriveOutputImpl<Args...>(std::make_index_sequence<sizeof...(Args)>());
   }
 
-  template <typename... Args, size_t... i> auto RetriveOutputImpl(std::index_sequence<i...>) {
-    return std::make_tuple(static_cast<Args const&>(*output_data_[i]->Cast(&args).GetPayload());
+  NodeDescriptor const* GetDescriptor() const { return descriptor_; }
+
+protected:
+  template <typename... Args, size_t... i>
+  std::tuple<Args const&...> RetriveInputImpl(std::index_sequence<i...>) {
+    return std::tuple<Args const&...>{input_data_[i].GetData()->template GetPayload<Args>()...};
+  }
+
+  template <typename... Args, size_t... i>
+  std::tuple<Args&...> RetriveOutputImpl(std::index_sequence<i...>) {
+    return std::tuple<Args&...>{output_data_[i].GetData()->template GetPayload<Args>()...};
   }
 
 private:
-  std::vector<DataLoadBase*> input_data_;
-  std::vector<DataLoadBase*> output_data_;
+  std::vector<Pin> input_data_;
+  std::vector<Pin> output_data_;
+  NodeDescriptor const* descriptor_;
 };
-
 
 class NodeDescriptor {
 public:
   friend class NodeDescriptorFactoryBase;
-  std::unique_ptr<NodeBase> Create() const { return creator_(); }
+  std::unique_ptr<NodeBase> Create() const { return creator_(this); }
   std::vector<PinDescriptor> const& GetInputPins() const;
   std::vector<PinDescriptor> const& GetOutputPins() const;
 
@@ -240,14 +282,15 @@ public:
 
 private:
   NodeDescriptor(std::string name, std::type_index node_type,
-                 std::function<std::unique_ptr<NodeBase>()> creator, NodeRunStrategy run_strategy,
-                 NodeTriggerStrategy trigger_strategy)
+                 std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*)> creator,
+                 NodeRunStrategy run_strategy, NodeTriggerStrategy trigger_strategy)
       : node_type_(node_type),
         name_(name),
         run_strategy(run_strategy),
         trigger_strategy(trigger_strategy),
         creator_(creator) {}
-  void AddInputPin(PinDescriptor const& pin) { input_pins_.push_back(pin);}
+
+  void AddInputPin(PinDescriptor const& pin) { input_pins_.push_back(pin); }
   void AddOutputPin(PinDescriptor const& pin) { output_pins_.push_back(pin); }
   std::vector<PinDescriptor> input_pins_;
   std::vector<PinDescriptor> output_pins_;
@@ -255,7 +298,7 @@ private:
   std::string name_;
   const NodeRunStrategy run_strategy;
   const NodeTriggerStrategy trigger_strategy;
-  std::function<std::unique_ptr<NodeBase>()> creator_;
+  std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*)> creator_;
 };
 
 class NodeDescriptorFactoryBase {
@@ -267,7 +310,8 @@ public:
     return *this;
   }
   NodeDescriptorFactoryBase& Out(PinDescriptor const& pin) {
-    descriptor_->AddOutputPin(pin); return *this;
+    descriptor_->AddOutputPin(pin);
+    return *this;
   }
 
   template <typename T> NodeDescriptorFactoryBase& In(std::string const& name,
@@ -282,10 +326,10 @@ public:
   }
 
   std::unique_ptr<NodeDescriptor> Build() { return std::move(descriptor_); }
- 
+
 protected:
   NodeDescriptorFactoryBase(std::string name, std::type_index node_type,
-                            std::function<std::unique_ptr<NodeBase>()> creator,
+                            std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*)> creator,
                             NodeRunStrategy run_strategy, NodeTriggerStrategy trigger_strategy)
       : descriptor_(new NodeDescriptor(name, node_type, creator, run_strategy, trigger_strategy)) {}
 
@@ -296,10 +340,11 @@ template <typename Node> class NodeDescriptorFactory : public NodeDescriptorFact
   static_assert(std::is_base_of_v<NodeBase, Node>, "Node must be derived from NodeBase");
 
 public:
-  NodeDescriptorFactory(std::string name, NodeRunStrategy run_strategy, NodeTriggerStrategy trigger_strategy)
+  NodeDescriptorFactory(std::string name, NodeRunStrategy run_strategy,
+                        NodeTriggerStrategy trigger_strategy)
       : NodeDescriptorFactoryBase(
-          name, typeid(Node), []() { return std::make_unique<Node>(); }, run_strategy,
-          trigger_strategy) {}
+          name, typeid(Node), [](NodeDescriptor const* nd) { return std::make_unique<Node>(nd); },
+          run_strategy, trigger_strategy) {}
 };
 
 }  // namespace ax::graph

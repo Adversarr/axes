@@ -20,7 +20,7 @@
 #include "axes/core/echo.hpp"
 #include "axes/math/common.hpp"
 
-namespace ax::fem {
+namespace ax::pde::elements {
 
 constexpr real p12_element_f_f[3][3] = {{1.0 / 12, 1.0 / 24, 1.0 / 24},
                                         {1.0 / 24, 1.0 / 12, 1.0 / 24},
@@ -152,4 +152,13 @@ struct P1Element3D {
   real det_jacobi_;
 };
 
-}  // namespace ax::fem
+template <idx dim> struct P1Element;
+template <> struct P1Element<2> : public P1Element2D {
+  using P1Element2D::P1Element2D;
+};
+
+template <> struct P1Element<3> : public P1Element3D {
+  using P1Element3D::P1Element3D;
+};
+
+}  // namespace ax::pde::elements

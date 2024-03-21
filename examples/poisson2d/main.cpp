@@ -47,7 +47,7 @@ field3i make_triangles(idx nx, idx ny) {
 
 int main(int argc, char** argv) {
   init(argc, argv);
-  fem::P1Element2D element;
+  pde::elements::P1Element2D element;
   mat3r pfpx_pgpy = math::zeros<3, 3>();
   for (idx i = 0; i < 3; ++i) {
     for (idx j = 0; j < 3; ++j) {
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     idx idx00 = elem[0];
     idx idx01 = elem[1];
     idx idx10 = elem[2];
-    fem::P1Element2D element({
+    pde::elements::P1Element2D element({
         vertices.col(idx00),
         vertices.col(idx01),
         vertices.col(idx10),

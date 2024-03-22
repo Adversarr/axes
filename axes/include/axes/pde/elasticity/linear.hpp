@@ -43,7 +43,7 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
    * @return hessian_t 
    */
   hessian_t Hessian() const {
-    auto H = math::eye<dim*dim>() * this->mu_;
+    hessian_t H = math::eye<dim*dim>() * this->mu_;
 #pragma unroll
     for (idx i = 0; i < dim; ++i) {
       H(i * (dim + 1), i * (dim + 1)) += this->mu_ + this->lambda_;

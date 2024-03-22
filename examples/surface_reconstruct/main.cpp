@@ -181,13 +181,6 @@ int main(int argc, char** argv) {
   divergence->tree().voxelizeActiveTiles();
   openvdb::CoordBBox bbox = divergence->evalActiveVoxelBoundingBox();
 
-  // auto divergence_filled = vdb::RealGrid::create();
-  // divergence_filled->fill(bbox, 0);
-  // for (auto iter = divergence->beginValueOn(); iter; ++iter) {
-  //   divergence_filled->tree().setValue(iter.getCoord(), *iter);
-  // }
-  // divergence_filled->setTransform(transform);
-
   AX_LOG(INFO) << "Lower Bounds: " << bbox.min();
   AX_LOG(INFO) << "Upper Bounds: " << bbox.max();
 

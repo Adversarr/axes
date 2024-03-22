@@ -36,7 +36,7 @@ template <idx dim> struct StVK: public ElasticityBase<dim, StVK<dim>>{
    * @return hessian_t 
    */
   hessian_t Hessian() const {
-    auto H = math::make_zeros<hessian_t>();
+    hessian_t H = math::make_zeros<hessian_t>();
     const auto& F = this->F_;
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;

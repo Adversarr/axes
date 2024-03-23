@@ -118,14 +118,7 @@ IMPLEMENT_AOPM_UNARY(atanh)
 
 /****************************** Nearest integer ******************************/
 IMPLEMENT_AOPM_UNARY(round)
-template <typename Derived>
-__attribute__((always_inline)) inline auto floor(MBcr<Derived> mv) {
-  return mv.array().floor().matrix();
-}
-template <typename Derived>
-__attribute__((always_inline)) inline auto floor(ABcr<Derived> mv) {
-  return mv.floor();
-}
+IMPLEMENT_AOPM_UNARY(floor)
 IMPLEMENT_AOPM_UNARY(ceil)
 IMPLEMENT_AOPM_UNARY(rint)
 

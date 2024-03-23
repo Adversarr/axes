@@ -1,5 +1,8 @@
 #pragma once
+#include "axes/math/linalg.hpp"
+#include "axes/pde/fem/common.hpp"
 #include "axes/utils/god.hpp"
+#include "deformation.hpp"
 
 namespace ax::pde::elasticity {
 
@@ -7,60 +10,6 @@ namespace ax::pde::elasticity {
 real compute_mu(real E, real nu);
 
 real compute_lambda(real E, real nu);
-
-/**
- * @brief Compute the deformation gradient F = (X_curr) * (X_rest).inv
- * 
- * @tparam dim 
- * @param position 
- * @param rest_position 
- * @return math::matr<dim, dim> 
- */
-template<idx dim>
-math::matr<dim, dim> compute_deformation_gradient_p1(
-  math::matr<dim, dim+1> const& position,
-  math::matr<dim, dim+1> const& rest_position
-);
-
-/**
- * @brief Compute the deformation gradient cache, i.e. (X_rest).inv
- * 
- * @tparam dim 
- * @param position 
- * @param rest_position 
- * @return math::matr<dim, dim> 
- */
-template<idx dim>
-math::matr<dim, dim> compute_deformation_gradient_rest_cache_p1(
-  math::matr<dim, dim+1> const& rest_position
-);
-
-/**
- * @brief Compute the deformation gradient F = (X_curr H) * (X_rest H).inv
- * 
- * @tparam dim 
- * @param position 
- * @param rest_position 
- * @return math::matr<dim, dim> 
- */
-template<idx dim>
-math::matr<dim, dim> compute_deformation_gradient_q1(
-  math::matr<dim, utils::god::pow(2, dim)> const& position,
-  math::matr<dim, utils::god::pow(2, dim)> const& rest_position
-);
-
-/**
- * @brief Compute the deformation gradient cache, i.e. (X_rest H).inv
- * 
- * @tparam dim 
- * @param position 
- * @param rest_position 
- * @return math::matr<dim, dim> 
- */
-template<idx dim>
-math::matr<dim, dim> compute_deformation_gradient_rest_cache_q1(
-  math::matr<dim, utils::god::pow(2, dim)> const& rest_position
-);
 
 template<typename Derived>
 auto green_strain(math::MBcr<Derived> F) {
@@ -72,8 +21,8 @@ auto approx_green_strain(math::MBcr<Derived> F) {
   return 0.5 * (F.transpose() + F) - math::eye<math::rows_static(F)>();
 }
 
-namespace details{
-AX_FORCE_INLINE math::matr<2, 2> partial_determinant(const math::matr<2, 2>& F) {
+namespace details {
+AX_FORCE_INLINE math::matr<2, 2> partial_determinant(DeformationGradient<2> const& F) {
   // [ f11, -f10;
   //  -f01,  f00]
   math::matr<2, 2> dJdF;
@@ -82,7 +31,7 @@ AX_FORCE_INLINE math::matr<2, 2> partial_determinant(const math::matr<2, 2>& F) 
   return dJdF;
 }
 
-AX_FORCE_INLINE math::matr<3, 3> partial_determinant(const math::matr<3, 3>& F) {
+AX_FORCE_INLINE math::matr<3, 3> partial_determinant(DeformationGradient<3> const & F) {
   // [Cross[f1, f2], Cross[f2, f0], Cross[f0, f1]]
   math::matr<3, 3> dJdF;
   dJdF << math::cross(F.col(1), F.col(2)),
@@ -126,7 +75,11 @@ AX_FORCE_INLINE void add_HJ(
 }
 } // namespace details
 
-
+/**
+ * @brief Base class for describe materials, use CRTP pattern.
+ * @note CRTP have a better performance than virtual function. And we can use virtual function
+ *       to compute the hole energy, stress and hessian on mesh.
+ */
 template <idx dim, typename Derived> class ElasticityBase {
 public:
   static constexpr idx dof_cnt = dim * dim;
@@ -150,7 +103,7 @@ public:
 
 protected:
   // Deformation gradient
-  math::matr<dim, dim> F_;
+  DeformationGradient<dim> F_;
 
   // SVD of F
   math::matr<dim, dim> U_;

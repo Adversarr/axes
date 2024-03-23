@@ -26,7 +26,7 @@
 #undef ERROR
 
 using namespace ax;
-ABSL_FLAG(std::string, obj_file, "box_naive.obj", "The obj file to load");
+ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
 ABSL_FLAG(real, voxel_size, -1, "The voxel size for the point cloud");
 ABSL_FLAG(idx, sample, 10, "Number of points sampled each face");
 

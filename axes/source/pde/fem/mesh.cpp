@@ -13,6 +13,7 @@ utils::uptr<MeshBase<dim>> MeshBase<dim>::Create(MeshType type) {
   AX_UNREACHABLE();
 }
 
+template <idx dim> MeshType MeshBase<dim>::GetType() const noexcept { return type_; }
 
 template <idx dim>
 Status MeshBase<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
@@ -38,13 +39,14 @@ template <idx dim> void MeshBase<dim>::SetVertex(idx i, vertex_t const& vertex) 
   vertices_.col(i) = vertex;
 }
 
-template <idx dim> MeshBase<dim>::vertex_t MeshBase<dim>::GetVertex(idx i) const noexcept {
-  AX_DCHECK(0 <= i && i < vertices_.size()) << "Index out of range.";
-  return vertices_.col(i);
+template <idx dim> auto MeshBase<dim>::GetVertices() const noexcept
+    -> MeshBase<dim>::vertex_list_t const& {
+  return vertices_;
 }
 
-template <idx dim> MeshBase<dim>::vertex_list_t const& MeshBase<dim>::GetVertices() const noexcept {
-  return vertices_;
+template <idx dim> 
+typename MeshBase<dim>::element_list_t const& MeshBase<dim>::GetElements() const noexcept {
+  return elements_;
 }
 
 template <idx dim> math::vecxr MeshBase<dim>::GetVerticesFlattened() const noexcept {
@@ -78,8 +80,8 @@ template <idx dim> void MeshBase<dim>::MarkNeumannBoundary(idx i, const boundary
 }
 
 template <idx dim> void MeshBase<dim>::ResetAllBoundaries() {
-  boundary_types_.resize(vertices_.cols());
-  boundary_values_.resize(vertices_.cols());
+  boundary_types_.resize((std::size_t) vertices_.cols());
+  boundary_values_.resize(dim, vertices_.cols());
   for (idx i = 0; i < vertices_.cols(); ++i) {
     boundary_types_[i] = BoundaryType::kNone;
   }

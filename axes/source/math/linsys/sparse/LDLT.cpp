@@ -3,11 +3,9 @@ namespace ax::math {
 
 Status SparseSolver_LDLT::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
-
   if (solver_.info() != Eigen::Success) {
     return utils::FailedPreconditionError("SparseSolver_LDLT: factorization failed");
   }
-
   AX_RETURN_OK();
 }
 

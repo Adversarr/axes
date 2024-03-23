@@ -21,6 +21,9 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     // solver_.setMaxIterations(options.GetDefault<idx>("max_iter", 100));
     vecxr x;
     if (x0.size() > 0) {
+      if (x0.size() != b.size()) {
+        return utils::FailedPreconditionError("Size mismatch!");
+      }
       x = solver_.solveWithGuess(b, x0);
     } else {
       x = solver_.solve(b);

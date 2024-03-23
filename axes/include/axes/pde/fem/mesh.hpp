@@ -1,6 +1,7 @@
 #pragma once
 
 #include "axes/geometry/common.hpp"
+#include "axes/core/echo.hpp"
 
 namespace ax::pde::fem {
 
@@ -54,7 +55,7 @@ public:
    * @param type The type of the mesh.
    * @return A unique pointer to the created MeshBase object.
    */
-  static utils::uptr<MeshBase<dim>> Create(MeshType type);
+  static std::unique_ptr<MeshBase<dim>> Create(MeshType type);
 
   /**
    * @brief Gets the type of the mesh.
@@ -168,11 +169,6 @@ public:
   void ResetAllBoundaries();
 
   /**
-   * @brief Makes a cache for the mesh.
-   */
-  void MakeCache();
-
-  /**
    * @brief Gets the boundary value at the specified index.
    *
    * @param i The index of the boundary.
@@ -201,7 +197,7 @@ public:
    *
    * @return An iterator to the beginning of the mesh elements.
    */
-  AX_FORCE_INLINE auto begin() const noexcept;
+  auto begin() const noexcept;
 
   /**
    * @brief Returns an iterator to the end of the mesh elements.
@@ -248,5 +244,43 @@ protected:
 
   math::field1r dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };
+
+// NOTE: Some member functions does not have a FRIENDLY return value, we provide it as
+//       a template implementation to avoid the need of defining it in the cpp file.
+// NOTE: Also, some member functions should be defined in header file to achieve inlining.
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::GetElement(idx i) const noexcept {
+  AX_DCHECK(i < elements_.size()) << "Index out of bounds.";
+  return elements_.col(i);
+}
+
+template <idx dim> AX_FORCE_INLINE 
+typename MeshBase<dim>::vertex_t MeshBase<dim>::GetVertex(idx i) const noexcept {
+  AX_DCHECK(i < vertices_.size()) << "Index out of bounds.";
+  return vertices_.col(i);
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::begin() const noexcept {
+  return math::each(elements_).begin();
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::end() const noexcept {
+  return math::each(elements_).end();
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::cbegin() const noexcept {
+  return math::each(elements_).cbegin();
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::cend() const noexcept {
+  return math::each(elements_).cend();
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::begin() noexcept {
+  return math::each(elements_).begin();
+}
+
+template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::end() noexcept {
+  return math::each(elements_).end();
+}
 
 }  // namespace ax::pde::fem

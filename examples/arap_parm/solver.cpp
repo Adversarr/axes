@@ -1,0 +1,245 @@
+#include "solver.hpp"
+#include "axes/utils/iota.hpp"
+#include "axes/math/linsys/sparse/LDLT.hpp"
+#include "axes/math/linsys/sparse/ConjugateGradient.hpp"
+#include "axes/math/decomp/svd.hpp"
+#include <igl/harmonic.h>
+#include <igl/boundary_loop.h>
+#include <igl/map_vertices_to_circle.h>
+
+#include <tbb/parallel_for.h>
+
+//#ifdef __MSVC__
+#undef ERROR
+//#endif
+
+namespace xx {
+
+
+using namespace ax;
+ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
+  problem_.input_mesh_ = mesh;
+  problem_.iso_coords_.resize(mesh.second.cols());
+  problem_.Li_.resize(mesh.second.cols());
+  problem_.cotangent_weights_.resize(mesh.second.cols());
+  problem_.param_.resize(2, mesh.first.cols());
+
+  for (idx t = 0; t < mesh.second.cols(); ++t) {
+    idx i = mesh.second(0, t), j = mesh.second(1, t), k = mesh.second(2, t);
+
+    vec3r p0 = mesh.first.col(i), p1 = mesh.first.col(j), p2 = mesh.first.col(k);
+
+    // foreach p0, p1, p2, we need a local coordinate system
+    vec3r x_axis = math::normalized(p1 - p0);
+    vec3r z_axis = math::normalized((p1 - p0).cross(p2 - p0));
+    vec3r y_axis = math::normalized(z_axis.cross(x_axis));
+    math::mat3r rotate;
+    rotate << x_axis, y_axis, z_axis;
+    IsoCoord iso_coord;
+    vec3r p10 = (rotate.transpose() * (p1 - p0)), p20 = (rotate.transpose() * (p2 - p0));
+    iso_coord.col(0) = p10.topRows<2>();
+    iso_coord.col(1) = p20.topRows<2>();
+    problem_.iso_coords_[t] = iso_coord;
+
+    // Cotangent = 1/tan
+    for (idx I : utils::iota(3)) {
+      idx J = (I + 1) % 3;
+      idx K = (I + 2) % 3;
+      auto p0 = mesh.first.col(mesh.second(I, t));
+      auto p1 = mesh.first.col(mesh.second(J, t));
+      auto p2 = mesh.first.col(mesh.second(K, t));
+      vec3r e1 = p1 - p2;
+      vec3r e2 = p0 - p2;
+      real cot = math::dot(e1, e2) / math::norm(math::cross(e1, e2));
+      problem_.cotangent_weights_[t](I) = cot;
+    }
+  }
+
+  // We initialize the parameterization to Harmonic Map
+  Eigen::VectorXi bnd;
+  Eigen::MatrixXd V = mesh.first.transpose();
+  Eigen::MatrixXi F = mesh.second.transpose().cast<int>();
+  Eigen::MatrixXd V_uv;
+  igl::boundary_loop(F, bnd);
+  Eigen::MatrixXd bnd_uv;
+  igl::map_vertices_to_circle(V, bnd, bnd_uv);
+  igl::harmonic(V, F, bnd, bnd_uv, 1, V_uv);
+  AX_CHECK(V_uv.rows() == V.rows() && V_uv.cols() == 2) << "Invalid tutte embedding";
+  for (idx i: utils::iota(V_uv.rows())) {
+    problem_.param_(0, i) = V_uv(i, 0);
+    problem_.param_(1, i) = V_uv(i, 1);
+  }
+
+  global_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
+  {
+    idx n_triangle = problem_.input_mesh_.second.cols(),
+        n_vertex = problem_.input_mesh_.first.cols();
+    // Step1: Establish the Global Linear System:
+    math::sp_coeff_list coeff_list;
+    coeff_list.reserve(n_vertex * 2 + n_triangle * 24);
+    for (idx t : utils::iota(problem_.input_mesh_.second.cols())) {
+      for (idx i : utils::iota(3)) {
+        idx vi = problem_.input_mesh_.second(i, t);
+        idx vj = problem_.input_mesh_.second((i + 1) % 3, t);
+        real cot_t_i = problem_.cotangent_weights_[t](i);
+        for (idx dim : utils::iota(2)) {
+          coeff_list.push_back({vi * 2 + dim, vj * 2 + dim, -cot_t_i});
+          coeff_list.push_back({vj * 2 + dim, vi * 2 + dim, -cot_t_i});
+          coeff_list.push_back({vi * 2 + dim, vi * 2 + dim, cot_t_i});
+          coeff_list.push_back({vj * 2 + dim, vj * 2 + dim, cot_t_i});
+        }
+      }
+    }
+    for (idx v : utils::iota(n_vertex)) {
+      coeff_list.push_back({v * 2, v * 2, shift});
+      coeff_list.push_back({v * 2 + 1, v * 2 + 1, shift});
+    }
+    global_problem_.A_ = math::make_sparse_matrix(2 * n_vertex, 2 * n_vertex, coeff_list);
+    // AX_LOG(INFO) << problem.A_.toDense().determinant();
+  }  
+  AX_CHECK_OK(global_solver_->Analyse(global_problem_));
+}
+
+void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> solver) {
+  local_solver_ = std::move(solver);
+}
+
+ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
+  global_solver_ = std::move(solver);
+  return global_solver_->Analyse(global_problem_);
+}
+
+
+SurfaceMesh ParameterizationSolver::Optimal() {
+  SurfaceMesh mesh = problem_.input_mesh_;
+  for (idx i: utils::iota(problem_.param_.cols())) {
+    mesh.first.block<2, 1>(0, i) = problem_.param_.col(i);
+    mesh.first.col(i).z() = 0;
+  }
+  return mesh;
+}
+
+Status ParameterizationSolver::Solve(idx max_iter) {
+  bool converged = false;
+  idx n_triangle = problem_.input_mesh_.second.cols(),
+    n_vertex = problem_.input_mesh_.first.cols();
+  if (!local_solver_) {
+    return utils::FailedPreconditionError("Local solver not set");
+  }
+  real const shift = 1.0;
+  
+  math::vecxr last_global_optimal(n_vertex * 2);
+  for (idx i: utils::iota(n_vertex)) {
+    last_global_optimal(i * 2) = problem_.param_(0, i);
+    last_global_optimal(i * 2 + 1) = problem_.param_(1, i);
+  }
+
+  idx n_iter = 0;
+  do {
+    // Do local step:
+    problem_.Li_ = local_solver_->Optimal(problem_);
+
+    // Do global step:
+    math::vecxr rhs = last_global_optimal * shift;
+    for (idx t : utils::iota(n_triangle)) {
+      auto& mesh = problem_.input_mesh_;
+      idx i = mesh.second(0, t), j = mesh.second(1, t), k = mesh.second(2, t);
+      math::matr<2, 3> local_coord;
+      local_coord << math::zeros<2>(), problem_.iso_coords_[t];
+      for (idx i : utils::iota(3)) {
+        idx vi = problem_.input_mesh_.second(i, t);
+        idx vj = problem_.input_mesh_.second((i + 1) % 3, t);
+        vec2r xi = local_coord.col(i);
+        vec2r xj = local_coord.col((i + 1) % 3);
+        vec2r ui = problem_.param_.col(vi);
+        vec2r uj = problem_.param_.col(vj);
+        real cot_t_i = problem_.cotangent_weights_[t](i);
+        vec2r Lix = problem_.Li_[t] * (xi - xj);
+        //AX_LOG_EVERY_N(INFO, 10) << "I=" << i << " D=" << (Lix).transpose();
+        // rhs.segment<2>(2 * vi) += cot_t_i * (ui - uj - Lix);
+        // rhs.segment<2>(2 * vj) += cot_t_i * (uj - ui + Lix);
+        rhs.segment<2>(2 * vi) += cot_t_i * Lix;
+        rhs.segment<2>(2 * vj) -= cot_t_i * Lix;
+      }
+    }
+
+    auto global_step_result = global_solver_->Solve(rhs, last_global_optimal);
+    if (!global_step_result.ok()) {
+      return global_step_result.status();
+    }
+    if (!global_step_result.value().converged_) {
+      AX_LOG(ERROR) << "PCG Failed to converge in " << global_step_result.value().num_iter_ << " iterations";
+      return utils::DataLossError("Global step not converged");
+    }
+    real dx2 = 0;
+    auto global_optimal = global_step_result.value().solution_;
+    /*AX_LOG(INFO) << "RHS=" << rhs;
+    AX_LOG(INFO) << "opt=" << global_optimal;
+    AX_LOG(INFO) << "A opt=" << problem.A_ * global_optimal;
+    AX_LOG(INFO) << "A rhs=" << problem.A_ * rhs;
+    AX_LOG(INFO) << "A=" << std::endl << problem.A_;*/
+    for (idx i: utils::iota(n_vertex)) {
+      dx2 += math::norm(problem_.param_.col(i) - global_optimal.segment<2>(i * 2));
+      problem_.param_.col(i) = global_optimal.segment<2>(i * 2);
+    }
+    AX_DLOG(INFO) << "Iter " << n_iter << " dx2 = " << dx2;
+    n_iter++;
+    if (dx2 < 1e-6 || n_iter >= max_iter) {
+      converged = true;
+    } else {
+      //AX_DLOG(INFO) << "Update to next iteration" << last_global_optimal;
+      last_global_optimal = global_optimal;
+    }
+  } while (!converged);
+  AX_RETURN_OK();
+}
+
+List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) { 
+  List<mat2r> result;
+  // ARAP: use SVD decomposition.
+  idx n_vertex = problem.param_.cols();
+  idx n_triangle = problem.iso_coords_.size();
+  result.resize(n_triangle);
+  tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {
+    vec2r par0 = problem.param_.col(problem.input_mesh_.second(0, i));
+    vec2r par1 = problem.param_.col(problem.input_mesh_.second(1, i));
+    vec2r par2 = problem.param_.col(problem.input_mesh_.second(2, i));
+    mat2r Ui;
+    Ui << par1 - par0, par2 - par0;
+    mat2r X = problem.iso_coords_[i];
+    mat2r Li = Ui * X.inverse();
+    Eigen::JacobiSVD<mat2r> svd(Li, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    mat2r U = svd.matrixU();
+    mat2r V = svd.matrixV();
+    mat2r R = U * V.transpose();
+    result[i] = R;
+  });
+
+  return result;
+}
+
+List<mat2r> ASAP::Optimal(ParameterizationProblem const& problem) {
+  List<mat2r> result;
+  // ASAP: use SVD decomposition.
+  idx n_vertex = problem.param_.cols();
+  idx n_triangle = problem.iso_coords_.size();
+  result.resize(n_triangle);
+  tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {
+    vec2r par0 = problem.param_.col(problem.input_mesh_.second(0, i));
+    vec2r par1 = problem.param_.col(problem.input_mesh_.second(1, i));
+    vec2r par2 = problem.param_.col(problem.input_mesh_.second(2, i));
+    mat2r Ui;
+    Ui << par1 - par0, par2 - par0;
+    mat2r X = problem.iso_coords_[i];
+    mat2r Li = Ui * X.inverse();
+    Eigen::JacobiSVD<mat2r> svd(Li, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    mat2r U = svd.matrixU();
+    mat2r V = svd.matrixV();
+    mat2r R = U * V.transpose() * 0.5 * svd.singularValues().sum();
+    result[i] = R;
+  });
+
+  return result;
+}
+
+}  // namespace xx

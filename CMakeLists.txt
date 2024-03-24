@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(AXES_INSTALL_SIGNAL_HANDLER "Enable Signal Handler from absl" ON)
 option(AXES_DEBUG_INTERNAL "Enable detailed debug asserts for internal implementation" ON)
 option(AXES_ENABLE_TEST "Enable test." ON)
-option(AXES_BUILD_SHARED "Build shared library" ON)
+option(AXES_BUILD_SHARED "Build shared library" OFF)
 option(AXES_NO_EXCEPT "Enable noexcept, may lead to compile error for igl." OFF)
 option(AXES_ENABLE_TIME_TRACE "Enable time trace." OFF)
 

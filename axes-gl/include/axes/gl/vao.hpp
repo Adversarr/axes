@@ -26,7 +26,7 @@ public:
 
   /****************************** Attribute Setters ******************************/
   Status EnableAttrib(int index);
-  Status SetAttribPointer(int index, int size, Type type, bool normalized, int stride, int offset);
+  Status SetAttribPointer(int index, int size, Type type, bool normalized, int stride, size_t offset);
   Status SetAttribDivisor(int index, int divisor);
 
   /****************************** Buffer ******************************/

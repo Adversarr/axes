@@ -113,8 +113,8 @@ LineRenderData::LineRenderData(const Lines& lines) {
   indices_.reserve(lines.indices_.size());
   for (idx i = 0; i < lines.indices_.cols(); i++) {
     auto index = lines.indices_.col(i);
-    indices_.push_back(index.x());
-    indices_.push_back(index.y());
+    indices_.push_back(math::cast<ui32>(index.x()));
+    indices_.push_back(math::cast<ui32>(index.y()));
   }
   bool has_instance = lines.instance_offset_.size() > 0;
   if (has_instance) {
@@ -147,8 +147,8 @@ LineRenderData::LineRenderData(const Lines& lines) {
   }
 
   const int stride = sizeof(LineRenderVertexData);
-  const int position_offset = offsetof(LineRenderVertexData, position_);
-  const int color_offset = offsetof(LineRenderVertexData, color_);
+  const size_t position_offset = offsetof(LineRenderVertexData, position_);
+  const size_t color_offset = offsetof(LineRenderVertexData, color_);
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {

@@ -25,6 +25,8 @@
 
 namespace ax::gl {
 
+using math::cast;
+
 struct Context::Impl {
   std::vector<utils::uptr<RenderBase>> renderers_;
 
@@ -133,7 +135,8 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
     dy *= mouse_sensitivity_;
 
     if (is_pressing_meta_key_) {
-      camera_.Rotate(dx * 0.3f, dy * 0.3f);
+      camera_.Rotate(cast<f32>(dx * 0.3f), 
+                     cast<f32>(dy * 0.3f));
     }
 
     if (is_pressing_shft_key_) {

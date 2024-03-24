@@ -27,6 +27,7 @@ LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0) 
   } else {
     AX_CHECK(false) << "This branch have not been implemented yet";
   }
+  AX_UNREACHABLE();
 }
 
 }  // namespace ax::math

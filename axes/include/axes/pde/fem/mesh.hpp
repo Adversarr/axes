@@ -140,6 +140,9 @@ public:
    */
   virtual idx GetNumVerticesPerElement() const noexcept = 0;
 
+  idx GetNumVertices() const noexcept;
+  idx GetNumElements() const noexcept;
+
   /**
    * @brief Resets the boundary at the specified index.
    *
@@ -281,6 +284,14 @@ template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::begin() noexcept {
 
 template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::end() noexcept {
   return math::each(elements_).end();
+}
+
+template <idx dim> AX_FORCE_INLINE idx MeshBase<dim>::GetNumVertices() const noexcept {
+  return vertices_.cols();
+}
+
+template <idx dim> AX_FORCE_INLINE idx MeshBase<dim>::GetNumElements() const noexcept {
+  return elements_.cols();
 }
 
 }  // namespace ax::pde::fem

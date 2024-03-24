@@ -126,7 +126,6 @@ Status ParameterizationSolver::Solve(idx max_iter) {
   if (!local_solver_) {
     return utils::FailedPreconditionError("Local solver not set");
   }
-  real const shift = 1.0;
   
   math::vecxr last_global_optimal(n_vertex * 2);
   for (idx i: utils::iota(n_vertex)) {

@@ -53,7 +53,7 @@ Status Vao::Unbind() {
 }
 
 Status Vao::SetAttribPointer(int index, int size, Type type, bool normalized, int stride,
-                             int offset) {
+                             size_t offset) {
   AXGL_CALLR(glVertexAttribPointer(index, size, static_cast<GLenum>(type), normalized, stride,
                                    reinterpret_cast<void*>(offset)));
   AX_RETURN_OK();

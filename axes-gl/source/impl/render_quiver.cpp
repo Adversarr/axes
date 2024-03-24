@@ -114,8 +114,8 @@ QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
   vao_.SetVertexBuffer(std::move(vbo));
 
   const int stride = sizeof(QuiverRenderVertexData);
-  const int position_offset = offsetof(QuiverRenderVertexData, position_);
-  const int color_offset = offsetof(QuiverRenderVertexData, color_);
+  const size_t position_offset = offsetof(QuiverRenderVertexData, position_);
+  const size_t color_offset = offsetof(QuiverRenderVertexData, color_);
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {

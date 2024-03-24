@@ -138,9 +138,9 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   indices_.reserve(mesh.indices_.size());
   for (idx i = 0; i < mesh.indices_.cols(); i++) {
     auto index = mesh.indices_.col(i);
-    indices_.push_back(index.x());
-    indices_.push_back(index.y());
-    indices_.push_back(index.z());
+    indices_.push_back(math::cast<ui32>(index.x()));
+    indices_.push_back(math::cast<ui32>(index.y()));
+    indices_.push_back(math::cast<ui32>(index.z()));
   }
 
   if (mesh.instance_offset_.cols() > 0) {
@@ -175,9 +175,9 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   const int stride = sizeof(MeshRenderVertexData);
-  const int position_offset = offsetof(MeshRenderVertexData, position_);
-  const int color_offset = offsetof(MeshRenderVertexData, color_);
-  const int normal_offset = offsetof(MeshRenderVertexData, normal_);
+  const size_t position_offset = offsetof(MeshRenderVertexData, position_);
+  const size_t color_offset = offsetof(MeshRenderVertexData, color_);
+  const size_t normal_offset = offsetof(MeshRenderVertexData, normal_);
 
   AXGL_WITH_BINDC(vao_) {
     AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {

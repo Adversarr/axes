@@ -42,7 +42,7 @@ public:
    *
    * @param type The type of the mesh.
    */
-  MeshBase(MeshType type);
+  explicit MeshBase(MeshType type);
 
   /**
    * @brief Destructor for the MeshBase object.

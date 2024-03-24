@@ -4,7 +4,7 @@
 #define AX_WINDOWS 0
 #define AX_APPLE   1
 #define AX_LINUX   2
-#  ifdef _MSC_VER_
+#  ifdef _MSC_VER
 #    define AX_PLATFORM AX_WINDOWS
 #    define AX_PLATFORM_WINDOWS
 #  elif defined __APPLE__
@@ -128,4 +128,9 @@
 #ifndef if_unlikely
 #  define if_unlikely(cond) \
     if (cond) AX_UNLIKELY
+#endif
+
+
+#ifndef if_is_debug
+#define if_is_debug() if constexpr (AX_IS_DEBUG)
 #endif

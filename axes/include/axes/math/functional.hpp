@@ -181,6 +181,9 @@ using std::clamp;
 using std::fmod;
 using std::lgamma;
 using std::tgamma;
+using std::isnan;
+using std::isinf;
+using std::isfinite;
 
 template <idx dim> math::veci<dim> imod(const math::veci<dim>& a, const math::veci<dim>& b) {
   math::veci<dim> output;

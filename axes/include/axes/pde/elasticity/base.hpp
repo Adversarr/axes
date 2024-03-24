@@ -2,7 +2,7 @@
 #include "axes/math/linalg.hpp"
 #include "axes/pde/fem/common.hpp"
 #include "axes/utils/god.hpp"
-#include "deformation.hpp"
+#include "common.hpp"
 
 namespace ax::pde::elasticity {
 
@@ -41,7 +41,7 @@ AX_FORCE_INLINE math::matr<3, 3> partial_determinant(DeformationGradient<3> cons
 }
 
 AX_FORCE_INLINE void add_HJ(
-  math::matr<4, 4>& H, 
+  math::matr<4, 4>& H,
   const math::matr<2, 2>& /*F*/,
   real scale) {
   H(3, 0) += scale;
@@ -60,7 +60,7 @@ AX_FORCE_INLINE math::mat3r x_hat(math::MBcr<Derived>Fi) {
 }
 
 AX_FORCE_INLINE void add_HJ(
-  math::matr<9, 9>& H, 
+  math::matr<9, 9>& H,
   const math::matr<3, 3>& F,
   real scale) {
   math::mat3r const f0 = x_hat(F.col(0));
@@ -92,6 +92,7 @@ public:
    * @param mu Lamé parameter
    */
   ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
+  ElasticityBase() = default;
 
   real Energy() const { return static_cast<Derived const*>(this)->Energy(); }
 
@@ -101,16 +102,18 @@ public:
     return static_cast<Derived const*>(this)->Hessian();
   }
 
+  void SetLame(real lambda, real mu) {
+    lambda_ = lambda;
+    mu_ = mu;
+  }
+
+  void SetLame(math::vec2r const& lame) {
+    SetLame(lame[0], lame[1]);
+  }
+
 protected:
   // Deformation gradient
-  DeformationGradient<dim> F_;
-
-  // SVD of F
-  math::matr<dim, dim> U_;
-  math::matr<dim, dim> V_;
-  math::vecr<dim> sigma_;
-  bool is_svd_ready_{false};
-
+  DeformationGradient<dim> const F_;
   // Lamé parameters
   real lambda_, mu_;
 };

@@ -1,5 +1,8 @@
 #include "axes/pde/fem/p1mesh.hpp"
 
+#ifdef AX_PLATFORM_WINDOWS
+#undef ERROR
+#endif
 namespace ax::pde::fem {
 
 template <idx dim> MeshBase<dim>::MeshBase(MeshType type) : type_(type) {}
@@ -8,8 +11,10 @@ template <idx dim>
 utils::uptr<MeshBase<dim>> MeshBase<dim>::Create(MeshType type) {
   if (type == MeshType::kP1) {
     return std::make_unique<P1Mesh<dim>>();
+  } else {
+    AX_LOG(ERROR) << "Unknown mesh type.";
+    return nullptr;
   }
-  // TODO: Add more implementations
   AX_UNREACHABLE();
 }
 
@@ -89,7 +94,7 @@ template <idx dim> void MeshBase<dim>::ResetAllBoundaries() {
 }
 
 template <idx dim>
-MeshBase<dim>::boundary_value_t MeshBase<dim>::GetBoundaryValue(idx i) const noexcept {
+typename MeshBase<dim>::boundary_value_t MeshBase<dim>::GetBoundaryValue(idx i) const noexcept {
   AX_DCHECK(0 <= i && i < boundary_values_.size()) << "Index out of range.";
   return boundary_values_.col(i);
 }

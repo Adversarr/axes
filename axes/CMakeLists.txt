@@ -54,8 +54,6 @@ target_link_libraries(axes
   ZLIB::ZLIB
 )
 
-target_compile_options(axes PUBLIC -ftime-trace)
-
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
   message(STATUS "OpenMP found and link to axes.")

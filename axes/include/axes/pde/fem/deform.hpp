@@ -1,14 +1,8 @@
 #pragma once
-#include "axes/pde/fem/mesh.hpp"
+#include "axes/pde/elasticity/linear.hpp"
+#include "mesh.hpp"
 
-namespace ax::pde::elasticity {
-
-template <idx dim> using DeformationGradient = math::matr<dim, dim>;
-
-template <idx dim> using DeformationGradientCache = std::vector<DeformationGradient<dim>>;
-
-template <idx dim> using DeformationGradientList = std::vector<DeformationGradient<dim>>;
-
+namespace ax::pde::fem{
 
 /**
  * @brief Compute the deformation gradient for each element in the mesh. Will automatically
@@ -19,8 +13,8 @@ template <idx dim> using DeformationGradientList = std::vector<DeformationGradie
  * @param rest_pose Rest pose of the mesh.
  * @return std::vector<math::matr<dim, dim>> Deformation gradient for each element in the mesh.
  */
-template <idx dim> DeformationGradientList<dim> compute_deformation_gradient(
-    fem::MeshBase<dim> const& mesh, typename fem::MeshBase<dim>::vertex_list_t const& rest_pose);
+template <idx dim> elasticity::DeformationGradientList<dim> compute_deformation_gradient(
+    MeshBase<dim> const& mesh, typename MeshBase<dim>::vertex_list_t const& rest_pose);
 
 /**
  * @brief Compute the deformation gradient Cache for rest pose. This will be helpful because we have
@@ -31,8 +25,8 @@ template <idx dim> DeformationGradientList<dim> compute_deformation_gradient(
  * @param rest_pose_cache Cache of the rest pose deformation gradient for each element in the mesh.
  * @return std::vector<math::matr<dim, dim>> Deformation gradient for each element in the mesh.
  */
-template <idx dim> DeformationGradientCache<dim> compute_deformation_gradient_rest_pose_cache(
-    fem::MeshBase<dim> const& mesh);
+template <idx dim>elasticity:: DeformationGradientCache<dim> compute_deformation_gradient_rest_pose_cache(
+    MeshBase<dim> const& mesh);
 
 /**
  * @brief Compute the deformation gradient for each element in the mesh. Will automatically
@@ -43,9 +37,8 @@ template <idx dim> DeformationGradientCache<dim> compute_deformation_gradient_re
  * @param cache Cache of the rest pose deformation gradient for each element in the mesh.
  * @return std::vector<math::matr<dim, dim>> Deformation gradient for each element in the mesh.
  */
-template <idx dim> DeformationGradientList<dim> compute_deformation_gradient_cached(
-    fem::MeshBase<dim> const& mesh, DeformationGradientCache<dim> const& cache);
-
+template <idx dim> elasticity::DeformationGradientList<dim> compute_deformation_gradient_cached(
+    MeshBase<dim> const& mesh, elasticity::DeformationGradientCache<dim> const& cache);
 
 
 }  // namespace ax::pde::fem

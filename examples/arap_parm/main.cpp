@@ -17,7 +17,7 @@
 
 using namespace ax;
 xx::ParameterizationSolver* psolver;
-Entity out;
+Entity out, ori;
 
 ABSL_FLAG(std::string, obj_file, "butterfly_low_res.obj", "The obj file to load");
 std::string file;
@@ -64,6 +64,18 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
       auto& lines = add_component<gl::Lines>(out, gl::Lines::Create(mesh));
       lines.flush_ = true;
       lines.colors_.setConstant(0.3);
+      auto& orimesh = get_component<gl::Mesh>(ori);
+      auto to_color = [](real x) -> real {
+        real r = math::fmod(math::abs(x), 0.1) * 10;
+        return x < 0 ? 1-r : r;
+      };
+      for (idx i = 0; i < sm.first.cols(); ++i) {
+        orimesh.colors_.col(i).x() = to_color(mesh.vertices_.col(i).x());
+        orimesh.colors_.col(i).y() = to_color(mesh.vertices_.col(i).y());
+        orimesh.colors_.col(i).z() = 0;
+      }
+      orimesh.use_lighting_ = false;
+      orimesh.flush_ = true;
     }
   }
 
@@ -83,7 +95,7 @@ int main(int argc, char** argv) {
   psolver = &solver;
   solver.SetLocalSolver(std::make_unique<xx::ARAP>());
   out = create_entity();
-
+  ori = create_entity();
   {
     auto sm = psolver->Optimal();
     if (has_component<gl::Mesh>(out)) {
@@ -99,7 +111,19 @@ int main(int argc, char** argv) {
     }
     auto &lines = add_component<gl::Lines>(out, gl::Lines::Create(mesh));
     lines.flush_ = true;
-    lines.colors_.setConstant(0.3);
+    lines.colors_.setConstant(0);
+  }
+  {
+    auto& mesh = add_component<gl::Mesh>(ori);
+    std::tie(mesh.vertices_, mesh.indices_) = surface_mesh;
+
+    mesh.flush_ = true;
+    mesh.vertices_.row(0).array() += 3;
+    mesh.colors_.setOnes(4, mesh.vertices_.cols());
+
+    auto& lines = add_component<gl::Lines>(ori, gl::Lines::Create(mesh));
+    lines.flush_ = true;
+    lines.colors_.setConstant(0);
   }
 
   AX_CHECK_OK(gl::enter_main_loop()) << "Failed to enter main loop.";

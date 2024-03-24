@@ -55,7 +55,7 @@ private:
   std::unique_ptr<ax::math::SparseSolverBase> global_solver_;
   ParameterizationProblem problem_;
   ax::math::LinsysProblem_Sparse global_problem_;
-  ax::real shift = 1.0;
+  ax::real shift_ = 1.0;
 };
 
 }

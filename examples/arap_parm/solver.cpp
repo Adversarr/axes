@@ -91,8 +91,8 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
       }
     }
     for (idx v : utils::iota(n_vertex)) {
-      coeff_list.push_back({v * 2, v * 2, shift});
-      coeff_list.push_back({v * 2 + 1, v * 2 + 1, shift});
+      coeff_list.push_back({v * 2, v * 2, shift_});
+      coeff_list.push_back({v * 2 + 1, v * 2 + 1, shift_});
     }
     global_problem_.A_ = math::make_sparse_matrix(2 * n_vertex, 2 * n_vertex, coeff_list);
     // AX_LOG(INFO) << problem.A_.toDense().determinant();
@@ -139,7 +139,7 @@ Status ParameterizationSolver::Solve(idx max_iter) {
     problem_.Li_ = local_solver_->Optimal(problem_);
 
     // Do global step:
-    math::vecxr rhs = last_global_optimal * shift;
+    math::vecxr rhs = last_global_optimal * shift_;
     for (idx t : utils::iota(n_triangle)) {
       math::matr<2, 3> local_coord;
       local_coord << math::zeros<2>(), problem_.iso_coords_[t];

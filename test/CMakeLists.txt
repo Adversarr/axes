@@ -11,4 +11,6 @@ function(axes_add_test TARGET_NAME LIBRARIES)
 endfunction(axes_add_test)
 
 axes_add_test(math axes)
+axes_add_test(fem axes)
+axes_add_test(geometry axes)
 

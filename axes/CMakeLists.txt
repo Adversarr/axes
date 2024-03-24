@@ -13,7 +13,11 @@ file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
 ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
-add_library(axes ${AXES_CORE_SOURCE})
+if (${AXES_BUILD_SHARED})
+  add_library(axes SHARED ${AXES_CORE_SOURCE})
+else()
+  add_library(axes STATIC ${AXES_CORE_SOURCE})
+endif()
 target_include_directories(axes PRIVATE ${TINYGLTF_INCLUDE_DIRS})
 target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

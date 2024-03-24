@@ -142,8 +142,6 @@ Status ParameterizationSolver::Solve(idx max_iter) {
     // Do global step:
     math::vecxr rhs = last_global_optimal * shift;
     for (idx t : utils::iota(n_triangle)) {
-      auto& mesh = problem_.input_mesh_;
-      idx i = mesh.second(0, t), j = mesh.second(1, t), k = mesh.second(2, t);
       math::matr<2, 3> local_coord;
       local_coord << math::zeros<2>(), problem_.iso_coords_[t];
       for (idx i : utils::iota(3)) {
@@ -151,13 +149,8 @@ Status ParameterizationSolver::Solve(idx max_iter) {
         idx vj = problem_.input_mesh_.second((i + 1) % 3, t);
         vec2r xi = local_coord.col(i);
         vec2r xj = local_coord.col((i + 1) % 3);
-        vec2r ui = problem_.param_.col(vi);
-        vec2r uj = problem_.param_.col(vj);
         real cot_t_i = problem_.cotangent_weights_[t](i);
         vec2r Lix = problem_.Li_[t] * (xi - xj);
-        //AX_LOG_EVERY_N(INFO, 10) << "I=" << i << " D=" << (Lix).transpose();
-        // rhs.segment<2>(2 * vi) += cot_t_i * (ui - uj - Lix);
-        // rhs.segment<2>(2 * vj) += cot_t_i * (uj - ui + Lix);
         rhs.segment<2>(2 * vi) += cot_t_i * Lix;
         rhs.segment<2>(2 * vj) -= cot_t_i * Lix;
       }
@@ -197,7 +190,6 @@ Status ParameterizationSolver::Solve(idx max_iter) {
 List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) { 
   List<mat2r> result;
   // ARAP: use SVD decomposition.
-  idx n_vertex = problem.param_.cols();
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);
   tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {
@@ -221,7 +213,6 @@ List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) {
 List<mat2r> ASAP::Optimal(ParameterizationProblem const& problem) {
   List<mat2r> result;
   // ASAP: use SVD decomposition.
-  idx n_vertex = problem.param_.cols();
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);
   tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {

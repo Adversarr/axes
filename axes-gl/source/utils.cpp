@@ -13,7 +13,7 @@ namespace ax::gl {
 
 void init() {
   ax::add_init_hook("InitializeAxglContext", []() {
-    auto & c = add_resource<Context>();
+    add_resource<Context>();
     AX_RETURN_OK();
   });
 

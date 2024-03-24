@@ -54,7 +54,7 @@ void ui_render_callback(gl::UiRenderEvent) {
   ImGui::SliderFloat("Ratio", &ratio, 0.0f, 1.0f);
   if (ImGui::Button("Run Algorithm")) {
     auto halfedge = geo::HalfedgeMesh(vertices, indices);
-    halfedge.CheckOk();
+    AX_CHECK(halfedge.CheckOk());
     auto beg_time = absl::Now();
     auto decimator = geo::MeshDecimator(&halfedge);
     decimator.SetRatio(ratio);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.hpp"  // IWYU pragma: export
-
+#include <type_traits>
 namespace ax::math {
 
 /****************************** Scalar Type For ******************************/
@@ -21,7 +21,7 @@ template <> struct scalar_of<f64> {
 /****************************** floating check ******************************/
 
 template <typename F> constexpr bool is_scalar_v
-    = std::is_same_v<std::remove_cvref_t<F>, f32> || std::is_same_v<std::remove_cvref_t<F>, f64>;
+    = std::is_same_v<std::decay_t<F>, f32> || std::is_same_v<std::decay_t<F>, f64>;
 
 template <typename F> using enable_if_scalar_t = std::enable_if_t<is_scalar_v<F>, F>;
 
@@ -33,7 +33,7 @@ template <typename T> struct ensure_floating {
 
 namespace details {
 template <typename Derived, template <typename> typename Base> constexpr bool is_eigen_convertible_v
-    = std::is_convertible_v<std::remove_cvref_t<Derived>, Base<std::remove_cvref_t<Derived>>>;
+    = std::is_convertible_v<std::decay_t<Derived>, Base<std::decay_t<Derived>>>;
 }
 
 template <typename F> constexpr bool is_eigen_v

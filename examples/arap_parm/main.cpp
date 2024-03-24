@@ -28,7 +28,7 @@ int option = 0;
 int option_linsys = 0;
 int n_iter = 0;
 
-void ui_callback(gl::UiRenderEvent& event) {
+void ui_callback(gl::UiRenderEvent& /*event*/) {
   ImGui::Begin("Parameterization");
   ImGui::Text("File: %s", file.c_str());
   ImGui::InputInt("Iteration", &n_iter);
@@ -41,9 +41,9 @@ void ui_callback(gl::UiRenderEvent& event) {
   }
 
   if (ImGui::Combo("Linear System Solver", &option_linsys, opt_linsys, IM_ARRAYSIZE(opt_linsys))) {
-    psolver->SetGlobalSolver(math::SparseSolverBase::Create(
+    AX_CHECK_OK(psolver->SetGlobalSolver(math::SparseSolverBase::Create(
         (option_linsys == 0 ? math::SparseSolverKind::kConjugateGradient
-                            : math::SparseSolverKind::kLDLT)));
+                            : math::SparseSolverKind::kLDLT))));
   }
 
   if (ImGui::Button("RunOnce")) {

@@ -16,9 +16,9 @@ ABSL_FLAG(int, N, 10, "Number of cells in each direction");
 // grad= [2x, 2y]/(x^2 + y^2)
 real exact_solution(real x, real y) { return 0.5 * (x * x - y * y); }
 
-real grad_x_exact_solution(real x, real y) { return x; }
+real grad_x_exact_solution(real x, real /*y*/) { return x; }
 
-real grad_y_exact_solution(real x, real y) { return -y; }
+real grad_y_exact_solution(real /*x*/, real y) { return -y; }
 
 int main(int argc, char* argv[]) {
   ax::gl::init(argc, argv);

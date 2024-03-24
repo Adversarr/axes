@@ -25,16 +25,19 @@ struct ParameterizationProblem {
 class LocalSolverBase {
 public:
   virtual List<mat2r> Optimal(ParameterizationProblem const& problem) = 0;
+  virtual ~LocalSolverBase() = default;
 };
 
 class ARAP final: public LocalSolverBase {
 public:
   List<mat2r> Optimal(ParameterizationProblem const& problem) final;
+  virtual ~ARAP() = default;
 };
 
 class ASAP final: public LocalSolverBase {
 public:
   List<mat2r> Optimal(ParameterizationProblem const& problem) final;
+  virtual ~ASAP() = default;
 };
 
 class ParameterizationSolver {

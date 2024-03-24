@@ -1,20 +1,36 @@
 #pragma once
 #include "mesh.hpp"
+#include "axes/math/sparse.hpp"
+
 namespace ax::pde::fem {
 
-// General Purpose Mass matrix computation.
-template<idx dim>
-math::sp_coeff_list compute_mass_matrix(
-  MeshBase<dim> const & mesh,
-  math::field1r const& density,
-  bool is_density_on_element
-);
+/**
+ * @brief Compute the mass matrix for the given mesh.
+ * 
+ * @tparam dim 
+ */
+template <idx dim> class MassMatrixCompute {
+public:
+  MassMatrixCompute(MeshBase<dim> const& mesh) : mesh_(&mesh) {}
+  /**
+   * @brief Compute the mass matrix.
+   * 
+   * @param density density field.
+   * @param is_density_on_element if true, the density is defined on elements, otherwise on vertices.
+   * @return math::sp_coeff_list 
+   */
+  math::sp_coeff_list operator()(math::field1r const& density, bool is_density_on_element);
 
-// In case you have a uniform density
-template<idx dim>
-math::sp_coeff_list compute_mass_matrix(
-  MeshBase<dim> const & mesh,
-  real density
-);
+  /**
+   * @brief Compute the mass matrix.
+   * 
+   * @param density Uniform density value.
+   * @return math::sp_coeff_list 
+   */
+  math::sp_coeff_list operator()(real density);
 
-}
+private:
+  MeshBase<dim> const* mesh_;
+};
+
+}  // namespace ax::pde::fem

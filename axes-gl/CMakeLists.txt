@@ -13,9 +13,11 @@ set(SPIRV_HOME "${CMAKE_CURRENT_BINARY_DIR}/shader/outputs/")
 file(GLOB_RECURSE AXES_GUI_SOURCE CONFIGURE_DEPENDS
      ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/include/**.cpp)
-
-add_library(axes_gui ${AXES_GUI_SOURCE})
-
+if (${AXES_BUILD_SHARED})
+  add_library(axes_gui SHARED ${AXES_GUI_SOURCE})
+else()
+  add_library(axes_gui STATIC ${AXES_GUI_SOURCE})
+endif()
 target_include_directories(axes_gui PUBLIC ${Stb_INCLUDE_DIR}
                                            ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

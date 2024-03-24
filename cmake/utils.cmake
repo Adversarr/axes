@@ -1,3 +1,4 @@
+include(CheckCXXCompilerFlag)
 # Check if `flag` is available. if available, set it in cxx flags.
 macro(axes_add_cxx_compiler_flag FLAG)
   string(REGEX REPLACE "-" "" SFLAG1 ${FLAG})

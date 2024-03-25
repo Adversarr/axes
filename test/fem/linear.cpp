@@ -1,22 +1,25 @@
+#include "axes/pde/elasticity/linear.hpp"
 #include <doctest/doctest.h>
+
 #include "axes/geometry/io.hpp"
-#include "axes/pde/fem/mass_matrix.hpp"
-#include "axes/pde/fem/p1mesh.hpp"
+#define AX_ELASTICITY_IMPL
 #include "axes/pde/fem/deform.hpp"
 #include "axes/pde/fem/elasticity.hpp"
+#include "axes/pde/fem/mass_matrix.hpp"
+#include "axes/pde/fem/p1mesh.hpp"
 
-#define AX_ELASTICITY_IMPL
-#include "axes/pde/elasticity/linear.hpp"
 #include "axes/utils/asset.hpp"
 
 using namespace ax;
 using namespace ax::pde;
 using namespace ax::math;
 
-std::unique_ptr<fem::P1Mesh<2>> make_square(idx n_div){
+std::unique_ptr<fem::P1Mesh<2>> make_square(idx n_div) {
   auto mesh = std::make_unique<fem::P1Mesh<2>>();
-  field2r vertices; vertices.resize(2, n_div * n_div);
-  field3i elements; elements.resize(3, 2 * (n_div - 1) * (n_div - 1));
+  field2r vertices;
+  vertices.resize(2, n_div * n_div);
+  field3i elements;
+  elements.resize(3, 2 * (n_div - 1) * (n_div - 1));
 
   for (idx i = 0; i < n_div; ++i) {
     for (idx j = 0; j < n_div; ++j) {
@@ -49,8 +52,8 @@ TEST_CASE("mass2d") {
   auto mass_compute = fem::MassMatrixCompute<2>(*mesh);
   auto result = mass_compute(1.0);
   real sum = 0;
-  for (auto ijv: result) {
-    //std::cout << ijv.row() << " " << ijv.col() << " " << ijv.value() << std::endl;
+  for (auto ijv : result) {
+    // std::cout << ijv.row() << " " << ijv.col() << " " << ijv.value() << std::endl;
     sum += ijv.value();
   }
   CHECK(sum == doctest::Approx(1.0));
@@ -87,7 +90,9 @@ TEST_CASE("Hessian") {
     real s00 = s(0, 0);
     real s11 = s(1, 1);
     CHECK(doctest::Approx(s00) == 3 * s11);
-    CHECK(doctest::Approx(s(3, 3)) == s11);
+    CHECK(doctest::Approx(s(3, 3)) == s00);
     CHECK(doctest::Approx(s(2, 2)) == s11);
   }
+
+  CHECK(doctest::Approx(stress.Energy(lame)) == 0);
 }

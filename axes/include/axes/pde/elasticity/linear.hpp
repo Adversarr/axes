@@ -9,7 +9,7 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
   using base_t = ElasticityBase<dim, Linear<dim>>;
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
-  using base_t::ElasticityBase;
+  using ElasticityBase<dim, Linear<dim>>::ElasticityBase;
 
   /**
    * @brief Compute the Linear Elasticity Potential value.

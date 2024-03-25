@@ -104,7 +104,7 @@ template <idx dim>
 void Deformation<dim>::UpdateRestPose(typename MeshBase<dim>::vertex_list_t const& rest_pose) {
   rest_pose_ = rest_pose;
   if (mesh_.GetType() == MeshType::kP1) {
-    deformation_gradient_cache_ = dg_rpcache_p1(mesh_, rest_pose);
+    deformation_gradient_cache_ = dg_rpcache_p1<dim>(mesh_, rest_pose);
   } else {
     AX_CHECK(false) << "Not Implemented Error";
   }
@@ -117,7 +117,7 @@ void Deformation<dim>::UpdateRestPose(typename MeshBase<dim>::vertex_list_t cons
 
 template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
   if (mesh_.GetType() == MeshType::kP1) {
-    return dg_p1(mesh_, deformation_gradient_cache_);
+    return dg_p1<dim>(mesh_, deformation_gradient_cache_);
   } else {
     AX_CHECK(false) << "Not Implemented";
   }
@@ -137,7 +137,7 @@ template <idx dim> typename MeshBase<dim>::vertex_list_t Deformation<dim>::Stres
     AX_CHECK_EQ(stress_size, n_element) << "#stress != #element";
   }
   if (mesh_.GetType() == MeshType::kP1) {
-    return dg_tsv_p1(mesh_, stress, deformation_gradient_cache_);
+    return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
   } else {
     AX_CHECK(false) << "Not Implemented Error";
   }

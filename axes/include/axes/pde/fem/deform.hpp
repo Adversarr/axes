@@ -1,5 +1,6 @@
 #pragma once
 #include "axes/pde/elasticity/common.hpp"
+#include "axes/math/sparse.hpp"
 #include "mesh.hpp"
 
 namespace ax::pde::fem {

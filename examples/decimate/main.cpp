@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
     wf.instance_color_.setOnes();
   }
   geo::HalfedgeMesh he_mesh(vertices, indices);
-  std::vector<geo::HalfedgeEdge_t*> edge_to_collapse;
+  List<geo::HalfedgeEdge_t*> edge_to_collapse;
   AX_CHECK(he_mesh.CheckOk()) << "The mesh is not a manifold.";
 
   auto& mesh = add_component<gl::Mesh>(mesh_ent);

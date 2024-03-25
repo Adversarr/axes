@@ -22,9 +22,9 @@ struct MeshInstanceData {
 };
 
 struct MeshRenderData {
-  std::vector<MeshRenderVertexData> vertices_;
-  std::vector<MeshInstanceData> instances_;
-  std::vector<GLuint> indices_;
+  List<MeshRenderVertexData> vertices_;
+  List<MeshInstanceData> instances_;
+  List<GLuint> indices_;
   Vao vao_;
 
   bool enable_{true};

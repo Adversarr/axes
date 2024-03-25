@@ -77,7 +77,7 @@ private:
   math::Lattice<dim, idx> dof_map_;
 
   // Solver
-  utils::uptr<math::SparseSolverBase> sparse_solver_;
+  UPtr<math::SparseSolverBase> sparse_solver_;
   std::string sparse_solver_name_;
 };
 

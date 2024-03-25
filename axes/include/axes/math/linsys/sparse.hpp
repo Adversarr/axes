@@ -25,9 +25,9 @@ class SparseSolverBase : public LinsysSolverBase<LinsysProblem_Sparse> {
 public:
   SparseSolverBase();
 
-  static utils::uptr<SparseSolverBase> Create(SparseSolverKind kind);
+  static UPtr<SparseSolverBase> Create(SparseSolverKind kind);
 
-  inline void SetPreconditioner(utils::uptr<PreconditionerBase> preconditioner) {
+  inline void SetPreconditioner(UPtr<PreconditionerBase> preconditioner) {
     preconditioner_ = std::move(preconditioner);
   }
 
@@ -36,7 +36,7 @@ public:
   virtual SparseSolverKind Kind() const = 0;
 
 protected:
-  utils::uptr<PreconditionerBase> preconditioner_{nullptr};
+  UPtr<PreconditionerBase> preconditioner_{nullptr};
 };
 
 

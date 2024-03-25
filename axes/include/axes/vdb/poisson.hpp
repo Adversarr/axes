@@ -18,7 +18,7 @@ public:
 
   virtual ~PoissonSolverBase() = default;
 
-  static utils::uptr<PoissonSolverBase> Create(PoissonSolverKind kind);
+  static UPtr<PoissonSolverBase> Create(PoissonSolverKind kind);
 
   void SetBoundaryCondition(BcFunc boundary_condition);
 protected:

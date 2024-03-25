@@ -8,7 +8,7 @@ namespace ax::pde::fem {
 template <idx dim> MeshBase<dim>::MeshBase(MeshType type) : type_(type) {}
 
 template <idx dim>
-utils::uptr<MeshBase<dim>> MeshBase<dim>::Create(MeshType type) {
+UPtr<MeshBase<dim>> MeshBase<dim>::Create(MeshType type) {
   if (type == MeshType::kP1) {
     return std::make_unique<P1Mesh<dim>>();
   } else {

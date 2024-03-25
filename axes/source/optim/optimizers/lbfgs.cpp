@@ -8,8 +8,8 @@
 namespace ax::optim {
 
 OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
-  std::vector<math::vecxr> s;
-  std::vector<math::vecxr> y;
+  List<math::vecxr> s;
+  List<math::vecxr> y;
   s.reserve(history_size_);
   y.reserve(history_size_);
   if (!problem_.HasGrad()) {

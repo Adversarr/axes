@@ -28,9 +28,9 @@ protected:
   std::string linesearch_name_;
   std::string dense_solver_name_;
   std::string sparse_solver_name_;
-  utils::uptr<LinesearchBase> linesearch_;
-  utils::uptr<math::DenseSolverBase> dense_solver_;
-  utils::uptr<math::SparseSolverBase> sparse_solver_;
+  UPtr<LinesearchBase> linesearch_;
+  UPtr<math::DenseSolverBase> dense_solver_;
+  UPtr<math::SparseSolverBase> sparse_solver_;
 };
 
 }  // namespace ax::optim

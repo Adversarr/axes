@@ -11,30 +11,21 @@ namespace ax::pde::fem {
  */
 template <idx dim> class ElasticityComputeBase {
 public:
-  explicit ElasticityComputeBase(MeshBase<dim> const* mesh) : mesh_(mesh) {
-    deformation_gradient_cache_ = compute_deformation_gradient_rest_pose_cache(*mesh_);
-  }
-
+  explicit ElasticityComputeBase(Deformation<dim>& deformation) : deformation_(deformation) {}
   virtual ~ElasticityComputeBase() = default;
+
+  void UpdateDeformationGradient() { deformation_gradient_ = deformation_.Forward(); }
 
   virtual real Energy(math::vec2r const& u_lame) const = 0;
   virtual real Energy(math::field2r const& lame) const = 0;
-  virtual math::fieldr<dim> Stress(math::vec2r const& u_lame) const = 0;
-  virtual math::fieldr<dim> Stress(math::field2r const& lame) const = 0;
-  virtual math::sp_coeff_list Hessian(math::vec2r const& u_lame) const = 0;
-  virtual math::sp_coeff_list Hessian(math::field2r const& lame) const = 0;
-
-  void ComputeDeformationGradient(typename fem::MeshBase<dim>::vertex_list_t const& rest_pose) {
-    deformation_gradient_
-        = compute_deformation_gradient_cached(*mesh_, deformation_gradient_cache_);
-  }
+  virtual List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) const = 0;
+  virtual List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) const = 0;
+  virtual List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) const = 0;
+  virtual List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) const = 0;
 
 protected:
-  MeshBase<dim> const* mesh_;
+  Deformation<dim>& deformation_;
   elasticity::DeformationGradientList<dim> deformation_gradient_;
-
-private:
-  elasticity::DeformationGradientCache<dim> deformation_gradient_cache_;
 };
 
 template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute final
@@ -42,12 +33,14 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
   using ElasticModel = typename ElasticModelTemplate<dim>;
 
 public:
+  using ElasticityComputeBase<dim>::ElasticityComputeBase;
+
   real Energy(math::field2r const& lame) const;
   real Energy(math::vec2r const& lame) const;
-  math::fieldr<dim> Stress(math::vec2r const& u_lame) const;
-  math::fieldr<dim> Stress(math::field2r const& lame) const;
-  math::sp_coeff_list Hessian(math::field2r const& lame) const;
-  math::sp_coeff_list Hessian(math::vec2r const& u_lame) const;
+  List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) const;
+  List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) const;
+  List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) const;
+  List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) const;
 };
 
 }  // namespace ax::pde::fem
@@ -59,18 +52,18 @@ namespace ax::pde::fem {
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::field2r const& lame) const {
-  idx const n_elem = this->mesh_->GetNumElements();
-  auto const& mesh = *this->mesh_;
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
   auto const& dg_l = this->deformation_gradient_;
-  auto energy = tbb::parallel_reduce<idx, real>(
+  auto energy = tbb::parallel_reduce(
       tbb::blocked_range<idx>(0, n_elem), 0,
-      [&](tbb::blocked_range<idx> const& range, real local_energy) {
+      [&](tbb::blocked_range<idx> const& range, real local_energy) -> real {
         for (idx i = range.begin(); i < range.end(); ++i) {
           auto const& element = mesh.GetElement(i);
           elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
           ElasticModel model(F);
           model.SetLame(lame.col(i));
-          local_energy += model.Energy();
+          local_energy += model.Energy() * this->deformation_.GetElementVolume(i);
         }
         return local_energy;
       },
@@ -80,18 +73,18 @@ real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::field2r const& l
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) const {
-  idx const n_elem = this->mesh_->GetNumElements();
-  auto const& mesh = *this->mesh_;
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
   auto const& dg_l = this->deformation_gradient_;
-  auto energy = tbb::parallel_reduce<idx, real>(
+  auto energy = tbb::parallel_reduce(
       tbb::blocked_range<idx>(0, n_elem), 0,
-      [&](tbb::blocked_range<idx> const& range, real local_energy) {
+      [&](tbb::blocked_range<idx> const& range, real local_energy) -> real {
         for (idx i = range.begin(); i < range.end(); ++i) {
           auto const& element = mesh.GetElement(i);
           elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
           ElasticModel model(F);
           model.SetLame(lame);
-          local_energy += model.Energy();
+          local_energy += model.Energy() * this->deformation_.GetElementVolume(i);
         }
         return local_energy;
       },
@@ -100,21 +93,72 @@ real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lam
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-math::fieldr<dim> ElasticityCompute<dim, ElasticModelTemplate>::Stress(math::vec2r const& lame) const {
-  idx const n_elem = this->mesh_->GetNumElements();
-  auto const& mesh = *this->mesh_;
+List<elasticity::StressTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Stress(
+    math::vec2r const& lame) const {
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
   auto const& dg_l = this->deformation_gradient_;
-  math::fieldr<dim> stress(n_elem);
+  List<elasticity::StressTensor<dim>> stress(n_elem);
   tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
     auto const& element = mesh.GetElement(i);
     elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
     ElasticModel model(F);
     model.SetLame(lame);
-    stress[i] = model.Stress();
+    stress[i] = model.Stress() * this->deformation_.GetElementVolume(i);
   });
   return stress;
 }
 
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::StressTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Stress(
+    math::field2r const& lame) const {
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
+  auto const& dg_l = this->deformation_gradient_;
+  List<elasticity::StressTensor<dim>> stress(n_elem);
+  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+    auto const& element = mesh.GetElement(i);
+    elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
+    ElasticModel model(F);
+    model.SetLame(lame.col(i));
+    stress[i] = model.Stress() * this->deformation_.GetElementVolume(i);
+  });
+  return stress;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Hessian(
+    math::vec2r const& lame) const {
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
+  auto const& dg_l = this->deformation_gradient_;
+  List<elasticity::HessianTensor<dim>> hessian(n_elem);
+  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+    auto const& element = mesh.GetElement(i);
+    elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
+    ElasticModel model(F);
+    model.SetLame(lame);
+    hessian[i] = model.Hessian() * this->deformation_.GetElementVolume(i);
+  });
+  return hessian;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Hessian(
+    math::field2r const& lame) const {
+  idx const n_elem = this->deformation_.GetMesh().GetNumElements();
+  auto const& mesh = this->deformation_.GetMesh();
+  auto const& dg_l = this->deformation_gradient_;
+  List<elasticity::HessianTensor<dim>> hessian(n_elem);
+  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+    auto const& element = mesh.GetElement(i);
+    elasticity::DeformationGradient<dim> const& F = this->deformation_gradient_[i];
+    ElasticModel model(F);
+    model.SetLame(lame.col(i));
+    hessian[i] = model.Hessian() * this->deformation_.GetElementVolume(i);
+  });
+  return hessian;
+}
 
 }  // namespace ax::pde::fem
 

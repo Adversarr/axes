@@ -102,7 +102,7 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
     return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
   }
 
-  std::vector<real> data;
+  List<real> data;
   data.reserve(mat.cols() * mat.rows());
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {

@@ -42,7 +42,7 @@ Status MeshDecimator::Run() {
     Q_i[vert] = m;
   });
 
-  std::vector<EdgeCollapseCost> cost;
+  List<EdgeCollapseCost> cost;
   mesh_->ForeachEdge([&cost, &Q_i, this](HalfedgeEdge_t* e) {
     if (!mesh_->CheckCollapse(e)) {
       return;

@@ -28,7 +28,7 @@ namespace ax::gl {
 using math::cast;
 
 struct Context::Impl {
-  std::vector<utils::uptr<RenderBase>> renderers_;
+  List<UPtr<RenderBase>> renderers_;
 
   Window window_;
   Camera camera_;
@@ -360,7 +360,7 @@ Status Context::TickRender() {
   AX_RETURN_OK();
 }
 
-void Context::AppendEntityRenderer(utils::uptr<RenderBase> renderer) {
+void Context::AppendEntityRenderer(UPtr<RenderBase> renderer) {
   impl_->renderers_.push_back(std::move(renderer));
 }
 

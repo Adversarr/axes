@@ -39,6 +39,7 @@ include(cmake/utils.cmake)
 
 if (MSVC)
   axes_add_cxx_compiler_flag("/bigobj")
+  axes_add_cxx_compiler_flag("/Zc:__cplusplus")
 endif()
 
 # Further optimize for SIMD.

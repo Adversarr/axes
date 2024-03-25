@@ -8,7 +8,7 @@
 
 namespace ax::math {
 
-utils::uptr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
+UPtr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
   switch (kind) {
     case ax::math::PreconditionerKind::kIdentity:
       return std::make_unique<PreconditionerIdentity>();

@@ -35,7 +35,7 @@ public:
 
   using boundary_value_t = vertex_t; /**< Type for storing boundary values. */
   using boundary_value_list_t = vertex_list_t; /**< Type for storing a list of boundary values. */
-  using boundary_type_list_t = std::vector<BoundaryType>; /**< Type for storing boundary types. */
+  using boundary_type_list_t = List<BoundaryType>; /**< Type for storing boundary types. */
 
   /**
    * @brief Constructs a MeshBase object of the specified type.
@@ -252,13 +252,13 @@ protected:
 //       a template implementation to avoid the need of defining it in the cpp file.
 // NOTE: Also, some member functions should be defined in header file to achieve inlining.
 template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::GetElement(idx i) const noexcept {
-  AX_DCHECK(i < elements_.size()) << "Index out of bounds.";
+  AX_DCHECK(i < elements_.cols()) << "Index out of bounds.";
   return elements_.col(i);
 }
 
 template <idx dim> AX_FORCE_INLINE 
 typename MeshBase<dim>::vertex_t MeshBase<dim>::GetVertex(idx i) const noexcept {
-  AX_DCHECK(i < vertices_.size()) << "Index out of bounds.";
+  AX_DCHECK(i < vertices_.cols()) << "Index out of bounds.";
   return vertices_.col(i);
 }
 

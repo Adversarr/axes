@@ -50,7 +50,7 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string const& nam
  * @tparam Enum The enum type.
  * @return A vector containing the names of all enum values.
  */
-template <typename Enum> std::vector<std::string> const& reflect_names() {
+template <typename Enum> List<std::string> const& reflect_names() {
   return details::get_meta<Enum>().names_;
 }
 
@@ -76,7 +76,7 @@ template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
  * @param name The name of the enum value.
  * @return A unique pointer to the created object, or nullptr if the enum value is invalid.
  */
-template <typename Enum, typename T> uptr<T> reflect_create(std::string_view name) {
+template <typename Enum, typename T> UPtr<T> reflect_create(std::string_view name) {
   std::optional<Enum> val = reflect_enum<Enum>(name);
   if (!val.has_value()) {
     return nullptr;
@@ -102,7 +102,7 @@ template <typename Enum, typename T> uptr<T> reflect_create(std::string_view nam
     }                                                 \
     std::map<enum_type, std::string> enum_to_string_; \
     std::map<std::string, enum_type> string_to_enum_; \
-    std::vector<std::string> names_;                  \
+    List<std::string> names_;                  \
     }
 
 #endif

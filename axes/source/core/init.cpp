@@ -16,16 +16,16 @@
 namespace ax {
 
 /****************************** GLOBAL VARS ******************************/
-utils::uptr<entt::registry> registry_p;
-utils::uptr<entt::dispatcher> dispatcher_p;
+UPtr<entt::registry> registry_p;
+UPtr<entt::dispatcher> dispatcher_p;
 
 struct Hook {
   const char* name_;
   std::function<Status()> call_;
 };
 
-std::vector<Hook> init_hooks;
-std::vector<Hook> clean_up_hooks;
+List<Hook> init_hooks;
+List<Hook> clean_up_hooks;
 
 /****************************** Implementation ******************************/
 

@@ -27,7 +27,7 @@ public:
    * Add a custom renderer to the render pipeline.
    * @param renderer RenderBase
    */
-  void AppendEntityRenderer(utils::uptr<RenderBase> renderer);
+  void AppendEntityRenderer(UPtr<RenderBase> renderer);
 
   Window& GetWindow();
   Camera& GetCamera();
@@ -38,7 +38,7 @@ public:
   void SetGlobalModelMatrix(math::mat4f const& value);
 
 private:
-  utils::uptr<Impl> impl_;
+  UPtr<Impl> impl_;
 };
 
 Context& get_context();

@@ -27,7 +27,7 @@ enum class DenseSolverKind : int {
 /****************************** Implement ******************************/
 class DenseSolverBase : public LinsysSolverBase<LinsysProblem_Dense> {
 public:
-  static utils::uptr<DenseSolverBase> Create(DenseSolverKind kind);
+  static UPtr<DenseSolverBase> Create(DenseSolverKind kind);
 
 private:
 };

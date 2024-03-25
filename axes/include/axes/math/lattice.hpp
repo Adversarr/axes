@@ -29,7 +29,7 @@ constexpr staggered_t staggered;
  */
 template <idx D, typename T> class Lattice {
 public:
-  using Container = std::vector<T>;
+  using Container = List<T>;
 
   explicit Lattice(veci<D> const& shape, cell_center_t = cell_center)
       : shape_(shape), is_staggered_(false) {

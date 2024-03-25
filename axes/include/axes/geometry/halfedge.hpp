@@ -184,9 +184,9 @@ private:
   void RemoveVertexInternal(HalfedgeVertex_t* vert);
   void RemoveEdgeInternal(HalfedgeEdge_t* edge);
   void RemoveFaceInternal(HalfedgeFace_t* face);
-  std::vector<utils::uptr<HalfedgeVertex_t>> vertices_;
-  std::vector<utils::uptr<HalfedgeEdge_t>> edges_;
-  std::vector<utils::uptr<HalfedgeFace_t>> faces_;
+  List<UPtr<HalfedgeVertex_t>> vertices_;
+  List<UPtr<HalfedgeEdge_t>> edges_;
+  List<UPtr<HalfedgeFace_t>> faces_;
 };
 
 math::vec3r HalfedgeEdge_t::Normal() const {

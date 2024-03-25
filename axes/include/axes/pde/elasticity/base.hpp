@@ -13,12 +13,12 @@ real compute_lambda(real E, real nu);
 
 template<typename Derived>
 auto green_strain(math::MBcr<Derived> F) {
-  return 0.5 * (F.transpose() * F - math::eye<math::rows_static(F)>());
+  return 0.5 * (F.transpose() * F - math::eye<Derived::RowsAtCompileTime>());
 }
 
 template <typename Derived>
 auto approx_green_strain(math::MBcr<Derived> F) {
-  return 0.5 * (F.transpose() + F) - math::eye<math::rows_static(F)>();
+  return 0.5 * (F.transpose() + F) - math::eye<Derived::RowsAtCompileTime>();
 }
 
 namespace details {
@@ -91,6 +91,7 @@ public:
    * @param lambda Lamé parameter
    * @param mu Lamé parameter
    */
+  ElasticityBase(DeformationGradient<dim> const& F) : F_(F) {}
   ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
   ElasticityBase() = default;
 

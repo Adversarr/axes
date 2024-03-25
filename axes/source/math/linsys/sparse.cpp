@@ -10,7 +10,7 @@
 
 namespace ax::math {
 
-utils::uptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
+UPtr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
   switch (kind) {
     case SparseSolverKind::kLDLT:
       return std::make_unique<SparseSolver_LDLT>();

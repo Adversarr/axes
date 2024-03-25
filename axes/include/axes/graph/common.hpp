@@ -44,7 +44,7 @@ public:
 
   Pin* GetSource() const { return source_; }
 
-  std::vector<Pin*> const& GetConnections() const { return connections_; }
+  List<Pin*> const& GetConnections() const { return connections_; }
 protected:
   friend class Graph;
   void AddOutputConnection(Pin* pin) { connections_.push_back(pin); }
@@ -81,7 +81,7 @@ protected:
 private:
   void* data_;
   Pin* source_;
-  std::vector<Pin*> connections_;
+  List<Pin*> connections_;
   bool changed_;
   std::type_index const type_;
 };
@@ -238,9 +238,9 @@ public:
 
   virtual Status CleanUp();
 
-  std::vector<Pin> const& GetInputData();
+  List<Pin> const& GetInputData();
 
-  std::vector<Pin> const& GetOutputData();
+  List<Pin> const& GetOutputData();
 
   template <typename... Args> std::tuple<Args const&...> RetreiveInput() {
     return RetriveInputImpl(std::make_index_sequence<sizeof...(Args)>());
@@ -264,8 +264,8 @@ protected:
   }
 
 private:
-  std::vector<Pin> input_data_;
-  std::vector<Pin> output_data_;
+  List<Pin> input_data_;
+  List<Pin> output_data_;
   NodeDescriptor const* descriptor_;
 };
 
@@ -273,8 +273,8 @@ class NodeDescriptor {
 public:
   friend class NodeDescriptorFactoryBase;
   std::unique_ptr<NodeBase> Create() const { return creator_(this); }
-  std::vector<PinDescriptor> const& GetInputPins() const;
-  std::vector<PinDescriptor> const& GetOutputPins() const;
+  List<PinDescriptor> const& GetInputPins() const;
+  List<PinDescriptor> const& GetOutputPins() const;
 
   NodeRunStrategy GetRunStrategy() const { return run_strategy; }
   NodeTriggerStrategy GetTriggerStrategy() const { return trigger_strategy; }
@@ -292,8 +292,8 @@ private:
 
   void AddInputPin(PinDescriptor const& pin) { input_pins_.push_back(pin); }
   void AddOutputPin(PinDescriptor const& pin) { output_pins_.push_back(pin); }
-  std::vector<PinDescriptor> input_pins_;
-  std::vector<PinDescriptor> output_pins_;
+  List<PinDescriptor> input_pins_;
+  List<PinDescriptor> output_pins_;
   std::type_index node_type_;
   std::string name_;
   const NodeRunStrategy run_strategy;

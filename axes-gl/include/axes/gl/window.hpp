@@ -19,7 +19,7 @@ struct FrameBufferSizeEvent {
 };
 
 struct DropEvent {
-  std::vector<std::string> paths_;
+  List<std::string> paths_;
 };
 
 struct KeyboardEvent {
@@ -75,7 +75,7 @@ public:
   bool ShouldClose() const;
 
 private:
-  utils::uptr<Impl> impl_;
+  UPtr<Impl> impl_;
 };
 
 }  // namespace ax::gl

@@ -42,8 +42,8 @@ public:
 
 private:
   unsigned int id_;
-  std::vector<Shader> shaders_;
-  std::vector<ProgramAttribLocation> attrib_locations_;
+  List<Shader> shaders_;
+  List<ProgramAttribLocation> attrib_locations_;
 };
 
 }  // namespace ax::gl

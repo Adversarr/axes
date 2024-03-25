@@ -1,9 +1,9 @@
 #pragma once
 
 #ifndef AX_PLATFORM
-#define AX_WINDOWS 0
-#define AX_APPLE   1
-#define AX_LINUX   2
+#  define AX_WINDOWS 0
+#  define AX_APPLE 1
+#  define AX_LINUX 2
 #  ifdef _MSC_VER
 #    define AX_PLATFORM AX_WINDOWS
 #    define AX_PLATFORM_WINDOWS
@@ -20,8 +20,8 @@
  *           Force inline.
  ***************************************/
 #ifndef AX_FORCE_INLINE
-#  ifdef _MSC_VER_  // for MSVC
-#    define forceinline inline __forceinline
+#  ifdef _MSC_VER  // for MSVC
+#    define AX_FORCE_INLINE inline __forceinline
 #  elif defined __GNUC__  // for gcc on Linux/Apple OS X
 #    define AX_FORCE_INLINE __attribute__((always_inline)) inline
 #  else
@@ -131,6 +131,58 @@
 #endif
 
 
+/***************************************
+       Loop Unrolling
+***************************************/
+#ifndef AX_PRAGMA
+#define AX_PRAGMA(x) _Pragma(#x)
+#endif
+
+
+/***************************************
+       Debug mode
+***************************************/
 #ifndef if_is_debug
-#define if_is_debug() if constexpr (AX_IS_DEBUG)
+#  define if_is_debug() if constexpr (AX_IS_DEBUG)
+#endif
+
+/***************************************
+       DLL export for Windows. (Future?)
+***************************************/
+#ifdef AX_EXPORT
+#  undef AX_EXPORT
+#endif
+#ifdef AX_IMPORT
+#  undef AX_IMPORT
+#endif
+
+#ifdef _WIN32
+#  ifdef AX_BUILD_SHARED
+#    define AX_EXPORT __declspec(dllexport)
+#    define AX_IMPORT __declspec(dllimport)
+#  else
+#    define AX_EXPORT
+#    define AX_IMPORT
+#  endif
+#else
+#  ifdef __GNUC__
+#    define AX_EXPORT __attribute__((visibility("default")))
+#    define AX_IMPORT __attribute__((visibility("default")))
+#  else
+#    define AX_EXPORT
+#    define AX_IMPORT
+#  endif
+#endif
+
+#if defined(AX_BUILD_SHARED) && defined(_WIN32)
+#  ifdef AX_PRIVATE
+#    define AX_TEMPLATE_EXPORT AX_EXPORT
+#    define AX_TEMPLATE_IMPORT
+#  else
+#    define AX_TEMPLATE_EXPORT
+#    define AX_TEMPLATE_IMPORT AX_IMPORT
+#  endif
+#else
+#  define AX_TEMPLATE_EXPORT
+#  define AX_TEMPLATE_IMPORT
 #endif

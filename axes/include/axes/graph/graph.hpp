@@ -78,12 +78,12 @@ public:
   /**
    * @brief Get all the nodes in the graph.
    */
-  std::vector<NodeBase*> GetNodes();
+  List<NodeBase*> GetNodes();
 
   /**
    * @brief Get all the nodes in the graph.
    */
-  std::vector<DataLoadBase*> GetDataLoads();
+  List<DataLoadBase*> GetDataLoads();
 
 private:
   std::unique_ptr<Impl> impl_;

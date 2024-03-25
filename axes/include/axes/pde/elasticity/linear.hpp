@@ -9,6 +9,7 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
   using base_t = ElasticityBase<dim, Linear<dim>>;
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
+  using base_t::ElasticityBase;
 
   /**
    * @brief Compute the Linear Elasticity Potential value.
@@ -21,7 +22,8 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = approx_green_strain(F);
-    return mu * math::norm(E, math::l2) + 0.5 * lambda * math::square(math::trace(E));
+    real E_trace = E.trace();
+    return mu * math::norm(E, math::l2) + 0.5 * lambda * E_trace * E_trace;
   }
 
   /**
@@ -34,7 +36,7 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = approx_green_strain(F);
-    return 2 * mu * E + lambda * math::trace(E) * math::eye<dim>();
+    return 2 * mu * E + lambda * E.trace() * math::eye<dim>();
   }
 
   /**
@@ -43,8 +45,7 @@ template <idx dim> struct Linear: public ElasticityBase<dim, Linear<dim>>{
    * @return hessian_t 
    */
   hessian_t Hessian() const {
-    hessian_t H = math::eye<dim*dim>() * this->mu_;
-#pragma unroll
+    hessian_t H = math::eye<dim * dim>() * this->mu_;
     for (idx i = 0; i < dim; ++i) {
       H(i * (dim + 1), i * (dim + 1)) += this->mu_ + this->lambda_;
     }

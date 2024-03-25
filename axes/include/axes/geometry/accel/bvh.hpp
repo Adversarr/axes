@@ -10,7 +10,7 @@ constexpr idx invalid_idx = -1;
 namespace details {
 /****************************** Node Definition ******************************/
 template <idx dim> struct BVHNode;
-template <idx dim> using BVHNode_p = utils::uptr<BVHNode<dim>>;
+template <idx dim> using BVHNode_p = UPtr<BVHNode<dim>>;
 template <idx dim> struct BVHNode {
   AlignedBoxN<dim> box_;
   idx id_;
@@ -29,8 +29,8 @@ template <idx dim> struct BVHNode {
 
 template <idx dim> class BVHBuilder {
 public:
-  BVHNode_p<dim> Build(std::vector<BVHNode_p<dim>>::iterator begin,
-                       std::vector<BVHNode_p<dim>>::iterator end) {
+  BVHNode_p<dim> Build(List<BVHNode_p<dim>>::iterator begin,
+                       List<BVHNode_p<dim>>::iterator end) {
     using namespace math;
     if (begin == end) {
       return nullptr;

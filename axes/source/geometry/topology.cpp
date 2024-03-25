@@ -6,7 +6,7 @@
 namespace ax::geo {
 
 math::field2i get_edges(math::field3i const& triangles) {
-  std::vector<utils::DupTuple<idx, 2>> edges;
+  List<utils::DupTuple<idx, 2>> edges;
   edges.reserve(triangles.cols() * 3);
   for (idx i = 0; i < triangles.cols(); ++i) {
     for (idx j = 0; j < 3; ++j) {
@@ -29,7 +29,7 @@ math::field2i get_edges(math::field3i const& triangles) {
 }
 
 math::field2i get_boundary_edges(math::field3i const& triangles) {
-  std::vector<utils::DupTuple<idx, 2>> edges;
+  List<utils::DupTuple<idx, 2>> edges;
 
   for (idx i = 0; i < triangles.cols(); ++i) {
     for (idx j = 0; j < 3; ++j) {
@@ -52,7 +52,7 @@ math::field2i get_boundary_edges(math::field3i const& triangles) {
 }
 
 math::field3i get_boundary_triangles(math::field4i const& tetrahedrons) {
-  std::vector<utils::DupTuple<idx, 3>> triangles;
+  List<utils::DupTuple<idx, 3>> triangles;
 
   for (idx i = 0; i < tetrahedrons.cols(); ++i) {
     for (idx j = 0; j < 4; ++j) {

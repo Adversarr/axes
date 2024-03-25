@@ -6,19 +6,6 @@
 
 namespace ax::utils {
 
-/****************************** Commonly Used Pointer Decl ******************************/
-
-template <typename T> using uptr = std::unique_ptr<T>;
-
-template <typename T> using sptr = std::shared_ptr<T>;
-
-template <typename T> using rptr = T*;
-
-template <typename T> using wptr = std::weak_ptr<T>;
-
-/****************************** variants ******************************/
-template <typename... T> using var = std::variant<T...>;
-
 /****************************** Do Not Use ******************************/
 
 // Instanciating this type will always raise a compile error.

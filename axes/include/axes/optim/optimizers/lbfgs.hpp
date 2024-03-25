@@ -21,6 +21,6 @@ public:
   idx history_size_{10};
 
   std::string linesearch_name_;
-  utils::uptr<LinesearchBase> linesearch_;
+  UPtr<LinesearchBase> linesearch_;
 };
 }  // namespace ax::optim

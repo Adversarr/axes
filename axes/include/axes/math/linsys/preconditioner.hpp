@@ -10,7 +10,7 @@ enum class PreconditionerKind : idx { kIdentity, kDiagonal, kIncompleteCholesky,
 
 class PreconditionerBase : public utils::Tunable {
 public:
-  static utils::uptr<PreconditionerBase> Create(PreconditionerKind kind);
+  static UPtr<PreconditionerBase> Create(PreconditionerKind kind);
 
   virtual ~PreconditionerBase() = default;
   virtual Status Analyse(LinsysProblem_Sparse const &problem) = 0;

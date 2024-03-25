@@ -150,7 +150,7 @@ template <typename A> AX_FORCE_INLINE typename A::ScalarType min(DBcr<A> mv) {
   return mv.minCoeff();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(MBcr<A> mv) {
   return mv.trace();
 }
 

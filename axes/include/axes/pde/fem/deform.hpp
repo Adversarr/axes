@@ -22,7 +22,9 @@ public:
 
   elasticity::DeformationGradientCache<dim> const& GetRestPoseCache() const;
 
-  typename MeshBase<dim>::vertex_list_t StressToForce(
+  math::field1r EnergyToVertices(math::field1r const& ) const;
+
+  typename MeshBase<dim>::vertex_list_t StressToVertices(
       List<elasticity::StressTensor<dim>> const& stress) const;
 
   math::sp_coeff_list HessianToVertices(List<elasticity::HessianTensor<dim>> const& hessian) const;

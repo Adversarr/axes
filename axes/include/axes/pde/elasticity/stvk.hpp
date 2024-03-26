@@ -1,5 +1,6 @@
 #pragma once
 #include "base.hpp"
+#include "axes/math/functional.hpp"
 namespace ax::pde::elasticity {
 
 /**
@@ -11,6 +12,7 @@ template <idx dim> struct StVK: public ElasticityBase<dim, StVK<dim>>{
   using base_t = ElasticityBase<dim, StVK<dim>>;
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
+  using ElasticityBase<dim, StVK<dim>>::ElasticityBase;
   
   real Energy() const {
     const auto& F = this->F_;

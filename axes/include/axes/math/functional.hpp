@@ -142,15 +142,15 @@ template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar mean(DBcr<D
   return a.mean();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType max(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE typename A::Scalar max(DBcr<A> mv) {
   return mv.maxCoeff();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType min(DBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE typename A::Scalar min(DBcr<A> mv) {
   return mv.minCoeff();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::ScalarType trace(MBcr<A> mv) {
+template <typename A> AX_FORCE_INLINE typename A::Scalar trace(MBcr<A> mv) {
   return mv.trace();
 }
 

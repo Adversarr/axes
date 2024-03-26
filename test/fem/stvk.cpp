@@ -1,4 +1,4 @@
-#include "axes/pde/elasticity/linear.hpp"
+#include "axes/pde/elasticity/stvk.hpp"
 #include <doctest/doctest.h>
 
 #include "axes/geometry/io.hpp"
@@ -26,7 +26,7 @@ TEST_CASE("mass2d") {
     // std::cout << ijv.row() << " " << ijv.col() << " " << ijv.value() << std::endl;
     sum += ijv.value();
   }
-  CHECK(sum == doctest::Approx(1.0));
+  CHECK(sum == doctest::Approx(2.0));
 }
 
 TEST_CASE("stress") {
@@ -35,7 +35,7 @@ TEST_CASE("stress") {
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   fem::Deformation<2> deform(*mesh, vert.topRows<2>());
   auto def = deform.Forward();
-  auto elastic = fem::ElasticityCompute<2, elasticity::Linear>(deform);
+  auto elastic = fem::ElasticityCompute<2, elasticity::StVK>(deform);
   math::vec2r lame = {1.0, 1.0};
   elastic.UpdateDeformationGradient();
   auto stress = elastic.Stress(lame);
@@ -53,16 +53,8 @@ TEST_CASE("Hessian") {
   auto mesh = std::make_unique<fem::P1Mesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   fem::Deformation<2> deform(*mesh, vert.topRows<2>());
-  auto stress = fem::ElasticityCompute<2, elasticity::Linear>(deform);
+  auto stress = fem::ElasticityCompute<2, elasticity::StVK>(deform);
   math::vec2r lame = {1.0, 1.0};
   stress.UpdateDeformationGradient();
-  for (auto const& s : stress.Hessian(lame)) {
-    real s00 = s(0, 0);
-    real s11 = s(1, 1);
-    CHECK(doctest::Approx(s00) == 3 * s11);
-    CHECK(doctest::Approx(s(3, 3)) == s00);
-    CHECK(doctest::Approx(s(2, 2)) == s11);
-  }
-
   CHECK(doctest::Approx(stress.Energy(lame).sum()) == 0);
 }

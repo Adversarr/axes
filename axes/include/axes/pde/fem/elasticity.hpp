@@ -23,7 +23,7 @@ public:
    * @param u_lame 
    * @return real 
    */
-  virtual real Energy(math::vec2r const& u_lame) const = 0;
+  virtual math::field1r Energy(math::vec2r const& u_lame) const = 0;
 
   /**
    * @brief Compute the energy of all elements.
@@ -31,7 +31,7 @@ public:
    * @param lame 
    * @return real 
    */
-  virtual real Energy(math::field2r const& lame) const = 0;
+  virtual math::field1r Energy(math::field2r const& lame) const = 0;
 
   /**
    * @brief Compute the stress tensor of each element.
@@ -76,8 +76,8 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
 public:
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  real Energy(math::field2r const& lame) const;
-  real Energy(math::vec2r const& lame) const;
+  math::field1r Energy(math::field2r const& lame) const;
+  math::field1r Energy(math::vec2r const& lame) const;
   List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) const;
   List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) const;
   List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) const;
@@ -93,41 +93,32 @@ public:
 namespace ax::pde::fem {
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::field2r const& lame) const {
+math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(
+    math::field2r const& lame) const {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
-  auto energy = tbb::parallel_reduce(
-      tbb::blocked_range<idx>(0, n_elem), 0,
-      [&](tbb::blocked_range<idx> const& range, real local_energy) -> real {
-        for (idx i = range.begin(); i < range.end(); ++i) {
-          elasticity::DeformationGradient<dim> const& F = dg_l[i];
-          ElasticModel model(F);
-          model.SetLame(lame.col(i));
-          local_energy += model.Energy() * this->deformation_.GetElementVolume(i);
-        }
-        return local_energy;
-      },
-      std::plus<real>());
-  return energy;
+  math::field1r element_energy(1, n_elem);
+  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+    elasticity::DeformationGradient<dim> const& F = dg_l[i];
+    ElasticModel model(F);
+    model.SetLame(lame.col(i));
+    element_energy[i] = model.Energy() * this->deformation_.GetElementVolume(i);
+  });
+  return element_energy;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-real ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) const {
+math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) const {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
-  auto energy = tbb::parallel_reduce(
-      tbb::blocked_range<idx>(0, n_elem), 0,
-      [&](tbb::blocked_range<idx> const& range, real local_energy) -> real {
-        for (idx i = range.begin(); i < range.end(); ++i) {
-          elasticity::DeformationGradient<dim> const& F = dg_l[i];
-          ElasticModel model(F);
-          model.SetLame(lame);
-          local_energy += model.Energy() * this->deformation_.GetElementVolume(i);
-        }
-        return local_energy;
-      },
-      std::plus<real>());
-  return energy;
+  math::field1r element_energy(1, n_elem);
+  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+    elasticity::DeformationGradient<dim> const& F = dg_l[i];
+    ElasticModel model(F);
+    model.SetLame(lame);
+    element_energy[i] = model.Energy() * this->deformation_.GetElementVolume(i);
+  });
+  return element_energy;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>

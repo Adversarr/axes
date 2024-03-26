@@ -35,7 +35,10 @@ static math::sp_coeff_list p1(
     auto element_mass = p1_e(E, math::constant<dim+1>(uniform_density));
     for (idx i = 0; i <= dim; ++i) {
       for (idx j = 0; j <= dim; ++j) {
-        result.push_back({ijk[i], ijk[j], element_mass(i, j)});
+        // Foreach vertex, we have dim components.
+        for (idx D = 0; D < dim; ++D) {
+          result.push_back({D + dim * ijk[i], D + dim * ijk[j], element_mass(i, j)});
+        }
       }
     }
   }

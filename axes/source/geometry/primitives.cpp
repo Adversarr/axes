@@ -96,4 +96,43 @@ SurfaceMesh plane(real half_width, real half_height, idx nx, idx ny){
   return {V, F};
 }
 
+TetraMesh tet_cube(real half_size, idx nx, idx ny, idx nz) {
+  using namespace ax::math;
+  field3r vertices(3, nx * ny * nz);
+  field4i elements(4, 5 * (nx - 1) * (ny - 1) * (nz - 1));
+  idx id = 0;
+  for (idx i = 0; i < nx; ++i) {
+    for (idx j = 0; j < ny; ++j) {
+      for (idx k = 0; k < nz; ++k) {
+        vertices.col(id) = vec3r{i / real(nx - 1), j / real(ny - 1), k / real(nz - 1)};
+        id++;
+      }
+    }
+  }
+  vertices.array() -= 0.5;
+  vertices.array() *= 2 * half_size;
+
+  id = 0;
+  for (idx i = 0; i < nx - 1; ++i) {
+    for (idx j = 0; j < ny - 1; ++j) {
+      for (idx k = 0; k < nz - 1; ++k) {
+        idx idx000 = i * ny * nz + j * nz + k;
+        idx idx100 = (i + 1) * ny * nz + j * nz + k;
+        idx idx010 = i * ny * nz + (j + 1) * nz + k;
+        idx idx001 = i * ny * nz + j * nz + k + 1;
+        idx idx110 = (i + 1) * ny * nz + (j + 1) * nz + k;
+        idx idx101 = (i + 1) * ny * nz + j * nz + k + 1;
+        idx idx011 = i * ny * nz + (j + 1) * nz + k + 1;
+        idx idx111 = (i + 1) * ny * nz + (j + 1) * nz + k + 1;
+        elements.col(id++) = vec4i{idx000, idx100, idx010, idx001};
+        elements.col(id++) = vec4i{idx100, idx010, idx110, idx111};
+        elements.col(id++) = vec4i{idx100, idx010, idx001, idx111};
+        elements.col(id++) = vec4i{idx100, idx001, idx101, idx111};
+        elements.col(id++) = vec4i{idx011, idx010, idx001, idx111};
+      }
+    }
+  }
+
+  return {vertices, elements};
+}
 }  // namespace ax::geo

@@ -20,7 +20,7 @@ public:
    * @return real
    */
   real Energy(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+              math::SvdResultImpl<dim, real> const*) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -40,7 +40,7 @@ public:
    * @return stress_t
    */
   stress_t Stress(DeformationGradient<dim> const& F,
-                  math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+                  math::SvdResultImpl<dim, real> const*) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -58,7 +58,7 @@ public:
    * @return hessian_t
    */
   hessian_t Hessian(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+              math::SvdResultImpl<dim, real> const*) const {
     const real& mu = this->mu_;
     const real& lambda = this->lambda_;
     real J = math::det(F);

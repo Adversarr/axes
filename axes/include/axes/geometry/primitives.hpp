@@ -10,4 +10,6 @@ SurfaceMesh sphere(real radius, idx slices, idx stacks);
 
 SurfaceMesh plane(real half_width, real half_height, idx nx, idx ny);
 
+TetraMesh tet_cube(real half_size, idx nx, idx ny, idx nz);
+
 }  // namespace ax::geo

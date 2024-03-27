@@ -18,55 +18,57 @@
 #include "axes/pde/fem/p1mesh.hpp"
 #include "axes/utils/asset.hpp"
 
-ABSL_FLAG(std::string, input, "square_naive.obj", "Input 2D Mesh.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 
 using namespace ax;
 Entity out;
-geo::SurfaceMesh input_mesh;
+geo::TetraMesh input_mesh;
 math::vec3f stretching;
-
 math::vec2r lame;
 
 void update_entity() {
   gl::Mesh& msh = add_or_replace_component<gl::Mesh>(out);
   msh.vertices_ = input_mesh.vertices_;
+  msh.indices_.resize(3, input_mesh.indices_.cols() * 4);
+  for (idx i = 0; i < input_mesh.indices_.cols(); ++i) {
+    msh.indices_.col(i * 4 + 0) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i), input_mesh.indices_(2, i)};
+    msh.indices_.col(i * 4 + 1) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i), input_mesh.indices_(3, i)};
+    msh.indices_.col(i * 4 + 2) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(2, i), input_mesh.indices_(3, i)};
+    msh.indices_.col(i * 4 + 3) = math::vec3i{input_mesh.indices_(1, i), input_mesh.indices_(2, i), input_mesh.indices_(3, i)};
+  }
   for (auto v: math::each(msh.vertices_)) {
     v = (v.array() * stretching.cast<real>().array());
   }
   auto V = msh.vertices_;
-  auto F = msh.indices_ = input_mesh.indices_;
+  auto F = input_mesh.indices_;
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  pde::fem::P1Mesh<2> mesh;
-  AX_CHECK_OK(mesh.SetMesh(F, V.topRows<2>()));
-  pde::fem::Deformation<2> deform(mesh, input_mesh.vertices_.topRows<2>());
-  pde::fem::ElasticityCompute<2, pde::elasticity::NeoHookeanBW> elast(deform);
-  add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
+  pde::fem::P1Mesh<3> mesh;
+  AX_CHECK_OK(mesh.SetMesh(F, V));
+  pde::fem::Deformation<3> deform(mesh, input_mesh.vertices_);
+  pde::fem::ElasticityCompute<3, pde::elasticity::NeoHookeanBW> elast(deform);
+  // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.UpdateDeformationGradient();
   auto stress = elast.Stress(lame);
   auto force = deform.StressToVertices(stress);
   auto& q = add_or_replace_component<gl::Quiver>(out);
   q.colors_.setOnes(4, V.cols());
   q.positions_ = V;
-  q.directions_.resize(3, V.cols());
-  q.directions_.topRows<2>() = force;
-  q.directions_.row(2).setZero();
+  q.directions_ = force;
   auto energy = deform.EnergyToVertices(elast.Energy(lame));
   real m = energy.minCoeff(), M = energy.maxCoeff();
-  gl::Colormap mapping(0, M);
+  gl::Colormap mapping(m, M);
   AX_LOG(INFO) << "m=" << m << "\tM=" << M;
   auto result = mapping(energy.transpose());
   msh.colors_.topRows<3>() = result;
-  q.scale_ = 0.15;
-  q.normalize_ = true;
+  q.scale_ = 0.03;
+  // q.normalize_ = true;
   q.flush_ = true;
 }
 
 static void ui_callback(gl::UiRenderEvent const&) {
   ImGui::Begin("FEM Implicit");
-
   bool has_shearing_changed = false;
   has_shearing_changed |= ImGui::SliderFloat("Scale X", &stretching.x(), 0.0f, 2.0f);
   has_shearing_changed |= ImGui::SliderFloat("Scale Y", &stretching.y(), 0.0f, 2.0f);
@@ -80,13 +82,7 @@ static void ui_callback(gl::UiRenderEvent const&) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   lame = pde::elasticity::compute_lame(1e4, 0.45);
-  input_mesh
-      = ax::geo::read_obj(ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_input))).value();
-  if (absl::GetFlag(FLAGS_flip_yz)) {
-    auto z = input_mesh.vertices_.row(2).eval();
-    input_mesh.vertices_.row(2) = input_mesh.vertices_.row(1);
-    input_mesh.vertices_.row(1) = z;
-  }
+  input_mesh = geo::tet_cube(0.5, 50, 50, 50);
   stretching.setOnes();
   update_entity();
   connect<gl::UiRenderEvent, &ui_callback>();

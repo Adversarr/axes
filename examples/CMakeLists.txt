@@ -20,4 +20,5 @@ axes_add_example(normal axes_gui)
 axes_add_example(arap_parm axes_gui)
 axes_add_example(fluid axes_gui)
 axes_add_example(fem_implicit axes_gui)
+axes_add_example(fem3debug axes_gui)
 

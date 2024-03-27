@@ -8,3 +8,4 @@ out
 CMakeSettings.json
 imgui.ini
 *.pyc
+build*

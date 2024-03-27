@@ -6,6 +6,8 @@
 
 #include <tbb/parallel_for.h>
 
+// #define DOUBLE_CHECK
+
 namespace ax::pde::fem {
 using namespace elasticity;
 using namespace math;
@@ -24,7 +26,7 @@ template <idx dim> static bool check_cache(DeformationGradientCache<dim> const& 
 /***********************************************************************************************
  * P1 Element Implementation.
  ***********************************************************************************************/
-static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
+AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
   const real m = DmInv(0, 0);
   const real n = DmInv(0, 1);
   const real o = DmInv(0, 2);
@@ -78,8 +80,53 @@ static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
   return PFPx;
 }
 
+AX_FORCE_INLINE static math::mat2r ApplyPFPx(math::mat2r const& P,
+  math::mat2r const& R) {
+  /*{{Subscript[P, 1, 1] Subscript[r, 1, 1] +
+   Subscript[P, 1, 2] Subscript[r, 1, 2],
+  Subscript[P, 1, 1] Subscript[r, 2, 1] +
+   Subscript[P, 1, 2] Subscript[r, 2, 2]}, {Subscript[P, 2, 1]
+     Subscript[r, 1, 1] + Subscript[P, 2, 2] Subscript[r, 1, 2],
+  Subscript[P, 2, 1] Subscript[r, 2, 1] +
+   Subscript[P, 2, 2] Subscript[r, 2, 2]}}*/
+
+  math::mat2r result;
+  result(0, 0) = P(0, 0) * R(0, 0) + P(0, 1) * R(0, 1);
+  result(0, 1) = P(0, 0) * R(1, 0) + P(0, 1) * R(1, 1);
+  result(1, 0) = P(1, 0) * R(0, 0) + P(1, 1) * R(0, 1);
+  result(1, 1) = P(1, 0) * R(1, 0) + P(1, 1) * R(1, 1);
+  return result;
+}
+AX_FORCE_INLINE static math::matr<3, 3> ApplyPFPx(math::mat3r const& P,
+  math::mat3r const& R) {
+  /*{{Subscript[P, 1,1] Subscript[r, 1,1]+Subscript[P, 1,2] Subscript[r, 1,2]+Subscript[P, 1,3]
+   * Subscript[r, 1,3],Subscript[P, 1,1] Subscript[r, 2,1]+Subscript[P, 1,2] Subscript[r,
+   * 2,2]+Subscript[P, 1,3] Subscript[r, 2,3],Subscript[P, 1,1] Subscript[r, 3,1]+Subscript[P, 1,2]
+   * Subscript[r, 3,2]+Subscript[P, 1,3] Subscript[r, 3,3]},{Subscript[P, 2,1] Subscript[r,
+   * 1,1]+Subscript[P, 2,2] Subscript[r, 1,2]+Subscript[P, 2,3] Subscript[r, 1,3],Subscript[P, 2,1]
+   * Subscript[r, 2,1]+Subscript[P, 2,2] Subscript[r, 2,2]+Subscript[P, 2,3] Subscript[r,
+   * 2,3],Subscript[P, 2,1] Subscript[r, 3,1]+Subscript[P, 2,2] Subscript[r, 3,2]+Subscript[P, 2,3]
+   * Subscript[r, 3,3]},{Subscript[P, 3,1] Subscript[r, 1,1]+Subscript[P, 3,2] Subscript[r,
+   * 1,2]+Subscript[P, 3,3] Subscript[r, 1,3],Subscript[P, 3,1] Subscript[r, 2,1]+Subscript[P, 3,2]
+   * Subscript[r, 2,2]+Subscript[P, 3,3] Subscript[r, 2,3],Subscript[P, 3,1] Subscript[r,
+   * 3,1]+Subscript[P, 3,2] Subscript[r, 3,2]+Subscript[P, 3,3] Subscript[r, 3,3]}}*/
+  math::mat3r result;
+  result(0, 0) = P(0, 0) * R(0, 0) + P(0, 1) * R(0, 1) + P(0, 2) * R(0, 2);
+  result(0, 1) = P(0, 0) * R(1, 0) + P(0, 1) * R(1, 1) + P(0, 2) * R(1, 2);
+  result(0, 2) = P(0, 0) * R(2, 0) + P(0, 1) * R(2, 1) + P(0, 2) * R(2, 2);
+  result(1, 0) = P(1, 0) * R(0, 0) + P(1, 1) * R(0, 1) + P(1, 2) * R(0, 2);
+  result(1, 1) = P(1, 0) * R(1, 0) + P(1, 1) * R(1, 1) + P(1, 2) * R(1, 2);
+  result(1, 2) = P(1, 0) * R(2, 0) + P(1, 1) * R(2, 1) + P(1, 2) * R(2, 2);
+  result(2, 0) = P(2, 0) * R(0, 0) + P(2, 1) * R(0, 1) + P(2, 2) * R(0, 2);
+  result(2, 1) = P(2, 0) * R(1, 0) + P(2, 1) * R(1, 1) + P(2, 2) * R(1, 2);
+  result(2, 2) = P(2, 0) * R(2, 0) + P(2, 1) * R(2, 1) + P(2, 2) * R(2, 2);
+  return result;
+}
+
+
+
 // Auto generated code.
-static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
+AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
   const real m = DmInv(0, 0);
   const real n = DmInv(0, 1);
   const real p = DmInv(1, 0);
@@ -159,10 +206,19 @@ typename MeshBase<dim>::vertex_list_t dg_tsv_p1(MeshBase<dim> const& mesh,
     const auto& stress_i = stress[i];
     math::matr<dim, dim> R = cache[i];
     // TODO: Fine, but the efficiency is not good.
+    math::matr<dim, dim> F = ApplyPFPx(stress_i, R);
+    #ifdef DOUBLE_CHECK
     math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
-    math::vecr<dim * (dim + 1)> F = pfpx.transpose() * math::flatten(stress_i);
+    math::vecr<dim * (dim + 1)> F2 = pfpx.transpose() * math::flatten(stress_i);
     for (idx I = 0; I <= dim; ++I) {
-      result.col(ijk[I]) += F.template segment<dim>(I * dim);
+      result.col(ijk[I]) += F2.template segment<dim>(I * dim);
+    }
+    std::cout << math::norm(F2.template segment<dim>(dim) - F.col(0)) << std::endl;
+    std::cout << math::norm(F2.template segment<dim>(2 * dim) - F.col(1)) << std::endl;
+    #endif
+    for (idx I = 1; I <= dim; ++I) {
+      result.col(ijk[I]) += F.col(I-1);
+      result.col(ijk[0]) -= F.col(I-1);
     }
   }
   return result;

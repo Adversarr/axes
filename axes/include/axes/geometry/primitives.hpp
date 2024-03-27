@@ -8,5 +8,6 @@ SurfaceMesh cube(real half_size);
 
 SurfaceMesh sphere(real radius, idx slices, idx stacks);
 
+SurfaceMesh plane(real half_width, real half_height, idx nx, idx ny);
 
 }  // namespace ax::geo

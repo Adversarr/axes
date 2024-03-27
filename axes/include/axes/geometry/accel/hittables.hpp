@@ -2,7 +2,8 @@
 #include <Eigen/Geometry>
 
 #include "axes/math/common.hpp"
-
+#include "axes/geometry/common.hpp" // IWYU pragma: export
+#include "axes/math/approx.hpp"
 namespace ax::geo {
 
 /****************************** AABB ******************************/
@@ -44,29 +45,25 @@ private:
 using Sphere2 = SphereN<2>;
 using Sphere3 = SphereN<3>;
 
-/****************************** Ray ******************************/
+/****************************** Intersection Tests ******************************/
 
-template <idx dim> class RayN {
-public:
-  using value_type = math::vecr<dim>;
+template<idx dim>
+bool has_intersection(SphereN<dim> const& a, SphereN<dim> const& b, real tolerance = math::epsilon<real>) {
+  real distance = math::norm(a.Center() - b.Center());
+  real radius_sum = a.Radius() + b.Radius();
+  return math::Approx(distance).Epsilon(tolerance) == radius_sum;
+}
 
-  template <typename Derived>
-  RayN(Eigen::DenseBase<Derived> const& origin, Eigen::DenseBase<Derived> const& direction)
-      : origin_(origin), direction_(direction) {}
+template <idx dim>
+bool has_intersection(AlignedBoxN<dim> const& a, AlignedBoxN<dim> const& b, real tolerance = math::epsilon<real>) {
+  real distance = a.exteriorDistance(b);
+  return math::Approx(distance).Epsilon(tolerance) == math::make_zeros<real>();
+}
 
-  value_type const& Origin() const { return origin_; }
-
-  value_type const& Direction() const { return direction_; }
-
-  value_type At(real t) const { return origin_ + t * direction_; }
-
-  RayN& operator=(RayN const&) = default;
-
-  RayN& operator=(RayN&&) = default;
-
-private:
-  value_type origin_;
-  value_type direction_;
-};
+template <idx dim>
+bool has_intersection(AlignedBoxN<dim> const& a, SphereN<dim> const& b, real tolerance = math::epsilon<real>) {
+  // TODO: Implement
+  
+}
 
 }  // namespace ax::geo

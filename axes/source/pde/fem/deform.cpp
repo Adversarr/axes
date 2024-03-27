@@ -2,6 +2,7 @@
 // Created by JerryYang on 2024/3/24.
 //
 #include "axes/pde/fem/deform.hpp"
+#include "axes/math/ndrange.hpp"
 
 #include <tbb/parallel_for.h>
 
@@ -159,12 +160,37 @@ typename MeshBase<dim>::vertex_list_t dg_tsv_p1(MeshBase<dim> const& mesh,
     math::matr<dim, dim> R = cache[i];
     // TODO: Fine, but the efficiency is not good.
     math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
-    math::vecr<dim * (dim + 1)> F = pfpx.transpose() * stress_i.reshaped();
+    math::vecr<dim * (dim + 1)> F = pfpx.transpose() * math::flatten(stress_i);
     for (idx I = 0; I <= dim; ++I) {
       result.col(ijk[I]) += F.template segment<dim>(I * dim);
     }
   }
   return result;
+}
+
+template <idx dim>
+math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
+                                                List<elasticity::HessianTensor<dim>> const& hessian,
+                                                DeformationGradientCache<dim> const& cache) {
+  math::sp_coeff_list coo;
+  coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
+  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+    // For P1 Element, the force on is easy to compute.
+    const auto& ijk = mesh.GetElement(i);
+    const auto& H_i = hessian[i];
+    math::matr<dim, dim> R = cache[i];
+    // TODO: Fine, but the efficiency is not good.
+    math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
+    math::matr<dim * (dim + 1), dim * (dim + 1)> H = pfpx.transpose() * H_i * pfpx;
+    for (auto [I, J, Di, Dj]: utils::multi_iota(dim+1, dim+1, dim, dim)) {
+      idx i_idx = ijk[I];
+      idx j_idx = ijk[J];
+      idx H_idx_i = I * dim + Di;
+      idx H_idx_j = J * dim + Dj;
+      coo.push_back(math::sp_coeff{i_idx, j_idx, H(H_idx_i, H_idx_j)});
+    }
+  }
+  return coo;
 }
 
 /***********************************************************************************************
@@ -254,7 +280,11 @@ template <idx dim> typename MeshBase<dim>::vertex_list_t Deformation<dim>::Stres
 
 template <idx dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
     List<elasticity::HessianTensor<dim>> const& hessian) const {
-  AX_CHECK(false) << "Not Implemented Error";
+  if (mesh_.GetType() == MeshType::kP1) {
+    return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
+  } else {
+    AX_CHECK(false) << "Not Implemented Error";
+  }
   AX_UNREACHABLE();
 }
 

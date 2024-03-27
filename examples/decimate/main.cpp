@@ -67,8 +67,9 @@ void ui_render_callback(gl::UiRenderEvent) {
     auto end_time = absl::Now();
 
     AX_LOG(INFO) << "Time elapsed: " << absl::ToDoubleSeconds(end_time - beg_time) << "s";
-
-    std::tie(modified_mesh.vertices_, modified_mesh.indices_) = halfedge.ToTriangleMesh();
+    auto trimesh = halfedge.ToTriangleMesh();
+    modified_mesh.vertices_ = trimesh.vertices_;
+    modified_mesh.indices_=trimesh.indices_;
     modified_mesh.colors_.resize(4, modified_mesh.vertices_.cols());
     modified_mesh.colors_.setConstant(1);
     modified_mesh.colors_.topRows(3) = modified_mesh.vertices_;
@@ -105,7 +106,8 @@ int main(int argc, char** argv) {
     obj_result = geo::read_obj(file);
   }
   AX_CHECK_OK(obj_result) << "Failed to read obj file: " << file;
-  std::tie(vertices, indices) = obj_result.value();
+  vertices = obj_result.value().vertices_;
+  indices = obj_result->indices_;
 
   AX_LOG(INFO) << "Mesh Stat: #V=" << vertices.cols() << ", #F=" << indices.cols();
 
@@ -138,7 +140,9 @@ int main(int argc, char** argv) {
 
   auto& mesh = add_component<gl::Mesh>(mesh_ent);
 
-  std::tie(mesh.vertices_, mesh.indices_) = he_mesh.ToTriangleMesh();
+  auto trimesh = he_mesh.ToTriangleMesh();
+  mesh.vertices_ = trimesh.vertices_;
+  mesh.indices_ = trimesh.indices_;
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.colors_.resize(4, mesh.vertices_.cols());
   mesh.colors_.setConstant(1);

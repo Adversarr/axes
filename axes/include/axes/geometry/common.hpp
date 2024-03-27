@@ -6,7 +6,7 @@
 #pragma once
 
 #include "axes/math/linalg.hpp"
-
+#include "axes/utils/common.hpp"
 namespace ax::geo {
 
 /****************************** Point ******************************/
@@ -434,8 +434,24 @@ private:
 using Quadrahedron2 = Quadrahedron<2>;
 using Quadrahedron3 = Quadrahedron<3>;
 
-using SurfaceMesh = std::pair<math::field3r, math::field3i>;
-using TetraMesh = std::pair<math::field3r, math::field4i>;
+struct SurfaceMesh {
+  math::field3r vertices_;
+  math::field3i indices_;
+  SurfaceMesh() = default;
+  SurfaceMesh(math::field3r const& vertices, math::field3i const& indices)
+      : vertices_(vertices), indices_(indices) {}
+
+  AX_DECLARE_CONSTRUCTOR(SurfaceMesh, default, default);
+};
+
+struct TetraMesh {
+  math::field3r vertices_;
+  math::field4i indices_;
+  TetraMesh() = default;
+  TetraMesh(math::field3r const& vertices, math::field4i const& indices)
+      : vertices_(vertices), indices_(indices) {}
+  AX_DECLARE_CONSTRUCTOR(TetraMesh, default, default);
+};
 
 /**
  * @brief Represents a point cloud in N-dimensional space.

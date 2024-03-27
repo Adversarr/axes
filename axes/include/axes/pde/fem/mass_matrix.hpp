@@ -31,6 +31,7 @@ public:
 
 private:
   MeshBase<dim> const* mesh_;
+  bool compute_lamped_;
 };
 
 }  // namespace ax::pde::fem

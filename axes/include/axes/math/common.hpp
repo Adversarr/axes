@@ -301,6 +301,11 @@ template <typename Scalar = real> constexpr Scalar nan = std::numeric_limits<Sca
  */
 template <typename Scalar = real> constexpr Scalar inf = std::numeric_limits<Scalar>::infinity();
 
+/**
+ * @brief The constant epsilon.
+ */
+template <typename Scalar = real> constexpr Scalar epsilon = std::numeric_limits<Scalar>::epsilon();
+
 /****************************** Common Ops ******************************/
 
 /****************************** 1. ones ******************************/

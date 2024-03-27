@@ -14,6 +14,7 @@ template <idx dim, typename Scalar = real> struct SvdResultImpl {
   mat_t V_;
 
   SvdResultImpl(mat_t U, vec_t sigma, mat_t V) : sigma_(sigma), U_(U), V_(V) {}
+  SvdResultImpl() = default;
 };
 
 template <idx dim, typename Scalar = real> using SvdResult = StatusOr<SvdResultImpl<dim, Scalar>>;

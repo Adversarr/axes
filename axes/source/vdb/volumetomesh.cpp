@@ -50,7 +50,7 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
     indices.col(i) = math::vec3i(triangles[i].x(), triangles[i].y(), triangles[i].z());
   }
 
-  return std::make_pair(vertices, indices);
+  return {vertices, indices};
 }
 
 }  // namespace ax::vdb

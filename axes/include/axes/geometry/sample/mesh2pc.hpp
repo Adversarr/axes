@@ -24,7 +24,7 @@ public:
    * @param interpolations The interpolations to use for sampling.
    */
   MeshPointCloudSampler(SurfaceMesh const& mesh, math::fieldr<dim> const& interpolations)
-      : vertices_(mesh.first), indices_(mesh.second), interpolations_(interpolations) {}
+      : vertices_(mesh.vertices_), indices_(mesh.indices_), interpolations_(interpolations) {}
 
   /**
    * @brief Samples the mesh based on the input field.

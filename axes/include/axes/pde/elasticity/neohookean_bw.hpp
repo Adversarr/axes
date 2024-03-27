@@ -1,23 +1,26 @@
 #pragma once
 #include "base.hpp"
+#include "extra_symbols.hpp"
 namespace ax::pde::elasticity {
 /**
  * @brief NeoHookean Elasticity Model.
  * @tparam dim
  */
-template <idx dim> struct NeoHookeanBW : public ElasticityBase<dim, NeoHookeanBW<dim>> {
+template <idx dim> class NeoHookeanBW : public ElasticityBase<dim, NeoHookeanBW<dim>> {
+public:
   using base_t = ElasticityBase<dim, NeoHookeanBW<dim>>;
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
 
+  using ElasticityBase<dim, NeoHookeanBW<dim>>::ElasticityBase;
   /**
    * @brief Compute the NeoHookean Elasticity Potential value.
    *      Phi = 0.5 mu (||F||_f-3) - mu Log[J] + lambda/2 (Log[J])^2
    * where J is the determinant of F
    * @return real
    */
-  real Energy() const {
-    const auto& F = this->F_;
+  real Energy(DeformationGradient<dim> const& F,
+              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -36,8 +39,8 @@ template <idx dim> struct NeoHookeanBW : public ElasticityBase<dim, NeoHookeanBW
    *
    * @return stress_t
    */
-  stress_t Stress() const {
-    const auto& F = this->F_;
+  stress_t Stress(DeformationGradient<dim> const& F,
+                  math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -54,8 +57,8 @@ template <idx dim> struct NeoHookeanBW : public ElasticityBase<dim, NeoHookeanBW
    * μI9×9+ (mu+lambda(1-log[J]))/J^2 gJgJ^T + (λlog[J]-μ)/J Hj
    * @return hessian_t
    */
-  hessian_t Hessian() const {
-    const auto& F = this->F_;
+  hessian_t Hessian(DeformationGradient<dim> const& F,
+              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
     const real& mu = this->mu_;
     const real& lambda = this->lambda_;
     real J = math::det(F);
@@ -63,7 +66,7 @@ template <idx dim> struct NeoHookeanBW : public ElasticityBase<dim, NeoHookeanBW
       return math::constant<dim * dim, dim * dim, real>(math::inf<real>);
     }
     // First part
-    auto H = math::eye<dim * dim>() * mu;
+    math::matr<dim * dim, dim * dim> H = math::eye<dim * dim>() * mu;
     // Second part
     math::vecr<dim * dim> dJdF_flat = math::flatten(details::partial_determinant(F));
     real scale = (mu + lambda*(1-math::log(J))) / math::square(J);

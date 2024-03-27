@@ -1,4 +1,5 @@
 #include "axes/geometry/primitives.hpp"
+#include "axes/geometry/grid.hpp"
 
 namespace ax::geo {
 
@@ -82,6 +83,17 @@ SurfaceMesh sphere(real radius, idx slices, idx stacks) {
   }
 
   return {vertices, indices};
+}
+
+SurfaceMesh plane(real half_width, real half_height, idx nx, idx ny){
+  math::field3r V(3, (nx + 1) * (ny + 1)); // 3D field of points (vertices
+  math::field3i F;
+  auto X = math::linspace(-half_width, half_width, nx + 1);
+  auto Y = math::linspace(-half_height, half_height, ny + 1);
+  V.topRows<2>() = geo::meshgrid(X, Y);
+  V.row(2).setZero();
+  F = geo::make_grid_triangles(nx + 1, ny + 1);
+  return {V, F};
 }
 
 }  // namespace ax::geo

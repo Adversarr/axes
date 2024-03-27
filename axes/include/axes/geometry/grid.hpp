@@ -13,9 +13,9 @@ namespace ax::geo {
  * @param y The y vector.
  * @return A 2D field of points representing the meshgrid.
  */
-inline math::field2r meshgrid(math::vec2r x, math::vec2r y) {
-  idx nx = x.size();
-  idx ny = y.size();
+inline math::field2r meshgrid(math::vecxr const& x, math::vecxr const& y) {
+  idx nx = math::rows(x);
+  idx ny = math::rows(y);
   math::field2r X(2, nx * ny);
   for (idx i = 0; i < nx; ++i) {
     for (idx j = 0; j < ny; ++j) {

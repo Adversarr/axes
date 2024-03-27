@@ -19,15 +19,15 @@ namespace xx {
 using namespace ax;
 ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
   problem_.input_mesh_ = mesh;
-  problem_.iso_coords_.resize(mesh.second.cols());
-  problem_.Li_.resize(mesh.second.cols());
-  problem_.cotangent_weights_.resize(mesh.second.cols());
-  problem_.param_.resize(2, mesh.first.cols());
+  problem_.iso_coords_.resize(mesh.indices_.cols());
+  problem_.Li_.resize(mesh.indices_.cols());
+  problem_.cotangent_weights_.resize(mesh.indices_.cols());
+  problem_.param_.resize(2, mesh.vertices_.cols());
 
-  for (idx t = 0; t < mesh.second.cols(); ++t) {
-    idx i = mesh.second(0, t), j = mesh.second(1, t), k = mesh.second(2, t);
+  for (idx t = 0; t < mesh.indices_.cols(); ++t) {
+    idx i = mesh.indices_(0, t), j = mesh.indices_(1, t), k = mesh.indices_(2, t);
 
-    vec3r p0 = mesh.first.col(i), p1 = mesh.first.col(j), p2 = mesh.first.col(k);
+    vec3r p0 = mesh.vertices_.col(i), p1 = mesh.vertices_.col(j), p2 = mesh.vertices_.col(k);
 
     // foreach p0, p1, p2, we need a local coordinate system
     vec3r x_axis = math::normalized(p1 - p0);
@@ -45,9 +45,9 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     for (idx I : utils::iota(3)) {
       idx J = (I + 1) % 3;
       idx K = (I + 2) % 3;
-      auto p0 = mesh.first.col(mesh.second(I, t));
-      auto p1 = mesh.first.col(mesh.second(J, t));
-      auto p2 = mesh.first.col(mesh.second(K, t));
+      auto p0 = mesh.vertices_.col(mesh.indices_(I, t));
+      auto p1 = mesh.vertices_.col(mesh.indices_(J, t));
+      auto p2 = mesh.vertices_.col(mesh.indices_(K, t));
       vec3r e1 = p1 - p2;
       vec3r e2 = p0 - p2;
       real cot = math::dot(e1, e2) / math::norm(math::cross(e1, e2));
@@ -57,8 +57,8 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
 
   // We initialize the parameterization to Harmonic Map
   Eigen::VectorXi bnd;
-  Eigen::MatrixXd V = mesh.first.transpose();
-  Eigen::MatrixXi F = mesh.second.transpose().cast<int>();
+  Eigen::MatrixXd V = mesh.vertices_.transpose();
+  Eigen::MatrixXi F = mesh.indices_.transpose().cast<int>();
   Eigen::MatrixXd V_uv;
   igl::boundary_loop(F, bnd);
   Eigen::MatrixXd bnd_uv;
@@ -72,15 +72,15 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
 
   global_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   {
-    idx n_triangle = problem_.input_mesh_.second.cols(),
-        n_vertex = problem_.input_mesh_.first.cols();
+    idx n_triangle = problem_.input_mesh_.indices_.cols(),
+        n_vertex = problem_.input_mesh_.vertices_.cols();
     // Step1: Establish the Global Linear System:
     math::sp_coeff_list coeff_list;
     coeff_list.reserve(n_vertex * 2 + n_triangle * 24);
-    for (idx t : utils::iota(problem_.input_mesh_.second.cols())) {
+    for (idx t : utils::iota(problem_.input_mesh_.indices_.cols())) {
       for (idx i : utils::iota(3)) {
-        idx vi = problem_.input_mesh_.second(i, t);
-        idx vj = problem_.input_mesh_.second((i + 1) % 3, t);
+        idx vi = problem_.input_mesh_.indices_(i, t);
+        idx vj = problem_.input_mesh_.indices_((i + 1) % 3, t);
         real cot_t_i = problem_.cotangent_weights_[t](i);
         for (idx dim : utils::iota(2)) {
           coeff_list.push_back({vi * 2 + dim, vj * 2 + dim, -cot_t_i});
@@ -113,16 +113,16 @@ ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseS
 SurfaceMesh ParameterizationSolver::Optimal() {
   SurfaceMesh mesh = problem_.input_mesh_;
   for (idx i: utils::iota(problem_.param_.cols())) {
-    mesh.first.block<2, 1>(0, i) = problem_.param_.col(i);
-    mesh.first.col(i).z() = 0;
+    mesh.vertices_.block<2, 1>(0, i) = problem_.param_.col(i);
+    mesh.vertices_.col(i).z() = 0;
   }
   return mesh;
 }
 
 Status ParameterizationSolver::Solve(idx max_iter) {
   bool converged = false;
-  idx n_triangle = problem_.input_mesh_.second.cols(),
-    n_vertex = problem_.input_mesh_.first.cols();
+  idx n_triangle = problem_.input_mesh_.indices_.cols(),
+    n_vertex = problem_.input_mesh_.vertices_.cols();
   if (!local_solver_) {
     return utils::FailedPreconditionError("Local solver not set");
   }
@@ -144,8 +144,8 @@ Status ParameterizationSolver::Solve(idx max_iter) {
       math::matr<2, 3> local_coord;
       local_coord << math::zeros<2>(), problem_.iso_coords_[t];
       for (idx i : utils::iota(3)) {
-        idx vi = problem_.input_mesh_.second(i, t);
-        idx vj = problem_.input_mesh_.second((i + 1) % 3, t);
+        idx vi = problem_.input_mesh_.indices_(i, t);
+        idx vj = problem_.input_mesh_.indices_((i + 1) % 3, t);
         vec2r xi = local_coord.col(i);
         vec2r xj = local_coord.col((i + 1) % 3);
         real cot_t_i = problem_.cotangent_weights_[t](i);
@@ -192,9 +192,9 @@ List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) {
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);
   tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {
-    vec2r par0 = problem.param_.col(problem.input_mesh_.second(0, i));
-    vec2r par1 = problem.param_.col(problem.input_mesh_.second(1, i));
-    vec2r par2 = problem.param_.col(problem.input_mesh_.second(2, i));
+    vec2r par0 = problem.param_.col(problem.input_mesh_.indices_(0, i));
+    vec2r par1 = problem.param_.col(problem.input_mesh_.indices_(1, i));
+    vec2r par2 = problem.param_.col(problem.input_mesh_.indices_(2, i));
     mat2r Ui;
     Ui << par1 - par0, par2 - par0;
     mat2r X = problem.iso_coords_[i];
@@ -215,9 +215,9 @@ List<mat2r> ASAP::Optimal(ParameterizationProblem const& problem) {
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);
   tbb::parallel_for<idx>(0, n_triangle, [&](idx i) {
-    vec2r par0 = problem.param_.col(problem.input_mesh_.second(0, i));
-    vec2r par1 = problem.param_.col(problem.input_mesh_.second(1, i));
-    vec2r par2 = problem.param_.col(problem.input_mesh_.second(2, i));
+    vec2r par0 = problem.param_.col(problem.input_mesh_.indices_(0, i));
+    vec2r par1 = problem.param_.col(problem.input_mesh_.indices_(1, i));
+    vec2r par2 = problem.param_.col(problem.input_mesh_.indices_(2, i));
     mat2r Ui;
     Ui << par1 - par0, par2 - par0;
     mat2r X = problem.iso_coords_[i];

@@ -1,79 +1,18 @@
 #pragma once
-#include "axes/math/linalg.hpp"
-#include "axes/pde/fem/common.hpp"
-#include "axes/utils/god.hpp"
+#include "axes/math/decomp/svd/fwd.hpp"
+#include "axes/math/traits.hpp"
 #include "common.hpp"
 
 namespace ax::pde::elasticity {
 
 // convert Young's modulus (E) and Poisson's ratio (nu) to Lamé parameters
-real compute_mu(real E, real nu);
+AX_FORCE_INLINE real compute_mu(real E, real nu) { return E / (2 * (1 + nu)); }
 
-real compute_lambda(real E, real nu);
+AX_FORCE_INLINE real compute_lambda(real E, real nu) { return E * nu / ((1 + nu) * (1 - 2 * nu)); }
 
-template<typename Derived>
-auto green_strain(math::MBcr<Derived> F) {
-  return 0.5 * (F.transpose() * F - math::eye<Derived::RowsAtCompileTime>());
+AX_FORCE_INLINE math::vec2r compute_lame(real E, real nu) {
+  return {compute_lambda(E, nu), compute_mu(E, nu)};
 }
-
-template <typename Derived>
-auto approx_green_strain(math::MBcr<Derived> F) {
-  return 0.5 * (F.transpose() + F) - math::eye<Derived::RowsAtCompileTime>();
-}
-
-namespace details {
-AX_FORCE_INLINE math::matr<2, 2> partial_determinant(DeformationGradient<2> const& F) {
-  // [ f11, -f10;
-  //  -f01,  f00]
-  math::matr<2, 2> dJdF;
-  dJdF << F(1, 1), -F(0, 1),
-          -F(1, 0), F(0, 0);
-  return dJdF;
-}
-
-AX_FORCE_INLINE math::matr<3, 3> partial_determinant(DeformationGradient<3> const & F) {
-  // [Cross[f1, f2], Cross[f2, f0], Cross[f0, f1]]
-  math::matr<3, 3> dJdF;
-  dJdF << math::cross(F.col(1), F.col(2)),
-          math::cross(F.col(2), F.col(0)),
-          math::cross(F.col(0), F.col(1));
-  return dJdF;
-}
-
-AX_FORCE_INLINE void add_HJ(
-  math::matr<4, 4>& H,
-  const math::matr<2, 2>& /*F*/,
-  real scale) {
-  H(3, 0) += scale;
-  H(0, 3) += scale;
-  H(1, 2) -= scale;
-  H(2, 1) -= scale;
-}
-
-template<typename Derived>
-AX_FORCE_INLINE math::mat3r x_hat(math::MBcr<Derived>Fi) {
-  math::mat3r x_hat;
-  x_hat << 0, -Fi(2), Fi(1),
-           Fi(2), 0, -Fi(0),
-           -Fi(1), Fi(0), 0;
-  return x_hat;
-}
-
-AX_FORCE_INLINE void add_HJ(
-  math::matr<9, 9>& H,
-  const math::matr<3, 3>& F,
-  real scale) {
-  math::mat3r const f0 = x_hat(F.col(0));
-  math::mat3r const f1 = x_hat(F.col(1));
-  math::mat3r const f2 = x_hat(F.col(2));
-  H.block<3, 3>(3, 0) += f2 * scale;
-  H.block<3, 3>(0, 3) -= f2 * scale;
-  H.block<3, 3>(6, 0) -= f1 * scale;
-  H.block<3, 3>(0, 6) += f1 * scale;
-  H.block<3, 3>(6, 3) += f0 * scale;
-  H.block<3, 3>(3, 6) -= f0 * scale;
-}
-} // namespace details
 
 /**
  * @brief Base class for describe materials, use CRTP pattern.
@@ -91,16 +30,23 @@ public:
    * @param lambda Lamé parameter
    * @param mu Lamé parameter
    */
-  ElasticityBase(DeformationGradient<dim> const& F) : F_(F) {}
   ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
   ElasticityBase() = default;
 
-  real Energy() const { return static_cast<Derived const*>(this)->Energy(); }
+  real Energy(DeformationGradient<dim> const& F,
+              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+    return static_cast<Derived const*>(this)->Energy(F, svdr);
+  }
 
-  stress_t Stress() const { return static_cast<Derived const*>(this)->Stress(); }
+  stress_t Stress(DeformationGradient<dim> const& F,
+                  math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+    return static_cast<Derived const*>(this)->Stress(F, svdr);
+  }
 
-  math::mat<real, dof_cnt, dof_cnt> Hessian() const {
-    return static_cast<Derived const*>(this)->Hessian();
+  math::mat<real, dof_cnt, dof_cnt> Hessian(DeformationGradient<dim> const& F,
+                                            math::SvdResultImpl<dim, real> const* svdr
+                                            = nullptr) const {
+    return static_cast<Derived const*>(this)->Hessian(F, svdr);
   }
 
   void SetLame(real lambda, real mu) {
@@ -112,9 +58,11 @@ public:
     SetLame(lame[0], lame[1]);
   }
 
+  virtual bool EnergyRequiresSvd() const noexcept { return false; }
+  virtual bool StressRequiresSvd() const noexcept { return false; }
+  virtual bool HessianRequiresSvd() const noexcept { return false; }
+
 protected:
-  // Deformation gradient
-  DeformationGradient<dim> const F_;
   // Lamé parameters
   real lambda_, mu_;
 };

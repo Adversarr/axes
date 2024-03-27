@@ -55,7 +55,8 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
         remove_component<gl::Mesh>(out);
       }
       auto& mesh = add_component<gl::Mesh>(out);
-      std::tie(mesh.vertices_, mesh.indices_) = sm;
+      mesh.vertices_ = sm.vertices_;
+      mesh.indices_ = sm.indices_;
       mesh.colors_.setOnes(4, mesh.vertices_.cols());
       mesh.flush_ = true;
       if (has_component<gl::Lines>(out)) {
@@ -69,7 +70,7 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
         real r = math::fmod(math::abs(x), 0.1) * 10;
         return x < 0 ? 1-r : r;
       };
-      for (idx i = 0; i < sm.first.cols(); ++i) {
+      for (idx i = 0; i < sm.vertices_.cols(); ++i) {
         orimesh.colors_.col(i).x() = to_color(mesh.vertices_.col(i).x());
         orimesh.colors_.col(i).y() = to_color(mesh.vertices_.col(i).y());
         orimesh.colors_.col(i).z() = 0;
@@ -103,7 +104,8 @@ int main(int argc, char** argv) {
     }
 
     auto &mesh = add_component<gl::Mesh>(out);
-    std::tie(mesh.vertices_, mesh.indices_) = sm;
+    mesh.vertices_ = sm.vertices_;
+    mesh.indices_ = sm.indices_;
     mesh.colors_.setOnes(4, mesh.vertices_.cols());
     mesh.flush_ = true;
     if (has_component<gl::Lines>(out)) {
@@ -115,7 +117,8 @@ int main(int argc, char** argv) {
   }
   {
     auto& mesh = add_component<gl::Mesh>(ori);
-    std::tie(mesh.vertices_, mesh.indices_) = surface_mesh;
+    mesh.vertices_ = surface_mesh.vertices_;
+    mesh.indices_ = surface_mesh.indices_;
 
     mesh.flush_ = true;
     mesh.vertices_.row(0).array() += 3;

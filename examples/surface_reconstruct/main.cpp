@@ -59,7 +59,9 @@ void ui_callback(gl::UiRenderEvent) {
   if (ImGui::SliderFloat("Ratio", &ratio, min, max)) {
     auto& mesh = get_component<gl::Mesh>(reconstructed);
     vdb::VolumeToMesh mesher(ratio);
-    std::tie(mesh.vertices_, mesh.indices_) = mesher(distance);
+    auto trimesh = mesher(distance);
+    mesh.vertices_ = trimesh.vertices_;
+    mesh.indices_ = trimesh.indices_;
     mesh.vertices_.row(0) *= transform->voxelSize().x();
     mesh.vertices_.row(1) *= transform->voxelSize().y();
     mesh.vertices_.row(2) *= transform->voxelSize().z();
@@ -88,7 +90,8 @@ int main(int argc, char** argv) {
     obj_result = geo::read_obj(file);
   }
   AX_CHECK_OK(obj_result) << "Failed to read obj file: " << file;
-  std::tie(vertices, indices) = obj_result.value();
+  vertices = obj_result->vertices_;
+  indices = obj_result->indices_;
 
   {  // Setup Original
     original = cmpt::create_named_entity("Input Mesh");
@@ -191,7 +194,8 @@ int main(int argc, char** argv) {
 
   reconstructed = cmpt::create_named_entity("Reconstructed Mesh");
   auto& mesh_reconstructed = add_component<gl::Mesh>(reconstructed);
-  std::tie(mesh_reconstructed.vertices_, mesh_reconstructed.indices_) = mesh;
+  mesh_reconstructed.vertices_ = mesh.vertices_;
+  mesh_reconstructed.indices_ = mesh.indices_;
 
   mesh_reconstructed.vertices_.row(0) *= transform->voxelSize().x();
   mesh_reconstructed.vertices_.row(1) *= transform->voxelSize().y();

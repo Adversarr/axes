@@ -54,7 +54,9 @@ gl::Lines create_dummy_line() {
 
 gl::Mesh create_dummy_cube() {
   gl::Mesh mesh;
-  std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.5);
+  auto cube = geo::cube(0.5);
+  mesh.vertices_ = cube.vertices_;
+  mesh.indices_ = cube.indices_;
   mesh.colors_.setRandom(4, 8);
 
   mesh.vertices_ *= 0.7;
@@ -74,7 +76,9 @@ gl::Mesh create_dummy_cube() {
 
 gl::Mesh create_dummy_sphere() {
   gl::Mesh mesh;
-  std::tie(mesh.vertices_, mesh.indices_) = geo::sphere(0.5, 10, 10);
+  auto sp = geo::sphere(0.5, 10, 10);
+  mesh.vertices_ = sp.vertices_;
+  mesh.indices_ = sp.indices_;
   math::each(mesh.vertices_) += math::vec3r{1.5, 0, 0};
   mesh.colors_.resize(4, mesh.vertices_.cols());
   for (idx i = 0; i < mesh.vertices_.cols(); ++i) {

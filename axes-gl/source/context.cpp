@@ -232,7 +232,8 @@ void Context::Impl::UpdateLight() {
   }
   if (render_light_) {
     auto& mesh = add_or_replace_component<gl::Mesh>(light_entity_);
-    std::tie(mesh.vertices_, mesh.indices_) = geo::cube(0.03);
+    auto cube = geo::cube(0.03);
+    mesh.vertices_ = cube.vertices_; mesh.indices_ = mesh.indices_;
     math::each(mesh.vertices_) += light_.position_.cast<f64>();
     mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
     mesh.use_lighting_ = false;

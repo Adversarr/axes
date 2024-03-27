@@ -139,7 +139,7 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
     }
     indices.col(id) = ijk;
   }
-  return std::make_pair(vertices, indices);
+  return SurfaceMesh{vertices, indices};
 }
 HalfedgeFaceHandle HalfedgeMesh::GetFace(idx idx) const {
   for (auto const& f : faces_) {

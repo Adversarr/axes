@@ -32,6 +32,7 @@ public:
   using boundary_value_list_t = vertex_list_t; /**< Type for storing a list of boundary values. */
   using boundary_type_list_t = std::vector<bool>; /**< Type for storing boundary types. */
 
+  using ElementPositionPair = std::pair<idx, idx>;
   /**
    * @brief Constructs a MeshBase object of the specified type.
    *
@@ -223,10 +224,15 @@ public:
 
   void FilterVector(math::vecxr& inout, bool set_zero=false) const;
 
+  std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept { return v_e_map_; }
+
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
   vertex_list_t vertices_; /**< The list of mesh vertices. */
   const MeshType type_; /**< The type of the mesh. */
+
+  // We may need to compute the inverse mapping, i.e. the vertex->elements connected to it.
+  std::vector<std::vector<ElementPositionPair>> v_e_map_;
 
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
   math::fieldr<dim> dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */

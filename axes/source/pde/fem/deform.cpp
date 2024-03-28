@@ -201,6 +201,7 @@ typename MeshBase<dim>::vertex_list_t dg_tsv_p1(MeshBase<dim> const& mesh,
                                                 DeformationGradientCache<dim> const& cache) {
   typename MeshBase<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
+  // TODO: With Vertex->Element Map, the parallel is possible.
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {
     // For P1 Element, the force on is easy to compute.
     const auto& ijk = mesh.GetElement(i);

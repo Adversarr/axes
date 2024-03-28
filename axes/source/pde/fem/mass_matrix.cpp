@@ -1,5 +1,4 @@
 #include "axes/pde/fem/mass_matrix.hpp"
-
 #include "axes/pde/elements/p1.hpp"
 
 namespace ax::pde::fem {

@@ -16,7 +16,7 @@ public:
   SparseSolverKind Kind() const final { return SparseSolverKind::kConjugateGradient; }
 
 private:
-  Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower,
+  Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower | Eigen::Upper,
                            Eigen::IncompleteCholesky<real, Eigen::Lower, Eigen::AMDOrdering<idx>>>
       solver_;
 

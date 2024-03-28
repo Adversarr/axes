@@ -9,7 +9,7 @@ namespace ax::math {
 /**
  * @brief Alias for a sparse matrix with real values, column-major storage, and index type idx.
  */
-using sp_matxxr = Eigen::SparseMatrix<real, Eigen::ColMajor, idx>;
+using sp_matxxr = Eigen::SparseMatrix<real, Eigen::RowMajor, idx>;
 
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.

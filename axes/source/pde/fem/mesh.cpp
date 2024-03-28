@@ -64,51 +64,81 @@ template <idx dim> math::vecxr MeshBase<dim>::GetVerticesFlattened() const noexc
   return vertices_flattened;
 }
 
-template <idx dim> void MeshBase<dim>::ResetBoundary(idx i) {
-  AX_DCHECK(0 <= i && i < (idx) boundary_types_.size()) << "Index out of range.";
-  boundary_types_[i] = BoundaryType::kNone;
-  dirichlet_boundary_mask_(0, i) = 1;
+template <idx dim> void MeshBase<dim>::ResetBoundary(idx i, idx dof) {
+  AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  dirichlet_boundary_mask_(dof, i) = 1;
+  boundary_values_(dof, i) = 0;
 }
 
-template <idx dim> void MeshBase<dim>::MarkDirichletBoundary(idx i, const boundary_value_t& value) {
-  AX_DCHECK(0 <= i && i < (idx) boundary_types_.size()) << "Index out of range.";
-  boundary_types_[i] = BoundaryType::kDirichlet;
-  boundary_values_.col(i) = value;
-  dirichlet_boundary_mask_(0, i) = 0;
-}
-
-template <idx dim> void MeshBase<dim>::MarkNeumannBoundary(idx i, const boundary_value_t& value) {
-  AX_DCHECK(0 <= i && i < (idx) boundary_types_.size()) << "Index out of range.";
-  boundary_types_[i] = BoundaryType::kNeumann;
-  boundary_values_.col(i) = value;
-  dirichlet_boundary_mask_(0, i) = 1;
+template <idx dim> void MeshBase<dim>::MarkDirichletBoundary(idx i, idx dof, const real& value) {
+  AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  boundary_values_(dof, i) = value;
+  dirichlet_boundary_mask_(dof, i) = 0;
 }
 
 template <idx dim> void MeshBase<dim>::ResetAllBoundaries() {
-  boundary_types_.resize((std::size_t) vertices_.cols());
   boundary_values_.resize(dim, vertices_.cols());
-  for (idx i = 0; i < vertices_.cols(); ++i) {
-    boundary_types_[i] = BoundaryType::kNone;
-  }
-  dirichlet_boundary_mask_.setOnes(1, vertices_.cols());
+  dirichlet_boundary_mask_.setOnes(dim, vertices_.cols());
 }
 
 template <idx dim>
-typename MeshBase<dim>::boundary_value_t MeshBase<dim>::GetBoundaryValue(idx i) const noexcept {
-  AX_DCHECK(0 <= i && i < boundary_values_.size()) << "Index out of range.";
-  return boundary_values_.col(i);
+real MeshBase<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
+  AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  return boundary_values_(dof, i);
 }
 
-template <idx dim> bool MeshBase<dim>::IsDirichletBoundary(idx i) const noexcept {
-  AX_DCHECK(0 <= i && i < (idx) boundary_types_.size()) << "Index out of range.";
-  return boundary_types_[i] == BoundaryType::kDirichlet;
+template <idx dim> bool MeshBase<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
+  AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
-template <idx dim> bool MeshBase<dim>::IsNeumannBoundary(idx i) const noexcept {
-  AX_DCHECK(0 <= i && i < (idx) boundary_types_.size()) << "Index out of range.";
-  return boundary_types_[i] == BoundaryType::kNeumann;
+template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_coeff_list const& input,
+                                                    math::sp_coeff_list& out) const {
+  out.reserve(input.size());
+  for (auto& coeff : input) {
+    idx row_id = coeff.row() / dim;
+    idx row_dof = coeff.row() % dim;
+    idx col_id = coeff.col() / dim;
+    idx col_dof = coeff.col() % dim;
+    if (IsDirichletBoundary(row_id, row_dof) || IsDirichletBoundary(col_id, col_dof)) {
+      continue;
+    }
+    out.push_back(coeff);
+  }
+
+  // Add the Dirichlet boundary conditions.
+  for (idx i = 0; i < vertices_.cols(); ++i) {
+    for (idx j = 0; j < dim; ++j) {
+      if (IsDirichletBoundary(i, j)) {
+        out.push_back(math::sp_coeff(i * dim + j, i * dim + j, 1));
+      }
+    }
+  }
 }
 
+template <idx dim> void MeshBase<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
+  AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
+  inout.array() *= dirichlet_boundary_mask_.reshaped().array();
+  if (!set_zero) {
+    inout += boundary_values_.reshaped();
+  }
+}
+
+template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_matxxr& mat) const {
+  math::sp_coeff_list coo;
+  for (idx i = 0; i < mat.outerSize(); ++i) {
+    for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
+      coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
+    }
+  }
+  math::sp_coeff_list coo_filtered;
+  FilterMatrix(coo, coo_filtered);
+  mat = math::make_sparse_matrix(dim * GetNumVertices(), dim * GetNumVertices(), coo_filtered);
+}
 
 template class MeshBase<2>;
 template class MeshBase<3>;

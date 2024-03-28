@@ -1,9 +1,7 @@
 #pragma once
 #include "axes/math/decomp/svd/fwd.hpp"
-#include "axes/math/sparse.hpp"
 #include "axes/pde/elasticity/common.hpp"
 #include "deform.hpp"
-#include "mesh.hpp"
 
 namespace ax::pde::fem {
 
@@ -18,10 +16,7 @@ public:
   ElasticityComputeBase(Deformation<dim> const& deformation) : deformation_(deformation) {}
   virtual ~ElasticityComputeBase() = default;
 
-  virtual void UpdateDeformationGradient(DeformationGradientUpdate u
-                                         = DeformationGradientUpdate::kEnergy) {
-    deformation_gradient_ = deformation_.Forward();
-  }
+  virtual void UpdateDeformationGradient(DeformationGradientUpdate = DeformationGradientUpdate::kEnergy) = 0;
 
   void UpdateSvd();
 

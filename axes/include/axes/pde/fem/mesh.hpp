@@ -2,14 +2,9 @@
 
 #include "axes/geometry/common.hpp"
 #include "axes/core/echo.hpp"
+#include "axes/math/sparse.hpp"
 
 namespace ax::pde::fem {
-
-AX_DECLARE_ENUM(BoundaryType){
-    kNone = 0,       ///< The vertex does not have any boundary condition.
-    kDirichlet = 1,  ///< The vertex is fixed, and the value is given.
-    kNeumann = 2     ///< The vertex is not fixed, but the external force is given.
-};
 
 AX_DECLARE_ENUM(MeshType){
     kP1,  // P1 Element, e.g. Trig in 2D, and Tet in 3D.
@@ -35,7 +30,7 @@ public:
 
   using boundary_value_t = vertex_t; /**< Type for storing boundary values. */
   using boundary_value_list_t = vertex_list_t; /**< Type for storing a list of boundary values. */
-  using boundary_type_list_t = List<BoundaryType>; /**< Type for storing boundary types. */
+  using boundary_type_list_t = std::vector<bool>; /**< Type for storing boundary types. */
 
   /**
    * @brief Constructs a MeshBase object of the specified type.
@@ -148,7 +143,7 @@ public:
    *
    * @param i The index of the boundary.
    */
-  void ResetBoundary(idx i);
+  void ResetBoundary(idx i, idx dof);
 
   /**
    * @brief Marks the boundary at the specified index as a Dirichlet boundary with the given value.
@@ -156,15 +151,7 @@ public:
    * @param i The index of the boundary.
    * @param value The value of the Dirichlet boundary.
    */
-  void MarkDirichletBoundary(idx i, const boundary_value_t& value);
-
-  /**
-   * @brief Marks the boundary at the specified index as a Neumann boundary with the given value.
-   *
-   * @param i The index of the boundary.
-   * @param value The value of the Neumann boundary.
-   */
-  void MarkNeumannBoundary(idx i, const boundary_value_t& value);
+  void MarkDirichletBoundary(idx i, idx dof, const real& value);
 
   /**
    * @brief Resets all the boundaries.
@@ -177,7 +164,7 @@ public:
    * @param i The index of the boundary.
    * @return The boundary value at the specified index.
    */
-  boundary_value_t GetBoundaryValue(idx i) const noexcept;
+  real GetBoundaryValue(idx i, idx dof) const noexcept;
 
   /**
    * @brief Checks if the boundary at the specified index is a Dirichlet boundary.
@@ -185,15 +172,7 @@ public:
    * @param i The index of the boundary.
    * @return True if the boundary is a Dirichlet boundary, false otherwise.
    */
-  bool IsDirichletBoundary(idx i) const noexcept;
-
-  /**
-   * @brief Checks if the boundary at the specified index is a Neumann boundary.
-   *
-   * @param i The index of the boundary.
-   * @return True if the boundary is a Neumann boundary, false otherwise.
-   */
-  bool IsNeumannBoundary(idx i) const noexcept;
+  bool IsDirichletBoundary(idx i, idx dof ) const noexcept;
 
   /**
    * @brief Returns an iterator to the beginning of the mesh elements.
@@ -237,15 +216,20 @@ public:
    */
   AX_FORCE_INLINE auto end() noexcept;
 
+  void FilterMatrix(math::sp_coeff_list const& input, 
+                    math::sp_coeff_list & out) const;
+  
+  void FilterMatrix(math::sp_matxxr & mat) const;
+
+  void FilterVector(math::vecxr& inout, bool set_zero=false) const;
+
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
   vertex_list_t vertices_; /**< The list of mesh vertices. */
   const MeshType type_; /**< The type of the mesh. */
 
-  boundary_type_list_t boundary_types_; /**< The list of boundary types. */
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
-
-  math::field1r dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
+  math::fieldr<dim> dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };
 
 // NOTE: Some member functions does not have a FRIENDLY return value, we provide it as

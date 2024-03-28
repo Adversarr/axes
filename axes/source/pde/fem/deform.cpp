@@ -2,9 +2,10 @@
 // Created by JerryYang on 2024/3/24.
 //
 #include "axes/pde/fem/deform.hpp"
-#include "axes/math/ndrange.hpp"
+#include "axes/utils/iota.hpp"
+#include "axes/utils/time.hpp"
 
-#include <tbb/parallel_for.h>
+#include "axes/utils/parallel_for_helper.hpp"
 
 // #define DOUBLE_CHECK
 
@@ -158,7 +159,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
   idx n_elem = mesh.GetNumElements();
   cache.resize(n_elem);
 
-  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+  AX_PARALLEL_FOR_BEGIN(0, n_elem, i)
     matr<dim, dim> rest_local;
     const auto& element = mesh.GetElement(i);
     const auto& local_zero = rest_pose.col(element.x());
@@ -166,7 +167,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
       rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
     }
     cache[i] = rest_local.inverse();
-  });
+  AX_PARALLEL_FOR_END();
 
 #ifndef NDEBUG
   if (!check_cache<dim>(cache)) {
@@ -181,7 +182,7 @@ static DeformationGradientList<dim> dg_p1(MeshBase<dim> const& mesh,
                                           DeformationGradientCache<dim> const& cache) {
   idx n_elem = mesh.GetNumElements();
   DeformationGradientList<dim> dg(n_elem);
-  tbb::parallel_for<idx>(0, n_elem, [&](idx i) {
+  AX_PARALLEL_FOR_BEGIN(0, n_elem, i)
     matr<dim, dim> curr_local;
     const auto& element = mesh.GetElement(i);
     const auto& local_zero = mesh.GetVertex(element.x());
@@ -189,7 +190,7 @@ static DeformationGradientList<dim> dg_p1(MeshBase<dim> const& mesh,
       curr_local.col(I - 1) = mesh.GetVertex(element[I]) - local_zero;
     }
     dg[i] = curr_local * cache[i];
-  });
+  AX_PARALLEL_FOR_END();
 
   return dg;
 }
@@ -230,14 +231,17 @@ math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
                                                 DeformationGradientCache<dim> const& cache) {
   math::sp_coeff_list coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
-  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
-    // For P1 Element, the force on is easy to compute.
-    const auto& ijk = mesh.GetElement(i);
+  std::vector<math::matr<dim * (dim + 1), dim * (dim + 1)>> per_element_hessian(mesh.GetNumElements());
+  tbb::parallel_for<idx>(0, mesh.GetNumElements(), [&](idx i) {
     const auto& H_i = hessian[i];
     math::matr<dim, dim> R = cache[i];
-    // TODO: Fine, but the efficiency is not good.
     math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
-    math::matr<dim * (dim + 1), dim * (dim + 1)> H = pfpx.transpose() * H_i * pfpx;
+    per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+  });
+
+  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+    const auto &ijk = mesh.GetElement(i);
+    const auto &H = per_element_hessian[i];
     for (auto [I, J, Di, Dj]: utils::multi_iota(dim+1, dim+1, dim, dim)) {
       idx i_idx = ijk[I];
       idx j_idx = ijk[J];

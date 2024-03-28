@@ -18,7 +18,7 @@ public:
   using ElasticityBase<dim, StVK<dim>>::ElasticityBase;
 
   real Energy(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+              math::SvdResultImpl<dim, real> const* ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -27,7 +27,7 @@ public:
 
   // PStVK(F) = μFE + λ (tr E) F.
   stress_t Stress(DeformationGradient<dim> const& F,
-                  math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+                  math::SvdResultImpl<dim, real> const* ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -41,7 +41,7 @@ public:
    * @return hessian_t
    */
   hessian_t Hessian(DeformationGradient<dim> const& F,
-                    math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+                    math::SvdResultImpl<dim, real> const*) const {
     hessian_t H = math::make_zeros<hessian_t>();
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;

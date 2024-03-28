@@ -6,7 +6,6 @@
 #include "axes/geometry/primitives.hpp"
 #include "axes/gl/colormap.hpp"
 #include "axes/gl/context.hpp"
-#include "axes/gl/primitives/lines.hpp"
 #include "axes/gl/primitives/mesh.hpp"
 #include "axes/gl/primitives/quiver.hpp"
 #include "axes/gl/utils.hpp"
@@ -62,7 +61,7 @@ void update_entity() {
   AX_LOG(INFO) << "m=" << m << "\tM=" << M;
   auto result = mapping(energy.transpose());
   msh.colors_.topRows<3>() = result;
-  q.scale_ = 0.03;
+  q.scale_ = 0.15;
   // q.normalize_ = true;
   q.flush_ = true;
 }
@@ -83,6 +82,17 @@ int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   lame = pde::elasticity::compute_lame(1e4, 0.45);
   input_mesh = geo::tet_cube(0.5, 50, 50, 50);
+
+  // auto ele = geo::read_ele(utils::get_asset("/mesh/tet/house-ele-node/house.ele"));
+  // auto node = geo::read_node(utils::get_asset("/mesh/tet/house-ele-node/house.node"));
+  // if (!ele.ok() || !node.ok()) {
+  //   AX_LOG(WARNING) << "Failed to read mesh.";
+  // }
+  // input_mesh.vertices_ = node.value().vertices_;
+  // input_mesh.indices_ = ele.value().elements_;
+
+  AX_LOG(INFO) << "#V=" << input_mesh.vertices_.cols() << "\t#E=" << input_mesh.indices_.cols();
+
   stretching.setOnes();
   update_entity();
   connect<gl::UiRenderEvent, &ui_callback>();

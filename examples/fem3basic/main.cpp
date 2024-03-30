@@ -70,12 +70,11 @@ int main(int argc, char** argv) {
   int nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 2 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 2;
-  input_mesh.vertices_.row(0).array() -= 0.5;
   ts = std::make_unique<pde::fem::TimeStepperBase<3>>(std::make_unique<pde::fem::P1Mesh<3>>());
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
-    if (position.x() > 0.5 - 0.5 / nx) {
+    if (math::abs(position.x()) > 1.0 - 1.0 / nx) {
       // Mark as dirichlet bc.
       ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
       ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());

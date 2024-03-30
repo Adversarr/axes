@@ -81,7 +81,7 @@ static void ui_callback(gl::UiRenderEvent const&) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   lame = pde::elasticity::compute_lame(1e4, 0.45);
-  input_mesh = geo::tet_cube(0.5, 50, 50, 50);
+  input_mesh = geo::tet_cube(0.5, 100, 100, 100);
 
   // auto ele = geo::read_ele(utils::get_asset("/mesh/tet/house-ele-node/house.ele"));
   // auto node = geo::read_node(utils::get_asset("/mesh/tet/house-ele-node/house.node"));

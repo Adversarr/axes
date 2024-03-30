@@ -202,6 +202,12 @@ List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) {
     Eigen::JacobiSVD<mat2r> svd(Li, Eigen::ComputeFullU | Eigen::ComputeFullV);
     mat2r U = svd.matrixU();
     mat2r V = svd.matrixV();
+    real detU = U.determinant(), detV = V.determinant();
+    if (detU < 0 && detV > 0) {
+      U.col(1) *= -1;
+    } else if (detU > 0 && detV < 0) {
+      V.col(1) *= -1;
+    }
     mat2r R = U * V.transpose();
     result[i] = R;
   });

@@ -10,16 +10,6 @@ System Requirement:
 
 `axes` use C++20 code standard.
 
-You have to use `vcpkg` for CMake package management:
-
-```sh
-cmake -S . -B build \
-  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-  -DCMAKE_BUILD_TYPE=Release \
-```
-
-Without `vcpkg`, you have to make sure CMake can find the required packages listed in `vcpkg.json`.
-
 ## What's in
 
 1. A basic library for general purpose CG physical simulation, containing

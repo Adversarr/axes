@@ -4,22 +4,24 @@ find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(libigl CONFIG REQUIRED)
-find_package(blosc CONFIG REQUIRED)
-find_package(OpenVDB CONFIG REQUIRED)
-find_package(ZLIB REQUIRED)
+find_package(OpenVDB REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
 
 # Library axes-core
-file(GLOB_RECURSE AXES_CORE_SOURCE CONFIGURE_DEPENDS
+file(GLOB_RECURSE AX_CORE_SOURCE CONFIGURE_DEPENDS
 ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
-if (${AXES_BUILD_SHARED})
-  add_library(axes SHARED ${AXES_CORE_SOURCE})
+if (${AX_BUILD_SHARED})
+  add_library(axes SHARED ${AX_CORE_SOURCE})
 else()
-  add_library(axes STATIC ${AXES_CORE_SOURCE})
+  add_library(axes STATIC ${AX_CORE_SOURCE})
 endif()
-target_include_directories(axes PRIVATE ${TINYGLTF_INCLUDE_DIRS})
-target_include_directories(axes PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(axes
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
 
 set(ABSL_LIBRARIES
   absl::btree
@@ -36,40 +38,28 @@ set(ABSL_LIBRARIES
   absl::failure_signal_handler
   absl::statusor)
 
- if (MSVC)
-    set(BLOSC_LIB blosc_shared)
- else()
-    set(BLOSC_LIB blosc_static)
- endif()
-
 target_link_libraries(axes
   PUBLIC
-  Eigen3::Eigen
-  ${ABSL_LIBRARIES}
-  EnTT::EnTT
-  range-v3::range-v3
-  OpenVDB::openvdb
-  igl::igl_core
-  ${BLOSC_LIB}
-  ZLIB::ZLIB
+    Eigen3::Eigen
+    PkgConfig::zlib
+    ${ABSL_LIBRARIES}
+    EnTT::EnTT
+    range-v3::range-v3
+    OpenVDB::openvdb
+    igl::igl_core
 )
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
   message(STATUS "OpenMP found and link to axes.")
-  target_compile_definitions(axes PRIVATE "AXES_HAS_OPENMP")
+  target_compile_definitions(axes PRIVATE "AX_HAS_OPENMP")
 endif()
 
-
-if(AXES_DEBUG_INTERNAL)
-  target_compile_definitions(axes PUBLIC "AXES_DEBUG_INTERNAL")
-endif()
-
-axes_set_warn_levels(axes)
+ax_set_warn_levels(axes)
 target_compile_definitions(axes PRIVATE AX_ASSET_DIR="${AX_ASSET_DIR}")
 
 # Disable Exceptions
-if(AXES_NO_EXCEPT)
+if(AX_NO_EXCEPT)
   if(MSVC)
     target_compile_options(axes PRIVATE /EHsc)
   else()
@@ -79,3 +69,4 @@ endif()
 
 # PCH
 target_precompile_headers(axes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/axes/ax_pch.hpp)
+target_compile_options(axes PRIVATE ${AX_CXX_FLAGS})

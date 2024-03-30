@@ -31,7 +31,7 @@ Status MeshBase<dim>::SetMesh(element_list_t const& elements, vertex_list_t cons
   idx nV = GetNumVertices(), nE = GetNumElements();
   idx nN = GetNumVerticesPerElement();
   v_e_map_.clear();
-  v_e_map_.reserve(nV);
+  v_e_map_.resize(nV);
   for (idx i = 0; i < nE; ++i) {
     auto const& ijk = GetElement(i);
     for (idx d = 0; d < nN; ++d) {

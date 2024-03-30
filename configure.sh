@@ -26,9 +26,7 @@ echo "C compiler: $CC"
 echo "C++ compiler: $CXX"
 
 cmake -S . -B build \
-  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_C_COMPILER="$CC" \
   -DCMAKE_CXX_COMPILER="$CXX" \
   -G "$CMAKE_GENERATOR"

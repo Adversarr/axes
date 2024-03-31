@@ -78,9 +78,9 @@ add_subdirectory(axes)
 add_subdirectory(axes-gl)
 add_subdirectory(examples)
 
-# if (${AX_ENABLE_TEST})
-#   enable_testing()
-#   add_subdirectory(test)
-# endif()
+if (${AX_ENABLE_TEST})
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 

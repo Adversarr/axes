@@ -4,6 +4,12 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 
+message(STATUS "==> glad: ${glad_DIR}")
+message(STATUS "==> imgui: ${imgui_DIR}")
+message(STATUS "==> glm: ${glm_DIR}")
+message(STATUS "==> glfw3: ${glfw3_DIR}")
+
+
 set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shader)
 set(SPIRV_HOME "${CMAKE_CURRENT_BINARY_DIR}/shader/outputs/")

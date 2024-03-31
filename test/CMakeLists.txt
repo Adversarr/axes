@@ -1,5 +1,4 @@
 find_package(doctest CONFIG REQUIRED)
-find_package(benchmark CONFIG REQUIRED)
 
 function(axes_add_test TARGET_NAME LIBRARIES)
   set(_target ${TARGET_NAME}_test)

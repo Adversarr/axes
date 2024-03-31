@@ -9,3 +9,5 @@ CMakeSettings.json
 imgui.ini
 *.pyc
 build*
+sdk
+__pycache__

@@ -8,6 +8,14 @@ find_package(OpenVDB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
 
+message(STATUS "==> Eigen3: ${Eigen3_DIR}")
+message(STATUS "==> absl: ${absl_DIR}")
+message(STATUS "==> EnTT: ${EnTT_DIR}")
+message(STATUS "==> range-v3: ${range-v3_DIR}")
+message(STATUS "==> libigl: ${libigl_DIR}")
+message(STATUS "==> OpenVDB: ${OpenVDB_INCLUDE_DIR}")
+message(STATUS "==> zlib: ${zlib_INCLUDEDIR}")
+
 # Library axes-core
 file(GLOB_RECURSE AX_CORE_SOURCE CONFIGURE_DEPENDS
 ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp

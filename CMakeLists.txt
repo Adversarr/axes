@@ -47,6 +47,24 @@ set(libigl_ROOT "${CMAKE_PREFIX_PATH}/lib/cmake/igl")
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+
+if (WIN32)
+  # Copy the SDK/bin to runtime path:
+  file(GLOB SDK_BIN_FILES RELATIVE "${AX_SDK_PATH}/${CMAKE_BUILD_TYPE}/bin" "${AX_SDK_PATH}/${CMAKE_BUILD_TYPE}/bin/*")
+  foreach(SDK_BIN_FILE ${SDK_BIN_FILES})
+    # If not exist, do the copy
+    # Get the file name:
+    if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${SDK_BIN_FILE})
+	  message(STATUS "==> NotExist: Copy ${AX_SDK_PATH}/${CMAKE_BUILD_TYPE}/bin/${SDK_BIN_FILE} to ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	  file(COPY ${SDK_BIN_FILE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    endif()
+  endforeach()
+endif()
+
 ##############################################################################################
 # Some common compiler flags.
 ##############################################################################################

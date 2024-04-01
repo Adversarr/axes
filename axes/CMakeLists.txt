@@ -5,8 +5,6 @@ find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(libigl CONFIG REQUIRED)
 find_package(OpenVDB REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
 
 message(STATUS "==> Eigen3: ${Eigen3_DIR}")
 message(STATUS "==> absl: ${absl_DIR}")
@@ -49,7 +47,6 @@ set(ABSL_LIBRARIES
 target_link_libraries(axes
   PUBLIC
     Eigen3::Eigen
-    PkgConfig::zlib
     ${ABSL_LIBRARIES}
     EnTT::EnTT
     range-v3::range-v3

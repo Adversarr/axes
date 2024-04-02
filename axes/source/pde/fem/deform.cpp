@@ -233,11 +233,14 @@ math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
   math::sp_coeff_list coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   std::vector<math::matr<dim * (dim + 1), dim * (dim + 1)>> per_element_hessian(mesh.GetNumElements());
-  tbb::parallel_for<idx>(0, mesh.GetNumElements(), [&](idx i) {
-    const auto& H_i = hessian[i];
-    math::matr<dim, dim> R = cache[i];
-    math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
-    per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), dim * dim * dim * 5), 
+    [&](tbb::blocked_range<idx> const& r) {
+      for (idx i = r.begin(); i < r.end(); ++i) {
+        const auto& H_i = hessian[i];
+        math::matr<dim, dim> R = cache[i];
+        math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
+        per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+      }
   });
 
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {

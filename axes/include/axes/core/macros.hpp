@@ -135,6 +135,7 @@
        Loop Unrolling
 ***************************************/
 #ifndef AX_PRAGMA
+#define AX_STRINGIFY(x) #x
 #define AX_PRAGMA(x) _Pragma(#x)
 #endif
 

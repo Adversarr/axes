@@ -52,13 +52,14 @@ real initial_data(real x, real dx) {
 real cfl() {
   // Determine delta t: 
   // alpha Delta t <= Delta x / 2
-  // alpha = max |f'| = 1
-  return 0.5 * dx;
+  // alpha = max |f'| = max |u| = 1.5
+  return 0.5 * dx / 1.5;
+  // return 0.5 * dx;
 }
 
 math::field1r step() {
   math::field1r next = current;
-  real dtdx = 0.5;
+  real dtdx = cfl() / dx;
   for (idx i = 0; i < Nx; ++i) {
     real u_l = current(i);
     real u_r = current((i + 1) % Nx);

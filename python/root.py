@@ -10,8 +10,12 @@ def axes_build_directory():
 def axes_source_directory():
     return f"{AX_ROOT}"
 
+def get_executable(name, build_type="RelWithDebInfo"):
+    return f"{axes_build_directory()}/{build_type}/bin/{name}"
+
 __all__ = [ 
   "AX_ROOT",
   "axes_build_directory",
-  "axes_source_directory"
+  "axes_source_directory",
+  "get_executable"
 ]

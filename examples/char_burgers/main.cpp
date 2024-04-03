@@ -164,11 +164,13 @@ int main(int argc, char** argv) {
     AX_LOG(INFO) << "Exporting the result to " << export_file;
     AX_CHECK_OK(math::write_npy_v10(export_file, u_x_t)) << "Failed to write to " << export_file;
   }
-  // Create a 1D grid
-  connect<gl::UiRenderEvent, &ui_callback>();
-  while (!ctx.GetWindow().ShouldClose()) {
-    AX_CHECK_OK(ctx.TickLogic());
-    AX_CHECK_OK(ctx.TickRender());
+  else {
+    // Create a 1D grid
+    connect<gl::UiRenderEvent, &ui_callback>();
+    while (!ctx.GetWindow().ShouldClose()) {
+      AX_CHECK_OK(ctx.TickLogic());
+      AX_CHECK_OK(ctx.TickRender());
+    }
   }
 
   clean_up();

@@ -3,15 +3,15 @@
 #include <imgui.h>
 #include <implot.h>
 
-#include <axes/math/common.hpp>
+#include <ax/math/common.hpp>
 
-#include "axes/core/echo.hpp"
-#include "axes/core/entt.hpp"
-#include "axes/core/init.hpp"
-#include "axes/gl/context.hpp"
-#include "axes/gl/utils.hpp"
-#include "axes/math/functional.hpp"
-#include "axes/math/io.hpp"
+#include "ax/core/echo.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
+#include "ax/gl/context.hpp"
+#include "ax/gl/utils.hpp"
+#include "ax/math/functional.hpp"
+#include "ax/math/io.hpp"
 using namespace ax;
 
 real tol_var = 1e-6;

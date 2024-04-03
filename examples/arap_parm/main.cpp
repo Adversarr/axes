@@ -1,19 +1,19 @@
-#include <axes/gl/utils.hpp>
-#include <axes/gl/primitives/mesh.hpp>
-#include <axes/gl/primitives/lines.hpp>
-#include "axes/core/echo.hpp"
-#include <axes/geometry/common.hpp>
-#include <axes/geometry/io.hpp>
-#include <axes/utils/asset.hpp>
+#include <ax/gl/utils.hpp>
+#include <ax/gl/primitives/mesh.hpp>
+#include <ax/gl/primitives/lines.hpp>
+#include "ax/core/echo.hpp"
+#include <ax/geometry/common.hpp>
+#include <ax/geometry/io.hpp>
+#include <ax/utils/asset.hpp>
 
 #include <absl/flags/flag.h>
 
 #include "solver.hpp"
-#include <axes/core/init.hpp>
-#include <axes/gl/context.hpp>
+#include <ax/core/init.hpp>
+#include <ax/gl/context.hpp>
 #include <imgui.h>
-#include <axes/core/entt.hpp>
-#include <axes/math/linsys/sparse.hpp>
+#include <ax/core/entt.hpp>
+#include <ax/math/linsys/sparse.hpp>
 
 using namespace ax;
 xx::ParameterizationSolver* psolver;

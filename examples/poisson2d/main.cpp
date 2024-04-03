@@ -7,12 +7,12 @@
  *
  */
 
-#include "axes/core/entt.hpp"
-#include "axes/core/init.hpp"
-#include "axes/pde/elements/p1.hpp"
-#include "axes/gl/context.hpp"
-#include "axes/gl/primitives/height_field.hpp"
-#include "axes/math/linsys/sparse/LDLT.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
+#include "ax/fem/elements/p1.hpp"
+#include "ax/gl/context.hpp"
+#include "ax/gl/primitives/height_field.hpp"
+#include "ax/math/linsys/sparse/LDLT.hpp"
 
 using namespace ax;
 using namespace ax::math;

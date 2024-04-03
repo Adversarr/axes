@@ -1,10 +1,10 @@
 #include <absl/flags/declare.h>
 #include <absl/flags/flag.h>
 
-#include "axes/core/echo.hpp"
-#include "axes/core/init.hpp"
-#include "axes/math/common.hpp"
-#include "axes/math/io.hpp"
+#include "ax/core/echo.hpp"
+#include "ax/core/init.hpp"
+#include "ax/math/common.hpp"
+#include "ax/math/io.hpp"
 
 ABSL_FLAG(std::string, name, "world", "The name to say hello to.");
 

@@ -1,5 +1,5 @@
 #include "solve_poisson.hpp"
-#include "axes/vdb/poisson.hpp"
+#include "ax/vdb/poisson.hpp"
 
 using namespace ax;
 

@@ -1,5 +1,5 @@
-#include "axes/graph/common.hpp"
-#include "axes/utils/status.hpp"
+#include "ax/graph/common.hpp"
+#include "ax/utils/status.hpp"
 
 using namespace ax;
 class EmptyNode : public graph::NodeBase {

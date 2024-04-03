@@ -1,14 +1,14 @@
-#include "axes/pde/elasticity/linear.hpp"
+#include "ax/fem/elasticity/linear.hpp"
 #include <doctest/doctest.h>
 
-#include "axes/geometry/io.hpp"
+#include "ax/geometry/io.hpp"
 #define AX_ELASTICITY_IMPL
-#include "axes/pde/fem/deform.hpp"
-#include "axes/pde/fem/elasticity.hpp"
-#include "axes/pde/fem/mass_matrix.hpp"
-#include "axes/pde/fem/p1mesh.hpp"
+#include "ax/fem/deform.hpp"
+#include "ax/fem/elasticity.hpp"
+#include "ax/fem/mass_matrix.hpp"
+#include "ax/fem/p1mesh.hpp"
 
-#include "axes/utils/asset.hpp"
+#include "ax/utils/asset.hpp"
 
 using namespace ax;
 using namespace ax::pde;

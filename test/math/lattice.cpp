@@ -3,7 +3,7 @@
 #include <entt/core/hashed_string.hpp>
 #include <entt/locator/locator.hpp>
 
-#include "axes/math/lattice.hpp"
+#include "ax/math/lattice.hpp"
 
 TEST_CASE("Lattice2D") {
   ax::math::Lattice<2, float> lattice({2, 3});

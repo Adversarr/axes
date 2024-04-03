@@ -2,6 +2,8 @@
 
 `axes` is a utility-library for Physical Simulation in Computer Graphics.
 
+![](./asset/gh-images/framework.png)
+
 System Requirement:
 
 - gcc>=12, or

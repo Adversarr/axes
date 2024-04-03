@@ -2,20 +2,20 @@
 #include <absl/flags/flag.h>
 #include <imgui.h>
 
-#include "axes/core/echo.hpp"
-#include "axes/core/entt.hpp"
-#include "axes/core/init.hpp"
-#include "axes/geometry/normal.hpp"
-#include "axes/geometry/primitives.hpp"
-#include "axes/geometry/transforms.hpp"
-#include "axes/gl/context.hpp"
-#include "axes/gl/extprim/axes.hpp"
-#include "axes/gl/colormap.hpp"
-#include "axes/gl/primitives/lines.hpp"
-#include "axes/gl/primitives/mesh.hpp"
-#include "axes/gl/primitives/quiver.hpp"
-#include "axes/gl/window.hpp"
-#include "axes/utils/time.hpp"
+#include "ax/core/echo.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
+#include "ax/geometry/normal.hpp"
+#include "ax/geometry/primitives.hpp"
+#include "ax/geometry/transforms.hpp"
+#include "ax/gl/context.hpp"
+#include "ax/gl/extprim/axes.hpp"
+#include "ax/gl/colormap.hpp"
+#include "ax/gl/primitives/lines.hpp"
+#include "ax/gl/primitives/mesh.hpp"
+#include "ax/gl/primitives/quiver.hpp"
+#include "ax/gl/window.hpp"
+#include "ax/utils/time.hpp"
 
 ABSL_FLAG(bool, echo, false, "Echo events");
 ABSL_FLAG(bool, rotate, false, "Rotate the cube");

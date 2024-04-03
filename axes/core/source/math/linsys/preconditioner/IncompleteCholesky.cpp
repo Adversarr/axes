@@ -1,0 +1,19 @@
+#include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
+
+#include "ax/utils/status.hpp"
+
+namespace ax::math {
+
+Status PreconditionerIncompleteCholesky::Analyse(LinsysProblem_Sparse const &problem) {
+  impl_.compute(problem.A_);
+  if (!(impl_.info() == Eigen::Success)) {
+    return utils::FailedPreconditionError("The factorization has not been computed.");
+  }
+  AX_RETURN_OK();
+}
+
+vecxr PreconditionerIncompleteCholesky::Solve(vecxr const &b, vecxr const &) {
+  return impl_.solve(b);
+}
+
+}  // namespace ax::math

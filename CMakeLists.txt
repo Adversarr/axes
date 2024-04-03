@@ -116,7 +116,6 @@ set(AX_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 # Now, declare the library and executables.
 ##############################################################################################
 add_subdirectory(axes)
-add_subdirectory(axes-gl)
 add_subdirectory(examples)
 
 if (${AX_ENABLE_TEST})

@@ -1,6 +1,6 @@
-#include "axes/math/common.hpp"
-#include "axes/math/linsys/sparse.hpp"
-#include "axes/geometry/common.hpp"
+#include "ax/math/common.hpp"
+#include "ax/math/linsys/sparse.hpp"
+#include "ax/geometry/common.hpp"
 namespace xx {
 
 using ax::math::vec3r;

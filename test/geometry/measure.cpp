@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include <axes/geometry/measure.hpp>
+#include <ax/geometry/measure.hpp>
 
 using namespace ax;
 using namespace ax::math;

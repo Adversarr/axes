@@ -3,8 +3,8 @@
 #include <entt/core/hashed_string.hpp>
 #include <entt/locator/locator.hpp>
 
-#include "axes/math/linsys/dense.hpp"
-#include "axes/math/linsys/sparse.hpp"
+#include "ax/math/linsys/dense.hpp"
+#include "ax/math/linsys/sparse.hpp"
 
 TEST_CASE("Refl") {
   using namespace ax::utils;

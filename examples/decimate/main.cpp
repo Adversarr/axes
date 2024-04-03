@@ -3,20 +3,20 @@
 #include <igl/readOBJ.h>
 #include <imgui.h>
 
-#include <axes/gl/utils.hpp>
+#include <ax/gl/utils.hpp>
 
-#include "axes/core/echo.hpp"
-#include "axes/core/entt.hpp"
-#include "axes/core/init.hpp"
-#include "axes/geometry/decimate.hpp"
-#include "axes/geometry/halfedge.hpp"
-#include "axes/geometry/io.hpp"
-#include "axes/geometry/normal.hpp"
-#include "axes/gl/context.hpp"
-#include "axes/gl/primitives/lines.hpp"
-#include "axes/gl/primitives/mesh.hpp"
-#include "axes/gl/window.hpp"
-#include "axes/utils/asset.hpp"
+#include "ax/core/echo.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
+#include "ax/geometry/decimate.hpp"
+#include "ax/geometry/halfedge.hpp"
+#include "ax/geometry/io.hpp"
+#include "ax/geometry/normal.hpp"
+#include "ax/gl/context.hpp"
+#include "ax/gl/primitives/lines.hpp"
+#include "ax/gl/primitives/mesh.hpp"
+#include "ax/gl/window.hpp"
+#include "ax/utils/asset.hpp"
 
 using namespace ax;
 

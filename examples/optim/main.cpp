@@ -1,11 +1,11 @@
 #include <absl/flags/flag.h>
 
-#include "axes/core/echo.hpp"
-#include "axes/core/init.hpp"
-#include "axes/optim/optimizers/lbfgs.hpp"
-#include "axes/optim/optimizers/newton.hpp"
-#include "axes/optim/test_problems.hpp"
-#include "axes/utils/time.hpp"
+#include "ax/core/echo.hpp"
+#include "ax/core/init.hpp"
+#include "ax/optim/optimizers/lbfgs.hpp"
+#include "ax/optim/optimizers/newton.hpp"
+#include "ax/optim/test_problems.hpp"
+#include "ax/utils/time.hpp"
 
 using namespace ax;
 idx n = 2;

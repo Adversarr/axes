@@ -1,10 +1,10 @@
 #include <absl/flags/flag.h>
-#include "axes/core/entt.hpp"
-#include "axes/core/init.hpp"
-#include "axes/gl/primitives/height_field.hpp"
-#include "axes/gl/utils.hpp"
-#include "axes/pde/poisson/lattice.hpp"
-#include "axes/math/init.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
+#include "ax/gl/primitives/height_field.hpp"
+#include "ax/gl/utils.hpp"
+#include "ax/fdfv/poisson/lattice.hpp"
+#include "ax/math/init.hpp"
 
 using namespace ax;
 idx N = 10;

@@ -1,8 +1,8 @@
-#include "axes/math/functional.hpp"
-#include "axes/utils/iota.hpp"
+#include "ax/math/functional.hpp"
+#include "ax/utils/iota.hpp"
 #include <doctest/doctest.h>
 
-#include <axes/math/common.hpp>
+#include <ax/math/common.hpp>
 
 using namespace ax;
 using namespace ax::math;

@@ -1,8 +1,8 @@
 #include "solver.hpp"
-#include "axes/utils/iota.hpp"
-#include "axes/math/linsys/sparse/LDLT.hpp"
-#include "axes/math/linsys/sparse/ConjugateGradient.hpp"
-#include "axes/math/decomp/svd.hpp"
+#include "ax/utils/iota.hpp"
+#include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/decomp/svd.hpp"
 #include <igl/harmonic.h>
 #include <igl/boundary_loop.h>
 #include <igl/map_vertices_to_circle.h>

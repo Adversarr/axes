@@ -5,6 +5,8 @@
 #include "ax/optim/optimizers/newton.hpp"
 #include "ax/optim/spsdm.hpp"
 #include "ax/optim/spsdm/diagonal.hpp"
+#undef ERROR
+
 namespace ax::fem {
 
 template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {

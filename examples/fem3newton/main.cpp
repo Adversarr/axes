@@ -83,7 +83,7 @@ void ui_callback(gl::UiRenderEvent ) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  fps.resize(100);
+  fps.setZero(100);
   lame = fem::elasticity::compute_lame(3e6, 0.43);
   int nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);

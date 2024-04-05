@@ -2,6 +2,7 @@
 // Created by JerryYang on 2024/3/24.
 //
 #include "ax/fem/deform.hpp"
+#include "ax/core/omp.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
 
@@ -135,15 +136,20 @@ static DeformationGradientList<dim> dg_p1(MeshBase<dim> const& mesh,
                                           DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
   DeformationGradientList<dim> dg(n_elem);
-  tbb::parallel_for<idx>((0), (n_elem), [&](idx i) {
-    matr<dim, dim> Ds;
-    veci<dim+1> element = mesh.GetElement(i);
-    vecr<dim> local_zero = pose.col(element.x());
-    for (idx I = 1; I <= dim; ++I) {
-      Ds.col(I - 1) = pose.col(element[I]) - local_zero;
-    }
-    dg[i] = Ds * Dm_inv[i];
-  });
+  // tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, 100000),
+  //   [&](tbb::blocked_range<idx> const& r) {
+  //     for (idx i = r.begin(); i < r.end(); ++i) {
+      AX_OMP_PARALLEL_FOR_SCHEDULE_STATIC(100000)
+      for (idx i = 0; i < n_elem; ++i) {
+        math::matr<dim, dim> Ds;
+        auto const &element = mesh.GetElement(i);
+        auto const &local_zero = pose.col(element.x());
+        for (idx I = 1; I <= dim; ++I) {
+          Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+        }
+        dg[i] = Ds * Dm_inv[i];
+      }
+  // }, tbb::static_partitioner());
 
   return dg;
 }

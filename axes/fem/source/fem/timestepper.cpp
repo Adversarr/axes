@@ -67,8 +67,6 @@ Status TimeStepperBase<dim>::Step(real dt) {
   math::vecxr V = velocity_.reshaped();
   math::vecxr X = mesh_->GetVertices().reshaped();
   math::vecxr Y = dt * V + dt * dt * ext_accel_.reshaped();
-  std::cout << M << std::endl;
-  std::cout << K << std::endl;
   mesh_->FilterVector(Y, true);
   math::SparseSolver_ConjugateGradient solver;
   math::LinsysProblem_Sparse linsys;
@@ -84,7 +82,7 @@ Status TimeStepperBase<dim>::Step(real dt) {
   math::fieldr<dim> x_new = (X + dx_flat->solution_).reshaped(dim, n_vert);
   // Compute the velocity.
   velocity_ = (x_new - mesh_->GetVertices()) / dt;
-  std::cout << "|Velocity|: " << math::norm(velocity_) << std::endl;
+  // std::cout << "|Velocity|: " << math::norm(velocity_) << std::endl;
 
   // Update the position of mesh.
   AX_RETURN_NOTOK(mesh_->SetVertices(x_new));

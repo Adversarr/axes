@@ -123,9 +123,9 @@ private:
 
 #  include <Eigen/SVD>
 
-#define AX_FEM_COMPUTE_ENERGY_GRAIN 1000
-#define AX_FEM_COMPUTE_STRESS_GRAIN 300
-#define AX_FEM_COMPUTE_HESSIAN_GRAIN 100
+#define AX_FEM_COMPUTE_ENERGY_GRAIN 10000
+#define AX_FEM_COMPUTE_STRESS_GRAIN 3000
+#define AX_FEM_COMPUTE_HESSIAN_GRAIN 1000
 
 namespace ax::fem {
 
@@ -161,7 +161,7 @@ math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(
       element_energy[i] = model.Energy(F, energy_requires_svd ? &(this->svd_results_[i]) : nullptr)
                           * this->deformation_.GetElementVolume(i);
     }
-  }, tbb::simple_partitioner{});
+  });
   return element_energy;
 }
 
@@ -192,17 +192,16 @@ List<elasticity::StressTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>
   auto const& dg_l = this->deformation_gradient_;
   List<elasticity::StressTensor<dim>> stress(n_elem);
   const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
-  // tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN), 
-  //   [&](const tbb::blocked_range<idx>& r) {
-      // for (idx i = r.begin(); i < r.end(); ++i) {
-      for (idx i = 0; i < n_elem; ++i) {
+  tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN), 
+    [&](const tbb::blocked_range<idx>& r) {
+      for (idx i = r.begin(); i < r.end(); ++i) {
         elasticity::DeformationGradient<dim> const& F = dg_l[i];
         ElasticModel model;
         model.SetLame(lame);
         stress[i] = model.Stress(F, stress_requires_svd ? &(this->svd_results_[i]) : nullptr)
                     * this->deformation_.GetElementVolume(i);
       }
-  // });
+  });
   return stress;
 }
 

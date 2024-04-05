@@ -138,12 +138,9 @@ template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_coeff_list const& i
 
 template <idx dim> void MeshBase<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
   AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
-  for (idx i = 0; i < vertices_.cols(); ++i) {
-    for (idx j = 0; j < dim; ++j) {
-      real v = inout[i * dim + j];
-      v = v * dirichlet_boundary_mask_(j, i) + (set_zero ? 0 : boundary_values_(j, i));
-      inout[i * dim + j] = v;
-    }
+  inout.array() *= dirichlet_boundary_mask_.array();
+  if (! set_zero) {
+    inout += boundary_values_.reshaped();
   }
 }
 

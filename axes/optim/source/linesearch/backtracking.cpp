@@ -31,7 +31,6 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   }
   idx iter = 0;
   real expect = f0 + c_ * df0;
-  AX_LOG(INFO) << "f0: " << f0 << " df0: " << df0;
   OptResultImpl opt;
   while (true) {
     math::vecxr x = x0 + alpha * dir;
@@ -43,7 +42,6 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
       break;
     }
     alpha *= rho_;
-    std::cout << "LS [" << iter << "]: " << f - expect << " > 0, " << f - f0 << std::endl;
     iter++;
     if (iter > max_iter_) {
       opt = OptResultImpl{x, f, iter};

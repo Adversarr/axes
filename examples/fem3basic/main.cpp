@@ -21,7 +21,7 @@
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 8, "Num of division.");
+ABSL_FLAG(int, N, 5, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 
 using namespace ax;

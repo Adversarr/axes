@@ -91,7 +91,6 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
     math::vecxr y_new = g_new - grad;
     f_iter = ls_result->f_opt_;
-    AX_LOG(INFO) << "Linesearch #iter:" << ls_result->n_iter_;
 
     if (s.size() == (size_t)history_size_) {
       s.erase(s.begin());

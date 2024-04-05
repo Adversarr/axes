@@ -21,7 +21,7 @@
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 2, "Num of division.");
+ABSL_FLAG(int, N, 5, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 
 using namespace ax;
@@ -55,11 +55,14 @@ void update_rendering() {
 }
 
 static bool running = false;
+float dt = 3e-3;
 void ui_callback(gl::UiRenderEvent ) {
   ImGui::Begin("FEM");
   ImGui::Checkbox("Running", &running);
+  ImGui::InputFloat("dt", &dt);
+
   if (ImGui::Button("Step") || running) {
-    AX_CHECK_OK(ts->Step(3e-3));
+    AX_CHECK_OK(ts->Step(dt));
     update_rendering();
   }
   ImGui::End();
@@ -67,25 +70,25 @@ void ui_callback(gl::UiRenderEvent ) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  lame = fem::elasticity::compute_lame(1e5, 0.33);
+  lame = fem::elasticity::compute_lame(3e6, 0.33);
   int nx = absl::GetFlag(FLAGS_N);
-  input_mesh = geo::tet_cube(0.5, nx, nx, nx);
-  input_mesh.vertices_.row(0) *= 2;
+  input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
+  input_mesh.vertices_.row(0) *= 4;
   ts = std::make_unique<fem::TimeStepperNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
-    if ((position.x()) > 1.0 - 1.0 / nx) {
+    if ((position.x()) > 2.0 - 1.0 / nx) {
       // Mark as dirichlet bc.
       ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
       ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
       ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
-      // break;
+      break;
     }
   }
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::StVK>();
+  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
   ts->SetDensity(3e1);
   out = create_entity();
   add_component<gl::Mesh>(out);

@@ -22,7 +22,7 @@ public:
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
-    return mu * math::norm(E, math::l2) + 0.5 * lambda * math::square(math::trace(E));
+    return mu * math::norm2(E) + 0.5 * lambda * math::square(math::trace(E));
   }
 
   // PStVK(F) = μFE + λ (tr E) F.

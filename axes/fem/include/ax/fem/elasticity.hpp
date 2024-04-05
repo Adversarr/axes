@@ -103,7 +103,6 @@ public:
     } else if (u == DeformationGradientUpdate::kHessian && ElasticModel().HessianRequiresSvd()) {
       this->UpdateSvd();
     }
-    AX_CHECK(this->deformation_gradient_.size() == this->deformation_.GetMesh().GetNumElements());
   }
 
   math::field1r Energy(math::field2r const& lame) const;

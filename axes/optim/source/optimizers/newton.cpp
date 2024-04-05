@@ -107,7 +107,6 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       return lsr.status();
     }
     ls_result = lsr.value();
-    AX_LOG(INFO) << ls_result.n_iter_ << " iterations in line search";
     x = ls_result.x_opt_;
     real f_last = f_iter;
     f_iter = ls_result.f_opt_;

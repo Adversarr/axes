@@ -60,17 +60,19 @@ Status TimeStepperBase<dim>::Step(real dt) {
   math::vecxr neg_force = deform_->StressToVertices(stress_on_elements).reshaped();
   auto hessian_on_elements = elasticity_->Hessian(lame);
   math::sp_coeff_list hessian_coo = deform_->HessianToVertices(hessian_on_elements);
-  auto K = math::make_sparse_matrix(dim * n_vert, dim * n_vert, hessian_coo);
+  math::sp_matxxr K = math::make_sparse_matrix(dim * n_vert, dim * n_vert, hessian_coo);
 
   // Solve the new (velocity * dt) = (x' - x)
   const auto & M = mass_matrix_;
   math::vecxr V = velocity_.reshaped();
   math::vecxr X = mesh_->GetVertices().reshaped();
   math::vecxr Y = dt * V + dt * dt * ext_accel_.reshaped();
+  std::cout << M << std::endl;
+  std::cout << K << std::endl;
   mesh_->FilterVector(Y, true);
   math::SparseSolver_ConjugateGradient solver;
   math::LinsysProblem_Sparse linsys;
-  linsys.A_ = M + K * dt * dt;
+  linsys.A_ = (M + K * dt * dt);
   linsys.b_ = M * Y - neg_force * dt * dt;
   mesh_->FilterVector(linsys.b_, true);
   mesh_->FilterMatrix(linsys.A_);

@@ -37,7 +37,7 @@ TEST_CASE("stress") {
   auto def = deform.Forward();
   auto elastic = fem::ElasticityCompute<2, elasticity::StVK>(deform);
   math::vec2r lame = {1.0, 1.0};
-  elastic.UpdateDeformationGradient();
+  elastic.UpdateDeformationGradient(mesh->GetVertices());
   auto stress = elastic.Stress(lame);
   for (auto const& s : stress) {
     CHECK(doctest::Approx(s.norm()) == 0.0);
@@ -55,6 +55,6 @@ TEST_CASE("Hessian") {
   fem::Deformation<2> deform(*mesh, vert.topRows<2>());
   auto stress = fem::ElasticityCompute<2, elasticity::StVK>(deform);
   math::vec2r lame = {1.0, 1.0};
-  stress.UpdateDeformationGradient();
+  stress.UpdateDeformationGradient(mesh->GetVertices());
   CHECK(doctest::Approx(stress.Energy(lame).sum()) == 0);
 }

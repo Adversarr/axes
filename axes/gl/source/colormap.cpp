@@ -657,7 +657,7 @@ math::vec3r Colormap::operator()(real value) const {
   } else {
     value = math::clamp(value, low_, high_);
   }
-  value = (value - low_) / (high_ - low_);
+  value = (value - low_) / (high_ - low_ + math::epsilon<real>);
   return math::vec3r{colormap_[static_cast<int>(value * 255)]};
 }
 

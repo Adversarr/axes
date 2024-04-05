@@ -26,7 +26,7 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = approx_green_strain(F);
     real E_trace = E.trace();
-    return mu * math::norm(E, math::l2) + 0.5 * lambda * E_trace * E_trace;
+    return mu * math::norm2(E) + 0.5 * lambda * E_trace * E_trace;
   }
 
   /**
@@ -49,12 +49,7 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    */
   hessian_t Hessian(DeformationGradient<dim> const&,
                     math::SvdResultImpl<dim, real> const*) const {
-    hessian_t H = math::zeros<dim * dim, dim * dim>();
-    // mu * dF.
-    for (idx i = 0; i < dim; ++i) {
-      H(i * dim + i, i * dim + i) += this->mu_;
-    }
-
+    hessian_t H = math::eye<dim * dim>() * this->mu_;
     // mu * dF.transpose().
     for (idx i = 0; i < dim; ++i) {
       for (idx j = 0; j < dim; ++j) {

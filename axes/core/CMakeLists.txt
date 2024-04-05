@@ -3,15 +3,18 @@ find_package(absl CONFIG REQUIRED)
 find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
+find_package(Blosc REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(OpenVDB REQUIRED)
 
 message(STATUS "==> Eigen3: ${Eigen3_DIR}")
 message(STATUS "==> absl: ${absl_DIR}")
 message(STATUS "==> EnTT: ${EnTT_DIR}")
+message(STATUS "==> Blosc: ${Blosc_DIR}")
 message(STATUS "==> range-v3: ${range-v3_DIR}")
 message(STATUS "==> libigl: ${libigl_DIR}")
 message(STATUS "==> OpenVDB: ${OpenVDB_INCLUDE_DIR}")
-message(STATUS "==> zlib: ${zlib_INCLUDEDIR}")
+message(STATUS "==> zlib: ${ZLIB_INCLUDEDIR}")
 
 # Library axes-core
 file(GLOB_RECURSE AX_CORE_SOURCE CONFIGURE_DEPENDS
@@ -50,6 +53,8 @@ target_link_libraries(axes
     EnTT::EnTT
     range-v3::range-v3
     OpenVDB::openvdb
+    Blosc::blosc
+    ZLIB::ZLIB
 )
 
 if(OpenMP_CXX_FOUND)

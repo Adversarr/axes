@@ -67,8 +67,8 @@ template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {
         return rel;
       }).SetConvergeVar(nullptr);
 
-  optim::Newton newton;
-  newton.SetTolGrad(0.02);
+  optim::Lbfgs newton;
+  newton.SetTolGrad(0.002);
   auto result = newton.Optimize(problem, y);
   if (!result.ok()) {
     AX_LOG(WARNING) << "Newton iteration failed to compute! (not a convergency problem.)";
@@ -78,7 +78,7 @@ template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {
   }
   math::fieldr<dim> x_new = result->x_opt_.reshaped(dim, mesh.GetNumVertices()) + x_cur;
   velocity = (x_new - x_cur) / dt;
-  // AX_LOG(INFO) << "#Iter: " << result->n_iter_ << " iterations.";
+  AX_LOG(INFO) << "#Iter: " << result->n_iter_ << " iterations.";
   // AX_LOG(INFO) << "Optimal value: " << result->f_opt_;
   // AX_LOG(INFO) << "Optimal |v|: " << math::norm(result->x_opt_);
   // AX_LOG(INFO) << "Optimal |g|: " << problem.EvalGrad(result->x_opt_).norm();

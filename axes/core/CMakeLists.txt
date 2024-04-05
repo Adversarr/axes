@@ -60,7 +60,7 @@ target_link_libraries(axes
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
   message(STATUS "OpenMP found and link to axes.")
-  target_compile_definitions(axes PRIVATE "AX_HAS_OPENMP")
+  target_compile_definitions(axes PUBLIC "AX_HAS_OPENMP")
 endif()
 
 ax_set_warn_levels(axes)

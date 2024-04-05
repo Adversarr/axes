@@ -160,11 +160,6 @@ typename MeshBase<dim>::vertex_list_t dg_tsv_p1(MeshBase<dim> const& mesh,
     const auto& ijk = mesh.GetElement(i);
     const auto& stress_i = stress[i];
     math::matr<dim, dim> R = cache[i];
-    // math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
-    // math::vecr<dim * (dim + 1)> F2 = pfpx.transpose() * math::flatten(stress_i);
-    // for (idx I = 0; I <= dim; ++I) {
-    //   result.col(ijk[I]) += F2.template segment<dim>(I * dim);
-    // }
     math::matr<dim, dim> f123 = stress_i * R.transpose();
     for (idx I = 1; I <= dim; ++I) {
       result.col(ijk[I]) += f123.col(I-1);
@@ -231,7 +226,6 @@ void Deformation<dim>::UpdateRestPose(typename MeshBase<dim>::vertex_list_t cons
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
   for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
     real v = coef / math::det(deformation_gradient_cache_[i]);
-    AX_LOG_IF(WARNING, v <= 0) << "Negative Volume: " << v;
     rest_pose_volume_(0, i) = abs(v);
   }
 }

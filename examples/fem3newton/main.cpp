@@ -17,7 +17,7 @@
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/fem/timestepper.hpp"
-#include "ax/utils/asset.hpp"
+#include "ax/utils/time.hpp"
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
@@ -34,13 +34,18 @@ UPtr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
   auto &mesh = get_component<gl::Mesh>(out);
-  auto sm = ts->GetMesh().ExtractSurface();
-  mesh.vertices_ = sm.vertices_;
-  mesh.indices_ = sm.indices_;
+  if (mesh.indices_ .size() == 0) {
+    mesh.indices_ = ts->GetMesh().ExtractSurface().indices_;
+  }
+  mesh.vertices_ = ts->GetMesh().GetVertices();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   auto &lines = get_component<gl::Lines>(out);
-  lines = gl::Lines::Create(mesh);
+  if (lines.indices_.size() == 0) {
+    lines = gl::Lines::Create(mesh);
+  }
+  lines.vertices_ = mesh.vertices_;
+  lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
   ts->GetElasticity().UpdateDeformationGradient();
@@ -56,13 +61,21 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 3e-3;
+math::vecxr fps;
 void ui_callback(gl::UiRenderEvent ) {
-  ImGui::Begin("FEM");
+  ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
 
   if (ImGui::Button("Step") || running) {
+    auto time_start = ax::utils::GetCurrentTimeNanos();
+    static idx frame = 0;
     AX_CHECK_OK(ts->Step(dt));
+    auto time_end = ax::utils::GetCurrentTimeNanos();
+    auto time_elapsed = (time_end - time_start) * 1e-9;
+    fps[frame++ % fps.size()] = 1.0 / time_elapsed;
+    std::cout << frame << ": FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
@@ -70,7 +83,8 @@ void ui_callback(gl::UiRenderEvent ) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  lame = fem::elasticity::compute_lame(3e6, 0.33);
+  fps.resize(100);
+  lame = fem::elasticity::compute_lame(3e6, 0.43);
   int nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;
@@ -84,7 +98,7 @@ int main(int argc, char** argv) {
       ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
       ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
       ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
-      break;
+      // break;
     }
   }
   AX_CHECK_OK(ts->Init());

@@ -1,8 +1,8 @@
 #pragma once
-#include "elements/p1.hpp"
-#include "mesh.hpp"
+#include "ax/fem/elements/p1.hpp"
+#include "ax/fem/mesh_base.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 template<idx dim>
 class P1Mesh: public MeshBase<dim> {

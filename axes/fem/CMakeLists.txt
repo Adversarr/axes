@@ -17,6 +17,7 @@ target_include_directories(axes_fem
 target_link_libraries(axes_fem
   PUBLIC
     axes
+    axes_optim
     axes_geometry)
 
 ax_set_warn_levels(axes_fem)

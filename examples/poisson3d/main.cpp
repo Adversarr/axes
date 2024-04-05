@@ -80,7 +80,7 @@ bool is_dirichlet(idx id) {
 int main(int argc, char** argv) {
   init(argc, argv);
   n = absl::GetFlag(FLAGS_n);
-  pde::elements::P1Element3D element;
+  fem::elements::P1Element3D element;
   mat4r pfpx_pgpy = math::zeros<4, 4>();
   for (idx i = 0; i < 4; ++i) {
     for (idx j = 0; j < 4; ++j) {
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     vec3r v100 = vertices.col(idx100);
     vec3r v010 = vertices.col(idx010);
     vec3r v001 = vertices.col(idx110);
-    pde::elements::P1Element3D element({v000, v100, v010, v001});
+    fem::elements::P1Element3D element({v000, v100, v010, v001});
     for (idx i = 0; i < 4; ++i) {
       for (idx j = 0; j < 4; ++j) {
         idx ei = elem[i];

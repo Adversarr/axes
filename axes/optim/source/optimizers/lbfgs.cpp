@@ -35,12 +35,16 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   bool verbose = verbose_;
   while (iter < max_iter_) {
     // SECT: Verbose
+    problem_.EvalVerbose(iter, x, f_iter);
     if (verbose) {
-      problem_.EvalVerbose(iter, x, f_iter);
       AX_DLOG(INFO) << "L-BFGS iter " << iter << std::endl
                     << "  x: " << x.transpose() << std::endl
                     << "  f: " << f_iter << std::endl
                     << "  grad: " << grad.transpose();
+    }
+
+    if (!math::isfinite(f_iter)) {
+      return utils::FailedPreconditionError("Energy function returns Infinite number!");
     }
 
     // SECT: Check convergence
@@ -59,18 +63,22 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr r = q;
     if (!s.empty()) {
       for (idx i = s.size() - 1; i >= 0; i--) {
-        real rho_i = (rho[i] = 1.0 / s[i].dot(y[i]));
+        real rho_i = (rho[i] = 1.0 / (s[i].dot(y[i]) + math::epsilon<real>));
         real alpha_i = (alpha[i] = rho_i * s[i].dot(q));
-        q -= alpha_i * y[i];
+        q = q - alpha_i * y[i];
       }
-      real H0 = s.back().dot(y.back()) / y.back().dot(y.back());
+      real H0 = s.back().dot(y.back()) / (y.back().dot(y.back()) + math::epsilon<real>);
       r = H0 * q;
       for (size_t i = 0; i < s.size(); i++) {
         real beta = rho[i] * y[i].dot(r);
-        r += s[i] * (alpha[i] - beta);
+        r = r + s[i] * (alpha[i] - beta);
       }
     }
     math::vecxr dir = -r;
+    if (math::norm(dir) < math::epsilon<>) {
+      AX_LOG(INFO) << "L-BFGS: dir is too small: " << math::norm(dir);
+      break;
+    }
 
     // SECT: Line search
     auto ls_result = linesearch_->Optimize(problem_, x, dir);
@@ -82,6 +90,8 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr s_new = ls_result->x_opt_ - x;
     math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
     math::vecxr y_new = g_new - grad;
+    f_iter = ls_result->f_opt_;
+    AX_LOG(INFO) << "Linesearch #iter:" << ls_result->n_iter_;
 
     if (s.size() == (size_t)history_size_) {
       s.erase(s.begin());
@@ -111,7 +121,7 @@ Lbfgs::Lbfgs() {
   auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
   ls->c_ = 1e-4;
   ls->alpha_ = 1.0;
-  ls->rho_ = 0.5;
+  ls->rho_ = 0.7;
 }
 
 Status Lbfgs::SetOptions(utils::Opt const& options) {

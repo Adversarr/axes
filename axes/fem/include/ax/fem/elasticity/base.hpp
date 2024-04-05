@@ -3,7 +3,7 @@
 #include "ax/math/traits.hpp"
 #include "common.hpp"
 
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 
 // convert Young's modulus (E) and Poisson's ratio (nu) to Lamé parameters
 AX_FORCE_INLINE real compute_mu(real E, real nu) { return E / (2 * (1 + nu)); }
@@ -67,4 +67,4 @@ protected:
   real lambda_, mu_;
 };
 
-}  // namespace ax::pde::elasticity
+}  // namespace ax::fem::elasticity

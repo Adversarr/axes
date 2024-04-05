@@ -3,8 +3,11 @@
 #include "ax/core/echo.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LDLT.hpp"
+#include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/sparse.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/math/linsys/sparse/LLT.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/status.hpp"
@@ -39,12 +42,16 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
   // Main loop
   for (iter = 0; iter < max_iter_; ++iter) {
     // SECT: verbose_
+    problem_.EvalVerbose(iter, x, f_iter);
     if (verbose_) {
-      problem_.EvalVerbose(iter, x, f_iter);
-      AX_DLOG(INFO) << "Newton iter " << iter << std::endl
+      AX_LOG(INFO) << "Newton iter " << iter << std::endl
                     << "  x: " << x.transpose() << std::endl
                     << "  f: " << f_iter << std::endl
                     << "  grad: " << grad.transpose();
+    }
+
+    if (math::isnan(f_iter) || math::isinf(f_iter)) {
+      return utils::FailedPreconditionError("Energy function returns NaN or Inf");
     }
 
     // SECT: Check convergence
@@ -74,13 +81,20 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       if (H.rows() != x.rows() || H.cols() != x.rows()) {
         return utils::FailedPreconditionError("Hessian matrix size mismatch");
       }
-      math::LinsysProblem_Sparse prob(std::move(H), grad);
+      math::LinsysProblem_Sparse prob(H, grad);
       auto solution = sparse_solver_->SolveProblem(prob);
       if (!solution.ok()) {
         AX_LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
         return solution.status();
       }
       dir = -solution.value().solution_;
+    }
+    dir = -grad;
+
+    real dir_dot_grad = dir.dot(grad);
+    if (dir_dot_grad > 0) {
+      AX_LOG(ERROR) << "Direction is not descent!!!";
+      break;
     }
 
     // SECT: Line search
@@ -92,9 +106,18 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       AX_LOG(ERROR) << "Search Dir = " << dir.transpose();
       return lsr.status();
     }
-    ls_result = std::move(lsr.value());
+    ls_result = lsr.value();
+    AX_LOG(INFO) << ls_result.n_iter_ << " iterations in line search";
     x = ls_result.x_opt_;
+    real f_last = f_iter;
     f_iter = ls_result.f_opt_;
+    if (f_iter > f_last) {
+      AX_LOG(ERROR) << "Line Search Error: Energy increased!!!";
+      if (!ls_result.converged_) {
+        AX_LOG(ERROR) << "Line Search Error: Failed to converge!!!";
+      }
+      break;
+    }
     grad = problem_.EvalGrad(x);
   }
 
@@ -108,16 +131,12 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
 }
 
 Newton::Newton() {
-  dense_solver_ = std::make_unique<math::DenseSolver_LDLT>();
-  sparse_solver_ = std::make_unique<math::SparseSolver_LDLT>();
+  dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
+  sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   linesearch_ = std::make_unique<BacktrackingLinesearch>();
-  BacktrackingLinesearch* ls = dynamic_cast<BacktrackingLinesearch*>(linesearch_.get());
-  ls->alpha_ = 1.0;
-  ls->c_ = 0.1;
-  ls->rho_ = 0.5;
   linesearch_name_ = "Backtracking";
   dense_solver_name_ = "LDLT";
-  sparse_solver_name_ = "LDLT";
+  sparse_solver_name_ = "ConjugateGradient";
 }
 
 Status Newton::SetOptions(utils::Opt const& options) {

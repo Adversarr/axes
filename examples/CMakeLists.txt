@@ -19,6 +19,7 @@ axes_add_example(fem2basic "axes_gui;axes_fem")
 axes_add_example(fem3basic "axes_gui;axes_fem")
 axes_add_example(fem2debug "axes_gui;axes_fem")
 axes_add_example(fem3debug "axes_gui;axes_fem")
+axes_add_example(fem3newton "axes_gui;axes_fem")
 
 # Homework for Nonlinear Numerical PDE:
 axes_add_example(char_burgers axes_gui)

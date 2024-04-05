@@ -20,7 +20,7 @@
 #include "ax/core/echo.hpp"
 #include "ax/math/common.hpp"
 
-namespace ax::pde::elements {
+namespace ax::fem::elements {
 
 constexpr real p12_element_f_f[3][3] = {{1.0 / 12, 1.0 / 24, 1.0 / 24},
                                         {1.0 / 24, 1.0 / 12, 1.0 / 24},

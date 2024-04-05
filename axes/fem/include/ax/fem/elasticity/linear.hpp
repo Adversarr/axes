@@ -2,7 +2,7 @@
 #include "base.hpp"
 #include "extra_symbols.hpp"
 
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 /**
  * @brief Linear Elasticity Model.
  * @tparam dim
@@ -36,8 +36,8 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    */
   stress_t Stress(DeformationGradient<dim> const& F,
                   math::SvdResultImpl<dim, real> const*) const {
-    const auto& lambda = this->lambda_;
-    const auto& mu = this->mu_;
+    real lambda = this->lambda_;
+    real mu = this->mu_;
     math::matr<dim, dim> const E = approx_green_strain(F);
     return 2 * mu * E + lambda * E.trace() * math::eye<dim>();
   }
@@ -49,12 +49,28 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    */
   hessian_t Hessian(DeformationGradient<dim> const&,
                     math::SvdResultImpl<dim, real> const*) const {
-    hessian_t H = math::eye<dim * dim>() * this->mu_;
+    hessian_t H = math::zeros<dim * dim, dim * dim>();
+    // mu * dF.
     for (idx i = 0; i < dim; ++i) {
-      H(i * (dim + 1), i * (dim + 1)) += this->mu_ + this->lambda_;
+      H(i * dim + i, i * dim + i) += this->mu_;
     }
+
+    // mu * dF.transpose().
+    for (idx i = 0; i < dim; ++i) {
+      for (idx j = 0; j < dim; ++j) {
+        H(i * dim + j, j * dim + i) += this->mu_;
+      }
+    }
+
+    // la * dF.trace() * I.
+    for (idx i = 0; i < dim; ++i) {
+      for (idx j = 0; j < dim; ++j) {
+        H(i * dim + i, j * dim + j) += this->lambda_;
+      }
+    }
+
     return H;
   }
 };
 
-}  // namespace ax::pde::elasticity
+}  // namespace ax::fem::elasticity

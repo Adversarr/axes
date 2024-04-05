@@ -2,7 +2,7 @@
 #include "ax/math/linalg.hpp"
 #include "common.hpp"
 
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 
 template<typename Derived>
 auto green_strain(math::MBcr<Derived> F) {

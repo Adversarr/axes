@@ -21,23 +21,29 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
 
   // SECT: Backtracking Line Search
   real alpha = alpha_;
-  real f0 = prob.EvalEnergy(x0);
-  real df0 = prob.EvalGrad(x0).dot(dir);
-  if (df0 > 0) {
-    return utils::InvalidArgumentError("Invalid descent direction: df0=" + std::to_string(df0));
+  real const f0 = prob.EvalEnergy(x0);
+  math::vecxr grad = prob.EvalGrad(x0);
+  real df0 = grad.dot(dir);
+  if (df0 >= 0 || !math::isfinite(df0)) {
+    AX_LOG(ERROR) << "grad: " << grad.transpose();
+    AX_LOG(ERROR) << "dir: " << dir.transpose();
+    return utils::FailedPreconditionError("Invalid descent direction: df0=" + std::to_string(df0));
   }
   idx iter = 0;
-
+  real expect = f0 + c_ * df0;
+  AX_LOG(INFO) << "f0: " << f0 << " df0: " << df0;
   OptResultImpl opt;
   while (true) {
     math::vecxr x = x0 + alpha * dir;
-    real f = prob.EvalEnergy(x);
-    if (f <= f0 + c_ * alpha_ * df0) {
+    real const f = prob.EvalEnergy(x);
+    expect = f0 + c_ * alpha * df0;
+    if (f <= expect) {
       opt = OptResultImpl{x, f, iter};
       opt.converged_ = true;
       break;
     }
     alpha *= rho_;
+    std::cout << "LS [" << iter << "]: " << f - expect << " > 0, " << f - f0 << std::endl;
     iter++;
     if (iter > max_iter_) {
       opt = OptResultImpl{x, f, iter};

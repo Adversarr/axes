@@ -6,12 +6,12 @@
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/mass_matrix.hpp"
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 
 #include "ax/utils/asset.hpp"
 
 using namespace ax;
-using namespace ax::pde;
+using namespace ax::fem;
 using namespace ax::math;
 
 TEST_CASE("mass2d") {

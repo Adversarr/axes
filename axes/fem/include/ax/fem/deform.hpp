@@ -1,9 +1,9 @@
 #pragma once
 #include "elasticity/common.hpp"
 #include "ax/math/sparse.hpp"
-#include "mesh.hpp"
+#include "mesh_base.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 template <idx dim> class Deformation {
 public:
@@ -29,6 +29,8 @@ public:
    * @return List of deformation gradients for each element in the mesh.
    */
   elasticity::DeformationGradientList<dim> Forward() const;
+
+  elasticity::DeformationGradientList<dim> Forward(typename MeshBase<dim>::vertex_list_t const& current) const;
 
 
   /**
@@ -92,4 +94,4 @@ private:
   math::field1r rest_pose_volume_;
 };
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

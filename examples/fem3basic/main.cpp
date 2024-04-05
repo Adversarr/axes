@@ -2,6 +2,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/fem/timestepper/newton.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -14,13 +15,13 @@
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/fem/timestepper.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 10, "Num of division.");
+ABSL_FLAG(int, N, 8, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 
 using namespace ax;
@@ -28,7 +29,7 @@ Entity out;
 geo::TetraMesh input_mesh;
 math::vec2r lame;
 
-UPtr<pde::fem::TimeStepperBase<3>> ts;
+UPtr<fem::TimeStepperBase<3>> ts;
 
 
 void update_rendering() {
@@ -66,11 +67,12 @@ void ui_callback(gl::UiRenderEvent ) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  lame = pde::elasticity::compute_lame(1e5, 0.45);
+  lame = fem::elasticity::compute_lame(1e5, 0.33);
   int nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 2 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 2;
-  ts = std::make_unique<pde::fem::TimeStepperBase<3>>(std::make_unique<pde::fem::P1Mesh<3>>());
+  ts = std::make_unique<fem::TimeStepperBase<3>>(std::make_unique<fem::P1Mesh<3>>());
+  ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
@@ -82,6 +84,7 @@ int main(int argc, char** argv) {
     }
   }
   AX_CHECK_OK(ts->Init());
+  ts->SetDensity(3);
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

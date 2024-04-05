@@ -1,7 +1,7 @@
 #pragma once
 #include "base.hpp"
 #include "extra_symbols.hpp"
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 /**
  * @brief NeoHookean Elasticity Model.
  * @tparam dim
@@ -77,4 +77,4 @@ public:
   }
 };
 
-}  // namespace ax::pde::elasticity
+}  // namespace ax::fem::elasticity

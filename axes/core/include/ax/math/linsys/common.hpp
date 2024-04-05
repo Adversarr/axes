@@ -34,7 +34,7 @@ struct LinsysProblem_Sparse {
   // Additional checkers.
   std::function<bool(vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
-  LinsysProblem_Sparse(sp_matxxr A, vecxr b) : A_{std::move(A)}, b_{std::move(b)} {}
+  LinsysProblem_Sparse(sp_matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
 
   LinsysProblem_Sparse() = default;
 };

@@ -9,15 +9,15 @@
 
 // #define DOUBLE_CHECK
 
-namespace ax::pde::fem {
+namespace ax::fem {
 using namespace elasticity;
 using namespace math;
 template <idx dim> static bool check_cache(DeformationGradientCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
     real detR = R_inv.determinant();
-    if (math::isnan(detR)) {
-      AX_LOG(ERROR) << "Found Determinant of R.inv is nan.";
+    if (math::isnan(detR) || math::abs(detR) < math::epsilon<real>) {
+      AX_LOG(ERROR) << "Found Determinant of R.inv is nan, or det is nearly zero.";
       has_error = true;
     }
   }
@@ -81,51 +81,6 @@ AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
   return PFPx;
 }
 
-AX_FORCE_INLINE static math::mat2r ApplyPFPx(math::mat2r const& P,
-  math::mat2r const& R) {
-  /*{{Subscript[P, 1, 1] Subscript[r, 1, 1] +
-   Subscript[P, 1, 2] Subscript[r, 1, 2],
-  Subscript[P, 1, 1] Subscript[r, 2, 1] +
-   Subscript[P, 1, 2] Subscript[r, 2, 2]}, {Subscript[P, 2, 1]
-     Subscript[r, 1, 1] + Subscript[P, 2, 2] Subscript[r, 1, 2],
-  Subscript[P, 2, 1] Subscript[r, 2, 1] +
-   Subscript[P, 2, 2] Subscript[r, 2, 2]}}*/
-
-  math::mat2r result;
-  result(0, 0) = P(0, 0) * R(0, 0) + P(0, 1) * R(0, 1);
-  result(0, 1) = P(0, 0) * R(1, 0) + P(0, 1) * R(1, 1);
-  result(1, 0) = P(1, 0) * R(0, 0) + P(1, 1) * R(0, 1);
-  result(1, 1) = P(1, 0) * R(1, 0) + P(1, 1) * R(1, 1);
-  return result;
-}
-AX_FORCE_INLINE static math::matr<3, 3> ApplyPFPx(math::mat3r const& P,
-  math::mat3r const& R) {
-  /*{{Subscript[P, 1,1] Subscript[r, 1,1]+Subscript[P, 1,2] Subscript[r, 1,2]+Subscript[P, 1,3]
-   * Subscript[r, 1,3],Subscript[P, 1,1] Subscript[r, 2,1]+Subscript[P, 1,2] Subscript[r,
-   * 2,2]+Subscript[P, 1,3] Subscript[r, 2,3],Subscript[P, 1,1] Subscript[r, 3,1]+Subscript[P, 1,2]
-   * Subscript[r, 3,2]+Subscript[P, 1,3] Subscript[r, 3,3]},{Subscript[P, 2,1] Subscript[r,
-   * 1,1]+Subscript[P, 2,2] Subscript[r, 1,2]+Subscript[P, 2,3] Subscript[r, 1,3],Subscript[P, 2,1]
-   * Subscript[r, 2,1]+Subscript[P, 2,2] Subscript[r, 2,2]+Subscript[P, 2,3] Subscript[r,
-   * 2,3],Subscript[P, 2,1] Subscript[r, 3,1]+Subscript[P, 2,2] Subscript[r, 3,2]+Subscript[P, 2,3]
-   * Subscript[r, 3,3]},{Subscript[P, 3,1] Subscript[r, 1,1]+Subscript[P, 3,2] Subscript[r,
-   * 1,2]+Subscript[P, 3,3] Subscript[r, 1,3],Subscript[P, 3,1] Subscript[r, 2,1]+Subscript[P, 3,2]
-   * Subscript[r, 2,2]+Subscript[P, 3,3] Subscript[r, 2,3],Subscript[P, 3,1] Subscript[r,
-   * 3,1]+Subscript[P, 3,2] Subscript[r, 3,2]+Subscript[P, 3,3] Subscript[r, 3,3]}}*/
-  math::mat3r result;
-  result(0, 0) = P(0, 0) * R(0, 0) + P(0, 1) * R(0, 1) + P(0, 2) * R(0, 2);
-  result(0, 1) = P(0, 0) * R(1, 0) + P(0, 1) * R(1, 1) + P(0, 2) * R(1, 2);
-  result(0, 2) = P(0, 0) * R(2, 0) + P(0, 1) * R(2, 1) + P(0, 2) * R(2, 2);
-  result(1, 0) = P(1, 0) * R(0, 0) + P(1, 1) * R(0, 1) + P(1, 2) * R(0, 2);
-  result(1, 1) = P(1, 0) * R(1, 0) + P(1, 1) * R(1, 1) + P(1, 2) * R(1, 2);
-  result(1, 2) = P(1, 0) * R(2, 0) + P(1, 1) * R(2, 1) + P(1, 2) * R(2, 2);
-  result(2, 0) = P(2, 0) * R(0, 0) + P(2, 1) * R(0, 1) + P(2, 2) * R(0, 2);
-  result(2, 1) = P(2, 0) * R(1, 0) + P(2, 1) * R(1, 1) + P(2, 2) * R(1, 2);
-  result(2, 2) = P(2, 0) * R(2, 0) + P(2, 1) * R(2, 1) + P(2, 2) * R(2, 2);
-  return result;
-}
-
-
-
 // Auto generated code.
 AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
   const real m = DmInv(0, 0);
@@ -168,29 +123,27 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
     }
     cache[i] = rest_local.inverse();
   AX_PARALLEL_FOR_END();
-
-#ifndef NDEBUG
   if (!check_cache<dim>(cache)) {
     AX_LOG(ERROR) << "Mesh Cache computation failed! Please check the input mesh.";
   }
-#endif
   return cache;
 }
 
 template <idx dim>
 static DeformationGradientList<dim> dg_p1(MeshBase<dim> const& mesh,
-                                          DeformationGradientCache<dim> const& cache) {
+                                          fieldr<dim> const& pose,
+                                          DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
   DeformationGradientList<dim> dg(n_elem);
-  AX_PARALLEL_FOR_BEGIN(0, n_elem, i)
-    matr<dim, dim> curr_local;
-    const auto& element = mesh.GetElement(i);
-    const auto& local_zero = mesh.GetVertex(element.x());
+  tbb::parallel_for<idx>((0), (n_elem), [&](idx i) {
+    matr<dim, dim> Ds;
+    veci<dim+1> element = mesh.GetElement(i);
+    vecr<dim> local_zero = pose.col(element.x());
     for (idx I = 1; I <= dim; ++I) {
-      curr_local.col(I - 1) = mesh.GetVertex(element[I]) - local_zero;
+      Ds.col(I - 1) = pose.col(element[I]) - local_zero;
     }
-    dg[i] = curr_local * cache[i];
-  AX_PARALLEL_FOR_END();
+    dg[i] = Ds * Dm_inv[i];
+  });
 
   return dg;
 }
@@ -207,21 +160,16 @@ typename MeshBase<dim>::vertex_list_t dg_tsv_p1(MeshBase<dim> const& mesh,
     const auto& ijk = mesh.GetElement(i);
     const auto& stress_i = stress[i];
     math::matr<dim, dim> R = cache[i];
-    // TODO: Fine, but the efficiency is not good.
-    math::matr<dim, dim> F = ApplyPFPx(stress_i, R);
-    #ifdef DOUBLE_CHECK
     math::matr<dim * dim, dim * (dim + 1)> pfpx = ComputePFPx(R);
     math::vecr<dim * (dim + 1)> F2 = pfpx.transpose() * math::flatten(stress_i);
     for (idx I = 0; I <= dim; ++I) {
       result.col(ijk[I]) += F2.template segment<dim>(I * dim);
     }
-    std::cout << math::norm(F2.template segment<dim>(dim) - F.col(0)) << std::endl;
-    std::cout << math::norm(F2.template segment<dim>(2 * dim) - F.col(1)) << std::endl;
-    #endif
-    for (idx I = 1; I <= dim; ++I) {
-      result.col(ijk[I]) += F.col(I-1);
-      result.col(ijk[0]) -= F.col(I-1);
-    }
+    // math::matr<dim, dim> f123 = stress_i * R.transpose();
+    // for (idx I = 1; I <= dim; ++I) {
+    //   result.col(ijk[I]) += f123.col(I-1);
+    //   result.col(ijk.x()) -= f123.col(I-1);
+    // }
   }
   return result;
 }
@@ -233,7 +181,7 @@ math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
   math::sp_coeff_list coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   std::vector<math::matr<dim * (dim + 1), dim * (dim + 1)>> per_element_hessian(mesh.GetNumElements());
-  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), dim * dim * dim * 5), 
+  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), dim * dim * dim * 5),
     [&](tbb::blocked_range<idx> const& r) {
       for (idx i = r.begin(); i < r.end(); ++i) {
         const auto& H_i = hessian[i];
@@ -251,7 +199,9 @@ math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
       idx j_idx = ijk[J];
       idx H_idx_i = I * dim + Di;
       idx H_idx_j = J * dim + Dj;
-      coo.push_back(math::sp_coeff{i_idx, j_idx, H(H_idx_i, H_idx_j)});
+      idx global_dof_i_idx = i_idx * dim + Di;
+      idx global_dof_j_idx = j_idx * dim + Dj;
+      coo.push_back({global_dof_i_idx, global_dof_j_idx, H(H_idx_i, H_idx_j)});
     }
   }
   return coo;
@@ -277,15 +227,23 @@ void Deformation<dim>::UpdateRestPose(typename MeshBase<dim>::vertex_list_t cons
     AX_CHECK(false) << "Not Implemented Error";
   }
   // There exist an efficient approximation to compute the volume:
+  real coef = dim == 3 ? 1.0/6.0 : 1.0/2.0;
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
   for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
-    rest_pose_volume_(0, i) = 1.0 / math::abs(math::det(deformation_gradient_cache_[i]));
+    real v = coef / math::det(deformation_gradient_cache_[i]);
+    rest_pose_volume_(0, i) = v;
+    AX_LOG_IF(WARNING, v <= 0) << "Negative Volume: " << v;
   }
 }
 
 template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
+  return Forward(mesh_.GetVertices());
+}
+
+template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward(
+  typename MeshBase<dim>::vertex_list_t const& current) const {
   if (mesh_.GetType() == MeshType::kP1) {
-    return dg_p1<dim>(mesh_, deformation_gradient_cache_);
+    return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
   } else {
     AX_CHECK(false) << "Not Implemented";
   }
@@ -297,17 +255,15 @@ elasticity::DeformationGradientCache<dim> const& Deformation<dim>::GetRestPoseCa
   return deformation_gradient_cache_;
 }
 
-template <idx dim> math::field1r dg_tev_p1(MeshBase<dim> const& mesh_, math::field1r const& e,
-                                           field1r const& rest_pose_volume_) {
+template <idx dim> math::field1r dg_tev_p1(MeshBase<dim> const& mesh_, math::field1r const& e) {
   idx n_element = mesh_.GetNumElements();
   math::field1r result(1, mesh_.GetNumVertices());
   result.setZero();
   for (idx i = 0; i < n_element; ++i) {
     const auto& ijk = mesh_.GetElement(i);
-    real energy = e[i] * rest_pose_volume_(0, i) / real(dim + 1);
-    for (idx I = 0; I < dim; ++I) {
-      result(ijk[I + 1]) += energy;
-      result(ijk.x()) += energy;
+    real energy = e[i] / real(dim + 1);
+    for (idx I = 0; I <= dim; ++I) {
+      result(ijk[I]) += energy;
     }
   }
   return result;
@@ -320,7 +276,7 @@ template <idx dim> math::field1r Deformation<dim>::EnergyToVertices(math::field1
     AX_CHECK_EQ(e_size, n_element) << "#energy != #element";
   }
   if (mesh_.GetType() == MeshType::kP1) {
-    return dg_tev_p1<dim>(mesh_, e, rest_pose_volume_);
+    return dg_tev_p1<dim>(mesh_, e);
   } else {
     AX_CHECK(false) << "Not Implemented Error";
   }
@@ -355,4 +311,4 @@ template <idx dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
 template class Deformation<2>;
 template class Deformation<3>;
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

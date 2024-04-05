@@ -14,9 +14,11 @@
 #define AX_OMP_SCHEDULE_AUTO AX_PRAGMA(omp schedule(auto))
 #define AX_OMP_SCHEDULE_RUNTIME AX_PRAGMA(omp schedule(runtime))
 #define AX_OMP_SCHEDULE_CHUNK_SIZE(size) AX_PRAGMA(omp schedule(static, size))
-#define AX_OMP_THREAD_NUM omp_get_thread_num()
-#define AX_OMP_NUM_THREADS omp_get_num_threads()
+#define AX_OMP_THREAD_NUM() omp_get_thread_num()
+#define AX_OMP_NUM_THREADS() omp_get_num_threads()
+#define AX_OMP_GET_WTIME() omp_get_wtime()
 #else
+#include <ctime>
 #define AX_OMP_PARALLEL_FOR AX_PRAGMA()
 #define AX_OMP_PARALLEL AX_PRAGMA()
 #define AX_OMP_CRITICAL(name) AX_PRAGMA()

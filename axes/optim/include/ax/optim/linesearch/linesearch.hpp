@@ -16,7 +16,7 @@ public:
   static UPtr<LinesearchBase> Create(LineSearchKind kind);
 
 protected:
-  idx max_iter_{20};
+  idx max_iter_{100};
 };
 
 }  // namespace ax::optim

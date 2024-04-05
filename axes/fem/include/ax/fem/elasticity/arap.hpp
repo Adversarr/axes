@@ -1,6 +1,6 @@
 #pragma once
 #include "base.hpp"
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 
 
 

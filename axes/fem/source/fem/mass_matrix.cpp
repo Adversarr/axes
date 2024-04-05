@@ -1,7 +1,7 @@
 #include "ax/fem/mass_matrix.hpp"
 #include "ax/fem/elements/p1.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 // computes Integrate[u_i, u_j] for i, j = 0,...,dim
 // Take the result from the p12_element_f_f array
@@ -93,4 +93,4 @@ math::sp_coeff_list MassMatrixCompute<dim>::operator()(math::field1r const& dens
 template class MassMatrixCompute<2>;
 template class MassMatrixCompute<3>;
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

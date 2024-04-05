@@ -27,6 +27,18 @@ StatusOr<math::matxxr> EigenvalueModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
+StatusOr<math::sp_matxxr> EigenvalueModification::Modify(math::sp_matxxr const& A) {
+  AX_LOG_FIRST_N(WARNING, 1) << "EigenvalueModification::Modify: "
+                             << "This method will convert sparse matrix to a dense matrix, and leading to a large memory usage.";
+  math::matxxr A_dense = A;
+  auto A_mod = Modify(A_dense);
+  if (!A_mod.ok()) {
+    return A_mod.status();
+  }
+  return A_mod->sparseView();
+}
+
+
 Status EigenvalueModification::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT(options, real, min_eigval);
   AX_RETURN_OK();

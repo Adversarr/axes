@@ -15,7 +15,7 @@
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/utils/asset.hpp"
 
 ABSL_FLAG(std::string, input, "square_naive.obj", "Input 2D Mesh.");
@@ -39,10 +39,10 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  pde::fem::P1Mesh<2> mesh;
+  fem::P1Mesh<2> mesh;
   AX_CHECK_OK(mesh.SetMesh(F, V.topRows<2>()));
-  pde::fem::Deformation<2> deform(mesh, input_mesh.vertices_.topRows<2>());
-  pde::fem::ElasticityCompute<2, pde::elasticity::NeoHookeanBW> elast(deform);
+  fem::Deformation<2> deform(mesh, input_mesh.vertices_.topRows<2>());
+  fem::ElasticityCompute<2, fem::elasticity::NeoHookeanBW> elast(deform);
   add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.UpdateDeformationGradient();
   auto stress = elast.Stress(lame);
@@ -79,7 +79,7 @@ static void ui_callback(gl::UiRenderEvent const&) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  lame = pde::elasticity::compute_lame(1e4, 0.45);
+  lame = fem::elasticity::compute_lame(1e4, 0.45);
   input_mesh
       = ax::geo::read_obj(ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_input))).value();
   if (absl::GetFlag(FLAGS_flip_yz)) {

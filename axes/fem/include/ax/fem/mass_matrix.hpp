@@ -1,8 +1,8 @@
 #pragma once
-#include "mesh.hpp"
+#include "mesh_base.hpp"
 #include "ax/math/sparse.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 /**
  * @brief Compute the mass matrix for the given mesh.
@@ -34,4 +34,4 @@ private:
   bool compute_lamped_;
 };
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

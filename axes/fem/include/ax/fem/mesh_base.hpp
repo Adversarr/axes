@@ -4,7 +4,7 @@
 #include "ax/core/echo.hpp"
 #include "ax/math/sparse.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 AX_DECLARE_ENUM(MeshType){
     kP1,  // P1 Element, e.g. Trig in 2D, and Tet in 3D.
@@ -226,6 +226,8 @@ public:
 
   std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept { return v_e_map_; }
 
+  math::fieldr<dim> const& GetDirichletBoundaryMask() const noexcept { return dirichlet_boundary_mask_; }
+
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
   vertex_list_t vertices_; /**< The list of mesh vertices. */
@@ -284,4 +286,4 @@ template <idx dim> AX_FORCE_INLINE idx MeshBase<dim>::GetNumElements() const noe
   return elements_.cols();
 }
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

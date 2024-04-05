@@ -1,6 +1,6 @@
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 
-namespace ax::pde::fem {
+namespace ax::fem {
 
 template<idx dim>
 geo::SurfaceMesh P1Mesh<dim>:: ExtractSurface() const {

@@ -3,7 +3,7 @@
 #include "base.hpp"
 #include "extra_symbols.hpp"
 
-namespace ax::pde::elasticity {
+namespace ax::fem::elasticity {
 
 /**
  * @brief St. Venant-Kirchhoff model
@@ -71,4 +71,4 @@ public:
   }
 };
 
-}  // namespace ax::pde::elasticity
+}  // namespace ax::fem::elasticity

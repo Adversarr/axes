@@ -14,7 +14,7 @@
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/utils/asset.hpp"
 
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
@@ -43,12 +43,12 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  pde::fem::P1Mesh<3> mesh;
+  fem::P1Mesh<3> mesh;
   AX_CHECK_OK(mesh.SetMesh(F, V));
-  pde::fem::Deformation<3> deform(mesh, input_mesh.vertices_);
-  pde::fem::ElasticityCompute<3, pde::elasticity::NeoHookeanBW> elast(deform);
+  fem::Deformation<3> deform(mesh, input_mesh.vertices_);
+  fem::ElasticityCompute<3, fem::elasticity::NeoHookeanBW> elast(deform);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
-  elast.UpdateDeformationGradient();
+  elast.UpdateDeformationGradient(mesh.GetVertices());
   auto stress = elast.Stress(lame);
   auto force = deform.StressToVertices(stress);
   auto& q = add_or_replace_component<gl::Quiver>(out);
@@ -80,8 +80,8 @@ static void ui_callback(gl::UiRenderEvent const&) {
 
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
-  lame = pde::elasticity::compute_lame(1e4, 0.45);
-  input_mesh = geo::tet_cube(0.5, 100, 100, 100);
+  lame = fem::elasticity::compute_lame(1e4, 0.45);
+  input_mesh = geo::tet_cube(0.5, 10, 10, 10);
 
   // auto ele = geo::read_ele(utils::get_asset("/mesh/tet/house-ele-node/house.ele"));
   // auto node = geo::read_node(utils::get_asset("/mesh/tet/house-ele-node/house.node"));

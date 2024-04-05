@@ -1,10 +1,10 @@
-#include "ax/fem/p1mesh.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/utils/status.hpp"
 
 #ifdef AX_PLATFORM_WINDOWS
 #undef ERROR
 #endif
-namespace ax::pde::fem {
+namespace ax::fem {
 
 template <idx dim> MeshBase<dim>::MeshBase(MeshType type) : type_(type) {}
 
@@ -95,6 +95,7 @@ template <idx dim> void MeshBase<dim>::MarkDirichletBoundary(idx i, idx dof, con
 
 template <idx dim> void MeshBase<dim>::ResetAllBoundaries() {
   boundary_values_.resize(dim, vertices_.cols());
+  boundary_values_.setZero();
   dirichlet_boundary_mask_.setOnes(dim, vertices_.cols());
 }
 
@@ -137,9 +138,12 @@ template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_coeff_list const& i
 
 template <idx dim> void MeshBase<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
   AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
-  inout.array() *= dirichlet_boundary_mask_.reshaped().array();
-  if (!set_zero) {
-    inout += boundary_values_.reshaped();
+  for (idx i = 0; i < vertices_.cols(); ++i) {
+    for (idx j = 0; j < dim; ++j) {
+      real v = inout[i * dim + j];
+      v = v * dirichlet_boundary_mask_(j, i) + (set_zero ? 0 : boundary_values_(j, i));
+      inout[i * dim + j] = v;
+    }
   }
 }
 
@@ -158,4 +162,4 @@ template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_matxxr& mat) const 
 template class MeshBase<2>;
 template class MeshBase<3>;
 
-}  // namespace ax::pde::fem
+}  // namespace ax::fem

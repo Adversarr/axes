@@ -21,7 +21,7 @@
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 5, "Num of division.");
+ABSL_FLAG(int, N, 20, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 
 using namespace ax;
@@ -67,7 +67,10 @@ void ui_callback(gl::UiRenderEvent ) {
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
   ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
-
+ static int64_t last_time;
+  std::cout << "Outer Loop Time Elapsed: " << (ax::utils::GetCurrentTimeNanos() - last_time) * 1e-6
+            << "ms" << std::endl;
+  last_time = ax::utils::GetCurrentTimeNanos();
   if (ImGui::Button("Step") || running) {
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;

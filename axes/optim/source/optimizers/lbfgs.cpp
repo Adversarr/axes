@@ -8,10 +8,6 @@
 namespace ax::optim {
 
 OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
-  List<math::vecxr> s;
-  List<math::vecxr> y;
-  s.reserve(history_size_);
-  y.reserve(history_size_);
   if (!problem_.HasGrad()) {
     return utils::FailedPreconditionError("Gradient function not set");
   }
@@ -24,6 +20,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   }
 
   // SECT: Initialize
+  idx n_dof = x0.size();
   math::vecxr x = x0;
   math::vecxr grad = problem_.EvalGrad(x);
   real f_iter = problem_.EvalEnergy(x);
@@ -33,6 +30,11 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   bool converge_grad = false;
   bool converge_var = false;
   bool verbose = verbose_;
+  math::vecxr alpha(history_size_);
+  math::vecxr rho(history_size_);
+  math::matxxr S(n_dof, history_size_);
+  math::matxxr Y(n_dof, history_size_);
+
   while (iter < max_iter_) {
     // SECT: Verbose
     problem_.EvalVerbose(iter, x, f_iter);
@@ -57,25 +59,34 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     }
 
     // SECT: LBFGS Two Loop
-    math::vecxr alpha(history_size_);
-    math::vecxr rho(history_size_);
     math::vecxr q = grad;
     math::vecxr r = q;
-    if (!s.empty()) {
-      for (idx i = s.size() - 1; i >= 0; i--) {
-        real rho_i = (rho[i] = 1.0 / (s[i].dot(y[i]) + math::epsilon<real>));
-        real alpha_i = (alpha[i] = rho_i * s[i].dot(q));
-        q = q - alpha_i * y[i];
+    idx const available_history = std::min(iter, history_size_);
+
+    if (available_history > 0) {
+      for (idx i = available_history - 1; i >= 0; i--) {
+        idx rotate_id = (iter + i) % available_history;
+        auto const& si = S.col(rotate_id);
+        auto const& yi = Y.col(rotate_id);
+        real rho_i = (rho[i] = 1.0 / (math::dot(si, yi) + math::epsilon<real>));
+        real alpha_i = (alpha[i] = rho_i * si.dot(q));
+        q = q - alpha_i * yi;
       }
-      real H0 = s.back().dot(y.back()) / (y.back().dot(y.back()) + math::epsilon<real>);
+      idx rotate_id = iter % available_history;
+      auto const& sback = S.col(rotate_id);
+      auto const& yback = Y.col(rotate_id);
+      real H0 = sback.dot(yback) / (yback.dot(yback) + math::epsilon<real>);
       r = H0 * q;
-      for (size_t i = 0; i < s.size(); i++) {
-        real beta = rho[i] * y[i].dot(r);
-        r = r + s[i] * (alpha[i] - beta);
+      for (size_t i = 0; i < available_history; i++) {
+        idx rotate_id = (iter + i) % available_history;
+        auto const& si = S.col(rotate_id);
+        auto const& yi = Y.col(rotate_id);
+        real beta = rho[i] * yi.dot(r);
+        r = r + si * (alpha[i] - beta);
       }
     }
     math::vecxr dir = -r;
-    if (math::norm(dir) < math::epsilon<>) {
+    if (math::norm(dir) < math::epsilon<real>) {
       AX_LOG(INFO) << "L-BFGS: dir is too small: " << math::norm(dir);
       break;
     }
@@ -91,13 +102,9 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
     math::vecxr y_new = g_new - grad;
     f_iter = ls_result->f_opt_;
+    S.col(iter % history_size_) = s_new;
+    Y.col(iter % history_size_) = y_new;
 
-    if (s.size() == (size_t)history_size_) {
-      s.erase(s.begin());
-      y.erase(y.begin());
-    }
-    s.push_back(s_new);
-    y.push_back(y_new);
     grad = g_new;
     x = ls_result->x_opt_;
     iter++;

@@ -2,7 +2,8 @@
 #include "ax/math/decomp/svd/fwd.hpp"
 #include "elasticity/common.hpp"
 #include "deform.hpp"
-#include "ax/core/omp.hpp"
+#include <tbb/partitioner.h>
+
 namespace ax::fem {
 
 AX_DECLARE_ENUM(DeformationGradientUpdate){kEnergy, kStress, kHessian};
@@ -33,7 +34,7 @@ public:
    * @param u_lame
    * @return real
    */
-  virtual math::field1r Energy(math::vec2r const& u_lame) const = 0;
+  virtual math::field1r Energy(math::vec2r const& u_lame) = 0;
 
   /**
    * @brief Compute the energy of all elements.
@@ -41,7 +42,7 @@ public:
    * @param lame
    * @return real
    */
-  virtual math::field1r Energy(math::field2r const& lame) const = 0;
+  virtual math::field1r Energy(math::field2r const& lame) = 0;
 
   /**
    * @brief Compute the stress tensor of each element.
@@ -49,7 +50,7 @@ public:
    * @param u_lame
    * @return List<elasticity::StressTensor<dim>>
    */
-  virtual List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) const = 0;
+  virtual List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) = 0;
 
   /**
    * @brief Compute the stress tensor of each element.
@@ -57,7 +58,7 @@ public:
    * @param lame
    * @return List<elasticity::StressTensor<dim>>
    */
-  virtual List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) const = 0;
+  virtual List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) = 0;
 
   /**
    * @brief Compute the Hessian tensor of each element.
@@ -65,8 +66,8 @@ public:
    * @param u_lame
    * @return List<elasticity::HessianTensor<dim>>
    */
-  virtual List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) const = 0;
-  virtual List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) const = 0;
+  virtual List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) = 0;
+  virtual List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) = 0;
 
   elasticity::DeformationGradientList<dim> const& GetDeformationGradient() const {
     return deformation_gradient_;
@@ -105,27 +106,28 @@ public:
     }
   }
 
-  math::field1r Energy(math::field2r const& lame) const;
-  math::field1r Energy(math::vec2r const& lame) const;
-  List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) const;
-  List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) const;
-  List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) const;
-  List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) const;
+  math::field1r Energy(math::field2r const& lame);
+  math::field1r Energy(math::vec2r const& lame);
+  List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame);
+  List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame);
+  List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame);
+  List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame);
 
 private:
+  tbb::affinity_partitioner e_ap, s_ap, h_ap;
 };
 
 }  // namespace ax::fem
 
 #define AX_ELASTICITY_IMPL  // TODO: Remove this line after the test.
 #ifdef AX_ELASTICITY_IMPL
-#  include <tbb/tbb.h>
 
-#  include <Eigen/SVD>
+#include <Eigen/SVD>
+#include <tbb/parallel_for.h>
 
 #define AX_FEM_COMPUTE_ENERGY_GRAIN 30000
-#define AX_FEM_COMPUTE_STRESS_GRAIN 2000
-#define AX_FEM_COMPUTE_HESSIAN_GRAIN 1000
+#define AX_FEM_COMPUTE_STRESS_GRAIN 10000
+#define AX_FEM_COMPUTE_HESSIAN_GRAIN 3000
 
 namespace ax::fem {
 
@@ -147,7 +149,7 @@ template <idx dim> void ElasticityComputeBase<dim>::UpdateSvd() {
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(
-    math::field2r const& lame) const {
+    math::field2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
   const bool energy_requires_svd = ElasticModel().EnergyRequiresSvd();
@@ -161,70 +163,72 @@ math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(
       element_energy[i] = model.Energy(F, energy_requires_svd ? &(this->svd_results_[i]) : nullptr)
                           * this->deformation_.GetElementVolume(i);
     }
-  });
+  }, e_ap);
   return element_energy;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) const {
+math::field1r ElasticityCompute<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
-  math::field1r element_energy;
-  element_energy.setZero(1, n_elem);
+  math::field1r element_energy(1, n_elem);
   const bool energy_requires_svd = ElasticModel().EnergyRequiresSvd();
-  AX_OMP_PARALLEL_FOR_SCHEDULE_STATIC(AX_FEM_COMPUTE_ENERGY_GRAIN)
-  for (idx i = 0; i < n_elem; ++i) {
-    elasticity::DeformationGradient<dim> const& F = dg_l[i];
-    ElasticModel model;
-    model.SetLame(lame);
-    element_energy[i] = model.Energy(F, energy_requires_svd ? &(this->svd_results_[i]) : nullptr)
-                        * this->deformation_.GetElementVolume(i);
-  }
+  tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN), 
+    [&](const tbb::blocked_range<idx>& r) {
+    for (idx i = r.begin(); i < r.end(); ++i) {
+      elasticity::DeformationGradient<dim> const& F = dg_l[i];
+      ElasticModel model;
+      model.SetLame(lame);
+      element_energy[i] = model.Energy(F, energy_requires_svd ? &(this->svd_results_[i]) : nullptr)
+                          * this->deformation_.GetElementVolume(i);
+    }
+  }, e_ap);
   return element_energy;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::StressTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Stress(
-    math::vec2r const& lame) const {
+    math::vec2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
   List<elasticity::StressTensor<dim>> stress(n_elem);
   const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
-  AX_OMP_PARALLEL_FOR_SCHEDULE_STATIC(AX_FEM_COMPUTE_STRESS_GRAIN)
-  for (idx i = 0; i < n_elem; ++i) {
-    elasticity::DeformationGradient<dim> const& F = dg_l[i];
-    ElasticModel model;
-    model.SetLame(lame);
-    stress[i] = model.Stress(F, stress_requires_svd ? &(this->svd_results_[i]) : nullptr)
-                * this->deformation_.GetElementVolume(i);
-  }
+  tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN), 
+    [&](const tbb::blocked_range<idx>& r) {
+    for (idx i = r.begin(); i < r.end(); ++i) {
+      elasticity::DeformationGradient<dim> const& F = dg_l[i];
+      ElasticModel model;
+      model.SetLame(lame);
+      stress[i] = model.Stress(F, stress_requires_svd ? &(this->svd_results_[i]) : nullptr)
+                  * this->deformation_.GetElementVolume(i);
+    }
+  }, s_ap);
   return stress;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::StressTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Stress(
-    math::field2r const& lame) const {
+    math::field2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
   const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
   List<elasticity::StressTensor<dim>> stress(n_elem);
   tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN), 
     [&](const tbb::blocked_range<idx>& r) {
-  for (idx i = r.begin(); i < r.end(); ++i) {
-    // for (idx i = 0; i < n_elem; ++i) {
+    for (idx i = r.begin(); i < r.end(); ++i) {
       elasticity::DeformationGradient<dim> const& F = dg_l[i];
       ElasticModel model;
       model.SetLame(lame.col(i));
       stress[i] = model.Stress(F, stress_requires_svd ? &(this->svd_results_[i]) : nullptr)
                   * this->deformation_.GetElementVolume(i);
     }
-  });
+  }, s_ap);
   return stress;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Hessian(
-    math::vec2r const& lame) const {
+    math::vec2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
   const bool hessian_requires_svd = ElasticModel().HessianRequiresSvd();
@@ -238,13 +242,13 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate
         hessian[i] = model.Hessian(F, hessian_requires_svd ? &(this->svd_results_[i]) : nullptr)
                      * this->deformation_.GetElementVolume(i);
       }
-  });
+  }, h_ap);
   return hessian;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate>::Hessian(
-    math::field2r const& lame) const {
+    math::field2r const& lame) {
   idx const n_elem = this->deformation_.GetMesh().GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
   const bool hessian_requires_svd = ElasticModel().HessianRequiresSvd();
@@ -258,7 +262,7 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute<dim, ElasticModelTemplate
         hessian[i] = model.Hessian(F, hessian_requires_svd ? &(this->svd_results_[i]) : nullptr)
                      * this->deformation_.GetElementVolume(i);
       }
-  });
+  }, h_ap);
   return hessian;
 }
 

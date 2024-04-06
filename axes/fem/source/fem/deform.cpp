@@ -2,7 +2,6 @@
 // Created by JerryYang on 2024/3/24.
 //
 #include "ax/fem/deform.hpp"
-#include "ax/core/omp.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
 
@@ -136,20 +135,19 @@ static DeformationGradientList<dim> dg_p1(MeshBase<dim> const& mesh,
                                           DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
   DeformationGradientList<dim> dg(n_elem);
-  // tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, 100000),
-  //   [&](tbb::blocked_range<idx> const& r) {
-  //     for (idx i = r.begin(); i < r.end(); ++i) {
-      AX_OMP_PARALLEL_FOR_SCHEDULE_STATIC(100000)
-      for (idx i = 0; i < n_elem; ++i) {
-        math::matr<dim, dim> Ds;
-        auto const &element = mesh.GetElement(i);
-        auto const &local_zero = pose.col(element.x());
-        for (idx I = 1; I <= dim; ++I) {
-          Ds.col(I - 1) = pose.col(element[I]) - local_zero;
-        }
-        dg[i] = Ds * Dm_inv[i];
-      }
-  // }, tbb::static_partitioner());
+  static tbb::affinity_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<idx>(0, n_elem, 50000 / (dim * dim)),
+    [&](tbb::blocked_range<idx> const& r) {
+      for (idx i = r.begin(); i < r.end(); ++i) {
+       math::matr<dim, dim> Ds;
+       math::veci<dim + 1> element = mesh.GetElement(i);
+       math::vecr<dim> local_zero = pose.col(element.x());
+       for (idx I = 1; I <= dim; ++I) {
+         Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+       }
+       dg[i] = Ds * Dm_inv[i];
+    }
+  }, ap);
 
   return dg;
 }
@@ -182,7 +180,7 @@ math::sp_coeff_list dg_thv_p1(MeshBase<dim> const& mesh,
   math::sp_coeff_list coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   std::vector<math::matr<dim * (dim + 1), dim * (dim + 1)>> per_element_hessian(mesh.GetNumElements());
-  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), dim * dim * dim * 5),
+  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), 500000/ dim * dim * dim),
     [&](tbb::blocked_range<idx> const& r) {
       for (idx i = r.begin(); i < r.end(); ++i) {
         const auto& H_i = hessian[i];

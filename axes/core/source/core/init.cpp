@@ -9,6 +9,7 @@
 
 #include "ax/core/echo.hpp"
 #include "ax/core/entt.hpp"
+#include "ax/math/init.hpp"
 #include "ax/utils/common.hpp"
 #include <openvdb/openvdb.h>
 
@@ -49,6 +50,7 @@ void init(int argc, char** argv) {
 
   /****************************** Vdb ******************************/
   openvdb::initialize();
+  math::init_parallel();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {

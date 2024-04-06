@@ -2,7 +2,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/fem/timestepper/newton.hpp"
+#include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -21,9 +21,9 @@
 #include "ax/utils/iota.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 20, "Num of division.");
+ABSL_FLAG(int, N, 10, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
-
+int nx;
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
@@ -67,11 +67,21 @@ void ui_callback(gl::UiRenderEvent ) {
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
   ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
- static int64_t last_time;
-  std::cout << "Outer Loop Time Elapsed: " << (ax::utils::GetCurrentTimeNanos() - last_time) * 1e-6
-            << "ms" << std::endl;
-  last_time = ax::utils::GetCurrentTimeNanos();
   if (ImGui::Button("Step") || running) {
+    const auto& vert = ts->GetMesh().GetVertices();
+    // Apply some Dirichlet BC
+    math::mat3r rotate = Eigen::AngleAxis<real>(3 * dt, math::vec3r::UnitX()).matrix();
+    for (auto i: utils::iota(vert.cols())) {
+      const auto& position = vert.col(i);
+      if (-position.x() > 2.0 - 1.0 / nx) {
+        // Mark as dirichlet bc.
+        math::vec3r p = rotate * position;
+        ts->GetMesh().MarkDirichletBoundary(i, 0, p.x());
+        ts->GetMesh().MarkDirichletBoundary(i, 1, p.y());
+        ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
+      }
+    }
+
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;
     AX_CHECK_OK(ts->Step(dt));
@@ -87,26 +97,25 @@ void ui_callback(gl::UiRenderEvent ) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  lame = fem::elasticity::compute_lame(3e6, 0.43);
-  int nx = absl::GetFlag(FLAGS_N);
+  lame = fem::elasticity::compute_lame(1e7, 0.33);
+  nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;
-  ts = std::make_unique<fem::TimeStepperNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
+  ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::P1Mesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
-    if ((position.x()) > 2.0 - 1.0 / nx) {
+    if (math::abs(position.x()) > 2.0 - 1.0 / nx) {
       // Mark as dirichlet bc.
       ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
       ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
       ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
-      // break;
     }
   }
   AX_CHECK_OK(ts->Init());
   ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
-  ts->SetDensity(3e1);
+  ts->SetDensity(1e1);
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

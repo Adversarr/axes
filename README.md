@@ -39,3 +39,8 @@ yay -S xz dbus
 yay -S boost blosc tbb
 ```
 
+# Performance Illustration
+
+![fem3LBFGS](asset/gh-images/image.png)
+
+FEM-3D, with NeoHookean energy, naive L-BFGS optimizer. (Youngs=1e7, density=1e1, poisson ratio=0.3) solves 32000 vertices @24 steps per second.

@@ -1,2 +1,2 @@
 ./configure.sh
-cmake --build build -j $(nproc)
+cmake --build build -j12

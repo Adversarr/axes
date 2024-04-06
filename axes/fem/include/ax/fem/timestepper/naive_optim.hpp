@@ -4,10 +4,10 @@
 namespace ax::fem {
 
 template<idx dim>
-class TimeStepperNewton : public TimeStepperBase<dim> {
+class Timestepper_NaiveOptim : public TimeStepperBase<dim> {
 public:
   using TimeStepperBase<dim>::TimeStepperBase;
-  virtual ~TimeStepperNewton() = default;
+  virtual ~Timestepper_NaiveOptim() = default;
   virtual Status Step(real dt = 0.01);
 };
 

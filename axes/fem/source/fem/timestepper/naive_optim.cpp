@@ -1,4 +1,4 @@
-#include "ax/fem/timestepper/newton.hpp"
+#include "ax/fem/timestepper/naive_optim.hpp"
 
 #include "ax/math/approx.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
@@ -9,25 +9,32 @@
 
 namespace ax::fem {
 
-template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {
+template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
   auto &deform = this->GetDeformation();
   auto &elasticity = this->GetElasticity();
   auto &velocity = this->velocity_;
-
-  // Get the mass matrix
   auto &mass_matrix = this->mass_matrix_;
   math::vec2r lame = this->lame_;
+
+  idx n_vert = mesh.GetNumVertices();
 
   // Setup the NonLinear Problem.
   optim::OptProblem problem;
   math::fieldr<dim> const x_cur = mesh.GetVertices();
   math::vecxr const v_flat = velocity.reshaped();
   math::vecxr const a_flat = this->ext_accel_.reshaped();
-  math::vecxr y = dt * v_flat + dt * dt * a_flat.reshaped();
+  math::vecxr y = dt * v_flat + dt * dt * a_flat;
   mesh.FilterVector(y, true);
-  idx n_vert = mesh.GetNumVertices();
+  for (idx i = 0; i < n_vert; ++i) {
+    for (idx d = 0; d < dim; ++d) {
+      if (mesh.IsDirichletBoundary(i, d)) {
+        y(i * dim + d) = mesh.GetBoundaryValue(i, d) - x_cur(d, i);
+      }
+    }
+  }
+
   math::vecxr eacc = this->ext_accel_.reshaped();
   mesh.FilterVector(eacc, true);
   problem
@@ -68,7 +75,7 @@ template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {
       }).SetConvergeVar(nullptr);
 
   optim::Lbfgs newton;
-  newton.SetTolGrad(0.002);
+  newton.SetTolGrad(0.02);
   auto result = newton.Optimize(problem, y);
   if (!result.ok()) {
     AX_LOG(WARNING) << "Newton iteration failed to compute! (not a convergency problem.)";
@@ -86,7 +93,7 @@ template <idx dim> Status TimeStepperNewton<dim>::Step(real dt) {
   AX_RETURN_OK();
 }
 
-template class TimeStepperNewton<2>;
-template class TimeStepperNewton<3>;
+template class Timestepper_NaiveOptim<2>;
+template class Timestepper_NaiveOptim<3>;
 
 }  // namespace ax::fem

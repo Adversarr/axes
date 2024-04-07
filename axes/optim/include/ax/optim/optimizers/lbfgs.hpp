@@ -18,7 +18,7 @@ public:
 
   std::function<math::vecxr(math::vecxr const&, math::vecxr const&)> central_hessian_;
 
-  idx history_size_{10};
+  idx history_size_{3};
 
   void SetApproxSolve(std::function<math::vecxr(math::vecxr const&)> hessian_approximation);
 

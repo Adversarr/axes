@@ -1,6 +1,6 @@
 #pragma once
 #include "ax/utils/status.hpp"
-#include "fwd.hpp"
+#include "common.hpp"
 
 namespace ax::math {
 

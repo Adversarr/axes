@@ -68,56 +68,59 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
         idx rotate_id = (iter + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
-        real rho_i = (rho[i] = 1.0 / (math::dot(si, yi) + math::epsilon<real>));
+        real rho_i = rho[rotate_id];
         real alpha_i = (alpha[i] = rho_i * si.dot(q));
         q = q - alpha_i * yi;
       }
-      idx rotate_id = iter % available_history;
+      idx rotate_id = (iter + available_history - 1) % available_history;
       auto const& sback = S.col(rotate_id);
       auto const& yback = Y.col(rotate_id);
       if (approx_solve_) {
         r = approx_solve_(r);
       } else {
-        real H0 = sback.dot(yback) / (yback.dot(yback) + math::epsilon<real>);
+        real H0 = sback.dot(yback) / (yback.dot(yback) + 1e-19);
         r = H0 * q;
       }
       for (idx i = 0; i < available_history; i++) {
         idx rotate_id = (iter + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
-        real beta = rho[i] * yi.dot(r);
+        real beta = rho[rotate_id] * yi.dot(r);
         r = r + si * (alpha[i] - beta);
       }
     } else if (approx_solve_) {
       r = approx_solve_(r);
     }
     math::vecxr dir = -r;
-    if (math::norm(dir) < math::epsilon<real>) {
-      AX_LOG(INFO) << "L-BFGS: dir is too small: " << math::norm(dir);
-      break;
+
+    if (math::dot(dir, grad) >= real(0)) {
+      AX_LOG(ERROR) << "Direction is not descent: " << math::dot(dir, grad);
+      return utils::FailedPreconditionError("Direction is not descent: Your Approx Hessian is not valid.");
     }
 
     // SECT: Line search
     auto ls_result = linesearch_->Optimize(problem_, x, dir);
     if (!ls_result.ok()) {
       AX_LOG(ERROR) << "Line search failed: " << ls_result.status();
+      AX_LOG(ERROR) << "at Iteration" << iter;
       return ls_result.status();
     }
 
     math::vecxr s_new = ls_result->x_opt_ - x;
     math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
     math::vecxr y_new = g_new - grad;
+
     f_iter = ls_result->f_opt_;
+    x = ls_result->x_opt_;
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
-
+    rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new));
     grad = g_new;
-    x = ls_result->x_opt_;
     iter++;
   }
   OptResultImpl result;
   result.x_opt_ = x;
-  result.f_opt_ = problem_.EvalEnergy(x);
+  result.f_opt_ = f_iter;
   result.converged_ = converged;
   result.converged_grad_ = converge_grad;
   result.converged_var_ = converge_var;
@@ -133,7 +136,7 @@ Lbfgs::Lbfgs() {
   auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
   ls->c_ = 1e-4;
   ls->alpha_ = 1.0;
-  ls->rho_ = 0.3;
+  ls->rho_ = 0.7;
 }
 
 Status Lbfgs::SetOptions(utils::Opt const& options) {

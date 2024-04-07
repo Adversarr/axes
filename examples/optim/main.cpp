@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
   if (absl::GetFlag(FLAGS_problem) == "rosenbrock") {
     prob = new optim::test::RosenbrockProblem();
     x0 = math::vecxr::Constant(n, 1.2);
-    x0[0] = -1.2;
     optimal = optim::test::RosenbrockProblem{}.Optimal(x0);
   } else if (absl::GetFlag(FLAGS_problem) == "lstsq") {
     A = math::matxxr::Random(n, n);

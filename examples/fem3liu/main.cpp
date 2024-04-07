@@ -60,7 +60,7 @@ void update_rendering() {
 }
 
 static bool running = false;
-float dt = 1e-3;
+float dt = 1e-2;
 math::vecxr fps;
 void ui_callback(gl::UiRenderEvent ) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
@@ -97,7 +97,7 @@ void ui_callback(gl::UiRenderEvent ) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  lame = fem::elasticity::compute_lame(1e7, 0.33);
+  lame = fem::elasticity::compute_lame(1e6, 0.33);
   nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;

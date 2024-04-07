@@ -125,10 +125,10 @@ TetraMesh tet_cube(real half_size, idx nx, idx ny, idx nz) {
         idx idx011 = i * ny * nz + (j + 1) * nz + k + 1;
         idx idx111 = (i + 1) * ny * nz + (j + 1) * nz + k + 1;
         elements.col(id++) = vec4i{idx000, idx100, idx010, idx001};
-        elements.col(id++) = vec4i{idx100, idx010, idx110, idx111};
+        elements.col(id++) = vec4i{idx010, idx100, idx110, idx111};
         elements.col(id++) = vec4i{idx100, idx010, idx001, idx111};
         elements.col(id++) = vec4i{idx100, idx001, idx101, idx111};
-        elements.col(id++) = vec4i{idx011, idx010, idx001, idx111};
+        elements.col(id++) = vec4i{idx011, idx001, idx010, idx111};
       }
     }
   }

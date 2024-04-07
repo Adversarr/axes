@@ -230,6 +230,9 @@ void Deformation<dim>::UpdateRestPose(typename MeshBase<dim>::vertex_list_t cons
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
   for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
     real v = coef / math::det(deformation_gradient_cache_[i]);
+    if (v < 0) {
+      AX_LOG(WARNING) << "Negative Volume detected!" << i << ": " << mesh_.GetElement(i).transpose();
+    }
     rest_pose_volume_(0, i) = abs(v);
   }
 }

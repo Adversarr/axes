@@ -12,13 +12,18 @@ template<idx dim>
 Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt){
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Init(opt));
   solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kLDLT);
-
   math::LinsysProblem_Sparse problem_sparse;
-  problem_sparse.A_.resize(this->mesh_->GetNumVertices() * dim, this->mesh_->GetNumVertices() * dim);
-  problem_sparse.A_.setIdentity();
-  problem_sparse.A_ += this->mass_matrix_;
+  problem_sparse.A_ = this->mass_matrix_;
+
+  // Second part: K * dt * dt
+  ElasticityCompute<dim, elasticity::Linear> elast(this->GetDeformation());
+  elast.UpdateDeformationGradient(this->GetMesh().GetVertices(), DeformationGradientUpdate::kHessian);
+  math::vec2r fake_lame = {this->lame_[0], this->lame_[1] * 2};
+  idx n_dof = dim * this->GetMesh().GetNumVertices();
+  problem_sparse.A_ += 1e-4 * math::make_sparse_matrix(n_dof, n_dof, 
+                                            this->deform_->HessianToVertices(elast.Hessian(fake_lame)));
+
   this->mesh_->FilterMatrix(problem_sparse.A_);
-  // std::cout << problem_sparse.A_ << std::endl;
   AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
   AX_RETURN_OK();
 }
@@ -56,7 +61,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kEnergy);
         auto energy_on_element = elasticity.Energy(lame);
-        real elasticity_energy = energy_on_element.sum() * dt * dt;
+        real elasticity_energy = energy_on_element.sum() * (dt * dt);
         math::vecxr x_y = dx - y;
         real kinematic_energy = x_y.dot(mass_matrix * x_y) * 0.5;
         return elasticity_energy + kinematic_energy;
@@ -67,52 +72,30 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         auto stress_on_element = elasticity.Stress(lame);
         math::fieldr<dim> neg_force = deform.StressToVertices(stress_on_element);
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
-        math::vecxr grad_elasticity = dt * dt * neg_force.reshaped();
+        math::vecxr grad_elasticity = neg_force.reshaped() * (dt * dt);
         math::vecxr grad = grad_elasticity + grad_kinematic;
         mesh.FilterVector(grad, true);
         return grad;
-      })
-      .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
-        math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kHessian);
-        auto hessian_on_element = elasticity.Hessian(lame);
-        // Before move to vertex, make spsd.
-        tbb::parallel_for(tbb::blocked_range<idx>(0, hessian_on_element.size(), 1000),
-          [&](const tbb::blocked_range<idx> &r) {
-            for (idx i = r.begin(); i < r.end(); ++i) {
-              optim::EigenvalueModification em;
-              em.min_eigval_ = dt * dt;
-              auto result = em.Modify(hessian_on_element[i]);
-              if (!result.ok()) {
-                AX_LOG(WARNING) << "Eigenvalue modification failed: " << result.status();
-              } else {
-                hessian_on_element[i] = result.value();
-              }
-            }
-          });
-        auto hessian_on_vertice = deform.HessianToVertices(hessian_on_element);
-        math::sp_matxxr stiffness = math::make_sparse_matrix(dim * n_vert, dim * n_vert, 
-                                                             hessian_on_vertice);
-        math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
-        mesh.FilterMatrix(hessian);
-        return hessian;
       })
       .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
         real ext_force = eacc.dot(mass_matrix * eacc);
         real rel = grad.norm() / ext_force / (dt * dt);
         return rel;
-      })
-      .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-        AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
       });
+      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
+      // });
 
   optim::Lbfgs lbfgs;
   lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
 
-  lbfgs.SetApproxSolve([this](math::vecxr const & g) -> math::vecxr {
-    auto approx = solver_->Solve(g, {});
-    return approx->solution_;
+  lbfgs.SetApproxSolve([&](math::vecxr const & g) -> math::vecxr {
+    auto approx = solver_->Solve(g, g * dt * dt);
+    AX_CHECK_OK(approx);
+    math::vecxr result = approx->solution_;
+    mesh.FilterVector(result, true);
+    return result;
   });
 
   auto result = lbfgs.Optimize(problem, y);

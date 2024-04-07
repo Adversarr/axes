@@ -19,6 +19,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include <imnode/imgui_node_editor.h>
+
 #include "ax/core/echo.hpp"
 #include "ax/gl/config.hpp"
 #include "ax/gl/details/gl_call.hpp"

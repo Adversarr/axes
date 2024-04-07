@@ -75,15 +75,21 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
       idx rotate_id = iter % available_history;
       auto const& sback = S.col(rotate_id);
       auto const& yback = Y.col(rotate_id);
-      real H0 = sback.dot(yback) / (yback.dot(yback) + math::epsilon<real>);
-      r = H0 * q;
-      for (size_t i = 0; i < available_history; i++) {
+      if (approx_solve_) {
+        r = approx_solve_(r);
+      } else {
+        real H0 = sback.dot(yback) / (yback.dot(yback) + math::epsilon<real>);
+        r = H0 * q;
+      }
+      for (idx i = 0; i < available_history; i++) {
         idx rotate_id = (iter + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
         real beta = rho[i] * yi.dot(r);
         r = r + si * (alpha[i] - beta);
       }
+    } else if (approx_solve_) {
+      r = approx_solve_(r);
     }
     math::vecxr dir = -r;
     if (math::norm(dir) < math::epsilon<real>) {
@@ -127,7 +133,7 @@ Lbfgs::Lbfgs() {
   auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
   ls->c_ = 1e-4;
   ls->alpha_ = 1.0;
-  ls->rho_ = 0.7;
+  ls->rho_ = 0.3;
 }
 
 Status Lbfgs::SetOptions(utils::Opt const& options) {
@@ -147,6 +153,10 @@ utils::Opt Lbfgs::GetOptions() const {
   opt["linesearch_name"] = linesearch_name_;
   opt["linesearch_opt"] = linesearch_->GetOptions();
   return opt;
+}
+
+void Lbfgs::SetApproxSolve(std::function<math::vecxr(math::vecxr const&)> hessian_approximation) {
+  approx_solve_ = hessian_approximation;
 }
 
 }  // namespace ax::optim

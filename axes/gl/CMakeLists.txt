@@ -29,7 +29,7 @@ target_link_libraries(axes_gui
   PUBLIC axes axes_geometry
   PUBLIC 
     glfw glad::glad
-    imgui::imgui_core imgui::implot
+    imgui::imgui_core imgui::implot imgui::imnode
     OpenGL::GLU)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)

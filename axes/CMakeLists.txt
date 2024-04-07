@@ -1,6 +1,7 @@
 add_subdirectory(core)
 add_subdirectory(gl)
+add_subdirectory(graph)
 add_subdirectory(fem)
+add_subdirectory(fdfv)
 add_subdirectory(geometry)
 add_subdirectory(optim)
-add_subdirectory(fdfv)

@@ -89,7 +89,6 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       }
       dir = -solution.value().solution_;
     }
-    dir = -grad;
 
     real dir_dot_grad = dir.dot(grad);
     if (dir_dot_grad > 0) {

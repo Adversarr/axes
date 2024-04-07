@@ -2,7 +2,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/fem/timestepper/naive_optim.hpp"
+#include "ax/fem/timestepper/quasi_newton.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;
-  ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::P1Mesh<3>>());
+  ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
@@ -113,9 +113,9 @@ int main(int argc, char** argv) {
       ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
     }
   }
+  ts->SetDensity(1e1);
   AX_CHECK_OK(ts->Init());
   ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
-  ts->SetDensity(1e1);
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

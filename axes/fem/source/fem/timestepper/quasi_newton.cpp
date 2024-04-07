@@ -1,16 +1,29 @@
-#include "ax/fem/timestepper/naive_optim.hpp"
-#include "ax/optim/spsdm/eigenvalue.hpp"
+#include "ax/fem/timestepper/quasi_newton.hpp"
 
-#include "ax/math/approx.hpp"
+#include "ax/fem/elasticity/linear.hpp"
+#include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/optim/common.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
-#include "ax/optim/optimizers/newton.hpp"
-#include "ax/optim/spsdm.hpp"
-#include "ax/optim/spsdm/diagonal.hpp"
-#undef ERROR
+#include "ax/optim/spsdm/eigenvalue.hpp"
 
 namespace ax::fem {
 
-template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
+template<idx dim>
+Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt){
+  AX_RETURN_NOTOK(TimeStepperBase<dim>::Init(opt));
+  solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kLDLT);
+
+  math::LinsysProblem_Sparse problem_sparse;
+  problem_sparse.A_.resize(this->mesh_->GetNumVertices() * dim, this->mesh_->GetNumVertices() * dim);
+  problem_sparse.A_.setIdentity();
+  problem_sparse.A_ += this->mass_matrix_;
+  this->mesh_->FilterMatrix(problem_sparse.A_);
+  // std::cout << problem_sparse.A_ << std::endl;
+  AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
+  AX_RETURN_OK();
+}
+
+template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
   auto &deform = this->GetDeformation();
@@ -84,25 +97,30 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         mesh.FilterMatrix(hessian);
         return hessian;
       })
-      .SetConvergeGrad([&](const math::vecxr&, const math::vecxr& grad) -> real {
+      .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
         real ext_force = eacc.dot(mass_matrix * eacc);
         real rel = grad.norm() / ext_force / (dt * dt);
         return rel;
       })
-      .SetConvergeVar(nullptr);
-      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
-      // });
+      .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+        AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
+      });
 
-  optim::Lbfgs optimizer;
-  optimizer.SetTolGrad(0.02);
-  optimizer.SetMaxIter(1000);
-  auto result = optimizer.Optimize(problem, y);
+  optim::Lbfgs lbfgs;
+  lbfgs.SetTolGrad(0.02);
+  lbfgs.SetMaxIter(300);
+
+  lbfgs.SetApproxSolve([this](math::vecxr const & g) -> math::vecxr {
+    auto approx = solver_->Solve(g, {});
+    return approx->solution_;
+  });
+
+  auto result = lbfgs.Optimize(problem, y);
   if (!result.ok()) {
-    AX_LOG(WARNING) << "Optimizer: failed to compute! (not a convergency problem.)";
+    AX_LOG(WARNING) << "LBFGS iteration failed to compute! (not a convergency problem.)";
     return result.status();
   } else if (!(result->converged_grad_ || result->converged_var_)) {
-    AX_LOG(ERROR) << "Optimizer failed to converge!";
+    AX_LOG(ERROR) << "LBFGS iteration failed to converge!";
   }
   math::fieldr<dim> x_new = result->x_opt_.reshaped(dim, mesh.GetNumVertices()) + x_cur;
   velocity = (x_new - x_cur) / dt;
@@ -111,7 +129,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   AX_RETURN_OK();
 }
 
-template class Timestepper_NaiveOptim<2>;
-template class Timestepper_NaiveOptim<3>;
+template class Timestepper_QuasiNewton<2>;
+template class Timestepper_QuasiNewton<3>;
 
 }  // namespace ax::fem

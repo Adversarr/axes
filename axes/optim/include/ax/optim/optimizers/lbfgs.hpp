@@ -20,7 +20,11 @@ public:
 
   idx history_size_{10};
 
+  void SetApproxSolve(std::function<math::vecxr(math::vecxr const&)> hessian_approximation);
+
+protected:
   std::string linesearch_name_;
   UPtr<LinesearchBase> linesearch_;
+  std::function<math::vecxr(math::vecxr const& )> approx_solve_;
 };
 }  // namespace ax::optim

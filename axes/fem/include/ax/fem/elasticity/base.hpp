@@ -1,5 +1,5 @@
 #pragma once
-#include "ax/math/decomp/svd/fwd.hpp"
+#include "ax/math/decomp/svd/common.hpp"
 #include "ax/math/traits.hpp"
 #include "common.hpp"
 

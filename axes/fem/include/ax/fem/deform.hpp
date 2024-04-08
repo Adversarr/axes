@@ -30,8 +30,13 @@ public:
    */
   elasticity::DeformationGradientList<dim> Forward() const;
 
+  /**
+   * @brief Compute the deformation gradient for each element in the mesh.
+   *
+   * @param current current pose of vertices
+   * @return List of deformation gradients for each element in the mesh.
+   */
   elasticity::DeformationGradientList<dim> Forward(typename MeshBase<dim>::vertex_list_t const& current) const;
-
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.

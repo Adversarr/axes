@@ -33,20 +33,20 @@ public:
   ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
   ElasticityBase() = default;
 
-  real Energy(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
-    return static_cast<Derived const*>(this)->Energy(F, svdr);
+  AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
+              math::decomp::SvdResultImpl<dim, real> const* svdr = nullptr) const {
+    return static_cast<Derived const*>(this)->EnergyImpl(F, svdr);
   }
 
-  stress_t Stress(DeformationGradient<dim> const& F,
-                  math::SvdResultImpl<dim, real> const* svdr = nullptr) const {
-    return static_cast<Derived const*>(this)->Stress(F, svdr);
+  AX_FORCE_INLINE stress_t Stress(DeformationGradient<dim> const& F,
+                      const math::decomp::SvdResultImpl<dim, real>* svdr = nullptr) const {
+    return static_cast<Derived const*>(this)->StressImpl(F, svdr);
   }
 
-  math::mat<real, dof_cnt, dof_cnt> Hessian(DeformationGradient<dim> const& F,
-                                            math::SvdResultImpl<dim, real> const* svdr
+  AX_FORCE_INLINE math::mat<real, dof_cnt, dof_cnt> Hessian(DeformationGradient<dim> const& F,
+                                            math::decomp::SvdResultImpl<dim, real> const* svdr
                                             = nullptr) const {
-    return static_cast<Derived const*>(this)->Hessian(F, svdr);
+    return static_cast<Derived const*>(this)->HessianImpl(F, svdr);
   }
 
   void SetLame(real lambda, real mu) {

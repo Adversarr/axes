@@ -2,7 +2,7 @@
 #pragma once
 #include "ax/math/common.hpp"
 
-namespace ax::math {
+namespace ax::math::decomp {
 
 template <idx dim, typename Scalar = real> struct SvdResultImpl {
   using scalar_t = Scalar;

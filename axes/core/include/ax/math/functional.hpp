@@ -77,8 +77,10 @@ AX_FORCE_INLINE auto inverse(Scalar x) {
 
 /****************************** Unary op available for matrices ******************************/
 #define IMPLEMENT_UNARY(FUNC, OP)                                                             \
-  template <typename Derived> AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
-  template <typename Derived> AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
+  template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
+  AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
+  template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
+  AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
 #define A_OP_M(OP) array().OP().matrix
 #define IMPLEMENT_AOPM_UNARY(FUNC) IMPLEMENT_UNARY(FUNC, A_OP_M(FUNC))
 

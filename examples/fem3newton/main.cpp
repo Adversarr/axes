@@ -2,6 +2,14 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/fem/deform.hpp"
+#include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity/arap.hpp"
+#include "ax/fem/elasticity/linear.hpp"
+#include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elasticity/stvk.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
@@ -10,18 +18,12 @@
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
-#include "ax/fem/elasticity/neohookean_bw.hpp"
-#include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/deform.hpp"
-#include "ax/fem/elasticity.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
-#include "ax/fem/timestepper.hpp"
-#include "ax/utils/time.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/utils/time.hpp"
+
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 10, "Num of division.");
+ABSL_FLAG(int, N, 24, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 int nx;
 using namespace ax;
@@ -60,7 +62,7 @@ void update_rendering() {
 }
 
 static bool running = false;
-float dt = 1e-2;
+float dt = 1e-3;
 math::vecxr fps;
 void ui_callback(gl::UiRenderEvent ) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
@@ -97,7 +99,7 @@ void ui_callback(gl::UiRenderEvent ) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  lame = fem::elasticity::compute_lame(1e6, 0.33);
+  lame = fem::elasticity::compute_lame(1e7, 0.33);
   nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;
@@ -114,7 +116,7 @@ int main(int argc, char** argv) {
     }
   }
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
+  ts->SetupElasticity<fem::elasticity::IsotropicARAP>();
   ts->SetDensity(1e1);
   out = create_entity();
   add_component<gl::Mesh>(out);

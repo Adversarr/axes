@@ -17,8 +17,8 @@ public:
   using hessian_t = typename base_t::hessian_t;
   using ElasticityBase<dim, StVK<dim>>::ElasticityBase;
 
-  real Energy(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const* ) const {
+  real EnergyImpl(DeformationGradient<dim> const& F,
+                  const math::decomp::SvdResultImpl<dim, real>*) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -26,8 +26,8 @@ public:
   }
 
   // PStVK(F) = μFE + λ (tr E) F.
-  stress_t Stress(DeformationGradient<dim> const& F,
-                  math::SvdResultImpl<dim, real> const* ) const {
+  stress_t StressImpl(DeformationGradient<dim> const& F,
+                  math::decomp::SvdResultImpl<dim, real> const* ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -35,13 +35,13 @@ public:
   }
 
   /**
-   * @brief Compute the Hessian of Pk1 Stress
+   * @brief Compute the HessianImpl of Pk1 StressImpl
    * @note See Page 45. of "Dynamic Deformables", 4.2.3 St. Venant-Kirchhoff: Things Get Worse
    *
    * @return hessian_t
    */
-  hessian_t Hessian(DeformationGradient<dim> const& F,
-                    math::SvdResultImpl<dim, real> const*) const {
+  hessian_t HessianImpl(DeformationGradient<dim> const& F,
+                        const math::decomp::SvdResultImpl<dim, real>*) const {
     hessian_t H = math::make_zeros<hessian_t>();
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
@@ -61,7 +61,7 @@ public:
 
     // The second part comes from square(tr(E)).
     // tr(E) = tr(FtF-I) = ||F||_F - dim.
-    // Energy = square(tr(E)) = square(||F||_F^2 - dim) = ||F||_F^4 - 2 * dim * ||F||_2^2 + dim^2
+    // EnergyImpl = square(tr(E)) = square(||F||_F^2 - dim) = ||F||_F^4 - 2 * dim * ||F||_2^2 + dim^2
     // The first part is the most difficult (Equals to 4 (f f.T + 2 I)).
     // The second part is just some multiple of identity.
     // TODO: It seems to be correct?

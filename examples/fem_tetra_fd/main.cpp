@@ -1,5 +1,7 @@
+#include "Eigen/Core"
 #include "ax/core/init.hpp"
 #include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
@@ -8,7 +10,7 @@
 using namespace ax;
 
 fem::P1Mesh<3> mesh;
-
+auto kE = fem::DeformationGradientUpdate::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);
 
@@ -30,27 +32,26 @@ int main(int argc, char** argv) {
 
   // Elasticity and Deformation.
   fem::Deformation<3> deform(mesh, mesh.GetVertices());                    //< 3d Deformation
-  fem::ElasticityCompute<3, fem::elasticity::Linear> elast(deform);  //< 3d Linear Elasticity
-  elast.UpdateDeformationGradient(mesh.GetVertices());
+  fem::ElasticityCompute<3, fem::elasticity::IsotropicARAP> elast(deform);  //< 3d Linear Elasticity
 
   // randomly perturb the vertices.
   for (idx i = 0; i < 4; ++i) {
     for (idx d = 0; d < 3; ++d) {
-      original_vertices(d, i) += (random() % 1000 - 500) * 1e-4; // Range: [-0.05, 0.05]
+      original_vertices(d, i) += (rand() % 1000 - 500) * 1e-4; // Range: [-0.05, 0.05]
     }
   }
   // Update the deformation gradient.
   std::cout << "Vertices:\n" << original_vertices << std::endl;
   AX_CHECK_OK(mesh.SetVertices(original_vertices));
-  elast.UpdateDeformationGradient(mesh.GetVertices());
+  elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
 
   // Compute Gradient by Finite Difference:
   real e0 = elast.Energy(lame).sum();
   auto stress = deform.StressToVertices(elast.Stress(lame));  // There is, and only is one tetra
   auto stiffness
       = math::make_sparse_matrix(12, 12, deform.HessianToVertices(elast.Hessian(lame))).toDense();
-  std::cout << "Energy: " << e0 << std::endl;  // Should be zero.
-  std::cout << "Stress:\n" << stress << std::endl;
+  std::cout << "EnergyImpl: " << e0 << std::endl;  // Should be zero.
+  std::cout << "StressImpl:\n" << stress << std::endl;
   std::cout << "=======================================================================\n"
             << "  TEST STRESS\n"
             << "=======================================================================\n";
@@ -59,8 +60,8 @@ int main(int argc, char** argv) {
       for (real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
         math::field3r vertices_p = mesh.GetVertices();
         vertices_p(d, i) += delta_d;
-        elast.UpdateDeformationGradient(vertices_p);
-        // Energy:
+        elast.UpdateDeformationGradient(vertices_p, kE);
+        // EnergyImpl:
         real e_p = elast.Energy(lame).sum();
 
         // Compute the slope:
@@ -76,7 +77,7 @@ int main(int argc, char** argv) {
             << "=======================================================================\n";
   std::cout << "Stiffness:\n" << stiffness << std::endl;
 
-  // Compute: partial^2 Energy / (partial x_id partial x_jk)
+  // Compute: partial^2 EnergyImpl / (partial x_id partial x_jk)
   for (idx i = 0; i < 4; ++i) {
     for (idx d = 0; d < 3; ++d) {
       for (idx j = 0; j < 4; ++j) {
@@ -88,16 +89,16 @@ int main(int argc, char** argv) {
           for (real delta_id = 1e-6; delta_id >= 1e-8; delta_id *= 0.1) {
             math::field3r vertices_id = original_vertices;
             vertices_id(d, i) += delta_id;
-            elast.UpdateDeformationGradient(vertices_id);
+            elast.UpdateDeformationGradient(vertices_id, kE);
             real e_id = elast.Energy(lame).sum();
             for (real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
               math::field3r vertices_id_jk = vertices_id;
               vertices_id_jk(k, j) += delta_jk;
-              elast.UpdateDeformationGradient(vertices_id_jk);
+              elast.UpdateDeformationGradient(vertices_id_jk, kE);
               real e_id_jk = elast.Energy(lame).sum();
               math::field3r vertices_jk = original_vertices;
               vertices_jk(k, j) += delta_jk;
-              elast.UpdateDeformationGradient(vertices_jk);
+              elast.UpdateDeformationGradient(vertices_jk, kE);
               real e_jk = elast.Energy(lame).sum();
               real hessian = (e_id_jk - e_id - e_jk + e0) / (delta_jk * delta_id);
               if (std::abs(hessian - stiffness(i * 3 + d, j * 3 + k)) < clothest) {

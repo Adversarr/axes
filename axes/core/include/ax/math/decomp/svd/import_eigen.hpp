@@ -2,7 +2,7 @@
 #include "ax/utils/status.hpp"
 #include "common.hpp"
 
-namespace ax::math {
+namespace ax::math::decomp {
 
 template <idx dim, typename Scalar> class JacobiSvd {
 public:
@@ -12,12 +12,12 @@ public:
 
   JacobiSvd() = default;
 
-  result_t Solve(mat_t const& A) const {
-    Eigen::JacobiSVD<mat_t, Eigen::ComputeFullU | Eigen::ComputeFullV> svd(A);
+  AX_FORCE_INLINE result_t Solve(mat_t const& A) const {
+    auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
     if (svd.info() != Eigen::Success) {
       return utils::InvalidArgumentError("Eigen::JacobiSVD failed.");
     }
-    return {svd.matrixU(), svd.singularValues(), svd.matrixV()};
+    return SvdResultImpl<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
   }
 };
 
@@ -29,12 +29,12 @@ public:
 
   BDCSvd() = default;
 
-  result_t Solve(mat_t const& A) const {
+  AX_FORCE_INLINE result_t Solve(mat_t const& A) const {
     Eigen::BDCSVD<mat_t> svd(A);
     if (svd.info() != Eigen::Success) {
       return utils::InvalidArgumentError("Eigen::BDCSVD failed.");
     }
-    return {svd.matrixU(), svd.singularValues(), svd.matrixV()};
+    return SvdResultImpl<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
   }
 };
 

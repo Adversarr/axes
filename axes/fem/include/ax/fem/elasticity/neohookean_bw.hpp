@@ -19,8 +19,8 @@ public:
    * where J is the determinant of F
    * @return real
    */
-  real Energy(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const*) const {
+  real EnergyImpl(DeformationGradient<dim> const& F,
+                  const math::decomp::SvdResultImpl<dim, real>*) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -39,8 +39,8 @@ public:
    *
    * @return stress_t
    */
-  stress_t Stress(DeformationGradient<dim> const& F,
-                  math::SvdResultImpl<dim, real> const*) const {
+  stress_t StressImpl(DeformationGradient<dim> const& F,
+                  math::decomp::SvdResultImpl<dim, real> const*) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -52,13 +52,13 @@ public:
   }
 
   /**
-   * @brief Compute the Hessian of Pk1 Stress
-   * @note "Dynamic Deformables": 4.2.2.3 The Full Hessian
+   * @brief Compute the HessianImpl of Pk1 StressImpl
+   * @note "Dynamic Deformables": 4.2.2.3 The Full HessianImpl
    * μI9×9+ (mu+lambda(1-log[J]))/J^2 gJgJ^T + (λlog[J]-μ)/J Hj
    * @return hessian_t
    */
-  hessian_t Hessian(DeformationGradient<dim> const& F,
-              math::SvdResultImpl<dim, real> const*) const {
+  hessian_t HessianImpl(DeformationGradient<dim> const& F,
+                        const math::decomp::SvdResultImpl<dim, real>*) const {
     const real& mu = this->mu_;
     const real& lambda = this->lambda_;
     real J = math::det(F);

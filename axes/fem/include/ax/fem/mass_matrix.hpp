@@ -11,7 +11,7 @@ namespace ax::fem {
  */
 template <idx dim> class MassMatrixCompute {
 public:
-  MassMatrixCompute(MeshBase<dim> const& mesh) : mesh_(&mesh) {}
+  explicit MassMatrixCompute(MeshBase<dim> const& mesh) : mesh_(&mesh) {}
   /**
    * @brief Compute the mass matrix.
    * 
@@ -28,6 +28,10 @@ public:
    * @return math::sp_coeff_list 
    */
   math::sp_coeff_list operator()(real density);
+
+  math::vecxr Lumped(math::field1r const& density, bool is_density_on_element);
+
+  math::vecxr Lumped(real density);
 
 private:
   MeshBase<dim> const* mesh_;

@@ -12,4 +12,5 @@ endfunction(axes_add_test)
 axes_add_test(math axes)
 axes_add_test(fem axes_fem)
 axes_add_test(geometry axes_geometry)
+axes_add_test(graph axes_graph)
 

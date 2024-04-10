@@ -26,7 +26,7 @@ template <idx dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(i
   dof_map_.Reshape(shape);
 
   // default sparse solver is ldlt.
-  sparse_solver_name_ = "ConjugateGradient";
+  sparse_solver_name_ = "kConjugateGradient";
   sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
 }
 
@@ -129,8 +129,8 @@ template <idx dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
               AX_LOG(ERROR) << "sub" << to_char(cell_type_(sub)) << ": " << sub.transpose()
                             << ", neighbour" << to_char(cell_type_(neighbor)) << ": "
                             << neighbor.transpose() << "BC Sub=" << stagger_sub.transpose()
-                            << " d=" << d
-                            << ", boundary type is not Invalid." << static_cast<int>(bc_type_(stagger_sub)[d]);
+                            << " d=" << d << ", boundary type is not Invalid."
+                            << static_cast<int>(bc_type_(stagger_sub)[d]);
               return utils::InvalidArgumentError("I-I face should not have boundary condition.");
             }
           }

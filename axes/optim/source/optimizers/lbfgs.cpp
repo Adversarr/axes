@@ -131,7 +131,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
 
 Lbfgs::Lbfgs() {
   linesearch_ = std::make_unique<BacktrackingLinesearch>();
-  linesearch_name_ = "Backtracking";
+  linesearch_name_ = "kBacktracking";
 
   auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
   ls->c_ = 1e-4;

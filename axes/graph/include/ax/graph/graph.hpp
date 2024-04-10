@@ -1,92 +1,63 @@
 #pragma once
+#include "ax/core/common.hpp"
+#include "ax/core/config.hpp"
 #include "common.hpp"
 
 namespace ax::graph {
 
-using Id = size_t;
+struct PinToNodeInfo {
+  idx node_id_ = invalid_id;
+  idx pin_id_ = invalid_id;
+  bool is_input_ = false;
+};
 
-class Graph {
+
+class Graph final {
 public:
-  struct Impl;
+  // Node management
+  NodeBase* AddNode(NodeDescriptor const* descriptor);
+  NodeBase* GetNode(idx id);
+  NodeBase const* GetNode(idx id) const;
+  bool RemoveNode(idx id);
+  bool RemoveNode(NodeBase* node);
 
-  Graph() = default;
+  // Socket management
+  Socket* AddSocket(Pin* input, Pin* output);
+  Socket* AddSocket(idx input_pin, idx output_pin);
+  Socket* AddSocket(idx left_node_id, idx input_pin, idx right_node_id, idx output_pin);
+  bool CanConnectSocket(Pin const* input, Pin const* output) const;
+  bool CanConnectSocket(idx input_pin, idx output_pin) const;
+  bool CanConnectSocket(idx input_node, idx input_pin, idx output_node, idx output_pin) const;
 
-  /************************* SECT: Node Manipulations *************************/
-  /**
-   * @brief Add a node to the graph, with no connection.
-   * @return The unique index of the node in the graph.
-   */
-  Id AddNode(std::unique_ptr<NodeBase> node);
+  Socket* GetSocket(Pin* output);
+  Socket* GetSocket(idx socket_id);
+  Socket* GetSocket(idx input_pin, idx output_pin);
+  Socket* GetSocket(idx input_node, idx input_pin, idx output_node, idx output_pin);
 
-  /**
-   * @brief Remove a node from the graph.
-   */
-  void RemoveNode(Id node_id);
+  bool RemoveSocket(Socket* sock);
+  bool RemoveSocket(idx id);
+  bool RemoveSocket(idx input_pin, idx output_pin);
+  bool RemoveSocket(idx input_node, idx input_pin, idx output_node, idx output_pin);
 
-  /************************* SECT: DataLoad Manipulations *************************/
+  Pin* GetPin(idx id);
+  Pin const* GetPin(idx id) const;
+  PinToNodeInfo PinToNode(idx pin_id) const;
 
-  /**
-   * @brief Add a DataLoad to the graph.
-   */
-  Id AddDataLoad(std::unique_ptr<DataLoadBase> data_load);
+  // Graph management
+  void Clear();
+  idx GetNumNodes() const;
+  idx GetNumSockets() const;
+  idx GetCurrentUuid() const;
 
-  /**
-   * @brief Remove a DataLoad from the graph.
-   */
-  void RemoveDataLoad(Id data_load_id);
+  std::string Serialize() const;
 
-  /************************* SECT: Connectivity *************************/
-  /**
-   * @brief Connect the output pin of a node to the input pin of another node through
-   * one data load.
-   */
-  void Connect(Id from, Id to, Id data_load);
-
-  /**
-   * @brief Connect the output pin of a node to the input pin of another node, and
-   * create the DataLoad automatically.
-   */
-  DataLoadBase* Connect(Id from, Id to);
-
-  /**
-   * @brief Check if the connection is valid.
-   */
-  bool CheckConnect(Pin* from, Pin* to);
-
-  /**
-   * @brief Disconnect the connection. return true if the connection exists and is
-   * disconnected successfully.
-   */
-  bool Disconnect(Pin* from, Pin* to);
-
-  /**
-   * @brief Check if the connection exists.
-   */
-  bool HasConnection(Pin* from, Pin* to);
-
-  /************************* SECT: Queries *************************/
-  /**
-   * @brief Get the node by its id.
-   */
-  NodeBase* GetNode(Id id);
-
-  /**
-   * @brief Get the DataLoad by its id.
-   */
-  DataLoadBase* GetDataLoad(Id id);
-
-  /**
-   * @brief Get all the nodes in the graph.
-   */
-  List<NodeBase*> GetNodes();
-
-  /**
-   * @brief Get all the nodes in the graph.
-   */
-  List<DataLoadBase*> GetDataLoads();
+  // Constructor & Destructor.
+  Graph();
+  ~Graph();
 
 private:
-  std::unique_ptr<Impl> impl_;
+  struct Impl;
+  UPtr<Impl> impl_;
 };
 
 }  // namespace ax::graph

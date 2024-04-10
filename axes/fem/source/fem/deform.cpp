@@ -4,10 +4,9 @@
 #include "ax/fem/deform.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
 
-#include "ax/utils/parallel_for_helper.hpp"
-
-// #define DOUBLE_CHECK
 
 namespace ax::fem {
 using namespace elasticity;
@@ -114,7 +113,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
   idx n_elem = mesh.GetNumElements();
   cache.resize(n_elem);
 
-  AX_PARALLEL_FOR_BEGIN(0, n_elem, i)
+  for (idx i = 0; i < n_elem; ++i){
     matr<dim, dim> rest_local;
     const auto& element = mesh.GetElement(i);
     const auto& local_zero = rest_pose.col(element.x());
@@ -122,7 +121,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
       rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
     }
     cache[i] = rest_local.inverse();
-  AX_PARALLEL_FOR_END();
+  }
   if (!check_cache<dim>(cache)) {
     AX_LOG(ERROR) << "Mesh Cache computation failed! Please check the input mesh.";
   }

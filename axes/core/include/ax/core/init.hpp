@@ -15,6 +15,7 @@ namespace ax {
  * @param argv An array of command-line arguments.
  */
 void init(int argc, char** argv);
+void init();
 
 /**
  * @brief Clean up the core module.

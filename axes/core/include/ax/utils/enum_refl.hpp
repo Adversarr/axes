@@ -1,4 +1,7 @@
 #pragma once
+#include <boost/describe/enum.hpp>  // IWYU pragma: export
+#include <boost/describe/enum_from_string.hpp>
+#include <boost/describe/enum_to_string.hpp>
 #include <map>  // IWYU pragma: export
 #include <optional>
 
@@ -10,36 +13,18 @@
  */
 namespace ax::utils {
 
-namespace details {
-
-/**
- * @brief Meta builder for enum reflection.
- * @tparam Enum The enum type.
- */
-template <typename Enum> struct EnumReflectorMetaBuild {};
-
-/**
- * @brief Retrieves the meta information for the given enum type.
- * @tparam Enum The enum type.
- * @return The meta information for the enum type.
- */
-template <typename Enum> EnumReflectorMetaBuild<Enum> const& get_meta() {
-  static EnumReflectorMetaBuild<Enum> meta;
-  return meta;
-}
-
-}  // namespace details
-
 /**
  * @brief Reflects an enum value from its string representation.
  * @tparam Enum The enum type.
  * @param name The string representation of the enum value.
- * @return An optional containing the reflected enum value, or std::nullopt if the string representation is invalid.
+ * @return An optional containing the reflected enum value, or std::nullopt if the string
+ * representation is invalid.
  */
 template <typename Enum> std::optional<Enum> reflect_enum(std::string const& name) {
-  auto const& string_to_enum = details::get_meta<Enum>().string_to_enum_;
-  if (auto it = string_to_enum.find(name); it != string_to_enum.end()) {
-    return it->second;
+  Enum e;
+  if (boost::describe::enum_from_string<Enum, boost::describe::describe_enumerators<Enum>>(
+          name.c_str(), e)) {
+    return e;
   } else {
     return std::nullopt;
   }
@@ -50,23 +35,23 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string const& nam
  * @tparam Enum The enum type.
  * @return A vector containing the names of all enum values.
  */
-template <typename Enum> List<std::string> const& reflect_names() {
-  return details::get_meta<Enum>().names_;
+template <typename Enum> List<std::string> reflect_names() {
+  List<std::string> names;
+  boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>(
+      [&](auto D) { names.push_back(D.name()); });
+  return names;
 }
 
 /**
  * @brief Reflects the string representation of an enum value.
  * @tparam Enum The enum type.
  * @param val The enum value.
- * @return An optional containing the string representation of the enum value, or std::nullopt if the enum value is invalid.
+ * @return An optional containing the string representation of the enum value, or std::nullopt if
+ * the enum value is invalid.
  */
 template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
-  auto const& enum_to_string = details::get_meta<Enum>().enum_to_string_;
-  if (auto it = enum_to_string.find(val); it != enum_to_string.end()) {
-    return it->second;
-  } else {
-    return std::nullopt;
-  }
+  char buf[256];  /// Typically a cpp identifier will not exceed 256 char.
+  return boost::describe::enum_to_string<Enum>(val, buf);
 }
 
 /**
@@ -87,22 +72,3 @@ template <typename Enum, typename T> UPtr<T> reflect_create(std::string_view nam
 
 }  // namespace ax::utils
 
-#ifndef AX_ENUM_REFL_BEGIN
-#  define AX_ENUM_REFL_BEGIN(Enum)                                        \
-    template <> struct ax::utils::details::EnumReflectorMetaBuild<Enum> { \
-      using enum_type = Enum;                                             \
-      EnumReflectorMetaBuild() {
-#  define AX_ENUM_STATE(E, N)                  \
-    enum_to_string_.emplace(enum_type::E, #N); \
-    string_to_enum_.emplace(#N, enum_type::E); \
-    names_.push_back(#N);
-#  define AX_ENUM_STATEk(E) AX_ENUM_STATE(k##E, E)
-
-#  define AX_ENUM_REFL_END()                          \
-    }                                                 \
-    std::map<enum_type, std::string> enum_to_string_; \
-    std::map<std::string, enum_type> string_to_enum_; \
-    List<std::string> names_;                  \
-    }
-
-#endif

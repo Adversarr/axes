@@ -9,23 +9,23 @@
 TEST_CASE("Refl") {
   using namespace ax::utils;
   using namespace ax::math;
-  auto ldlt = reflect_enum<DenseSolverKind>("LDLT");
+  auto ldlt = reflect_enum<DenseSolverKind>("kLDLT");
   CHECK(ldlt.has_value());
   CHECK(ldlt.value() == DenseSolverKind::kLDLT);
 
-  auto partialLU = reflect_enum<DenseSolverKind>("PartialPivLU");
+  auto partialLU = reflect_enum<DenseSolverKind>("kPartialPivLU");
   CHECK(partialLU.has_value());
   CHECK(partialLU.value() == DenseSolverKind::kPartialPivLU);
 }
 using namespace ax::math;
 DenseSolverKind kinds[] = {DenseSolverKind::kPartialPivLU,
-                            DenseSolverKind::kFullPivLU,
-                            DenseSolverKind::kJacobiSVD,
-                            DenseSolverKind::kBDCSVD,
-                            DenseSolverKind::kFullPivHouseHolderQR,
-                            DenseSolverKind::kHouseholderQR,
-                            DenseSolverKind::kColPivHouseholderQR,
-                            DenseSolverKind::kCompleteOrthognalDecomposition};
+                           DenseSolverKind::kFullPivLU,
+                           DenseSolverKind::kJacobiSVD,
+                           DenseSolverKind::kBDCSVD,
+                           DenseSolverKind::kFullPivHouseHolderQR,
+                           DenseSolverKind::kHouseholderQR,
+                           DenseSolverKind::kColPivHouseholderQR,
+                           DenseSolverKind::kCompleteOrthognalDecomposition};
 
 TEST_CASE("Solve Invertible") {
   using namespace ax::math;
@@ -92,12 +92,8 @@ TEST_CASE("Sparse LU") {
   vecxr x = vecxr::Ones(2);
   vecxr b = A * x;
   LinsysProblem_Sparse A_b{A, b};
-  for (auto kind : {
-           SparseSolverKind::kLU,
-           SparseSolverKind::kQR,
-           SparseSolverKind::kConjugateGradient,
-           SparseSolverKind::kLDLT
-       }) {
+  for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
+                    SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     auto status = solver->Analyse(A_b);
@@ -109,5 +105,3 @@ TEST_CASE("Sparse LU") {
     CHECK(result.value().solution_.isApprox(x));
   }
 }
-
-

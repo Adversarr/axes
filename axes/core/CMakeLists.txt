@@ -34,6 +34,7 @@ target_include_directories(axes
 set(ABSL_LIBRARIES
   absl::btree
   absl::check
+  absl::cleanup
   absl::flat_hash_map
   absl::inlined_vector
   absl::status

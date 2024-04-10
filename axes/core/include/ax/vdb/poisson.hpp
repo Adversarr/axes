@@ -5,10 +5,7 @@
 
 namespace ax::vdb {
 
-enum class PoissonSolverKind : int {
-  kVdb,
-  // kMultigrid,
-};
+BOOST_DEFINE_ENUM(PoissonSolverKind, kVdb);
 
 class PoissonSolverBase : public utils::Tunable {
 public:
@@ -26,8 +23,3 @@ protected:
 };
 
 }  // namespace ax::vdb
-
-AX_ENUM_REFL_BEGIN(ax::vdb::PoissonSolverKind)
-AX_ENUM_STATE(kVdb, Vdb)
-// AX_ENUM_STATE(kMultigrid, Multigrid)
-AX_ENUM_REFL_END();

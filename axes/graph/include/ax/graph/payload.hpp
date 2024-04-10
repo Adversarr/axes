@@ -5,7 +5,6 @@
 #include <functional>
 #include <typeindex>
 
-#include "ax/core/common.hpp"
 #include "ax/core/echo.hpp"
 #include "ax/utils/common.hpp"
 

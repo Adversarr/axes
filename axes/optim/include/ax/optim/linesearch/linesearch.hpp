@@ -2,10 +2,14 @@
 
 #include "ax/optim/common.hpp"
 #include "ax/utils/opt.hpp"
+#include "ax/utils/enum_refl.hpp"
 
 namespace ax::optim {
 
-enum class LineSearchKind { kBacktracking , kAjimo };
+BOOST_DEFINE_ENUM_CLASS(LineSearchKind,
+  kBacktracking,
+  kWofle,
+  kAjimo);
 
 class LinesearchBase : public utils::Tunable {
 public:
@@ -20,8 +24,3 @@ protected:
 };
 
 }  // namespace ax::optim
-#include "ax/utils/enum_refl.hpp"
-
-AX_ENUM_REFL_BEGIN(ax::optim::LineSearchKind)
-AX_ENUM_STATE(kBacktracking, Backtracking)
-AX_ENUM_REFL_END();

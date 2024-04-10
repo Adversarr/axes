@@ -4,7 +4,7 @@
 namespace ax::math {
 
 /****************************** Embedded Solver Kinds ******************************/
-enum class DenseSolverKind : int {
+BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, idx,
   // SPSD
   kLDLT,
   kLLT,
@@ -21,8 +21,7 @@ enum class DenseSolverKind : int {
 
   // SVD-based Solvers
   kJacobiSVD,
-  kBDCSVD,
-};
+  kBDCSVD);
 
 /****************************** Implement ******************************/
 class DenseSolverBase : public LinsysSolverBase<LinsysProblem_Dense> {
@@ -33,15 +32,4 @@ private:
 };
 
 }  // namespace ax::math
-AX_ENUM_REFL_BEGIN(ax::math::DenseSolverKind)
-  AX_ENUM_STATE(kLLT, LLT)
-  AX_ENUM_STATE(kLDLT, LDLT)
-  AX_ENUM_STATE(kPartialPivLU, PartialPivLU)
-  AX_ENUM_STATE(kFullPivLU, FullPivLU)
-  AX_ENUM_STATE(kHouseholderQR, HouseholderQR)
-  AX_ENUM_STATE(kColPivHouseholderQR, ColPivHouseholderQR)
-  AX_ENUM_STATE(kFullPivHouseHolderQR, FullPivHouseHolderQR)
-  AX_ENUM_STATE(kCompleteOrthognalDecomposition, CompleteOrthognalDecomposition)
-  AX_ENUM_STATE(kJacobiSVD, JacobiSVD)
-  AX_ENUM_STATE(kBDCSVD, BDCSVD)
-AX_ENUM_REFL_END();
+

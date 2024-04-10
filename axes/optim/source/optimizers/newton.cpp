@@ -132,9 +132,9 @@ Newton::Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
   sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   linesearch_ = std::make_unique<BacktrackingLinesearch>();
-  linesearch_name_ = "Backtracking";
-  dense_solver_name_ = "LDLT";
-  sparse_solver_name_ = "ConjugateGradient";
+  linesearch_name_ = "kBacktracking";
+  dense_solver_name_ = "kLDLT";
+  sparse_solver_name_ = "kConjugateGradient";
 }
 
 Status Newton::SetOptions(utils::Opt const& options) {

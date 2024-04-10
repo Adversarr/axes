@@ -3,13 +3,16 @@
 #include "ax/geometry/common.hpp"
 #include "ax/core/echo.hpp"
 #include "ax/math/sparse.hpp"
+#include "ax/utils/enum_refl.hpp"
+
 
 namespace ax::fem {
 
-AX_DECLARE_ENUM(MeshType){
+BOOST_DEFINE_FIXED_ENUM_CLASS(
+    MeshType, idx,
     kP1,  // P1 Element, e.g. Trig in 2D, and Tet in 3D.
     kQ1,  // Q1 Element, e.g. Quad in 2D, and Hex in 3D.
-};
+)
 
 /**
  * @brief A base class for mesh representation in finite element method.

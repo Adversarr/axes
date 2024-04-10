@@ -23,7 +23,7 @@
 
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 24, "Num of division.");
+ABSL_FLAG(int, N, 7, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 int nx;
 using namespace ax;
@@ -99,7 +99,7 @@ void ui_callback(gl::UiRenderEvent ) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  lame = fem::elasticity::compute_lame(1e7, 0.33);
+  lame = fem::elasticity::compute_lame(1e7, 0.45);
   nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 4 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 4;
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
     }
   }
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::IsotropicARAP>();
+  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
   ts->SetDensity(1e1);
   out = create_entity();
   add_component<gl::Mesh>(out);

@@ -32,18 +32,21 @@ List<Hook> clean_up_hooks;
 
 void init(int argc, char** argv) {
   using namespace absl;
-
   /****************************** Flags ******************************/
   absl::ParseCommandLine(argc, argv);
-  absl::InitializeLog();
-  absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
-  absl::SetStderrThreshold(absl::LogSeverity::kInfo);
+
   /****************************** Install the debuggers ******************************/
   AX_CHECK(argc > 0) << "argc must be greater than 0";
   absl::InitializeSymbolizer(argv[0]);
   FailureSignalHandlerOptions failure_signal_handler{};
   absl::InstallFailureSignalHandler(failure_signal_handler);
+  init();
+}
 
+void init() {
+  absl::InitializeLog();
+  absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
+  absl::SetStderrThreshold(absl::LogSeverity::kInfo);
   /****************************** Setup Entt Registry ******************************/
   registry_p = std::make_unique<entt::registry>();
   dispatcher_p = std::make_unique<entt::dispatcher>();

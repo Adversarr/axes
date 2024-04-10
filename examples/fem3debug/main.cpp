@@ -48,7 +48,7 @@ void update_entity() {
   fem::Deformation<3> deform(mesh, input_mesh.vertices_);
   fem::ElasticityCompute<3, fem::elasticity::NeoHookeanBW> elast(deform);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
-  elast.UpdateDeformationGradient(mesh.GetVertices());
+  elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
   auto stress = elast.Stress(lame);
   auto force = deform.StressToVertices(stress);
   auto& q = add_or_replace_component<gl::Quiver>(out);

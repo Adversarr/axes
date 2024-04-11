@@ -18,14 +18,14 @@ file(GLOB_RECURSE AX_GUI_SOURCE CONFIGURE_DEPENDS
      ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/include/**.cpp)
 if (${AX_BUILD_SHARED})
-  add_library(axes_gui SHARED ${AX_GUI_SOURCE})
+  add_library(axes_gl SHARED ${AX_GUI_SOURCE})
 else()
-  add_library(axes_gui STATIC ${AX_GUI_SOURCE})
+  add_library(axes_gl STATIC ${AX_GUI_SOURCE})
 endif()
-target_include_directories(axes_gui PUBLIC ${Stb_INCLUDE_DIR}
+target_include_directories(axes_gl PUBLIC ${Stb_INCLUDE_DIR}
                                            ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(axes_gui
+target_link_libraries(axes_gl
   PUBLIC axes axes_geometry
   PUBLIC 
     glfw glad::glad
@@ -33,13 +33,13 @@ target_link_libraries(axes_gui
     OpenGL::GLU)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
-ax_set_warn_levels(axes_gui)
+ax_set_warn_levels(axes_gl)
 
 if(AX_NO_EXCEPT)
   if(MSVC)
-    target_compile_options(axes_gui PRIVATE /EHsc)
+    target_compile_options(axes_gl PRIVATE /EHsc)
   else()
-    target_compile_options(axes_gui PRIVATE -fno-exceptions)
+    target_compile_options(axes_gl PRIVATE -fno-exceptions)
   endif()
 endif()
-target_compile_options(axes_gui PRIVATE ${AX_CXX_FLAGS})
+target_compile_options(axes_gl PRIVATE ${AX_CXX_FLAGS})

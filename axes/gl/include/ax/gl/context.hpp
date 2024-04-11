@@ -8,6 +8,8 @@
 namespace ax::gl {
 
 struct UiRenderEvent {};
+struct ContextDestroyEvent {};
+struct ContextInitEvent {};
 
 class Context {
 public:

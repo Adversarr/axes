@@ -30,6 +30,7 @@ namespace ax::gl {
 using math::cast;
 
 struct Context::Impl {
+  bool has_setuped_{false};
   List<UPtr<RenderBase>> renderers_;
 
   Window window_;
@@ -306,14 +307,9 @@ Context::Context() {
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<PointRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<QuiverRenderer>());
-
-  for (auto& renderer : impl_->renderers_) {
-    AX_CHECK_OK(renderer->Setup());
-  }
 }
 
 Context::~Context() {
-  global_dispatcher().clear<UiRenderEvent>();
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImPlot::DestroyContext();
@@ -330,6 +326,13 @@ Camera& Context::GetCamera() { return impl_->camera_; }
 /************************* SECT: Tick Logic and Tick Renderers *************************/
 
 Status Context::TickLogic() {
+  if (!impl_->has_setuped_) {
+    for (auto& renderer : impl_->renderers_) {
+      AX_CHECK_OK(renderer->Setup());
+    }
+    emit(ContextInitEvent{});
+    impl_->has_setuped_ = true;
+  }
   impl_->window_.PollEvents();
   impl_->UpdateLight();
   impl_->UpdateAxes();
@@ -346,14 +349,14 @@ Status Context::TickRender() {
   glClearColor(impl_->clear_color_(0), impl_->clear_color_(1), impl_->clear_color_(2),
                impl_->clear_color_(3));
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  for (auto& renderer : impl_->renderers_) {
-    AX_EVAL_RETURN_NOTOK(renderer->TickRender());
-  }
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   emit<UiRenderEvent>({});
+  for (auto& renderer : impl_->renderers_) {
+    AX_EVAL_RETURN_NOTOK(renderer->TickRender());
+  }
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

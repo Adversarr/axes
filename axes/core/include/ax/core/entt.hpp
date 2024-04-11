@@ -159,6 +159,13 @@ template <typename T, typename... Args> T& add_resource(Args&&... args) {
  */
 template <typename T> void erase_resource() { global_registry().ctx().erase<T>(); }
 
+template <typename T> T& ensure_resource() {
+  if (auto* resource = try_get_resource<T>()) {
+    return *resource;
+  }
+  return add_resource<T>();
+}
+
 /****************************** Signal Handlers ******************************/
 
 /**

@@ -93,6 +93,9 @@ public:
   idx GetNumInputs() const { return inputs_.size(); }
   idx GetNumOutputs() const { return outputs_.size(); }
 
+  std::vector<Pin> const& GetInputs() const { return inputs_; }
+  std::vector<Pin> const& GetOutputs() const { return outputs_; }
+
 protected:
   // TODO: io.
   void* RetriveInput(idx index, std::type_index check_type);
@@ -125,6 +128,8 @@ namespace details {
 NodeDescriptor const * factory_register(NodeDescriptor desc);
 
 NodeDescriptor const *get_node_descriptor(std::string name);
+
+std::vector<std::string> const& get_node_names();
 
 } // namespace details
 

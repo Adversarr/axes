@@ -14,7 +14,11 @@ namespace ax::graph {
 namespace details {
 
 using constructor_map = absl::flat_hash_map<std::string, NodeConstructor>;
-struct wrapper { absl::flat_hash_map<std::string, NodeDescriptor> desc_; };
+
+struct wrapper {
+  absl::flat_hash_map<std::string, NodeDescriptor> desc_;
+  std::vector<std::string> namespace_and_names_;
+};
 
 static inline absl::flat_hash_map<std::string, NodeDescriptor>& ensure_desc() {
   if (auto res = ax::try_get_resource<wrapper>(); res != nullptr) {
@@ -27,8 +31,22 @@ NodeDescriptor const* factory_register(NodeDescriptor desc) {
   auto [it, b] = ensure_desc().try_emplace(desc.name_, desc);
   if (b) {
     AX_DLOG(INFO) << "NodeDescriptor: " << desc.name_ << " registered.";
+    ensure_resource<wrapper>().namespace_and_names_.emplace_back(desc.name_);
   }
   return &it->second;
+}
+
+std::vector<std::string> const& get_node_names() {
+  return ensure_resource<wrapper>().namespace_and_names_;
+}
+
+NodeDescriptor const* get_node_descriptor(std::string name) {
+  auto& cmap = ensure_desc();
+  auto it = cmap.find(name);
+  if (it != cmap.end()) {
+    return &it->second;
+  }
+  return nullptr;
 }
 
 }  // namespace details

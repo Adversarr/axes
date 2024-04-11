@@ -24,7 +24,7 @@ void init() {
 }
 
 void init(int argc, char** argv) {
-  init();
+  gl::init();
   ::ax::init(argc, argv);
 }
 

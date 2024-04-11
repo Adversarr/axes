@@ -85,7 +85,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         return hessian;
       })
       .SetConvergeGrad([&](const math::vecxr&, const math::vecxr& grad) -> real {
-        real ext_force = eacc.dot(mass_matrix * eacc);
+        real ext_force = math::norm(mass_matrix * eacc);
         real rel = grad.norm() / ext_force / (dt * dt);
         return rel;
       })

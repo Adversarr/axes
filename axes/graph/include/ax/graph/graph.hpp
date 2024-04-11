@@ -1,6 +1,7 @@
 #pragma once
 #include "ax/core/common.hpp"
 #include "ax/core/config.hpp"
+#include "ax/utils/common.hpp"
 #include "common.hpp"
 
 namespace ax::graph {
@@ -53,8 +54,11 @@ public:
 
   // Constructor & Destructor.
   Graph();
+  AX_DECLARE_CONSTRUCTOR(Graph, delete, delete);
   ~Graph();
 
+  void ForeachNode(std::function<void(NodeBase*)> const& func);
+  void ForeachSocket(std::function<void(Socket*)> const& func);
 private:
   struct Impl;
   UPtr<Impl> impl_;

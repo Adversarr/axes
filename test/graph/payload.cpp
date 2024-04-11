@@ -14,14 +14,14 @@ TEST_CASE("payload creation") {
 }
 
 TEST_CASE("Registry") {
-  PayloadTypeRegistry reg;
+  TypeRegistry reg;
   reg.Register<int, int>(1);
   reg.Register<float, int>(2);
   reg.Register<float, float>(3);
   reg.Register<double, double>(4);
   reg.Register<int, float>(5);
 
-  CHECK_EQ(reg.Get<int>().size(), 2);
+  CHECK_EQ(reg.EnsureMeta<int>().size(), 2);
   CHECK_EQ(*(reg.Get<int, int>()), 1);
   CHECK_EQ(*(reg.Get<float, int>()), 2);
   CHECK_EQ(*(reg.Get<float, float>()), 3);

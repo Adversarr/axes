@@ -16,7 +16,7 @@ target_include_directories(axes_graph
 
 target_link_libraries(axes_graph
   PUBLIC
-    axes
+    axes_gl
 )
 
 ax_set_warn_levels(axes_graph)

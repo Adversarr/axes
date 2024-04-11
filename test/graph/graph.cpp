@@ -7,10 +7,10 @@
 using namespace ax;
 using namespace ax::graph;
 
-class Node : public NodeBase {
+class IntToString : public NodeBase {
 public:
-  Node(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
-  Status Apply(idx frame_id) override {
+  IntToString(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+  Status Apply(idx) override {
     AX_RETURN_OK();
   }
 };
@@ -36,4 +36,34 @@ TEST_CASE("Graph") {
   auto sock2 = graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0);
   CHECK(sock != nullptr);
   CHECK(sock == sock2);
+
+  graph.RemoveSocket(node1->GetId(), 0, node2->GetId(), 0);
+  CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) == nullptr);
+
+  sock = graph.AddSocket(node1->GetId(), 0, node2->GetId(), 0);
+  CHECK(sock != nullptr);
+  CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) != nullptr);
+
+  graph.RemoveNode(node1->GetId());
+  CHECK(graph.GetNode(node1->GetId()) == nullptr);
+  CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) == nullptr);
+
+  graph.Clear();
+  std::vector<idx> nodes;
+  std::vector<Socket* > sockets;
+  for (int i = 0; i < 10; i++) {
+    nodes.push_back(graph.AddNode(&node_desc)->GetId());
+  }
+  CHECK(graph.GetNumNodes() == 10);
+  CHECK(graph.GetNumSockets() == 0);
+  for (int i = 0; i < 9; ++i) {
+    sockets.push_back(graph.AddSocket(nodes[i], 0, nodes[i + 1], 0));
+  }
+
+  // Erase 5, and 4-5, 5-6 should not exist.
+  CHECK(graph.RemoveNode(nodes[5]));
+  CHECK(graph.GetNumNodes() == 9);
+  CHECK(graph.GetNumSockets() == 7);
+  CHECK(graph.GetSocket(nodes[4], 0, nodes[5], 0) == nullptr);
+  CHECK(graph.GetSocket(nodes[5], 0, nodes[6], 0) == nullptr);
 }

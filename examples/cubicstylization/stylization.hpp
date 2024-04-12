@@ -10,6 +10,8 @@ public:
 
   void Step(idx steps);
 
+  SurfaceMesh const & GetResult() const { return mesh_; }
+
 private:
   SurfaceMesh mesh_;
 };

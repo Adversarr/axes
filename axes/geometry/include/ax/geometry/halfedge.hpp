@@ -39,7 +39,7 @@ struct HalfedgeEdge_t {
 
   bool IsBoundary() const { return face_ == nullptr; }
 
-  AX_FORCE_INLINE math::vec3r Normal() const;
+  math::vec3r Normal() const;
 
   AX_FORCE_INLINE HalfedgeVertex_t* Tail() const { return prev_->vertex_; }
 

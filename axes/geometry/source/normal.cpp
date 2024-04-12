@@ -59,7 +59,6 @@ math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i con
   }
 
   for (int i = 0; i < vertex_normals.cols(); ++i) {
-    vertex_normals.col(i) /= vertex_areas(i);
     vertex_normals.col(i) = math::normalized(vertex_normals.col(i));
   }
 

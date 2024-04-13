@@ -187,10 +187,10 @@ void handle_selection() {
   if (ImGui::BeginPopup("Create New Node", ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::TextUnformatted("Create New Node");
     ImGui::Separator();
-    static char name_input[LINE_MAX]{0};
+    static char name_input[256]{0};
     static int current_size = 0;
     std::string front_name;
-    if (ImGui::InputText("", name_input, LINE_MAX)) {
+    if (ImGui::InputText("name", name_input, 256)) {
       current_size = strlen(name_input);
     }
 

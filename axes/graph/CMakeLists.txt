@@ -1,12 +1,12 @@
 # Library axes-core
-file(GLOB_RECURSE AX_FDFV_SOURCE CONFIGURE_DEPENDS
+file(GLOB_RECURSE AX_GRAPH_SOURCE CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
 if (${AX_BUILD_SHARED})
-  add_library(axes_graph SHARED ${AX_FDFV_SOURCE})
+  add_library(axes_graph SHARED ${AX_GRAPH_SOURCE})
 else()
-  add_library(axes_graph STATIC ${AX_FDFV_SOURCE})
+  add_library(axes_graph STATIC ${AX_GRAPH_SOURCE})
 endif()
 
 target_include_directories(axes_graph

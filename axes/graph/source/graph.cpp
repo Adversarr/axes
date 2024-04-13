@@ -33,6 +33,7 @@ struct Graph::Impl {
   // Container for graph elements.
   List<UPtr<NodeBase>> nodes_;
   List<Socket> sockets_;
+  List<Payload> payloads_;
 
   Impl() {
     uuid_info_.emplace_back(UuidUnderlyingInfo{kInvalid, invalid_id});
@@ -491,6 +492,47 @@ void Graph::ForeachSocket(std::function<void(Socket*)> const& func) {
       func(&sock);
     }
   }
+}
+
+void Graph::EnsurePayloads() {
+  impl_->payloads_.clear();
+  // We have to clearly know how much output pins there are!
+  size_t cnt_outs = 0;
+  for (auto& node: impl_->nodes_) {
+    if (! node) {
+      continue;
+    }
+    for (auto& outpin : node->outputs_) {
+      outpin.payload_ = nullptr;
+      cnt_outs += 1;
+    }
+    for (auto& inpin : node->inputs_) {
+      inpin.payload_ = nullptr;
+    }
+  }
+
+  impl_->payloads_.reserve(cnt_outs);
+  for (auto& node: impl_->nodes_) {
+    if (! node) {
+      continue;
+    }
+    for (auto& outpin : node->outputs_) {
+      auto& pld = impl_->payloads_.emplace_back(Payload::Create(outpin.descriptor_->type_));
+      outpin.payload_ = &pld;
+      AX_DCHECK(pld.Type() == outpin.descriptor_->type_) << "Type mismatch";
+    }
+  }
+  for (auto& node: impl_->nodes_) {
+    if (! node) {
+      continue;
+    }
+    for (auto& inpin : node->inputs_) {
+      if (inpin.socket_in_id_ != invalid_id) {
+        inpin.payload_ = GetSocket(inpin .socket_in_id_)->input_->payload_;
+      }
+    }
+  }
+  AX_DCHECK(impl_->payloads_.size() == cnt_outs);
 }
 
 }  // namespace ax::graph

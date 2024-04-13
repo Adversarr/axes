@@ -14,6 +14,7 @@ public:
   std::map<idx, std::set<idx>> DependencyMap();
   std::vector<idx> TopologicalSort();
   bool HasCycle();
+
 protected:
   Graph& graph_;
 };

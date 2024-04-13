@@ -46,11 +46,14 @@ bool GraphExecutorBase::HasCycle() {
 }
 
 std::vector<idx> GraphExecutorBase::TopologicalSort() {
-  boost::adjacency_list<> g;
-  std::map<idx, idx> vertices;
-  graph_.ForeachNode([&vertices](NodeBase const* n) {
-    vertices.insert({n->GetId(), vertices.size()});
+  std::set<idx> vertices;
+  idx max_node_id = 0;
+  graph_.ForeachNode([&](NodeBase const* n) {
+    vertices.insert(n->GetId());
+    max_node_id = n->GetId();
   });
+
+  boost::adjacency_list<> g(max_node_id + 1);
   graph_.ForeachSocket([&g](Socket const* s) {
     boost::add_edge(s->output_->node_id_, s->input_->node_id_, g);
   });
@@ -63,6 +66,7 @@ std::vector<idx> GraphExecutorBase::TopologicalSort() {
   }
   std::vector<idx> result;
   for (auto id: sorted) {
+    std::cout << id << std::endl;
     if (vertices.contains(id)) {
       result.push_back(id);
     }
@@ -72,7 +76,20 @@ std::vector<idx> GraphExecutorBase::TopologicalSort() {
 
 Status GraphExecutorBase::Execute(idx frame_id) {
   auto sorted = TopologicalSort();
-  std::for_each(sorted.begin(), sorted.end(), [](idx id) { AX_LOG(INFO) << id; });
+  if (graph_.GetNumNodes() > 0 && sorted.empty()) {
+    return utils::FailedPreconditionError("Exist a cycle in your input graph");
+  }
+
+  graph_.EnsurePayloads();
+  auto status = utils::OkStatus();
+  graph_.ForeachNode([&](NodeBase* n) {
+    status.Update(n->PreApply(frame_id));
+  });
+
+  if (!status.ok()) {
+    AX_LOG(ERROR) << "Failed to run pre-apply!" << status.message();
+  }
+
   for (auto node_id : sorted) {
     auto node = graph_.GetNode(node_id);
     AX_LOG(INFO) << "Executing node " << node_id;
@@ -83,6 +100,14 @@ Status GraphExecutorBase::Execute(idx frame_id) {
       return status;
     }
   }
+
+  graph_.ForeachNode([&](NodeBase* n) {
+    status.Update(n->PostApply(frame_id));
+  });
+  if (!status.ok()) {
+    AX_LOG(ERROR) << "Failed to run post-apply!" << status.message();
+  }
+
   AX_RETURN_OK();
 }
 

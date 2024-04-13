@@ -13,6 +13,17 @@
 namespace ax::graph {
 using NodeConstructor = std::function<UPtr<NodeBase>(NodeDescriptor const*, idx)>;
 
+namespace details {
+
+NodeDescriptor const * factory_register(NodeDescriptor desc);
+
+NodeDescriptor const *get_node_descriptor(std::string name);
+
+std::vector<std::string> const& get_node_names();
+
+} // namespace details
+
+
 struct NodeDescriptor {
   NodeDescriptor(TypeIdentifier type): type_(type) {}
 
@@ -49,17 +60,28 @@ public:
     return *this;
   }
 
-  NodeDescriptorFactory& AddInput(PinDescriptor const& desc) {
-    descriptor_.inputs_.push_back(desc);
+  template<typename Tp>
+  NodeDescriptorFactory& AddInput(std::string name,
+                                  std::string description) {
+    details::ensure_dtor<Tp>();
+    descriptor_.inputs_.push_back(PinDescriptor{typeid(Tp), name, description});
     return *this;
   }
 
-  NodeDescriptorFactory& AddOutput(PinDescriptor const& desc) {
-    descriptor_.outputs_.push_back(desc);
+
+  template<typename Tp>
+  NodeDescriptorFactory& AddOutput(std::string name,
+                                   std::string description) {
+    details::ensure_dtor<Tp>();
+    descriptor_.outputs_.push_back(PinDescriptor{typeid(Tp), name, description});
     return *this;
   }
 
   NodeDescriptor Finalize() { return descriptor_; }
+
+  void FinalizeAndRegister() {
+    details::factory_register(descriptor_);
+  }
 
 private:
   NodeDescriptor descriptor_;
@@ -100,7 +122,32 @@ protected:
   // TODO: io.
   void* RetriveInput(idx index, std::type_index check_type);
 
+  template<typename T>
+  T* RetriveInput(idx index) {
+    if ((idx) inputs_.size() <= index || index < 0) {
+      return nullptr;
+    }
+    if (Payload* p = inputs_[index].payload_; p != nullptr) {
+      return p->TryCast<T>();
+    } else {
+      return nullptr;
+    }
+  }
+
+  template<typename T>
+  T* RetriveOutput(idx index) {
+    if ((idx) outputs_.size() <= index || index < 0) {
+      return nullptr;
+    }
+    if (Payload* p = outputs_[index].payload_; p != nullptr) {
+      return p->TryCast<T>();
+    } else {
+      return nullptr;
+    }
+  }
+
   Pin* GetInput(idx index) { return &inputs_[index]; }
+
   Pin* GetOutput(idx index) { return &outputs_[index]; }
 
   NodeBase(NodeDescriptor const* descriptor, idx id);
@@ -121,17 +168,5 @@ private:
   // Node should take care of the memory allocation of output params.
   std::vector<Pin> outputs_;
 };
-
-namespace details {
-
-
-NodeDescriptor const * factory_register(NodeDescriptor desc);
-
-NodeDescriptor const *get_node_descriptor(std::string name);
-
-std::vector<std::string> const& get_node_names();
-
-} // namespace details
-
 
 }

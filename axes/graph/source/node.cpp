@@ -62,7 +62,9 @@ UPtr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
 }
 
 // Some function have default implementation
-Status NodeBase::PreApply(idx) { AX_RETURN_OK(); }
+Status NodeBase::PreApply(idx) {
+  AX_RETURN_OK();
+}
 
 Status NodeBase::PostApply(idx) { AX_RETURN_OK(); }
 

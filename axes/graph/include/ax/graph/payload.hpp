@@ -1,7 +1,9 @@
 #pragma once
 #include <absl/container/flat_hash_map.h>
+
 #include <functional>
 #include <typeindex>
+#include <utility>
 
 #include "ax/core/echo.hpp"
 #include "ax/core/entt.hpp"
@@ -16,11 +18,24 @@ namespace ax::graph {
 // 4. the type(DataType) of data, is erased in base class.
 
 struct PayloadDtor {
-  std::function<void(void*)> dtor;
+  std::function<void(void*)> dtor_;
+  std::function<void*(void)> ctor_;
+
+  PayloadDtor(std::function<void(void*)> dtor, std::function<void*(void)> ctor)
+      : dtor_{std::move(dtor)}, ctor_{std::move(ctor)} {}
 };
 
 namespace details {
-void ensure_dtor(std::type_index type, PayloadDtor const& dtor);
+PayloadDtor const& ensure_dtor(std::type_index type, PayloadDtor const& dtor);
+template <typename T> PayloadDtor const& ensure_dtor() {
+  return ensure_dtor(typeid(T),
+     PayloadDtor{
+     [](void* data) -> void { delete reinterpret_cast<T*>(data); },
+     []() -> void* { return new T; }
+  });
+}
+
+PayloadDtor const& get_dtor(std::type_index type);
 }  // namespace details
 
 class Payload {
@@ -29,14 +44,16 @@ public:
   // Declare all the special member functions.
   Payload(const Payload&) noexcept = delete;
   Payload& operator=(const Payload&) noexcept = delete;
-  Payload(Payload&&) noexcept = default;
-  Payload& operator=(Payload&&) noexcept = delete;
+  Payload& operator=(Payload&& rhs) = delete;
+
+  Payload(Payload&& rhs) noexcept : Payload(rhs.type_, rhs.data_) { rhs.data_ = nullptr; }
 
   // get the type
   std::type_index const& Type() const noexcept { return type_; }
 
   // get the data
   void* Data() noexcept { return data_; }
+
   void const* Data() const noexcept { return data_; }
 
   // Cast to the DataType
@@ -51,55 +68,14 @@ public:
   // Test if the payload is empty.
   operator bool() const noexcept { return data_ != nullptr; }
 
+  static Payload Create(std::type_index t);
+
 private:
   // Unique constructor.
   explicit Payload(std::type_index type, void* data) noexcept : type_(type), data_(data) {}
 
-  template <typename DataType, typename... Args> friend Payload make_payload(Args&&... args);
-
   std::type_index const type_;
   void* data_;
-};
-
-template <typename DataType, typename... Args> Payload make_payload(Args&&... args) {
-  auto data = new DataType(std::forward<Args>(args)...);
-  details::ensure_dtor(typeid(DataType),
-                       PayloadDtor{[](void* ptr) -> void { delete static_cast<DataType*>(ptr); }});
-  return Payload(typeid(DataType), data);
-}
-
-template <typename DataType> inline DataType* try_cast(Payload* payload) {
-  return payload->TryCast<DataType>();
-}
-
-// For many applications, you still need to design many Functors that take the payload as input.
-// you need to know the type of the payload, and then cast it to the correct type.
-class TypeRegistry final {
-public:
-  template <typename Meta> using map_t = absl::flat_hash_map<std::type_index, Meta>;
-
-  // After you register a new meta for given type(Data), it will also provide you with current meta
-  // map.
-  template <typename Data, typename Meta> map_t<Meta> const& Register(Meta const& meta) {
-    map_t<Meta>& map = EnsureMeta<Meta>();
-    map.emplace(typeid(Data), meta);
-    return map;
-  }
-
-  // Get the meta for given type(Data), will return nullptr if not registered.
-  template <typename Data, typename Meta> Meta* Get() {
-    auto& map = EnsureMeta<Meta>();
-    auto it = map.find(typeid(Data));
-    return it == map.end() ? nullptr : &(it->second);
-  }
-
-  TypeRegistry() = default;
-
-  AX_DECLARE_CONSTRUCTOR(TypeRegistry, delete, delete);
-
-  template <typename Meta> map_t<Meta>& EnsureMeta() {
-    return ensure_resource<map_t<Meta>>();
-  }
 };
 
 }  // namespace ax::graph

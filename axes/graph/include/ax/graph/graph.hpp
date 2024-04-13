@@ -50,8 +50,6 @@ public:
   idx GetNumSockets() const;
   idx GetCurrentUuid() const;
 
-  std::string Serialize() const;
-
   // Constructor & Destructor.
   Graph();
   AX_DECLARE_CONSTRUCTOR(Graph, delete, delete);
@@ -59,6 +57,7 @@ public:
 
   void ForeachNode(std::function<void(NodeBase*)> const& func);
   void ForeachSocket(std::function<void(Socket*)> const& func);
+  void EnsurePayloads();
 private:
   struct Impl;
   UPtr<Impl> impl_;

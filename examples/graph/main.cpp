@@ -1,14 +1,16 @@
+#include <imgui.h>
+#include <imgui_node_editor.h>
+
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/graph/graph.hpp"
 #include "ax/graph/node.hpp"
-#include "ax/utils/status.hpp"
-#include "ax/utils/asset.hpp"
 #include "ax/graph/render.hpp"
-#include <imgui.h>
-#include <imgui_node_editor.h>
+#include "ax/nodes/stl_types.hpp"
+#include "ax/utils/asset.hpp"
+#include "ax/utils/status.hpp"
 
 using namespace ax;
 using namespace ax::graph;
@@ -108,44 +110,49 @@ int main(int argc, char** argv) {
         .AddOutput<std::string>("path", "output description")
         .FinalizeAndRegister();
 
-  add_custem_node_render(typeid(IntInput), CustomNodeRender{[](NodeBase* node) {
-    auto n = dynamic_cast<IntInput*>(node);
-    ImGui::SetNextItemWidth(100);
-    ImGui::InputInt("input", &n->value_);
-    ImGui::SameLine();
-    ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-    ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-    ed::EndPin();
-  }});
+  nodes::register_stl_types();
 
-  add_custem_node_render(typeid(MeshAssetSelector), CustomNodeRender{[](NodeBase* node) {
-    auto n = dynamic_cast<MeshAssetSelector*>(node);
-    ImGui::SetNextItemWidth(100);
-    if (ImGui::Button("Select!")) {
-      ImGui::OpenPopup("Select Mesh");
-    }
+  add_custom_node_render(typeid(IntInput), CustomNodeRender{[](NodeBase* node) {
+                           auto n = dynamic_cast<IntInput*>(node);
+                           ImGui::SetNextItemWidth(100);
+                           ImGui::PushID(n);
+                           ImGui::InputInt("input", &n->value_);
+                           ImGui::PopID();
+                           ImGui::SameLine();
+                           ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+                           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+                           ed::EndPin();
+                         }});
 
-    ed::Suspend();
-    if (ImGui::BeginPopup("Select Mesh")) {
-      for (int i = 0; i < n->assets_.size(); ++i) {
-        if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-          n->selected_idx_ = i;
-          n->selected_ = n->assets_[i];
+  add_custom_node_render(
+      typeid(MeshAssetSelector), CustomNodeRender{[](NodeBase* node) {
+        auto n = dynamic_cast<MeshAssetSelector*>(node);
+        ImGui::SetNextItemWidth(100);
+        if (ImGui::Button("Select!")) {
+          ImGui::OpenPopup("Select Mesh");
         }
-      }
-      ImGui::EndPopup();
-    }
-    ed::Resume();
 
-    ImGui::SameLine();
-    ImGui::Dummy(ImVec2(30, 0));
-    ImGui::SameLine();
-    ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-    ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-    ed::EndPin();
+        ed::Suspend();
+        if (ImGui::BeginPopup("Select Mesh")) {
+          for (int i = 0; i < (idx)n->assets_.size(); ++i) {
+            if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
+              n->selected_idx_ = i;
+              n->selected_ = n->assets_[i];
+            }
+          }
+          ImGui::EndPopup();
+        }
+        ed::Resume();
 
-    ImGui::Text("\"%s\"", n->selected_.c_str());
-  }});
+        ImGui::SameLine();
+        ImGui::Dummy(ImVec2(30, 0));
+        ImGui::SameLine();
+        ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+        ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+        ed::EndPin();
+
+        ImGui::Text("\"%s\"", n->selected_.c_str());
+      }});
 
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

@@ -93,13 +93,12 @@ class NodeBase {
 public:
   virtual ~NodeBase() = default;
   // Core apply function, will be called by the graph system.
-  virtual Status Apply(idx frame_id) = 0;
+  virtual Status Apply(idx frame_id);
   virtual Status PreApply(idx frame_id);
   virtual Status PostApply(idx frame_id);
 
   virtual Status PreCompute();
   virtual Status PostCompute();
-
   virtual Status OnConnect(idx in_io_index);
 
 
@@ -113,8 +112,6 @@ public:
 
   // Getters:
   idx GetId() const { return id_; }
-  std::string GetName() const { return descriptor_->name_; }
-  std::string GetDescription() const { return descriptor_->description_; }
   NodeDescriptor const* GetDescriptor() const { return descriptor_; }
   TypeIdentifier GetType() const { return descriptor_->type_; }
 

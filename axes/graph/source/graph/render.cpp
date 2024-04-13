@@ -42,7 +42,7 @@ void draw_node(NodeBase* node) {
   });
 
   ed::BeginNode(node->GetId());
-  ImGui::Text("## %ld: %s", node->GetId(), node->GetName().c_str());
+  ImGui::Text("## %ld: %s", node->GetId(), node->GetDescriptor()->name_.c_str());
 
   if (auto render = get_custom_node_render(node->GetType()); render) {
     render->widget_(node);
@@ -160,7 +160,7 @@ void handle_selection() {
     ImGui::TextUnformatted("Node Context Menu");
     if (node) {
       ImGui::Text("Node ID: %ld", node->GetId());
-      ImGui::Text("Node Name: %s", node->GetName().c_str());
+      ImGui::Text("Node Name: %s", node->GetDescriptor()->name_.c_str());
       ImGui::Text("Node Type: %s", node->GetType().name());
       ImGui::Separator();
       if (ImGui::MenuItem("Delete?")) {
@@ -309,7 +309,7 @@ void install_renderer(GraphRendererOptions opt) {
 
 using WidgetMap = absl::flat_hash_map<std::type_index, CustomNodeRender>;
 
-void add_custem_node_render(std::type_index type, CustomNodeRender const& widget) {
+void add_custom_node_render(std::type_index type, CustomNodeRender const& widget) {
   auto& map = ensure_resource<WidgetMap>();
   map.try_emplace(type, widget);
 }

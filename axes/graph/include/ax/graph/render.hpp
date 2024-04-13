@@ -15,7 +15,7 @@ struct CustomNodeRender {
   std::function<void(NodeBase* )> widget_;
 };
 
-void add_custem_node_render(std::type_index t, CustomNodeRender const& widget);
+void add_custom_node_render(std::type_index t, CustomNodeRender const& widget);
 
 CustomNodeRender const* get_custom_node_render(std::type_index t);
 

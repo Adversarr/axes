@@ -421,7 +421,6 @@ bool Graph::RemoveSocket(Socket* sock) {
   auto output = sock->output_;
   output->socket_in_id_ = invalid_id;
   auto uinfo = impl_->uuid_info_[sock->id_];
-  NodeBase* in_node = GetNode(output->node_id_);
   NodeBase* out_node = GetNode(sock->output_->node_id_);
   out_node->inputs_[output->node_io_index_].payload_ = nullptr;
 

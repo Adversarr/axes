@@ -39,11 +39,14 @@ void reload_file() {
   original_mesh_render.flush_= true;
   original_mesh_render.use_lighting_ = true;
 
-  auto & stylized_mesh_render = add_component<gl::Mesh>(mesh_ent, original_mesh_render);
-  add_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render));
+
+
+  auto & stylized_mesh_render = add_or_replace_component<gl::Mesh>(mesh_ent, original_mesh_render);
+  add_or_replace_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render));
   solver = std::make_unique<Solver>(obj_result.value());
 
   original_mesh_render.vertices_.row(2).array() += 1;
+  add_or_replace_component<gl::Lines>(original_ent, gl::Lines::Create(original_mesh_render));
 }
 
 void ui_callback(gl::UiRenderEvent) {
@@ -64,9 +67,7 @@ void ui_callback(gl::UiRenderEvent) {
   }
 
   if (ImGui::Button("Step Once")) {
-    auto const& m = get_component<SurfaceMesh>(mesh_ent);
     solver->Step(steps);
-
     auto& stylized_mesh_render = get_component<gl::Mesh>(mesh_ent);
     stylized_mesh_render.vertices_ = solver->GetResult().vertices_;
     stylized_mesh_render.flush_ = true;
@@ -110,12 +111,14 @@ int main(int argc, char** argv) {
   original_mesh_render.colors_.setConstant(4, mesh.vertices_.cols(), 0.6);
   original_mesh_render.use_lighting_ = true;
 
+
   // Render stylized one:
   auto & stylized_mesh_render = add_component<gl::Mesh>(mesh_ent, original_mesh_render);
   add_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render));
   solver = std::make_unique<Solver>(obj_result.value());
   
   original_mesh_render.vertices_.row(2).array() += 1;
+  add_component<gl::Lines>(original_ent, gl::Lines::Create(original_mesh_render));
   connect<gl::UiRenderEvent, &ui_callback>();
 
   AX_CHECK_OK(gl::enter_main_loop());

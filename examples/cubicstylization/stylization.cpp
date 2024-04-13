@@ -1,5 +1,7 @@
 #include "stylization.hpp"
 
+#include <tbb/parallel_for.h>
+
 #include "ax/geometry/normal.hpp"
 #include "ax/math/decomp/svd/import_eigen.hpp"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
@@ -27,7 +29,7 @@ vec3r shrinkage(const vec3r& v, real kappa) {
   return posmax - negmax;
 }
 
-void local_step(Problem& prob, idx i) {
+void local_step(Problem& prob, idx i, Solver& solver) {
   // For i-th...
   math::mat3r& Ri = prob.Ri[i];
   auto const& Di = prob.Di[i];
@@ -36,31 +38,21 @@ void local_step(Problem& prob, idx i) {
   auto const& Wi = prob.Wi[i];
 
   // fix coefficient
-  real rho = 1e-3, lambda = 1;
-  real tau = 2.0, mu = 10.0;
+  real rho = solver.rho_, lambda = solver.lambda_;
+  real tau = solver.tau_, mu = solver.mu_;
   vec3r zi, ui;
   zi.setZero();
-//  zi = Ri * ni;
   ui.setZero();
-  math::mat3xr Dl_mat, Dr_mat;
-  Dl_mat.resize(3, (idx)Di.size() + 1);
-  Dr_mat.resize(3, (idx)Di.size() + 1);
-  Dl_mat.col(Di.size()) = ni;
+  math::mat3r Mi_without_n = math::zeros<3, 3>();
   for (idx j = 0; j < (idx)Di.size(); ++j) {
-    Dl_mat.col(j) = Di0[j];
-    Dr_mat.col(j) = Di[j];
+    Mi_without_n += Wi[j] * Di0[j] * Di[j].transpose();
   }
-  math::matxxr diag = math::zeros(Di.size() + 1, Di.size() + 1);
-  for (idx j = 0; j < (idx)Di.size(); ++j) {
-    diag(j, j) = Wi[j];
-  }
+
   decomp::JacobiSvd<3, real> svd;
   for (idx it = 0; it < 100; ++it) {
     // Compute Ri.
-    math::mat3r Mi = math::zeros<3, 3>();
-    Dr_mat.col(Di.size()) = (zi - ui);
-    diag(Di.size(), Di.size()) = rho;
-    Mi = Dl_mat * diag * Dr_mat.transpose();
+    math::mat3r Mi = Mi_without_n;
+    Mi.noalias() += rho * ni * (zi - ui).transpose();
 
     // SVD
     auto result = svd.Solve(Mi);
@@ -71,7 +63,7 @@ void local_step(Problem& prob, idx i) {
         svd_r.U_.col(2) *= -1;
         Ri = svd_r.V_ * svd_r.U_.transpose();
     }
-    AX_CHECK(Ri.determinant() > 0);
+
     // z, u
     auto zi_last = zi;
     zi = shrinkage(Ri * ni + ui, lambda * prob.ai[i] / rho);
@@ -85,6 +77,10 @@ void local_step(Problem& prob, idx i) {
     } else if (s_norm > mu * r_norm) {
       rho /= tau;
       ui *= tau;
+    }
+
+    if (r_norm < 1e-6 && s_norm < 1e-6) {
+      break;
     }
   }
 }
@@ -146,10 +142,12 @@ void Solver::Step(idx steps) {
   // Do Local global
   for (idx i = 0; i < steps; ++i) {
     // Local Step, solve R, and get z.
-    for (idx v = 0; v < n_vert; ++v) {
+    tbb::parallel_for(tbb::blocked_range<idx>(0, n_vert, n_vert / 8), [&](const tbb::blocked_range<idx>& r) {
       // TODO: Use TBB.
-      local_step(problem, v);
-    }
+      for (idx v = r.begin(); v < r.end(); ++v) {
+        local_step(problem, v, *this);
+      }
+    });
 
     auto vert_result = mesh_.vertices_;
     // Strategy 1: Use Linsys
@@ -169,29 +167,7 @@ void Solver::Step(idx steps) {
     }
     vert_result = ldlt.Solve(b, b)->solution_.reshaped(3, n_vert).eval();
     AX_LOG(INFO) << "Global Iteration " << i << ": dx=" << norm(vert_result - mesh_.vertices_);
-    for (idx i = 2; i < n_vert; ++i) {
-      mesh_.vertices_.col(i) = vert_result.col(i);
-    }
-//    mesh_.vertices_ = vert_result;
-    // Strategy 2. Jacobi.
-//    math::field1r weight(n_vert); weight.setOnes();
-//    for (idx vi = 0; vi < n_vert; ++vi) {
-//      for (idx j = 0; j < problem.neighbours[vi].size(); ++ j) {
-//        idx vj = problem.neighbours[vi][j];
-//        math::vec3r xi = mesh_.vertices_.col(vi);
-//        math::vec3r xj = mesh_.vertices_.col(vj);
-//
-//        // ||xj - xi - Ri.T (x0j - x0i)||_(xj) = xj - xi - Ri.T (x0j - x0i) => xi = xj - residual.
-//        auto d0 = problem.Di0[vi][j];
-//        math::vec3r residual = (xj - problem.Ri[vi].transpose() * d0) * problem.Wi[vi][j];
-//        vert_result.col(vi) += residual;
-//        weight(0, vi) += problem.Wi[vi][j];
-//      }
-//    }
-//    for (idx i = 2; i < n_vert; ++i) {
-//      mesh_.vertices_.col(i) = vert_result.col(i) / weight(0, i);
-//    }
-
+    mesh_.vertices_ = vert_result;
 
     // Update Di
     std::for_each(problem.Di.begin(), problem.Di.end(), [](auto& v) { v.clear(); });

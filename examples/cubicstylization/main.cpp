@@ -15,19 +15,48 @@
 #include "stylization.hpp"
 
 using namespace ax;
-Entity mesh_ent;
+Entity mesh_ent, original_ent;
 std::string file;
 ABSL_FLAG(std::string, obj_file, "sphere_naive.obj", "The obj file to load");
 
-std::vector<math::field3r> cached_sequence;
+
+UPtr<Solver> solver{nullptr};
+
+void reload_file() {
+  auto obj_result = geo::read_obj( utils::get_asset("/mesh/obj/" + file));
+  if (! obj_result.ok()) {
+    AX_LOG(ERROR) << "Failed to load obj: " << std::quoted(file);
+    return;
+  }
+
+  auto& mesh = get_component<geo::SurfaceMesh>(mesh_ent) = obj_result.value();
+
+  auto& original_mesh_render = get_component<gl::Mesh>(original_ent);
+  original_mesh_render.vertices_ = mesh.vertices_;
+  original_mesh_render.indices_ = mesh.indices_;
+  original_mesh_render.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
+  original_mesh_render.colors_.setConstant(4, mesh.vertices_.cols(), 0.6);
+  original_mesh_render.flush_= true;
+  original_mesh_render.use_lighting_ = true;
+
+  auto & stylized_mesh_render = add_component<gl::Mesh>(mesh_ent, original_mesh_render);
+  add_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render));
+  solver = std::make_unique<Solver>(obj_result.value());
+
+  original_mesh_render.vertices_.row(2).array() += 1;
+}
 
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("Cubic Stylization");
   static int steps = 1, dp;
   ImGui::InputInt("Max Iteration", &steps);
-  if (ImGui::SliderInt("Display Iteration", &dp, 0, (int) cached_sequence.size() - 1)) {
+  ImGui::InputDouble("rho", &solver->rho_);
+  ImGui::InputDouble("lambda", &solver->lambda_);
+  ImGui::InputDouble("tau", &solver->tau_);
+  ImGui::InputDouble("mu", &solver->mu_);
+  if (ImGui::SliderInt("Display Iteration", &dp, 0, (int) solver->cached_sequence.size() - 1)) {
         auto& stylized_mesh_render = get_component<gl::Mesh>(mesh_ent);
-        stylized_mesh_render.vertices_ = cached_sequence[dp];
+        stylized_mesh_render.vertices_ = solver->cached_sequence[dp];
         stylized_mesh_render.flush_ = true;
 
         add_or_replace_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render))
@@ -36,16 +65,23 @@ void ui_callback(gl::UiRenderEvent) {
 
   if (ImGui::Button("Step Once")) {
     auto const& m = get_component<SurfaceMesh>(mesh_ent);
-    Solver solver{m};
-    solver.Step(steps);
-    cached_sequence = solver.cached_sequence;
+    solver->Step(steps);
 
     auto& stylized_mesh_render = get_component<gl::Mesh>(mesh_ent);
-    stylized_mesh_render.vertices_ = solver.GetResult().vertices_;
+    stylized_mesh_render.vertices_ = solver->GetResult().vertices_;
     stylized_mesh_render.flush_ = true;
 
     add_or_replace_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render))
     .flush_ = true;
+  }
+
+  static char buffer[LINE_MAX];
+  if (ImGui::InputText("File", buffer, LINE_MAX, ImGuiInputTextFlags_EnterReturnsTrue)) {
+    file = buffer;
+    AX_LOG(INFO) << "Loading file: " << std::quoted(file);
+  }
+  if (ImGui::Button("Reload")) {
+    reload_file();
   }
   ImGui::End();
 }
@@ -65,21 +101,21 @@ int main(int argc, char** argv) {
   auto& mesh = add_component<geo::SurfaceMesh>(mesh_ent, obj_result.value());
 
   // Render original one:
-  auto & original_mesh_render = add_component<gl::Mesh>(cmpt::create_named_entity("Original"));
+  original_ent = cmpt::create_named_entity("Original");
+  auto & original_mesh_render = add_component<gl::Mesh>(original_ent);
 
   original_mesh_render.vertices_ = mesh.vertices_;
   original_mesh_render.indices_ = mesh.indices_;
   original_mesh_render.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   original_mesh_render.colors_.setConstant(4, mesh.vertices_.cols(), 0.6);
-  original_mesh_render.flush_= true;
   original_mesh_render.use_lighting_ = true;
-  original_mesh_render.is_flat_ = true;
 
   // Render stylized one:
   auto & stylized_mesh_render = add_component<gl::Mesh>(mesh_ent, original_mesh_render);
+  add_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render));
+  solver = std::make_unique<Solver>(obj_result.value());
   
-  
-  original_mesh_render.vertices_.row(2).array() += 1.5;
+  original_mesh_render.vertices_.row(2).array() += 1;
   connect<gl::UiRenderEvent, &ui_callback>();
 
   AX_CHECK_OK(gl::enter_main_loop());

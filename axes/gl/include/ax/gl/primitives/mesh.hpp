@@ -16,7 +16,7 @@ public:
   void Flush();
   void FlushVerticesOnly();
 
-  bool flush_{false};
+  bool flush_{true};
   bool is_flat_{false};
   bool use_lighting_{false};
   bool use_global_model_{true};

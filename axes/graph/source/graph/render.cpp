@@ -4,6 +4,7 @@
 #include <imnode/imgui_node_editor.h>
 
 #include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/graph/executor.hpp"
 #include "ax/graph/graph.hpp"
@@ -100,10 +101,12 @@ void handle_inputs() {
         }
         if (sock.ok()) {
           auto s = sock.value();
-          AX_LOG(INFO) << "Created link: " << s->input_->node_id_ << ":"
-                       << s->input_->node_io_index_ << "->" << s->output_->node_id_ << ":"
-                       << s->output_->node_io_index_;
-          draw_socket(s);
+          if (s != nullptr) {
+            AX_LOG(INFO) << "Created link: " << s->input_->node_id_ << ":"
+                         << s->input_->node_io_index_ << "->" << s->output_->node_id_ << ":"
+                         << s->output_->node_io_index_;
+            draw_socket(s);
+          }
         }
       }
     }
@@ -305,6 +308,10 @@ void install_renderer(GraphRendererOptions opt) {
   connect<gl::ContextInitEvent, &init>();
   connect<gl::ContextDestroyEvent, &cleanup>();
   connect<gl::UiRenderEvent, &draw_once>();
+  add_clean_up_hook("Remove Graph", []() -> Status{
+    erase_resource<Graph>();
+    AX_RETURN_OK();
+  });
 }
 
 using WidgetMap = absl::flat_hash_map<std::type_index, CustomNodeRender>;

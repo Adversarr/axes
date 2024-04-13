@@ -17,18 +17,18 @@ public:
 
 TEST_CASE("Graph") {
   ax::init();
-  auto node_desc = NodeDescriptorFactory<Node>{}
+  auto node_desc = NodeDescriptorFactory<IntToString>{}
           .SetName("Node")
           .SetDescription("Node description")
-          .AddInput(PinDescriptor{typeid(int), "input", "input description"})
-          .AddOutput(PinDescriptor{typeid(int), "output", "output description"})
-          .AddOutput(PinDescriptor{typeid(std::string), "str out", "output description"})
+          .AddInput<int>("input", "input description")
+          .AddOutput<int>("output", "output description")
+          .AddOutput<int>("str out", "output description")
           .Finalize();
 
   details::factory_register(node_desc);
   Graph graph;
-  auto node1 = graph.AddNode(&node_desc);
-  auto node2 = graph.AddNode(&node_desc);
+  auto node1 = graph.AddNode(&node_desc).value();
+  auto node2 = graph.AddNode(&node_desc).value();
   CHECK(graph.CanConnectSocket(node1->GetId(), 0, node2->GetId(), 0));
   CHECK(!graph.CanConnectSocket(node1->GetId(), 1, node2->GetId(), 0));
 

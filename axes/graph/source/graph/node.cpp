@@ -17,7 +17,7 @@ using constructor_map = absl::flat_hash_map<std::string, NodeConstructor>;
 
 struct wrapper {
   absl::flat_hash_map<std::string, NodeDescriptor> desc_;
-  std::vector<std::string> namespace_and_names_;
+  std::vector<std::string> node_names_;
 };
 
 static inline absl::flat_hash_map<std::string, NodeDescriptor>& ensure_desc() {
@@ -31,13 +31,13 @@ NodeDescriptor const* factory_register(NodeDescriptor desc) {
   auto [it, b] = ensure_desc().try_emplace(desc.name_, desc);
   if (b) {
     AX_DLOG(INFO) << "NodeDescriptor: " << desc.name_ << " registered.";
-    ensure_resource<wrapper>().namespace_and_names_.emplace_back(desc.name_);
+    ensure_resource<wrapper>().node_names_.emplace_back(desc.name_);
   }
   return &it->second;
 }
 
 std::vector<std::string> const& get_node_names() {
-  return ensure_resource<wrapper>().namespace_and_names_;
+  return ensure_resource<wrapper>().node_names_;
 }
 
 NodeDescriptor const* get_node_descriptor(std::string name) {
@@ -62,11 +62,15 @@ UPtr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
 }
 
 // Some function have default implementation
-Status NodeBase::PreApply(idx) {
-  AX_RETURN_OK();
-}
+Status NodeBase::PreApply(idx) { AX_RETURN_OK(); }
 
 Status NodeBase::PostApply(idx) { AX_RETURN_OK(); }
+
+Status NodeBase::PreCompute() { AX_RETURN_OK(); }
+
+Status NodeBase::PostCompute() { AX_RETURN_OK(); }
+
+Status NodeBase::OnConnect(idx) { AX_RETURN_OK(); }
 
 Status NodeBase::OnConstruct() { AX_RETURN_OK(); }
 

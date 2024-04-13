@@ -8,6 +8,7 @@
 #include "ax/graph/executor.hpp"
 #include "ax/graph/graph.hpp"
 #include "ax/graph/node.hpp"
+#include "ax/graph/serial.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ed = ax::NodeEditor;
@@ -91,17 +92,18 @@ void handle_inputs() {
         idx outid = output_id.Get();
         auto input = g.GetPin(inid);
         auto output = g.GetPin(outid);
-        Socket* sock = nullptr;
+        StatusOr<Socket*> sock;
         if (input->is_input_) {
           sock = g.AddSocket(output, input);
         } else {
           sock = g.AddSocket(input, output);
         }
-        if (sock) {
-          AX_LOG(INFO) << "Created link: " << sock->input_->node_id_ << ":"
-                       << sock->input_->node_io_index_ << "->" << sock->output_->node_id_ << ":"
-                       << sock->output_->node_io_index_;
-          draw_socket(sock);
+        if (sock.ok()) {
+          auto s = sock.value();
+          AX_LOG(INFO) << "Created link: " << s->input_->node_id_ << ":"
+                       << s->input_->node_io_index_ << "->" << s->output_->node_id_ << ":"
+                       << s->output_->node_io_index_;
+          draw_socket(s);
         }
       }
     }
@@ -204,7 +206,10 @@ void handle_selection() {
       if (ImGui::MenuItem(name.c_str())) {
         auto desc = details::get_node_descriptor(name);
         if (desc) {
-          g.AddNode(desc);
+          auto status = g.AddNode(desc);
+          if (!status.ok()) {
+            AX_LOG(ERROR) << status;
+          }
         }
       }
     }
@@ -212,7 +217,10 @@ void handle_selection() {
     if (ImGui::IsKeyPressed(ImGuiKey_Enter) && front_name.size() > 0) {
       auto desc = details::get_node_descriptor(front_name);
       if (desc) {
-        g.AddNode(desc);
+        auto status = g.AddNode(desc);
+        if (!status.ok()) {
+          AX_LOG(ERROR) << status;
+        }
       }
       name_input[0] = 0;
       ImGui::CloseCurrentPopup();
@@ -225,10 +233,15 @@ void handle_selection() {
 
 static void draw_once(gl::UiRenderEvent) {
   auto& g = ensure_resource<Graph>();
-  static bool open;
   static bool has_cycle = GraphExecutorBase(g).HasCycle();
-  ImGui::Begin("Node editor", &open,
-               ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+  ImGui::SetNextWindowBgAlpha(0.7);
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::Begin(
+      "Node editor", nullptr,
+      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoMove);
+
+  static std::string message = "";
+  static int beg = 0, end = 1;
 
   if (has_cycle) {
     ImGui::Text("Cycle detected!");
@@ -246,21 +259,33 @@ static void draw_once(gl::UiRenderEvent) {
   ImGui::SameLine();
   if (ImGui::Button("Execute")) {
     auto executor = GraphExecutorBase(g);
-    auto status = executor.Execute(0);
+    auto status = executor.Execute(beg, end);
     if (!status.ok()) {
       AX_LOG(ERROR) << status;
+      message = status.message();
     }
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Export JSON")) {
+    Serializer ser(g);
+    auto json = ser.Serialize();
+    std::cout << json << std::endl;
   }
 
   ImGui::Separator();
+
   ed::SetCurrentEditor(context_);
   ed::Begin("Node editor", ImVec2(0.0, 0.0f));
   g.ForeachNode(draw_node);
   g.ForeachSocket(draw_socket);
   handle_inputs();
   handle_selection();
+
   ed::End();
   ed::SetCurrentEditor(nullptr);
+
+  ImGui::Separator();
+  ImGui::TextUnformatted(message.c_str());
   ImGui::End();
 }
 

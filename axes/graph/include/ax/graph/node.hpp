@@ -77,7 +77,9 @@ public:
     return *this;
   }
 
-  NodeDescriptor Finalize() { return descriptor_; }
+  NodeDescriptor Finalize() { 
+    return descriptor_;
+  }
 
   void FinalizeAndRegister() {
     details::factory_register(descriptor_);
@@ -95,6 +97,12 @@ public:
   virtual Status PreApply(idx frame_id);
   virtual Status PostApply(idx frame_id);
 
+  virtual Status PreCompute();
+  virtual Status PostCompute();
+
+  virtual Status OnConnect(idx in_io_index);
+
+
   // Call from Create().
   virtual Status OnConstruct();
   virtual Status OnDestroy();
@@ -107,6 +115,7 @@ public:
   idx GetId() const { return id_; }
   std::string GetName() const { return descriptor_->name_; }
   std::string GetDescription() const { return descriptor_->description_; }
+  NodeDescriptor const* GetDescriptor() const { return descriptor_; }
   TypeIdentifier GetType() const { return descriptor_->type_; }
 
   Pin const* GetInput(idx index) const { return &inputs_[index]; }
@@ -167,6 +176,7 @@ private:
 
   // Node should take care of the memory allocation of output params.
   std::vector<Pin> outputs_;
+  std::vector<Payload> output_payloads_;
 };
 
 }

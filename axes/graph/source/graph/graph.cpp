@@ -85,7 +85,8 @@ struct Graph::Impl {
       uinfo.real_id_ = (idx)nodes_.size();
       nodes_.push_back(std::move(n));
     } else {
-      AX_DCHECK(nodes_[uinfo.real_id_].get() == nullptr) << "You are trying to overwrite an existing node!";
+      AX_DCHECK(nodes_[uinfo.real_id_].get() == nullptr)
+          << "You are trying to overwrite an existing node!";
       nodes_[uinfo.real_id_] = std::move(n);
     }
 
@@ -111,7 +112,8 @@ struct Graph::Impl {
       uinfo.real_id_ = (idx)sockets_.size();
       sockets_.push_back(s);
     } else {
-      AX_DCHECK(sockets_[uinfo.real_id_].id_ == invalid_id) << "You are trying to overwrite an existing socket!";
+      AX_DCHECK(sockets_[uinfo.real_id_].id_ == invalid_id)
+          << "You are trying to overwrite an existing socket!";
       sockets_[uinfo.real_id_] = s;
     }
     node_to_sockets_[s.input_->node_id_].insert(s.id_);
@@ -124,7 +126,7 @@ struct Graph::Impl {
     node_to_sockets_[s.input_->node_id_].erase(uid);
     node_to_sockets_[s.output_->node_id_].erase(uid);
     s.id_ = invalid_id;
-    AX_LOG(INFO) << "Socket <uid=" << i << "> removed.";
+    AX_DLOG(INFO) << "Socket <uid=" << i << "> removed.";
     UuidRecycle(uid);
   }
 
@@ -150,7 +152,7 @@ struct Graph::Impl {
 Graph::Graph() { impl_ = std::make_unique<Impl>(); }
 Graph::~Graph() { Clear(); }
 
-NodeBase* Graph::AddNode(NodeDescriptor const* descriptor) {
+StatusOr<NodeBase*> Graph::AddNode(NodeDescriptor const* descriptor) {
   idx id = impl_->UuidStep(kNode);
   auto n = NodeBase::Create(descriptor, id);
   absl::InlinedVector<idx, 32> ids_used;
@@ -173,11 +175,15 @@ NodeBase* Graph::AddNode(NodeDescriptor const* descriptor) {
 
   // Construct the node Input and Output.
   idx count = 0;
+  n->inputs_.reserve(descriptor->inputs_.size());
+  n->outputs_.reserve(descriptor->outputs_.size());
+  n->output_payloads_.reserve(descriptor->outputs_.size());
+
   for (auto const& p_in_desc : descriptor->inputs_) {
     idx uid = impl_->UuidStep(kPin);
     ids_used.push_back(uid);
     AX_DLOG(INFO) << "Input Pin " << std::quoted(p_in_desc.name_) << " added. <uid=" << uid << ">";
-    n->inputs_.push_back(Pin{n->id_, count++, true, &p_in_desc, uid, nullptr});
+    n->inputs_.emplace_back(Pin{n->id_, count++, true, &p_in_desc, uid, nullptr});
   }
   count = 0;
   for (auto const& p_out_desc : descriptor->outputs_) {
@@ -185,13 +191,15 @@ NodeBase* Graph::AddNode(NodeDescriptor const* descriptor) {
     ids_used.push_back(uid);
     AX_DLOG(INFO) << "Output Pin " << std::quoted(p_out_desc.name_) << " added. <uid=" << uid
                   << ">";
-    n->outputs_.push_back(Pin{n->id_, count++, false, &p_out_desc, uid, nullptr});
+    n->output_payloads_.emplace_back(Payload::Create(p_out_desc.type_));
+    n->outputs_.emplace_back(Pin{n->id_, count++, false, &p_out_desc, uid, &n->output_payloads_.back()});
   }
+
 
   // Call the OnConstruct function.
   if (auto status = n->OnConstruct(); !status.ok()) {
     build_failed = true;
-    return nullptr;
+    return status;
   }
 
   // Everything is ok.
@@ -245,8 +253,7 @@ bool Graph::RemoveNode(idx id) {
                   << " (name: " << std::quoted(node->descriptor_->name_)
                   << ") encountered an error: " << status.message();
   }
-  if (auto it = impl_->node_to_sockets_.find(id) ;
-      it != impl_->node_to_sockets_.end()) {
+  if (auto it = impl_->node_to_sockets_.find(id); it != impl_->node_to_sockets_.end()) {
     auto copy = it->second;
     for (idx sock_id : copy) {
       RemoveSocket(sock_id);
@@ -258,7 +265,7 @@ bool Graph::RemoveNode(idx id) {
   return true;
 }
 
-Socket* Graph::AddSocket(Pin* input, Pin* output) {
+StatusOr<Socket*> Graph::AddSocket(Pin* input, Pin* output) {
   if (!input || !output) {
     return nullptr;
   }
@@ -266,20 +273,30 @@ Socket* Graph::AddSocket(Pin* input, Pin* output) {
     return nullptr;
   }
   if (auto existing_socket = GetSocket(output); existing_socket) {
-    AX_LOG(INFO) << "Socket on " << output->node_id_
+    AX_DLOG(INFO) << "Socket on " << output->node_id_
                  << " already exists! Remove before add a new one";
     RemoveSocket(existing_socket);
   }
 
   idx sock_id = impl_->UuidStep(kSocket);
   Socket socket{sock_id, input, output};
+
+  NodeBase* in_node = GetNode(input->node_id_);
+  NodeBase* out_node = GetNode(output->node_id_);
+
+  socket.output_->payload_ = &in_node->output_payloads_[input->node_io_index_];
+
+  // Set the input pin to the socket.
   impl_->EmplaceSocket(socket);
   output->socket_in_id_ = sock_id;
   AX_DLOG(INFO) << "Socket " << sock_id << " added. <" << input->id_ << "--" << output->id_ << ">";
+  if (auto s = out_node->OnConnect(socket.output_->node_io_index_); !s.ok()) {
+    return s;
+  }
   return &(impl_->sockets_[impl_->uuid_info_[sock_id].real_id_]);
 }
 
-Socket* Graph::AddSocket(idx input_pin, idx output_pin) {
+StatusOr<Socket*> Graph::AddSocket(idx input_pin, idx output_pin) {
   Pin *input = GetPin(input_pin), *output = GetPin(output_pin);
   if (!input || !output) {
     return nullptr;
@@ -287,7 +304,7 @@ Socket* Graph::AddSocket(idx input_pin, idx output_pin) {
   return AddSocket(input, output);
 }
 
-Socket* Graph::AddSocket(idx left, idx input_pin, idx right, idx output_pin) {
+StatusOr<Socket*> Graph::AddSocket(idx left, idx input_pin, idx right, idx output_pin) {
   NodeBase* data_in_node = GetNode(left);
   NodeBase* data_out_node = GetNode(right);
   // The node does not exist
@@ -314,8 +331,9 @@ bool Graph::CanConnectSocket(Pin const* input, Pin const* output) const {
     return false;
   }
   if (input->descriptor_->type_ != output->descriptor_->type_) {
-    AX_LOG(WARNING) << "Link is only available when the type is the same" << 
-      input->descriptor_->type_.name() << " != " << output->descriptor_->type_.name();
+    AX_LOG(WARNING) << "Link is only available when the type is the same"
+                    << input->descriptor_->type_.name()
+                    << " != " << output->descriptor_->type_.name();
     return false;
   }
   return true;
@@ -403,6 +421,10 @@ bool Graph::RemoveSocket(Socket* sock) {
   auto output = sock->output_;
   output->socket_in_id_ = invalid_id;
   auto uinfo = impl_->uuid_info_[sock->id_];
+  NodeBase* in_node = GetNode(output->node_id_);
+  NodeBase* out_node = GetNode(sock->output_->node_id_);
+  out_node->inputs_[output->node_io_index_].payload_ = nullptr;
+
   impl_->RemoveSocket(uinfo.real_id_);
   return sock;
 }
@@ -472,9 +494,13 @@ void Graph::Clear() {
   impl_ = std::make_unique<Impl>();
 }
 
-idx Graph::GetNumNodes() const { return (idx)(impl_->nodes_.size() - impl_->uuid_reuse_node_.size()); }
+idx Graph::GetNumNodes() const {
+  return (idx)(impl_->nodes_.size() - impl_->uuid_reuse_node_.size());
+}
 
-idx Graph::GetNumSockets() const { return (idx)impl_->sockets_.size() - impl_->uuid_reuse_socket_.size(); }
+idx Graph::GetNumSockets() const {
+  return (idx)impl_->sockets_.size() - impl_->uuid_reuse_socket_.size();
+}
 
 idx Graph::GetCurrentUuid() const { return impl_->uuid_next_; }
 
@@ -495,44 +521,6 @@ void Graph::ForeachSocket(std::function<void(Socket*)> const& func) {
 }
 
 void Graph::EnsurePayloads() {
-  impl_->payloads_.clear();
-  // We have to clearly know how much output pins there are!
-  size_t cnt_outs = 0;
-  for (auto& node: impl_->nodes_) {
-    if (! node) {
-      continue;
-    }
-    for (auto& outpin : node->outputs_) {
-      outpin.payload_ = nullptr;
-      cnt_outs += 1;
-    }
-    for (auto& inpin : node->inputs_) {
-      inpin.payload_ = nullptr;
-    }
-  }
-
-  impl_->payloads_.reserve(cnt_outs);
-  for (auto& node: impl_->nodes_) {
-    if (! node) {
-      continue;
-    }
-    for (auto& outpin : node->outputs_) {
-      auto& pld = impl_->payloads_.emplace_back(Payload::Create(outpin.descriptor_->type_));
-      outpin.payload_ = &pld;
-      AX_DCHECK(pld.Type() == outpin.descriptor_->type_) << "Type mismatch";
-    }
-  }
-  for (auto& node: impl_->nodes_) {
-    if (! node) {
-      continue;
-    }
-    for (auto& inpin : node->inputs_) {
-      if (inpin.socket_in_id_ != invalid_id) {
-        inpin.payload_ = GetSocket(inpin .socket_in_id_)->input_->payload_;
-      }
-    }
-  }
-  AX_DCHECK(impl_->payloads_.size() == cnt_outs);
 }
 
 }  // namespace ax::graph

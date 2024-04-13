@@ -19,14 +19,26 @@ Entity mesh_ent;
 std::string file;
 ABSL_FLAG(std::string, obj_file, "sphere_naive.obj", "The obj file to load");
 
+std::vector<math::field3r> cached_sequence;
+
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("Cubic Stylization");
-  static int steps = 1;
+  static int steps = 1, dp;
   ImGui::InputInt("Max Iteration", &steps);
+  if (ImGui::SliderInt("Display Iteration", &dp, 0, (int) cached_sequence.size() - 1)) {
+        auto& stylized_mesh_render = get_component<gl::Mesh>(mesh_ent);
+        stylized_mesh_render.vertices_ = cached_sequence[dp];
+        stylized_mesh_render.flush_ = true;
+
+        add_or_replace_component<gl::Lines>(mesh_ent, gl::Lines::Create(stylized_mesh_render))
+        .flush_ = true;
+  }
+
   if (ImGui::Button("Step Once")) {
     auto const& m = get_component<SurfaceMesh>(mesh_ent);
     Solver solver{m};
     solver.Step(steps);
+    cached_sequence = solver.cached_sequence;
 
     auto& stylized_mesh_render = get_component<gl::Mesh>(mesh_ent);
     stylized_mesh_render.vertices_ = solver.GetResult().vertices_;

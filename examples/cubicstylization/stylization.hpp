@@ -12,6 +12,7 @@ public:
 
   SurfaceMesh const & GetResult() const { return mesh_; }
 
+  std::vector<math::field3r> cached_sequence;
 private:
   SurfaceMesh mesh_;
 };

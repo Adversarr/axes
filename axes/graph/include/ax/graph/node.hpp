@@ -128,6 +128,15 @@ protected:
   // TODO: io.
   void* RetriveInput(idx index, std::type_index check_type);
 
+  template <typename T, typename ... Args>
+  T* SetOutput(idx index, Args && ... arg) {
+    T* p = RetriveOutput<T>(index);
+    if (p != nullptr) {
+      *p = T(std::forward<Args>(arg)...);
+    }
+    return p;
+  }
+
   template<typename T>
   T* RetriveInput(idx index) {
     if ((idx) inputs_.size() <= index || index < 0) {

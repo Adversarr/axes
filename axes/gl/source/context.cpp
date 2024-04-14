@@ -77,6 +77,11 @@ struct Context::Impl {
 };
 
 void Context::Impl::OnKey(const KeyboardEvent& evt) {
+  // Test if any imgui is focused
+  if (ImGui::GetIO().WantCaptureKeyboard) {
+    return;
+  }
+
   if (evt.action_ != GLFW_PRESS && evt.action_ != GLFW_REPEAT) {
     if (evt.key_ == GLFW_KEY_LEFT_SHIFT || evt.key_ == GLFW_KEY_RIGHT_SHIFT) {
       is_pressing_shft_key_ = false;
@@ -130,6 +135,10 @@ void Context::Impl::OnFramebufferSize(const FrameBufferSizeEvent& evt) {
 }
 
 void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
+  if (ImGui::GetIO().WantCaptureMouse) {
+    return;
+  }
+
   if (is_mouse_button_pressed_) {
     real dx = evt.pos_.x() - prev_cursor_pos_.x();
     real dy = prev_cursor_pos_.y() - evt.pos_.y();

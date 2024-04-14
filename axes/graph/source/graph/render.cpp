@@ -14,10 +14,31 @@
 
 namespace ed = ax::NodeEditor;
 
-static bool start_with(std::string const& str, const char* prefix, size_t size) {
-  return str.size() >= size && std::equal(prefix, prefix + size, str.begin(), [](char a, char b) {
-           return std::tolower(a) == std::tolower(b);
-         });
+inline bool match_char(char A, char B) {
+  return A == B || std::tolower(A) == std::tolower(B);
+}
+
+static bool partially_match(std::string const& str, const char* user_input, size_t length) {
+  if (length > str.length()) {
+    return false;
+  }
+
+  size_t j = 0, i = 0;
+  while (i < length) {
+    while (j < str.length()) {
+      if (match_char(str[j], user_input[i])) {
+        ++j;
+        break;
+      }
+      ++j;
+    }
+
+    if (j == str.length()) {
+      return str[j - 1] == user_input[i];
+    }
+    ++i;
+  }
+  return i >= length;
 }
 
 namespace ax::graph {
@@ -112,7 +133,6 @@ void handle_inputs() {
     }
   }
   ed::EndCreate();
-
   if (ed::BeginDelete()) {
     ed::LinkId link_id = 0;
     while (ed::QueryDeletedLink(&link_id)) {
@@ -202,7 +222,7 @@ void handle_selection() {
     }
 
     for (auto const& name : details::get_node_names()) {
-      if (!start_with(name, name_input, current_size)) {
+      if (!partially_match(name, name_input, current_size)) {
         continue;
       }
       if (front_name.empty()) {
@@ -227,7 +247,8 @@ void handle_selection() {
           AX_LOG(ERROR) << status;
         }
       }
-      std::fill(name_input, name_input + 256, 0);
+      name_input[0] = 0;
+      current_size = 0;
       ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
@@ -286,9 +307,17 @@ static void draw_once(gl::UiRenderEvent) {
   handle_inputs();
   handle_selection();
 
+  // Handle other keyboard shortcuts.
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() &&
+      !ImGui::IsMouseClicked(0)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
+      ImGui::OpenPopup("Create New Node");
+      std::cout << "Why you do not pop up ???" << std::endl;
+    }
+  }
+
   ed::End();
   ed::SetCurrentEditor(nullptr);
-
   ImGui::Separator();
   ImGui::TextUnformatted(message.c_str());
   ImGui::End();

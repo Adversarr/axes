@@ -88,6 +88,4 @@ IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp:
   dpdf -= lambda2 * (q2 * q2.transpose());
   return dpdf;
 }
-
-
 }

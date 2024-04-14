@@ -221,7 +221,7 @@ public:
       : NodeBase(descript, id) {}
   static void register_this() {
     NodeDescriptorFactory<Convert_bool_to_string>{}
-        .SetName("Cvt_"
+        .SetName("Convert_"
                  "bool"
                  "_to_string")
         .AddInput<bool>("input", "input value")

@@ -33,13 +33,6 @@ public:
         .AddOutput<Entity>("entity", "The entity that has the mesh component")
         .AddOutput<gl::Mesh>("gl_mesh", "Mesh in render.")
         .FinalizeAndRegister();
-
-    add_custom_node_render<Render_Mesh>([](NodeBase* node) {
-      auto* n = dynamic_cast<Render_Mesh*>(node);
-      draw_node_content_default(node);
-      ImGui::Checkbox("Flat", &n->is_flat_);
-      ImGui::Checkbox("Use Lighting", &n->use_lighting_);
-    });
   }
 
   Status Apply(idx) override {
@@ -90,14 +83,10 @@ public:
 
     if (flat != nullptr) {
       mesh_comp.is_flat_ = *flat;
-    } else {
-      mesh_comp.is_flat_ = is_flat_;
     }
 
     if (use_lighting != nullptr) {
       mesh_comp.use_lighting_ = *use_lighting;
-    } else {
-      mesh_comp.use_lighting_ = use_lighting_;
     }
 
     SetOutput<gl::Mesh>(1, mesh_comp);
@@ -112,8 +101,6 @@ public:
     }
     AX_RETURN_OK();
   }
-
-  bool is_flat_{false}, use_lighting_{true};
   Entity ent = entt::null;
 };
 

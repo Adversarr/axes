@@ -18,7 +18,7 @@ public:
 
   bool flush_{true};
   bool is_flat_{false};
-  bool use_lighting_{false};
+  bool use_lighting_{true};
   bool use_global_model_{true};
 };
 

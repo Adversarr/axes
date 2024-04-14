@@ -348,7 +348,7 @@ static void draw_once(gl::UiRenderEvent) {
   ImGui::SameLine();
   ImGui::SetNextItemWidth(100);
   ImGui::InputInt("End Frame", &end);
-  static char json_out_path[LINE_MAX] = "blueprint.json";
+  static char json_out_path[256] = "blueprint.json";
 
   ImGui::SameLine();
   bool need_export_json = ImGui::Button("Export JSON");
@@ -357,7 +357,7 @@ static void draw_once(gl::UiRenderEvent) {
 
   ImGui::Text("Rel: %s", utils::get_root_dir().c_str());
   ImGui::SameLine();
-  ImGui::InputText("/", json_out_path, LINE_MAX);
+  ImGui::InputText("/", json_out_path, 256);
   ImGui::SameLine();
 
   ImGui::Separator();

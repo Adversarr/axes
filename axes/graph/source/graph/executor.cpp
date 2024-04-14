@@ -70,7 +70,8 @@ std::vector<idx> GraphExecutorBase::TopologicalSort() {
   return result;
 }
 
-Status GraphExecutorBase::Execute(idx beg, idx end) {
+Status GraphExecutorBase::Execute(idx end) {
+  idx const beg = 0;
   if (beg > end) {
     return utils::InvalidArgumentError("Invalid frame range");
   }
@@ -94,12 +95,6 @@ Status GraphExecutorBase::Execute(idx beg, idx end) {
   }
 
   for (idx frame_id = beg; frame_id < end; ++frame_id) {
-    graph_.ForeachNode([&](NodeBase* n) { status.Update(n->PreApply(frame_id)); });
-
-    if (!status.ok()) {
-      AX_LOG(ERROR) << "Failed to run pre-apply!" << status.message();
-    }
-
     for (auto node_id : sorted) {
       auto node = graph_.GetNode(node_id);
       AX_DLOG(INFO) << "Executing node " << node_id;
@@ -107,11 +102,6 @@ Status GraphExecutorBase::Execute(idx beg, idx end) {
         AX_LOG(ERROR) << "Failed to execute node " << node_id << ": " << status;
         return status;
       }
-    }
-
-    graph_.ForeachNode([&](NodeBase* n) { status.Update(n->PostApply(frame_id)); });
-    if (!status.ok()) {
-      AX_LOG(ERROR) << "Failed to run post-apply!" << status.message();
     }
   }
 

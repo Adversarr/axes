@@ -23,6 +23,7 @@ namespace ax::nodes {
     static void register_this() {                                                          \
       NodeDescriptorFactory<Input_##class_name>{}                                          \
           .SetName("Input_" #class_name)                                                   \
+          .SetDescription("User Input for " #class_name)                                   \
           .AddOutput<class_name>("value", "value from input")                              \
           .FinalizeAndRegister();                                                          \
       add_custom_node_render(typeid(Input_##class_name), CustomNodeRender{[](NodeBase* n) {       \
@@ -32,9 +33,7 @@ auto node = dynamic_cast<Input_##class_name *>(n);
 DefineInputNodeBegin(int)
     auto* p_put = node->RetriveOutput<int>(0);
     ImGui::SetNextItemWidth(100);
-    ImGui::PushID(p_put);
     ImGui::InputInt("value", p_put);
-    ImGui::PopID();
     ImGui::SameLine();
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -44,9 +43,7 @@ DefineInputNodeEnd();
 DefineInputNodeBegin(real)
     auto* p_put = node->RetriveOutput<real>(0);
     ImGui::SetNextItemWidth(100);
-    ImGui::PushID(p_put);
     ImGui::InputDouble("value", p_put);
-    ImGui::PopID();
     ImGui::SameLine();
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -56,9 +53,7 @@ DefineInputNodeEnd();
 DefineInputNodeBegin(idx)
     auto* p_put = node->RetriveOutput<idx>(0);
     ImGui::SetNextItemWidth(100);
-    ImGui::PushID(p_put);
     ImGui::InputScalar("value", ImGuiDataType_S64, p_put);
-    ImGui::PopID();
     ImGui::SameLine();
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -68,9 +63,7 @@ DefineInputNodeEnd();
 DefineInputNodeBegin(bool)
     auto* p_put = node->RetriveOutput<bool>(0);
     ImGui::SetNextItemWidth(100);
-    ImGui::PushID(p_put);
     ImGui::Checkbox("value", p_put);
-    ImGui::PopID();
     ImGui::SameLine();
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -83,8 +76,8 @@ public:
       : NodeBase(descript, id) {}
   static void register_this() {
     NodeDescriptorFactory<Input_string>{}
-        .SetName("Input_"
-                 "string")
+        .SetName("Input_string")
+        .SetDescription("User Input for string")
         .AddOutput<string>("value", "value from input")
         .FinalizeAndRegister();
     add_custom_node_render(
@@ -92,12 +85,10 @@ public:
           auto node = dynamic_cast<Input_string *>(n);
           auto *p_put = node->RetriveOutput<std::string>(0);
           ImGui::SetNextItemWidth(100);
-          ImGui::PushID(p_put);
           if (ImGui::InputText("value", node->buffer, 256,
                                ImGuiInputTextFlags_EnterReturnsTrue)) {
             *p_put = node->buffer;
           }
-          ImGui::PopID();
           ImGui::SameLine();
           ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -117,6 +108,7 @@ private:
     static void register_this() {                                              \
       NodeDescriptorFactory<Convert_##from_type##_to_##to_type>{}              \
           .SetName("Convert_" #from_type "_to_" #to_type)                      \
+          .SetDescription("Convert " #from_type " to " #to_type)               \
           .AddInput<from_type>("input", "input value")                         \
           .AddOutput<to_type>("output", "output value")                        \
           .FinalizeAndRegister();                                              \
@@ -175,6 +167,7 @@ DefineConversionNodeBegin(idx, bool);
     static void register_this() { \
       NodeDescriptorFactory<Convert_string_to_##to_type>{} \
           .SetName("Convert_string_to_" #to_type) \
+          .SetDescription("Convert string to " #to_type) \
           .AddInput<string>("input", "input value") \
           .AddOutput<to_type>("output", "output value") \
           .FinalizeAndRegister(); \
@@ -245,16 +238,17 @@ public:
     Log_##type##_to_console_##severity(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {} \
     static void register_this() { \
       NodeDescriptorFactory<Log_##type##_to_console_##severity>{} \
-          .SetName("Log_" #type "_to_console_" #severity) \
+          .SetName("Log_" #type "_" #severity) \
+          .SetDescription("Log " #type " to console (" #severity ")") \
           .AddInput<type>("input", "input value") \
           .FinalizeAndRegister(); \
     } \
-    Status Apply(idx) override { \
+    Status Apply(idx f) override { \
       auto* p_get = RetriveInput<type>(0); \
       if (!p_get) { \
         return utils::InvalidArgumentError("input is null"); \
       } \
-      AX_LOG(severity) << #type " value: " << *p_get; \
+      AX_LOG(severity) << "Frame ID: " << f << #type " value: " << *p_get; \
       AX_RETURN_OK(); \
     } \
   }
@@ -275,46 +269,87 @@ DefineLogtoConsoleNode(idx, ERROR);
 DefineLogtoConsoleNode(string, ERROR);
 DefineLogtoConsoleNode(bool, ERROR);
 
-
-#define DefineOperatorForType(type, op, name) \
-  class Operator_##type##_##name : public NodeBase { \
-  public: \
+#define DefineOperatorForType(type, op, name)                                                    \
+  class Operator_##type##_##name : public NodeBase {                                             \
+  public:                                                                                        \
     Operator_##type##_##name(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {} \
-    static void register_this() { \
-      NodeDescriptorFactory<Operator_##type##_##name>{} \
-          .SetName(#type "_" #op) \
-          .AddInput<type>("input1", "input value 1") \
-          .AddInput<type>("input2", "input value 2") \
-          .AddOutput<type>("output", "output value") \
-          .FinalizeAndRegister(); \
-    } \
-    Status Apply(idx) override { \
-      auto* p_get1 = RetriveInput<type>(0); \
-      auto* p_get2 = RetriveInput<type>(1); \
-      if (!p_get1 || !p_get2) { \
-        return utils::InvalidArgumentError("input is null"); \
-      } \
-      auto* p_put = RetriveOutput<type>(0); \
-      *p_put = *p_get1 op *p_get2; \
-      AX_RETURN_OK(); \
-    } \
+    static void register_this() {                                                                \
+      NodeDescriptorFactory<Operator_##type##_##name>{}                                          \
+          .SetName(#type "_" #op)                                                                \
+          .SetDescription("Operation " #op " for " #type)                                        \
+          .AddInput<type>("input1", "input value 1")                                             \
+          .AddInput<type>("input2", "input value 2")                                             \
+          .AddOutput<type>("output", "output value")                                             \
+          .FinalizeAndRegister();                                                                \
+    }                                                                                            \
+    Status Apply(idx) override {                                                                 \
+      auto* p_get1 = RetriveInput<type>(0);                                                      \
+      auto* p_get2 = RetriveInput<type>(1);                                                      \
+      if (!p_get1 || !p_get2) {                                                                  \
+        return utils::InvalidArgumentError("input is null");                                     \
+      }                                                                                          \
+      auto* p_put = RetriveOutput<type>(0);                                                      \
+      *p_put = *p_get1 op * p_get2;                                                              \
+      AX_RETURN_OK();                                                                            \
+    }                                                                                            \
   }
 
 #define DefineAllOperatorsForType(type) \
-  DefineOperatorForType(type, +, add); \
-  DefineOperatorForType(type, -, sub); \
-  DefineOperatorForType(type, *, mul); \
+  DefineOperatorForType(type, +, add);  \
+  DefineOperatorForType(type, -, sub);  \
+  DefineOperatorForType(type, *, mul);  \
   DefineOperatorForType(type, /, div);
 
 DefineAllOperatorsForType(int);
 DefineAllOperatorsForType(real);
 DefineAllOperatorsForType(idx);
 
+class CreateEntity : public NodeBase {
+public:
+  CreateEntity(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+  static void register_this() {
+    NodeDescriptorFactory<CreateEntity>{}
+        .SetName("Create_Entity")
+        .SetDescription("Create an entity.")
+        .AddOutput<Entity>("entity", "The entity.")
+        .FinalizeAndRegister();
+
+    add_custom_node_render<CreateEntity>([](NodeBase* n) {
+      auto node = dynamic_cast<CreateEntity*>(n);
+      auto ent = node->ent_;
+
+      ImGui::Text("Entity: %d", entt::to_integral(ent));
+      ImGui::SameLine();
+      ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+      ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+      ed::EndPin();
+    });
+  }
+
+  Status OnConstruct() override {
+    ent_ = create_entity();
+    *RetriveOutput<Entity>(0) = ent_;
+    AX_RETURN_OK();
+  }
+
+  Status OnDestroy() override {
+    if (ent_ != entt::null) {
+      destroy_entity(ent_);
+    }
+    *RetriveOutput<Entity>(0) = ent_;
+    AX_RETURN_OK();
+  }
+
+private:
+  Entity ent_ = entt::null;
+};
+
 void register_stl_types() {
   Input_int::register_this();
   Input_real::register_this();
   Input_idx::register_this();
   Input_string::register_this();
+  Input_bool::register_this();
 
   Convert_int_to_idx::register_this();
   Convert_idx_to_int::register_this();
@@ -368,6 +403,8 @@ void register_stl_types() {
   Operator_idx_sub::register_this();
   Operator_idx_mul::register_this();
   Operator_idx_div::register_this();
+
+  CreateEntity::register_this();
 }
 
 }  // namespace ax::nodes

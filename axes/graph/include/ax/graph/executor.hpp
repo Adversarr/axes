@@ -10,7 +10,7 @@ public:
   virtual ~GraphExecutorBase() = default;
   GraphExecutorBase(Graph& graph) : graph_(graph) {}
 
-  virtual Status Execute(idx beg, idx end);
+  virtual Status Execute(idx end);
 
   std::map<idx, std::set<idx>> DependencyMap();
   std::vector<idx> TopologicalSort();

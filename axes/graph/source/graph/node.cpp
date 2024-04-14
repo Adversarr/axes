@@ -44,7 +44,7 @@ std::vector<std::string> const& get_node_names() {
   return w.node_names_;
 }
 
-NodeDescriptor const* get_node_descriptor(std::string name) {
+NodeDescriptor const* get_node_descriptor(const char* name) {
   auto& cmap = ensure_wrapper().desc_;
   auto it = cmap.find(name);
   if (it != cmap.end()) {
@@ -67,10 +67,6 @@ UPtr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
 
 // Some function have default implementation
 Status NodeBase::Apply(ax::idx) { AX_RETURN_OK(); }
-
-Status NodeBase::PreApply(idx) { AX_RETURN_OK(); }
-
-Status NodeBase::PostApply(idx) { AX_RETURN_OK(); }
 
 Status NodeBase::PreCompute() { AX_RETURN_OK(); }
 

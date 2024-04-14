@@ -47,4 +47,6 @@ void add_init_hook(const char* name, std::function<Status()> f);
  */
 void add_clean_up_hook(const char* name, std::function<Status()> f);
 
+const char* get_program_path();
+
 }  // namespace ax

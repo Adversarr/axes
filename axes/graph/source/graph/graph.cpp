@@ -313,8 +313,8 @@ StatusOr<Socket*> Graph::AddSocket(idx left, idx input_pin, idx right, idx outpu
     return nullptr;
   }
 
-  if (input_pin >= (idx)data_in_node->inputs_.size()
-      || output_pin >= (idx)data_out_node->outputs_.size()) {
+  if (input_pin >= (idx)data_in_node->outputs_.size()
+      || output_pin >= (idx)data_out_node->inputs_.size()) {
     AX_LOG(ERROR) << "Pin index out of range!";
     return nullptr;
   }

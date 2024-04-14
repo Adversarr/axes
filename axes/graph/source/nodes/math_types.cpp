@@ -25,7 +25,6 @@ class InputColor3f : public NodeBase {
 
       add_custom_node_render(typeid(InputColor3f), {[](NodeBase* node) {
           auto n = static_cast<InputColor3f*>(node);
-          ImGui::PushID(n);
           ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), 1.0f);
           ImGui::SetNextItemWidth(100);
           if (ImGui::ColorButton("Color Picker", color)) {
@@ -33,9 +32,7 @@ class InputColor3f : public NodeBase {
           }
           ed::Suspend();
           if (ImGui::BeginPopup("ColorPicker")) {
-            ImGui::PushID(n->color_.data());
             ImGui::ColorPicker3("Color", n->color_.data(), ImGuiColorEditFlags_Float);
-            ImGui::PopID();
             ImGui::EndPopup();
           }
           ed::Resume();
@@ -43,7 +40,6 @@ class InputColor3f : public NodeBase {
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
-          ImGui::PopID();
       }});
     }
 
@@ -68,7 +64,6 @@ class InputColor4f : public NodeBase {
 
       add_custom_node_render(typeid(InputColor4f), {[](NodeBase* node) {
           auto n = static_cast<InputColor4f*>(node);
-          ImGui::PushID(n);
           ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), n->color_.w());
           ImGui::SetNextItemWidth(100);
           if (ImGui::ColorButton("Color Picker", color)) {
@@ -77,9 +72,7 @@ class InputColor4f : public NodeBase {
 
           ed::Suspend();
           if (ImGui::BeginPopup("ColorPicker")) {
-            ImGui::PushID(n->color_.data());
             ImGui::ColorPicker4("Color", n->color_.data(), ImGuiColorEditFlags_Float);
-            ImGui::PopID();
             ImGui::EndPopup();
           }
           ed::Resume();
@@ -88,7 +81,6 @@ class InputColor4f : public NodeBase {
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
-          ImGui::PopID();
       }});
     }
 
@@ -99,38 +91,30 @@ class InputColor4f : public NodeBase {
     math::vec4f color_;
 };
 
-class Input2f : public NodeBase {
+class Input_Vec2r : public NodeBase {
   public:
-    Input2f(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+    Input_Vec2r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
     static void register_this() {
-      NodeDescriptorFactory<Input2f>()
-          .SetName("Input_2f")
+      NodeDescriptorFactory<Input_Vec2r>()
+          .SetName("Input_Vec2r")
           .SetDescription("Input a 2D vector")
           .AddOutput<math::vec2r>("vector", "The vector")
           .FinalizeAndRegister();
 
-      add_custom_node_render(typeid(Input2f), {[](NodeBase* node) {
-          auto n = static_cast<Input2f*>(node);
-          ImGui::SetNextItemWidth(200);
-          ImGui::PushID(n->vector_.data());
-          ImGui::InputFloat2("Vector", n->vector_.data());
-          ImGui::PopID();
-
+      add_custom_node_render(typeid(Input_Vec2r), {[](NodeBase* node) {
+          auto n = static_cast<Input_Vec2r*>(node);
+          auto *p = n->RetriveOutput<math::vec2r>(0);
+          ImGui::SetNextItemWidth(100);
+          ImGui::InputDouble("X", &(p->x()));
+          ImGui::SetNextItemWidth(100);
+          ImGui::InputDouble("Y", &(p->y()));
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
       }});
     }
-
-    Status Apply(idx) {
-      SetOutput<math::vec2r>(0, vector_.cast<real>());
-      AX_RETURN_OK();
-    }
-
-  private:
-    math::vec2f vector_;
 };
 
 class Input3f : public NodeBase {
@@ -139,7 +123,7 @@ class Input3f : public NodeBase {
 
     static void register_this() {
       NodeDescriptorFactory<Input3f>()
-          .SetName("Input_3f")
+          .SetName("Input_Vec3r")
           .SetDescription("Input a 3D vector")
           .AddOutput<math::vec3r>("out", "The vector")
           .FinalizeAndRegister();
@@ -147,10 +131,7 @@ class Input3f : public NodeBase {
       add_custom_node_render(typeid(Input3f), {[](NodeBase* node) {
           auto n = static_cast<Input3f*>(node);
           ImGui::SetNextItemWidth(300);
-          ImGui::PushID(n->vector_.data());
           ImGui::InputFloat3("Vector", n->vector_.data());
-          ImGui::PopID();
-
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -181,9 +162,7 @@ class Input4f : public NodeBase {
       add_custom_node_render(typeid(Input4f), {[](NodeBase* node) {
           auto n = static_cast<Input4f*>(node);
           ImGui::SetNextItemWidth(400);
-          ImGui::PushID(n->vector_.data());
           ImGui::InputFloat4("Vector", n->vector_.data());
-          ImGui::PopID();
 
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
@@ -237,7 +216,7 @@ class RealVectorGetIndex : public NodeBase {
 void register_math_types_nodes() {
   InputColor3f::register_this();
   InputColor4f::register_this();
-  Input2f::register_this();
+  Input_Vec2r::register_this();
   Input3f::register_this();
   Input4f::register_this();
 

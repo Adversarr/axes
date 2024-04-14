@@ -4,13 +4,17 @@
 
 #include <filesystem>
 
-ABSL_FLAG(std::string, ax_asset_dir, AX_ASSET_DIR, "Asset directory");
+ABSL_FLAG(std::string, ax_root, AX_ROOT_DIR, "Root directory for axes");
 
 namespace ax::utils {
 
 std::string get_asset_dir() { 
-  static std::string asset_dir = absl::GetFlag(FLAGS_ax_asset_dir);
-  return asset_dir;
+  return get_root_dir() + "/asset";
+}
+
+std::string get_root_dir() {
+  static std::string root_dir = absl::GetFlag(FLAGS_ax_root);
+  return root_dir;
 }
 
 std::string get_asset(std::string sub_path) { return get_asset_dir() + sub_path; }

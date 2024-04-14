@@ -28,6 +28,12 @@ struct Hook {
 List<Hook> init_hooks;
 List<Hook> clean_up_hooks;
 
+const char* program_path = nullptr;
+
+const char* get_program_path() {
+  return program_path;
+}
+
 /****************************** Implementation ******************************/
 
 void init(int argc, char** argv) {
@@ -38,6 +44,7 @@ void init(int argc, char** argv) {
   /****************************** Install the debuggers ******************************/
   AX_CHECK(argc > 0) << "argc must be greater than 0";
   absl::InitializeSymbolizer(argv[0]);
+  program_path = argv[0];
   FailureSignalHandlerOptions failure_signal_handler{};
   absl::InstallFailureSignalHandler(failure_signal_handler);
   init();

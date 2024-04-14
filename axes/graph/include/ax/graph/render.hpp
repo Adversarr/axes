@@ -11,12 +11,20 @@ struct GraphRendererOptions {};
  */
 void install_renderer(GraphRendererOptions opt = {});
 
+
+using RenderFn = std::function<void(NodeBase* )>;
 struct CustomNodeRender {
-  std::function<void(NodeBase* )> widget_;
+  RenderFn widget_;
 };
 
 void add_custom_node_render(std::type_index t, CustomNodeRender const& widget);
 
+template <typename Node> void add_custom_node_render(RenderFn const& widget) {
+  add_custom_node_render(typeid(Node), CustomNodeRender{widget});
+}
+
 CustomNodeRender const* get_custom_node_render(std::type_index t);
+
+void draw_node_content_default(NodeBase* node);
 
 }  // namespace ax::graph

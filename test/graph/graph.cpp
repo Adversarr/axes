@@ -34,14 +34,14 @@ TEST_CASE("Graph") {
 
   auto sock = graph.AddSocket(node1->GetId(), 0, node2->GetId(), 0);
   auto sock2 = graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0);
-  CHECK(sock != nullptr);
-  CHECK(sock == sock2);
+  CHECK(sock.value() != nullptr);
+  CHECK(sock.value() == sock2);
 
   graph.RemoveSocket(node1->GetId(), 0, node2->GetId(), 0);
   CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) == nullptr);
 
   sock = graph.AddSocket(node1->GetId(), 0, node2->GetId(), 0);
-  CHECK(sock != nullptr);
+  CHECK(sock.value() != nullptr);
   CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) != nullptr);
 
   graph.RemoveNode(node1->GetId());
@@ -52,12 +52,12 @@ TEST_CASE("Graph") {
   std::vector<idx> nodes;
   std::vector<Socket* > sockets;
   for (int i = 0; i < 10; i++) {
-    nodes.push_back(graph.AddNode(&node_desc)->GetId());
+    nodes.push_back(graph.AddNode(&node_desc).value()->GetId());
   }
   CHECK(graph.GetNumNodes() == 10);
   CHECK(graph.GetNumSockets() == 0);
   for (int i = 0; i < 9; ++i) {
-    sockets.push_back(graph.AddSocket(nodes[i], 0, nodes[i + 1], 0));
+    sockets.push_back(graph.AddSocket(nodes[i], 0, nodes[i + 1], 0).value());
   }
 
   // Erase 5, and 4-5, 5-6 should not exist.

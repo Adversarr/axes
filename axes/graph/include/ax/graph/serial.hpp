@@ -24,15 +24,17 @@ private:
 
 class Deserializer {
 public:
-        Deserializer(Graph& g);
+  Deserializer(Graph& g);
 
-        Status Deserialize(boost::json::object const& obj);
+  Status Deserialize(boost::json::object const& obj);
 
-        Graph& graph_;
-        std::map<idx, idx> node_id_map_;
-        std::map<idx, idx> socket_id_map_;
-        std::map<idx, boost::json::value> node_metadata_;
-        std::map<idx, boost::json::value> socket_metadata_;
+  Graph& graph_;
+  std::map<idx, idx> node_id_map_;
+  std::map<idx, idx> inverse_node_id_map_;
+  std::map<idx, idx> socket_id_map_;
+  std::map<idx, idx> inverse_socket_id_map_;
+  std::map<idx, boost::json::value> node_metadata_;
+  std::map<idx, boost::json::value> socket_metadata_;
 };
 
 }

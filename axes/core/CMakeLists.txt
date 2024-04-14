@@ -65,7 +65,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 ax_set_warn_levels(axes)
-target_compile_definitions(axes PRIVATE AX_ASSET_DIR="${AX_ASSET_DIR}")
+target_compile_definitions(axes PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")
 
 # Disable Exceptions
 if(AX_NO_EXCEPT)

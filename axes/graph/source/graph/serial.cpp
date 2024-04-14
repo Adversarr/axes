@@ -54,6 +54,7 @@ boost::json::object Serializer::Serialize() const {
 Deserializer::Deserializer(Graph &g) : graph_(g) {}
 
 Status Deserializer::Deserialize(boost::json::object const &obj) {
+  graph_.Clear();
   auto nodes = obj.at("nodes").as_array();
   auto sockets = obj.at("sockets").as_array();
 
@@ -66,8 +67,9 @@ Status Deserializer::Deserialize(boost::json::object const &obj) {
     }
     auto node = sornode.value();
     node_id_map_[id] = node->GetId();
+    inverse_node_id_map_[node->GetId()] = id;
     if (auto iter = node_obj.as_object().if_contains("meta");
-        iter != nullptr ) {
+        iter != nullptr) {
         node_metadata_[id] = *iter;
     }
   }
@@ -80,14 +82,17 @@ Status Deserializer::Deserialize(boost::json::object const &obj) {
     auto output_pin = socket_obj.at("output_pin").as_int64();
     auto in_node = node_id_map_[input_node];
     auto out_node = node_id_map_[output_node];
-    auto const input = graph_.GetNode(in_node);
-    auto const output = graph_.GetNode(out_node);
+    auto const* input = graph_.GetNode(in_node);
+    auto const* output = graph_.GetNode(out_node);
     auto socket = graph_.AddSocket(input->GetId(), input_pin,
                                    output->GetId(), output_pin);
-    if (!socket.ok()) {
+    if (!socket.ok() || socket.value() == nullptr) {
+      AX_LOG(ERROR) << "Failed to add socket: " << "I [" << input->GetId() << ":" << input_pin 
+                    << "] O [" << output->GetId() << ":" << output_pin << "]";
       return socket.status();
     }
     socket_id_map_[id] = socket.value()->id_;
+    inverse_socket_id_map_[socket.value()->id_] = id;
     if (auto iter = socket_obj.as_object().if_contains("meta");
         iter != nullptr) {
         socket_metadata_[id] = *iter;

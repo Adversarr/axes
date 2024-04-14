@@ -17,7 +17,7 @@ namespace details {
 
 NodeDescriptor const * factory_register(NodeDescriptor desc);
 
-NodeDescriptor const *get_node_descriptor(std::string name);
+NodeDescriptor const *get_node_descriptor(const char* name);
 
 std::vector<std::string> const& get_node_names();
 
@@ -94,11 +94,11 @@ public:
   virtual ~NodeBase() = default;
   // Core apply function, will be called by the graph system.
   virtual Status Apply(idx frame_id);
-  virtual Status PreApply(idx frame_id);
-  virtual Status PostApply(idx frame_id);
 
   virtual Status PreCompute();
   virtual Status PostCompute();
+  
+  // Reserved for future use
   virtual Status OnConnect(idx in_io_index);
 
 

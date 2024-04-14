@@ -111,7 +111,7 @@ if(${AX_ENABLE_TIME_TRACE})
 endif()
 
 # Default Asset Directory.
-set(AX_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/asset")
+set(AX_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 ##############################################################################################
 # Now, declare the library and executables.

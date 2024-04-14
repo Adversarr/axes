@@ -7,8 +7,8 @@
 namespace ax::graph {
 
 struct PinToNodeInfo {
-  idx node_id_ = invalid_id;
-  idx pin_id_ = invalid_id;
+  idx node_id_ = INVALID_ID;
+  idx pin_id_ = INVALID_ID;
   bool is_input_ = false;
 };
 

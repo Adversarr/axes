@@ -36,7 +36,7 @@ struct Graph::Impl {
   List<Payload> payloads_;
 
   Impl() {
-    uuid_info_.emplace_back(UuidUnderlyingInfo{kInvalid, invalid_id});
+    uuid_info_.emplace_back(UuidUnderlyingInfo{kInvalid, INVALID_ID});
     uuid_next_ = 1;
   }
 
@@ -72,7 +72,7 @@ struct Graph::Impl {
     }
 
     if (id >= (idx)uuid_info_.size()) {
-      uuid_info_.emplace_back(UuidUnderlyingInfo{underlying, invalid_id});
+      uuid_info_.emplace_back(UuidUnderlyingInfo{underlying, INVALID_ID});
     }
     return id;
   }
@@ -81,7 +81,7 @@ struct Graph::Impl {
     AX_DCHECK(n->id_ <= (idx)uuid_info_.size()) << "Internal Logic Error!";
     auto& uinfo = uuid_info_[n->id_];
     node_to_sockets_.insert({n->id_, std::set<idx>{}});
-    if (uinfo.real_id_ == invalid_id) {
+    if (uinfo.real_id_ == INVALID_ID) {
       uinfo.real_id_ = (idx)nodes_.size();
       nodes_.push_back(std::move(n));
     } else {
@@ -108,11 +108,11 @@ struct Graph::Impl {
   void EmplaceSocket(Socket s) {
     AX_DCHECK(s.id_ <= (idx)uuid_info_.size()) << "Internal Logic Error!";
     auto& uinfo = uuid_info_[s.id_];
-    if (uinfo.real_id_ == invalid_id) {
+    if (uinfo.real_id_ == INVALID_ID) {
       uinfo.real_id_ = (idx)sockets_.size();
       sockets_.push_back(s);
     } else {
-      AX_DCHECK(sockets_[uinfo.real_id_].id_ == invalid_id)
+      AX_DCHECK(sockets_[uinfo.real_id_].id_ == INVALID_ID)
           << "You are trying to overwrite an existing socket!";
       sockets_[uinfo.real_id_] = s;
     }
@@ -125,7 +125,7 @@ struct Graph::Impl {
     auto uid = s.id_;
     node_to_sockets_[s.input_->node_id_].erase(uid);
     node_to_sockets_[s.output_->node_id_].erase(uid);
-    s.id_ = invalid_id;
+    s.id_ = INVALID_ID;
     AX_DLOG(INFO) << "Socket <uid=" << i << "> removed.";
     UuidRecycle(uid);
   }
@@ -419,7 +419,7 @@ bool Graph::RemoveSocket(Socket* sock) {
     return false;
   }
   auto output = sock->output_;
-  output->socket_in_id_ = invalid_id;
+  output->socket_in_id_ = INVALID_ID;
   auto uinfo = impl_->uuid_info_[sock->id_];
   NodeBase* out_node = GetNode(sock->output_->node_id_);
   out_node->inputs_[output->node_io_index_].payload_ = nullptr;
@@ -446,7 +446,7 @@ bool Graph::RemoveSocket(idx input_node, idx input_pin, idx output_node, idx out
 
 Pin* Graph::GetPin(idx id) {
   auto pin_to_node_info = PinToNode(id);
-  if (pin_to_node_info.node_id_ == invalid_id || pin_to_node_info.pin_id_ == invalid_id) {
+  if (pin_to_node_info.node_id_ == INVALID_ID || pin_to_node_info.pin_id_ == INVALID_ID) {
     return nullptr;
   }
   NodeBase* node = GetNode(pin_to_node_info.node_id_);
@@ -461,11 +461,11 @@ Pin const* Graph::GetPin(idx id) const { return const_cast<Graph*>(this)->GetPin
 PinToNodeInfo Graph::PinToNode(idx pin_id) const {
   auto it = impl_->pin_to_node_.find(pin_id);
   if (it == impl_->pin_to_node_.end()) {
-    return {invalid_id, invalid_id, true};
+    return {INVALID_ID, INVALID_ID, true};
   } else {
     NodeBase const* node = GetNode(it->second);
     if (node == nullptr) {
-      return {invalid_id, invalid_id, true};
+      return {INVALID_ID, INVALID_ID, true};
     }
 
     for (auto const& pin : node->inputs_) {
@@ -480,7 +480,7 @@ PinToNodeInfo Graph::PinToNode(idx pin_id) const {
       }
     }
     AX_DLOG(ERROR) << "Internal Logic Error!";
-    return {node->id_, invalid_id, false};
+    return {node->id_, INVALID_ID, false};
   }
 }
 
@@ -513,7 +513,7 @@ void Graph::ForeachNode(std::function<void(NodeBase*)> const& func) {
 
 void Graph::ForeachSocket(std::function<void(Socket*)> const& func) {
   for (auto& sock : impl_->sockets_) {
-    if (sock.id_ != invalid_id) {
+    if (sock.id_ != INVALID_ID) {
       func(&sock);
     }
   }

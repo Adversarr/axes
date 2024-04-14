@@ -195,6 +195,8 @@ void handle_selection() {
     static char name_input[256]{0};
     static int current_size = 0;
     std::string front_name;
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+      ImGui::SetKeyboardFocusHere();
     if (ImGui::InputText("name", name_input, 256)) {
       current_size = strlen(name_input);
     }
@@ -225,7 +227,7 @@ void handle_selection() {
           AX_LOG(ERROR) << status;
         }
       }
-      name_input[0] = 0;
+      std::fill(name_input, name_input + 256, 0);
       ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();

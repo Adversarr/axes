@@ -5,7 +5,7 @@
 
 namespace ax::geo {
 
-constexpr idx invalid_idx = -1;
+constexpr idx INVALID_ID = -1;
 
 namespace details {
 /****************************** Node Definition ******************************/
@@ -16,9 +16,9 @@ template <idx dim> struct BVHNode {
   idx id_;
   BVHNode_p<dim> left_, right_;
 
-  bool IsLeaf() const { return id_ != invalid_idx; }
+  bool IsLeaf() const { return id_ != INVALID_ID; }
 
-  BVHNode(AlignedBoxN<dim> const& box, idx id = invalid_idx, BVHNode_p<dim> left = nullptr,
+  BVHNode(AlignedBoxN<dim> const& box, idx id = INVALID_ID, BVHNode_p<dim> left = nullptr,
           BVHNode_p<dim> right = nullptr)
       : box_(box), id_(id), left_(std::move(left)), right_(std::move(right)) {}
 
@@ -55,7 +55,7 @@ public:
     auto mid = begin + std::distance(begin, end) / 2;
     auto left = Build(begin, mid);
     auto right = Build(mid, end);
-    return std::make_unique<BVHNode<dim>>(box, invalid_idx, left, right);
+    return std::make_unique<BVHNode<dim>>(box, INVALID_ID, left, right);
   }
 };
 }  // namespace details

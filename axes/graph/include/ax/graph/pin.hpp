@@ -24,7 +24,7 @@ public:
 
 private:
   friend class Graph;
-  idx socket_in_id_ = invalid_id;
+  idx socket_in_id_ = INVALID_ID;
   Pin(idx node_id, idx node_io_index, bool is_input, desc_ptr descriptor, idx id,
       Payload* payload = nullptr)
       : node_id_(node_id),

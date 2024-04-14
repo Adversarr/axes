@@ -14,7 +14,7 @@ struct Pin;
 struct Socket;
 class NodeBase;
 
-constexpr idx invalid_id = -3407;
+constexpr idx INVALID_ID = -3407;
 
 struct Socket {
   Socket(idx id, Pin* input, Pin* out) : input_(input), output_(out), id_(id) {}

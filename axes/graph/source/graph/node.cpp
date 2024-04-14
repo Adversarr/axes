@@ -18,30 +18,34 @@ using constructor_map = absl::flat_hash_map<std::string, NodeConstructor>;
 struct wrapper {
   absl::flat_hash_map<std::string, NodeDescriptor> desc_;
   std::vector<std::string> node_names_;
+  bool is_sorted = true;
 };
 
-static inline absl::flat_hash_map<std::string, NodeDescriptor>& ensure_desc() {
-  if (auto res = ax::try_get_resource<wrapper>(); res != nullptr) {
-    return res->desc_;
-  } else {
-    return ax::add_resource<wrapper>().desc_;
-  }
+static inline wrapper& ensure_wrapper() {
+  return ensure_resource<wrapper>();
 }
 NodeDescriptor const* factory_register(NodeDescriptor desc) {
-  auto [it, b] = ensure_desc().try_emplace(desc.name_, desc);
+  auto &w = ensure_wrapper();
+  auto [it, b] = w.desc_.try_emplace(desc.name_, desc);
   if (b) {
     AX_DLOG(INFO) << "NodeDescriptor: " << desc.name_ << " registered.";
     ensure_resource<wrapper>().node_names_.emplace_back(desc.name_);
+    w.is_sorted = false;
   }
   return &it->second;
 }
 
 std::vector<std::string> const& get_node_names() {
-  return ensure_resource<wrapper>().node_names_;
+  auto &w = ensure_wrapper();
+  if (!w.is_sorted) {
+    std::sort(w.node_names_.begin(), w.node_names_.end());
+    w.is_sorted = true;
+  }
+  return w.node_names_;
 }
 
 NodeDescriptor const* get_node_descriptor(std::string name) {
-  auto& cmap = ensure_desc();
+  auto& cmap = ensure_wrapper().desc_;
   auto it = cmap.find(name);
   if (it != cmap.end()) {
     return &it->second;
@@ -52,7 +56,7 @@ NodeDescriptor const* get_node_descriptor(std::string name) {
 }  // namespace details
 
 UPtr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
-  auto& cmap = details::ensure_desc();
+  auto& cmap = details::ensure_wrapper().desc_;
   auto it = cmap.find(descript->name_);
   if (it != cmap.end()) {
     return (it->second).ctor_(descript, id);

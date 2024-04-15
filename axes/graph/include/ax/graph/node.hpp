@@ -7,6 +7,7 @@
 #include "ax/graph/payload.hpp"
 #include "ax/graph/pin.hpp"
 
+#include <boost/json/object.hpp>
 #include <vector>
 #include <string>
 
@@ -110,6 +111,9 @@ public:
   // entity to the scene, and use the internal renderer to render it.
   virtual Status CleanUp();
 
+  virtual boost::json::object Serialize() const;
+  virtual void Deserialize(boost::json::object const& obj);
+
   // Getters:
   idx GetId() const { return id_; }
   NodeDescriptor const* GetDescriptor() const { return descriptor_; }
@@ -151,6 +155,18 @@ protected:
 
   template<typename T>
   T* RetriveOutput(idx index) {
+    if ((idx) outputs_.size() <= index || index < 0) {
+      return nullptr;
+    }
+    if (Payload* p = outputs_[index].payload_; p != nullptr) {
+      return p->TryCast<T>();
+    } else {
+      return nullptr;
+    }
+  }
+
+  template<typename T>
+  T const* RetriveOutput(idx index) const {
     if ((idx) outputs_.size() <= index || index < 0) {
       return nullptr;
     }

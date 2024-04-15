@@ -54,7 +54,7 @@ GraphRendererOptions opt_;
 ed::EditorContext* context_;
 ed::PinId hovered_pin_;
 ed::NodeId hovered_node_;
-std::string ax_root;
+std::string ax_blueprint_root;
 bool is_open_;
 bool has_cycle;
 bool is_config_open_;
@@ -69,18 +69,22 @@ void draw_node_content_default(NodeBase* node) {
   auto const& out = node->GetOutputs();
   size_t n_max_io = std::max(in.size(), out.size());
   size_t n_max_name_size = 0;
-  std::for_each(in.begin(), in.end(), [&n_max_name_size](Pin const& p) {
-    n_max_name_size = std::max(n_max_name_size, p.descriptor_->name_.size());
-  });
-  std::for_each(out.begin(), out.end(), [&n_max_name_size](Pin const& p) {
-    n_max_name_size = std::max(n_max_name_size, p.descriptor_->name_.size());
-  });
+  for (size_t i = 0; i < n_max_io; ++i) {
+    size_t current_size = 0;
+    if (i < in.size()) {
+      current_size = in[i].descriptor_->name_.length();
+    }
+    if (i < out.size()) {
+      current_size += out[i].descriptor_->name_.length();
+    }
+    n_max_name_size = std::max(n_max_name_size, current_size);
+  }
   for (size_t i = 0; i < n_max_io; ++i) {
     if (i < in.size()) {
       ed::BeginPin(in[i].id_, ed::PinKind::Input);
-      std::string spacing(n_max_name_size - in[i].descriptor_->name_.size(), ' ');
+      // std::string spacing(n_max_name_size - in[i].descriptor_->name_.size(), ' ');
       // ed::PinPivotAlignment(ImVec2(0, 0.5));
-      ImGui::Text("-> %s %s", in[i].descriptor_->name_.c_str(), spacing.c_str());
+      ImGui::Text("-> %s", in[i].descriptor_->name_.c_str());
       ImGui::SameLine();
       ed::EndPin();
     } else {
@@ -91,9 +95,7 @@ void draw_node_content_default(NodeBase* node) {
     if (i < out.size()) {
       std::string spacing(n_max_name_size - out[i].descriptor_->name_.size(), ' ');
       ed::BeginPin(out[i].id_, ed::PinKind::Output);
-      ImGui::Indent();
       ImGui::Text("%s %s ->", spacing.c_str(), out[i].descriptor_->name_.c_str());
-      ImGui::Unindent();
       ed::EndPin();
     } else {
       ImGui::Text("    ");
@@ -202,9 +204,13 @@ static void handle_selection() {
 
   ed::Suspend();
   if (ed::ShowNodeContextMenu(&select_node0)) {
-    ImGui::OpenPopup("Node Context Menu");
+    if (select_node0.Get() > 0) {
+      ImGui::OpenPopup("Node Context Menu");
+    }
   } else if (ed::ShowLinkContextMenu(&select_link0)) {
-    ImGui::OpenPopup("Link Context Menu");
+    if (select_link0.Get() > 0) {
+      ImGui::OpenPopup("Link Context Menu");
+    }
   } else if (ed::ShowBackgroundContextMenu()) {
     ImGui::OpenPopup("Create New Node");
   }
@@ -285,7 +291,7 @@ static void export_json(std::ostream& out) {
   Serializer ser(g);
   g.ForeachNode([&](NodeBase* n) {
     ImVec2 pos = ed::GetNodePosition(n->GetId());
-    boost::json::object meta;
+    boost::json::object meta = n->Serialize();
     meta["canvas_x"] = pos.x;
     meta["canvas_y"] = pos.y;
     ser.SetNodeMetadata(n->GetId(), meta);
@@ -320,7 +326,8 @@ static void draw_config_window(gl::UiRenderEvent) {
   if (!is_config_open_) {
     return;
   }
-  if (!ImGui::Begin("Graph Commander", &is_config_open_)) {
+  if (!ImGui::Begin("Graph Commander", &is_config_open_,
+       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
     ImGui::End();
     return;
   }
@@ -372,7 +379,7 @@ static void draw_config_window(gl::UiRenderEvent) {
   ImGui::SameLine();
   need_load_json = ImGui::Button("Load");
   ImGui::SameLine();
-  ImGui::Text("Rel: %s", utils::get_root_dir().c_str());
+  ImGui::Text("Rel: %s", ax_blueprint_root.c_str());
   ImGui::InputText("Path", json_out_path, 64);
   ImGui::TextUnformatted(message.c_str());
   ImGui::End();
@@ -382,7 +389,8 @@ static void draw_once(gl::UiRenderEvent) {
   if (!is_open_) {
     return;
   }
-  if (!ImGui::Begin("Node editor", &is_open_)) {
+  if (!ImGui::Begin("Node editor", &is_open_,
+       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
     ImGui::End();
     return;
   }
@@ -392,7 +400,7 @@ static void draw_once(gl::UiRenderEvent) {
   ed::Begin("Node editor", ImVec2(0.0, 0.0f));
 
   if (need_load_json) {
-    std::ifstream file(ax_root + json_out_path);
+    std::ifstream file(ax_blueprint_root + json_out_path);
     if (!file) {
       AX_LOG(ERROR) << "Cannot open file: " << json_out_path;
     } else {
@@ -423,6 +431,7 @@ static void draw_once(gl::UiRenderEvent) {
           pos.x = obj.at("canvas_x").as_double();
           pos.y = obj.at("canvas_y").as_double();
           ed::SetNodePosition(node_id_in_graph, pos);
+          n->Deserialize(obj);
         }
       });
     }
@@ -435,7 +444,7 @@ static void draw_once(gl::UiRenderEvent) {
   handle_selection();
 
   if (need_export_json) {
-    std::ofstream file(ax_root + json_out_path);
+    std::ofstream file(ax_blueprint_root + json_out_path);
     if (!file) {
       AX_LOG(ERROR) << "Cannot open file: " << json_out_path;
     } else {
@@ -484,15 +493,15 @@ void on_menu_bar(gl::MainMenuBarRenderEvent) {
 
 void install_renderer(GraphRendererOptions opt) {
   opt_ = opt;
-  ax_root = utils::get_root_dir();
+  ax_blueprint_root = utils::get_root_dir();
   is_open_ = false;
   is_config_open_ = true;
-  for (auto& c : ax_root) {
+  for (auto& c : ax_blueprint_root) {
     if (c == '\\') {
       c = '/';
     }
   }
-  ax_root.push_back('/');
+  ax_blueprint_root = ax_blueprint_root + "/blueprints/";
   connect<gl::ContextInitEvent, &init>();
   connect<gl::ContextDestroyEvent, &cleanup>();
   connect<gl::UiRenderEvent, &draw_once>();

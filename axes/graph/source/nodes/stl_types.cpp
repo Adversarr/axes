@@ -19,6 +19,7 @@ namespace ax::nodes {
 #define DefineInputNodeBegin(class_name)                                                   \
   class Input_##class_name : public NodeBase {                                             \
   public:                                                                                  \
+    using T = class_name;\
     Input_##class_name(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {} \
     static void register_this() {                                                          \
       NodeDescriptorFactory<Input_##class_name>{}                                          \
@@ -28,7 +29,21 @@ namespace ax::nodes {
           .FinalizeAndRegister();                                                          \
       add_custom_node_render(typeid(Input_##class_name), CustomNodeRender{[](NodeBase* n) {       \
 auto node = dynamic_cast<Input_##class_name *>(n);
-#define DefineInputNodeEnd() }});}}
+#define DefineInputNodeEnd(method)                         \
+  }                                                  \
+  });          \
+  }                                                  \
+  boost::json::object Serialize() const {            \
+    boost::json::object obj;                         \
+    obj["value"] = *RetriveOutput<T>(0);             \
+    return obj;                                      \
+  }                                                  \
+  void Deserialize(boost::json::object const& obj) { \
+    if (obj.contains("value")) {                     \
+      *RetriveOutput<T>(0) = obj.at("value").method(); \
+    }                                                 \
+  }                                                  \
+  }
 
 DefineInputNodeBegin(int)
     auto* p_put = node->RetriveOutput<int>(0);
@@ -38,7 +53,7 @@ DefineInputNodeBegin(int)
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
     ed::EndPin();
-DefineInputNodeEnd();
+DefineInputNodeEnd(as_int64);
 
 DefineInputNodeBegin(real)
     auto* p_put = node->RetriveOutput<real>(0);
@@ -48,7 +63,7 @@ DefineInputNodeBegin(real)
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
     ed::EndPin();
-DefineInputNodeEnd();
+DefineInputNodeEnd(as_double);
 
 DefineInputNodeBegin(idx)
     auto* p_put = node->RetriveOutput<idx>(0);
@@ -58,7 +73,7 @@ DefineInputNodeBegin(idx)
     ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
     ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
     ed::EndPin();
-DefineInputNodeEnd();
+DefineInputNodeEnd(as_int64);
 
 class Input_bool : public NodeBase {
 public:
@@ -88,6 +103,18 @@ public:
     *RetriveOutput<bool>(0) = false;
     AX_RETURN_OK();
   }
+
+  boost::json::object Serialize() const override {
+    boost::json::object obj;
+    obj["value"] = *RetriveOutput<bool>(0);
+    return obj;
+  }
+
+  void Deserialize(boost::json::object const& obj) override {
+    if (obj.contains("value")) {
+      *RetriveOutput<bool>(0) = obj.at("value").as_bool();
+    }
+  }
 };
 
 class Input_string : public NodeBase {
@@ -113,6 +140,18 @@ public:
                                          n->GetOutputs()[0].descriptor_->name_.c_str());
                              ed::EndPin();
                            }});
+  }
+
+  boost::json::object Serialize() const override {
+    boost::json::object obj;
+    obj["value"] = *RetriveOutput<string>(0);
+    return obj;
+  }
+
+  void Deserialize(boost::json::object const& obj) override {
+    if (obj.contains("value")) {
+      *RetriveOutput<string>(0) = obj.at("value").as_string().c_str();
+    }
   }
 
 private:
@@ -142,19 +181,19 @@ private:
     }                                                                          \
   }
 
-      DefineConversionNodeBegin(int, idx);
-      DefineConversionNodeBegin(idx, int);
-      DefineConversionNodeBegin(int, real);
-      DefineConversionNodeBegin(real, int);
-      DefineConversionNodeBegin(real, idx);
-      DefineConversionNodeBegin(idx, real);
+DefineConversionNodeBegin(int, idx);
+DefineConversionNodeBegin(idx, int);
+DefineConversionNodeBegin(int, real);
+DefineConversionNodeBegin(real, int);
+DefineConversionNodeBegin(real, idx);
+DefineConversionNodeBegin(idx, real);
 
-      DefineConversionNodeBegin(bool, int);
-      DefineConversionNodeBegin(int, bool);
-      DefineConversionNodeBegin(bool, real);
-      DefineConversionNodeBegin(real, bool);
-      DefineConversionNodeBegin(bool, idx);
-      DefineConversionNodeBegin(idx, bool);
+DefineConversionNodeBegin(bool, int);
+DefineConversionNodeBegin(int, bool);
+DefineConversionNodeBegin(bool, real);
+DefineConversionNodeBegin(real, bool);
+DefineConversionNodeBegin(bool, idx);
+DefineConversionNodeBegin(idx, bool);
 
 #define DefineConvertionToString(from_type) \
   class Convert_##from_type##_to_string : public NodeBase { \
@@ -201,46 +240,46 @@ private:
     } \
   }
 
-      DefineConvertionToString(int);
-      DefineConvertionToString(real);
-      DefineConvertionToString(idx);
-      DefineConvertionFromString(int, std::stoi);
-      DefineConvertionFromString(real, std::stod);
-      DefineConvertionFromString(idx, std::stoll);
+DefineConvertionToString(int);
+DefineConvertionToString(real);
+DefineConvertionToString(idx);
+DefineConvertionFromString(int, std::stoi);
+DefineConvertionFromString(real, std::stod);
+DefineConvertionFromString(idx, std::stoll);
 
-      bool from_string_to_bool(string const& str) { return str == "true"; }
+bool from_string_to_bool(string const& str) { return str == "true"; }
 
-      bool from_int_to_bool(int const& i) { return i != 0; }
+bool from_int_to_bool(int const& i) { return i != 0; }
 
-      int from_bool_to_int(bool const& b) { return b ? 1 : 0; }
+int from_bool_to_int(bool const& b) { return b ? 1 : 0; }
 
-      string from_bool_to_string(bool const& b) { return b ? "true" : "false"; }
+string from_bool_to_string(bool const& b) { return b ? "true" : "false"; }
 
-      DefineConvertionFromString(bool, from_string_to_bool);
+DefineConvertionFromString(bool, from_string_to_bool);
 
-      class Convert_bool_to_string : public NodeBase {
-      public:
-        Convert_bool_to_string(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
-        static void register_this() {
-          NodeDescriptorFactory<Convert_bool_to_string>{}
-              .SetName(
-                  "Convert_"
-                  "bool"
-                  "_to_string")
-              .AddInput<bool>("input", "input value")
-              .AddOutput<string>("output", "output value")
-              .FinalizeAndRegister();
-        }
-        Status Apply(idx) override {
-          auto* p_get = RetriveInput<bool>(0);
-          if (!p_get) {
-            return utils ::InvalidArgumentError("input is null");
-          }
-          auto* p_put = RetriveOutput<string>(0);
-          *p_put = from_bool_to_string(*p_get);
-          AX_RETURN_OK();
-        }
-      };
+class Convert_bool_to_string : public NodeBase {
+public:
+  Convert_bool_to_string(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+  static void register_this() {
+    NodeDescriptorFactory<Convert_bool_to_string>{}
+        .SetName(
+            "Convert_"
+            "bool"
+            "_to_string")
+        .AddInput<bool>("input", "input value")
+        .AddOutput<string>("output", "output value")
+        .FinalizeAndRegister();
+  }
+  Status Apply(idx) override {
+    auto* p_get = RetriveInput<bool>(0);
+    if (!p_get) {
+      return utils ::InvalidArgumentError("input is null");
+    }
+    auto* p_put = RetriveOutput<string>(0);
+    *p_put = from_bool_to_string(*p_get);
+    AX_RETURN_OK();
+  }
+};
 
 #define DefineLogtoConsoleNode(type, severity) \
   class Log_##type##_to_console_##severity : public NodeBase { \
@@ -263,21 +302,21 @@ private:
     } \
   }
 
-      DefineLogtoConsoleNode(int, INFO);
-      DefineLogtoConsoleNode(real, INFO);
-      DefineLogtoConsoleNode(idx, INFO);
-      DefineLogtoConsoleNode(string, INFO);
-      DefineLogtoConsoleNode(bool, INFO);
-      DefineLogtoConsoleNode(int, WARNING);
-      DefineLogtoConsoleNode(real, WARNING);
-      DefineLogtoConsoleNode(idx, WARNING);
-      DefineLogtoConsoleNode(string, WARNING);
-      DefineLogtoConsoleNode(bool, WARNING);
-      DefineLogtoConsoleNode(int, ERROR);
-      DefineLogtoConsoleNode(real, ERROR);
-      DefineLogtoConsoleNode(idx, ERROR);
-      DefineLogtoConsoleNode(string, ERROR);
-      DefineLogtoConsoleNode(bool, ERROR);
+DefineLogtoConsoleNode(int, INFO);
+DefineLogtoConsoleNode(real, INFO);
+DefineLogtoConsoleNode(idx, INFO);
+DefineLogtoConsoleNode(string, INFO);
+DefineLogtoConsoleNode(bool, INFO);
+DefineLogtoConsoleNode(int, WARNING);
+DefineLogtoConsoleNode(real, WARNING);
+DefineLogtoConsoleNode(idx, WARNING);
+DefineLogtoConsoleNode(string, WARNING);
+DefineLogtoConsoleNode(bool, WARNING);
+DefineLogtoConsoleNode(int, ERROR);
+DefineLogtoConsoleNode(real, ERROR);
+DefineLogtoConsoleNode(idx, ERROR);
+DefineLogtoConsoleNode(string, ERROR);
+DefineLogtoConsoleNode(bool, ERROR);
 
 #define DefineOperatorForType(type, op, name)                                                    \
   class Operator_##type##_##name : public NodeBase {                                             \

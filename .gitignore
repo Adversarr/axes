@@ -11,3 +11,4 @@ imgui.ini
 build*
 sdk
 __pycache__
+NodeEditor.json

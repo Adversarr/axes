@@ -80,6 +80,15 @@ Status NodeBase::OnDestroy() { AX_RETURN_OK(); }
 
 Status NodeBase::CleanUp() { AX_RETURN_OK(); }
 
+boost::json::object NodeBase::Serialize() const {
+  return {};
+}
+
+void NodeBase::Deserialize(boost::json::object const&) {
+  // nothing to do.
+}
+
+
 NodeBase::NodeBase(NodeDescriptor const* descriptor, idx id) : descriptor_(descriptor), id_(id) {}
 
 }  // namespace ax::graph

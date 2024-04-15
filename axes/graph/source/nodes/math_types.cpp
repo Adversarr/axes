@@ -12,19 +12,23 @@ namespace ed = ax::NodeEditor;
 namespace ax::nodes {
 using namespace graph;
 
-class InputColor3f : public NodeBase {
+const char names [4][2]  = {
+  "x", "y", "z", "w"
+};
+
+class InputColor3r : public NodeBase {
   public:
-    InputColor3f(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+    InputColor3r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
     static void register_this() {
-      NodeDescriptorFactory<InputColor3f>()
-          .SetName("Input_color3f")
+      NodeDescriptorFactory<InputColor3r>()
+          .SetName("Input_color3r")
           .SetDescription("Input a color")
           .AddOutput<math::vec3r>("out", "The color")
           .FinalizeAndRegister();
 
-      add_custom_node_render(typeid(InputColor3f), {[](NodeBase* node) {
-          auto n = static_cast<InputColor3f*>(node);
+      add_custom_node_render(typeid(InputColor3r), {[](NodeBase* node) {
+          auto n = static_cast<InputColor3r*>(node);
           ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), 1.0f);
           ImGui::SetNextItemWidth(100);
           if (ImGui::ColorButton("Color Picker", color)) {
@@ -51,19 +55,19 @@ class InputColor3f : public NodeBase {
     math::vec3f color_;
 };
 
-class InputColor4f : public NodeBase {
+class InputColor4r : public NodeBase {
   public:
-    InputColor4f(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+    InputColor4r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
     static void register_this() {
-      NodeDescriptorFactory<InputColor4f>()
-          .SetName("Input_color4f")
+      NodeDescriptorFactory<InputColor4r>()
+          .SetName("Input_color4r")
           .SetDescription("Input a color")
           .AddOutput<math::vec4r>("out", "The color")
           .FinalizeAndRegister();
 
-      add_custom_node_render(typeid(InputColor4f), {[](NodeBase* node) {
-          auto n = static_cast<InputColor4f*>(node);
+      add_custom_node_render(typeid(InputColor4r), {[](NodeBase* node) {
+          auto n = static_cast<InputColor4r*>(node);
           ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), n->color_.w());
           ImGui::SetNextItemWidth(100);
           if (ImGui::ColorButton("Color Picker", color)) {
@@ -97,87 +101,78 @@ class Input_Vec2r : public NodeBase {
 
     static void register_this() {
       NodeDescriptorFactory<Input_Vec2r>()
-          .SetName("Input_Vec2r")
+          .SetName("Input_vec2r")
           .SetDescription("Input a 2D vector")
           .AddOutput<math::vec2r>("vector", "The vector")
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(Input_Vec2r), {[](NodeBase* node) {
           auto n = static_cast<Input_Vec2r*>(node);
-          auto *p = n->RetriveOutput<math::vec2r>(0);
-          ImGui::SetNextItemWidth(100);
-          ImGui::InputDouble("X", &(p->x()));
-          ImGui::SetNextItemWidth(100);
-          ImGui::InputDouble("Y", &(p->y()));
+          auto *p_out = n->RetriveOutput<math::vec2r>(0);
+          for (int i = 0; i < 2; i++) {
+            ImGui::SetNextItemWidth(100);
+            ImGui::InputDouble(names[i], p_out->data() + i);
+          }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
       }});
     }
+
+
 };
 
-class Input3f : public NodeBase {
+class Input_Vec3r : public NodeBase {
   public:
-    Input3f(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+    Input_Vec3r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
     static void register_this() {
-      NodeDescriptorFactory<Input3f>()
-          .SetName("Input_Vec3r")
+      NodeDescriptorFactory<Input_Vec3r>()
+          .SetName("Input_vec3r")
           .SetDescription("Input a 3D vector")
           .AddOutput<math::vec3r>("out", "The vector")
           .FinalizeAndRegister();
 
-      add_custom_node_render(typeid(Input3f), {[](NodeBase* node) {
-          auto n = static_cast<Input3f*>(node);
-          ImGui::SetNextItemWidth(300);
-          ImGui::InputFloat3("Vector", n->vector_.data());
+      add_custom_node_render(typeid(Input_Vec3r), {[](NodeBase* node) {
+          auto n = static_cast<Input_Vec3r*>(node);
+          auto* p_out = n->RetriveOutput<math::vec3r>(0);
+          for (int i = 0; i < 3; i++) {
+            ImGui::SetNextItemWidth(100);
+            ImGui::InputDouble(names[i], p_out->data() + i);
+          }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
       }});
     }
-
-    Status Apply(idx) {
-      SetOutput<math::vec3r>(0, vector_.cast<real>());
-      AX_RETURN_OK();
-    }
-
-  private:
-    math::vec3f vector_;
 };
 
-class Input4f : public NodeBase {
+class Input_Vec4r : public NodeBase {
   public:
-    Input4f(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+    Input_Vec4r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
     static void register_this() {
-      NodeDescriptorFactory<Input4f>()
-          .SetName("Input_4f")
+      NodeDescriptorFactory<Input_Vec4r>()
+          .SetName("Input_vec4r")
           .SetDescription("Input a 4D vector")
           .AddOutput<math::vec4r>("out", "The vector")
           .FinalizeAndRegister();
 
-      add_custom_node_render(typeid(Input4f), {[](NodeBase* node) {
-          auto n = static_cast<Input4f*>(node);
-          ImGui::SetNextItemWidth(400);
-          ImGui::InputFloat4("Vector", n->vector_.data());
-
+      add_custom_node_render(typeid(Input_Vec4r), {[](NodeBase* node) {
+          auto n = static_cast<Input_Vec4r*>(node);
+          auto* p_out = n->RetriveOutput<math::vec4r>(0);
+          for (int i = 0; i < 4; i++) {
+            ImGui::SetNextItemWidth(100);
+            ImGui::InputDouble(names[i], p_out->data() + i);
+          }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
           ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
       }});
     }
-
-    Status Apply(idx) {
-      SetOutput<math::vec4r>(0, vector_.cast<real>());
-      AX_RETURN_OK();
-    }
-
-  private:
-    math::vec4f vector_;
 };
 
 template<idx dim>
@@ -212,17 +207,198 @@ class RealVectorGetIndex : public NodeBase {
     }
 };
 
+template<idx from, idx to>
+class ExpandField : public NodeBase {
+  public:
+    ExpandField(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<ExpandField<from, to>> fact;
+      fact.SetName("Expand_field_" + std::to_string(from) + "r_to_" + std::to_string(to) + "r")
+          .SetDescription("Expand a vector field")
+          .template AddInput<math::fieldr<from>>("vec", "The vector")
+          .template AddOutput<math::fieldr<to>>("out", "The expanded vector");
+      for (idx i = from; i < to; i++) {
+        fact.template AddInput<real>("dim" + std::to_string(i), "The value of dimension " + std::to_string(i));
+      }
+      fact.FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      auto* in_field = RetriveInput<math::fieldr<from>>(0);
+      if (in_field == nullptr) {
+        return utils::FailedPreconditionError("Input field is not set");
+      }
+      math::fieldr<to> out_field(to, in_field->cols());
+      for (idx i = 0; i < from; i++) {
+        out_field.row(i) = in_field->row(i);
+      }
+
+      for (idx i = 1; i < to - from; i++) {
+        auto* dim = RetriveInput<real>(i);
+        if (dim == nullptr) {
+          out_field.row(i).setZero();
+        } else {
+          out_field.row(i).setConstant(*dim);
+        }
+      }
+
+      SetOutput<math::fieldr<to>>(0, std::move(out_field));
+      AX_RETURN_OK();
+    }
+};
+
+template<idx dim>
+class ElementWiseAffineTransform : public NodeBase {
+public:
+  ElementWiseAffineTransform(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<ElementWiseAffineTransform>()
+        .SetName("Elemwise_field_aft_" + std::to_string(dim))
+        .SetDescription("Elementwise affine transform")
+        .template AddInput<math::fieldr<dim>>("in", "Input field")
+        .template AddInput<math::vecr<dim>>("scale", "Scale")
+        .template AddInput<math::vecr<dim>>("shift", "Shift")
+        .template AddOutput<math::fieldr<dim>>("out", "Output field")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto* in = RetriveInput<math::fieldr<dim>>(0);
+    auto* scale = RetriveInput<math::vecr<dim>>(1);
+    auto* shift = RetriveInput<math::vecr<dim>>(2);
+    if (in == nullptr) {
+      return utils::FailedPreconditionError("Input field is not set");
+    }
+    if (scale == nullptr) {
+      return utils::FailedPreconditionError("Scale is not set");
+    }
+    math::fieldr<dim> out(dim, in->cols());
+    for (idx i = 0; i < dim; i++) {
+      out.row(i) = in->row(i) * ((*scale)[i]);
+    }
+    if (shift != nullptr) {
+      out.colwise() += *shift;
+    }
+    SetOutput<math::fieldr<dim>>(0, std::move(out));
+    AX_RETURN_OK();
+  }
+};
+
+template<idx dim>
+class MakeConstantVector : public NodeBase {
+  public:
+    MakeConstantVector(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeConstantVector<dim>>()
+          .SetName("Make_constant_vec" + std::to_string(dim) + "r")
+          .SetDescription("Make a constant vector")
+          .template AddInput<real>("value", "The value of the vector")
+          .template AddOutput<math::vecr<dim>>("out", "The constant vector")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      auto* value = RetriveInput<real>(0);
+      if (value == nullptr) {
+        return utils::FailedPreconditionError("Value is not set");
+      }
+      SetOutput<math::vecr<dim>>(0, math::vecr<dim>::Constant(*value));
+      AX_RETURN_OK();
+    }
+};
+
+template<idx dim>
+class MakeConstantField : public NodeBase {
+  public:
+    MakeConstantField(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeConstantField<dim>>()
+          .SetName("Make_constant_field" + std::to_string(dim) + "r")
+          .SetDescription("Make a constant field")
+          .template AddInput<real>("value", "The value of the field")
+          .template AddInput<idx>("cols", "The number of cols")
+          .template AddOutput<math::fieldr<dim>>("out", "The constant field")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      auto* value = RetriveInput<real>(0);
+      if (value == nullptr) {
+        return utils::FailedPreconditionError("Value is not set");
+      }
+      auto* cols = RetriveInput<idx>(1);
+      if (cols == nullptr) {
+        return utils::FailedPreconditionError("Cols is not set");
+      }
+      SetOutput<math::fieldr<dim>>(0, math::fieldr<dim>::Constant(dim, *cols, *value));
+      AX_RETURN_OK();
+    }
+};
+
+template<idx rows, idx cols>
+class MakeConstantMatrix : public NodeBase {
+  public:
+    MakeConstantMatrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeConstantMatrix<rows, cols>>()
+          .SetName("Make_constant_mat" + std::to_string(rows)  + std::to_string(cols) + "r")
+          .SetDescription("Make a constant matrix")
+          .template AddInput<real>("value", "The value of the matrix")
+          .template AddOutput<math::matr<rows, cols>>("out", "The constant matrix")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      auto* value = RetriveInput<real>(0);
+      if (value == nullptr) {
+        return utils::FailedPreconditionError("Value is not set");
+      }
+      SetOutput<math::matr<rows, cols>>(0, math::matr<rows, cols>::Constant(*value));
+      AX_RETURN_OK();
+    }
+};
+
 
 void register_math_types_nodes() {
-  InputColor3f::register_this();
-  InputColor4f::register_this();
+  InputColor3r::register_this();
+  InputColor4r::register_this();
   Input_Vec2r::register_this();
-  Input3f::register_this();
-  Input4f::register_this();
+  Input_Vec3r::register_this();
+  Input_Vec4r::register_this();
 
   RealVectorGetIndex<2>::register_this();
   RealVectorGetIndex<3>::register_this();
   RealVectorGetIndex<4>::register_this();
+
+  ExpandField<1, 2>::register_this();
+  ExpandField<1, 3>::register_this();
+  ExpandField<1, 4>::register_this();
+  ExpandField<2, 3>::register_this();
+  ExpandField<2, 4>::register_this();
+  ExpandField<3, 4>::register_this();
+
+  ElementWiseAffineTransform<1>::register_this();
+  ElementWiseAffineTransform<2>::register_this();
+  ElementWiseAffineTransform<3>::register_this();
+  ElementWiseAffineTransform<4>::register_this();
+
+  MakeConstantVector<2>::register_this();
+  MakeConstantVector<3>::register_this();
+  MakeConstantVector<4>::register_this();
+
+  MakeConstantField<2>::register_this();
+  MakeConstantField<3>::register_this();
+  MakeConstantField<4>::register_this();
+
+  MakeConstantMatrix<2, 2>::register_this();
+  MakeConstantMatrix<3, 3>::register_this();
+  MakeConstantMatrix<4, 4>::register_this();
+
 }
 
 }  // namespace ax::nodes

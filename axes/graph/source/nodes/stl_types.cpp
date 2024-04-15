@@ -3,7 +3,7 @@
 //
 #include "ax/nodes/stl_types.hpp"
 
-#include <imnode/imgui_node_editor.h>
+#include <imgui_node_editor.h>
 
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
@@ -60,46 +60,64 @@ DefineInputNodeBegin(idx)
     ed::EndPin();
 DefineInputNodeEnd();
 
-DefineInputNodeBegin(bool)
-    auto* p_put = node->RetriveOutput<bool>(0);
-    ImGui::SetNextItemWidth(100);
-    ImGui::Checkbox("value", p_put);
-    ImGui::SameLine();
-    ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-    ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-    ed::EndPin();
-DefineInputNodeEnd();
+class Input_bool : public NodeBase {
+public:
+  Input_bool(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+  static void register_this() {
+    NodeDescriptorFactory<Input_bool>{}
+        .SetName(
+            "Input_bool")
+        .SetDescription(
+            "User Input for "
+            "bool")
+        .AddOutput<bool>("value", "value from input")
+        .FinalizeAndRegister();
+    add_custom_node_render(typeid(Input_bool), CustomNodeRender{[](NodeBase* n) {
+                             auto node = dynamic_cast<Input_bool*>(n);
+                             auto* p_put = node->RetriveOutput<bool>(0);
+                             ImGui::SetNextItemWidth(100);
+                             ImGui::Checkbox("value", p_put);
+                             ImGui::SameLine();
+                             ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+                             ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+                             ed::EndPin();
+                           }});
+  }
+
+  Status OnConstruct() override {
+    *RetriveOutput<bool>(0) = false;
+    AX_RETURN_OK();
+  }
+};
 
 class Input_string : public NodeBase {
 public:
-  Input_string(NodeDescriptor const *descript, idx id)
-      : NodeBase(descript, id) {}
+  Input_string(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
   static void register_this() {
     NodeDescriptorFactory<Input_string>{}
         .SetName("Input_string")
         .SetDescription("User Input for string")
         .AddOutput<string>("value", "value from input")
         .FinalizeAndRegister();
-    add_custom_node_render(
-        typeid(Input_string), CustomNodeRender{[](NodeBase *n) {
-          auto node = dynamic_cast<Input_string *>(n);
-          auto *p_put = node->RetriveOutput<std::string>(0);
-          ImGui::SetNextItemWidth(100);
-          if (ImGui::InputText("value", node->buffer, 256,
-                               ImGuiInputTextFlags_EnterReturnsTrue)) {
-            *p_put = node->buffer;
-          }
-          ImGui::SameLine();
-          ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-          ed::EndPin();
-        }});
+    add_custom_node_render(typeid(Input_string), CustomNodeRender{[](NodeBase* n) {
+                             auto node = dynamic_cast<Input_string*>(n);
+                             auto* p_put = node->RetriveOutput<std::string>(0);
+                             ImGui::SetNextItemWidth(100);
+                             if (ImGui::InputText("value", node->buffer, 256,
+                                                  ImGuiInputTextFlags_EnterReturnsTrue)) {
+                               *p_put = node->buffer;
+                             }
+                             ImGui::SameLine();
+                             ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+                             ImGui::Text("%s ->",
+                                         n->GetOutputs()[0].descriptor_->name_.c_str());
+                             ed::EndPin();
+                           }});
   }
 
 private:
-    char buffer[256] {0};
+  char buffer[256]{0};
 };
-
 #define DefineConversionNodeBegin(from_type, to_type)                          \
   class Convert_##from_type##_to_##to_type : public NodeBase {                 \
   public:                                                                      \
@@ -124,19 +142,19 @@ private:
     }                                                                          \
   }
 
-DefineConversionNodeBegin(int, idx);
-DefineConversionNodeBegin(idx, int);
-DefineConversionNodeBegin(int, real);
-DefineConversionNodeBegin(real, int);
-DefineConversionNodeBegin(real, idx);
-DefineConversionNodeBegin(idx, real);
+      DefineConversionNodeBegin(int, idx);
+      DefineConversionNodeBegin(idx, int);
+      DefineConversionNodeBegin(int, real);
+      DefineConversionNodeBegin(real, int);
+      DefineConversionNodeBegin(real, idx);
+      DefineConversionNodeBegin(idx, real);
 
-DefineConversionNodeBegin(bool, int);
-DefineConversionNodeBegin(int, bool);
-DefineConversionNodeBegin(bool, real);
-DefineConversionNodeBegin(real, bool);
-DefineConversionNodeBegin(bool, idx);
-DefineConversionNodeBegin(idx, bool);
+      DefineConversionNodeBegin(bool, int);
+      DefineConversionNodeBegin(int, bool);
+      DefineConversionNodeBegin(bool, real);
+      DefineConversionNodeBegin(real, bool);
+      DefineConversionNodeBegin(bool, idx);
+      DefineConversionNodeBegin(idx, bool);
 
 #define DefineConvertionToString(from_type) \
   class Convert_##from_type##_to_string : public NodeBase { \
@@ -183,54 +201,46 @@ DefineConversionNodeBegin(idx, bool);
     } \
   }
 
-DefineConvertionToString(int);
-DefineConvertionToString(real);
-DefineConvertionToString(idx);
-DefineConvertionFromString(int, std::stoi);
-DefineConvertionFromString(real, std::stod);
-DefineConvertionFromString(idx, std::stoll);
+      DefineConvertionToString(int);
+      DefineConvertionToString(real);
+      DefineConvertionToString(idx);
+      DefineConvertionFromString(int, std::stoi);
+      DefineConvertionFromString(real, std::stod);
+      DefineConvertionFromString(idx, std::stoll);
 
-bool from_string_to_bool(string const& str) {
-  return str == "true";
-}
+      bool from_string_to_bool(string const& str) { return str == "true"; }
 
-bool from_int_to_bool(int const& i) {
-  return i != 0;
-}
+      bool from_int_to_bool(int const& i) { return i != 0; }
 
-int from_bool_to_int(bool const& b) {
-  return b ? 1 : 0;
-}
+      int from_bool_to_int(bool const& b) { return b ? 1 : 0; }
 
-string from_bool_to_string(bool const& b) {
-  return b ? "true" : "false";
-}
+      string from_bool_to_string(bool const& b) { return b ? "true" : "false"; }
 
-DefineConvertionFromString(bool, from_string_to_bool);
+      DefineConvertionFromString(bool, from_string_to_bool);
 
-class Convert_bool_to_string : public NodeBase {
-public:
-  Convert_bool_to_string(NodeDescriptor const *descript, idx id)
-      : NodeBase(descript, id) {}
-  static void register_this() {
-    NodeDescriptorFactory<Convert_bool_to_string>{}
-        .SetName("Convert_"
-                 "bool"
-                 "_to_string")
-        .AddInput<bool>("input", "input value")
-        .AddOutput<string>("output", "output value")
-        .FinalizeAndRegister();
-  }
-  Status Apply(idx) override {
-    auto *p_get = RetriveInput<bool>(0);
-    if (!p_get) {
-      return utils ::InvalidArgumentError("input is null");
-    }
-    auto *p_put = RetriveOutput<string>(0);
-    *p_put = from_bool_to_string(*p_get);
-    AX_RETURN_OK();
-  }
-};
+      class Convert_bool_to_string : public NodeBase {
+      public:
+        Convert_bool_to_string(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+        static void register_this() {
+          NodeDescriptorFactory<Convert_bool_to_string>{}
+              .SetName(
+                  "Convert_"
+                  "bool"
+                  "_to_string")
+              .AddInput<bool>("input", "input value")
+              .AddOutput<string>("output", "output value")
+              .FinalizeAndRegister();
+        }
+        Status Apply(idx) override {
+          auto* p_get = RetriveInput<bool>(0);
+          if (!p_get) {
+            return utils ::InvalidArgumentError("input is null");
+          }
+          auto* p_put = RetriveOutput<string>(0);
+          *p_put = from_bool_to_string(*p_get);
+          AX_RETURN_OK();
+        }
+      };
 
 #define DefineLogtoConsoleNode(type, severity) \
   class Log_##type##_to_console_##severity : public NodeBase { \
@@ -253,21 +263,21 @@ public:
     } \
   }
 
-DefineLogtoConsoleNode(int, INFO);
-DefineLogtoConsoleNode(real, INFO);
-DefineLogtoConsoleNode(idx, INFO);
-DefineLogtoConsoleNode(string, INFO);
-DefineLogtoConsoleNode(bool, INFO);
-DefineLogtoConsoleNode(int, WARNING);
-DefineLogtoConsoleNode(real, WARNING);
-DefineLogtoConsoleNode(idx, WARNING);
-DefineLogtoConsoleNode(string, WARNING);
-DefineLogtoConsoleNode(bool, WARNING);
-DefineLogtoConsoleNode(int, ERROR);
-DefineLogtoConsoleNode(real, ERROR);
-DefineLogtoConsoleNode(idx, ERROR);
-DefineLogtoConsoleNode(string, ERROR);
-DefineLogtoConsoleNode(bool, ERROR);
+      DefineLogtoConsoleNode(int, INFO);
+      DefineLogtoConsoleNode(real, INFO);
+      DefineLogtoConsoleNode(idx, INFO);
+      DefineLogtoConsoleNode(string, INFO);
+      DefineLogtoConsoleNode(bool, INFO);
+      DefineLogtoConsoleNode(int, WARNING);
+      DefineLogtoConsoleNode(real, WARNING);
+      DefineLogtoConsoleNode(idx, WARNING);
+      DefineLogtoConsoleNode(string, WARNING);
+      DefineLogtoConsoleNode(bool, WARNING);
+      DefineLogtoConsoleNode(int, ERROR);
+      DefineLogtoConsoleNode(real, ERROR);
+      DefineLogtoConsoleNode(idx, ERROR);
+      DefineLogtoConsoleNode(string, ERROR);
+      DefineLogtoConsoleNode(bool, ERROR);
 
 #define DefineOperatorForType(type, op, name)                                                    \
   class Operator_##type##_##name : public NodeBase {                                             \
@@ -300,111 +310,128 @@ DefineLogtoConsoleNode(bool, ERROR);
   DefineOperatorForType(type, *, mul);  \
   DefineOperatorForType(type, /, div);
 
-DefineAllOperatorsForType(int);
-DefineAllOperatorsForType(real);
-DefineAllOperatorsForType(idx);
+      DefineAllOperatorsForType(int);
+      DefineAllOperatorsForType(real);
+      DefineAllOperatorsForType(idx);
 
-class CreateEntity : public NodeBase {
-public:
-  CreateEntity(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
-  static void register_this() {
-    NodeDescriptorFactory<CreateEntity>{}
-        .SetName("Create_Entity")
-        .SetDescription("Create an entity.")
-        .AddOutput<Entity>("entity", "The entity.")
-        .FinalizeAndRegister();
+      class CreateEntity : public NodeBase {
+      public:
+        CreateEntity(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+        static void register_this() {
+          NodeDescriptorFactory<CreateEntity>{}
+              .SetName("Create_entity")
+              .SetDescription("Create an entity.")
+              .AddOutput<Entity>("entity", "The entity.")
+              .FinalizeAndRegister();
 
-    add_custom_node_render<CreateEntity>([](NodeBase* n) {
-      auto node = dynamic_cast<CreateEntity*>(n);
-      auto ent = node->ent_;
+          add_custom_node_render<CreateEntity>([](NodeBase* n) {
+            auto node = dynamic_cast<CreateEntity*>(n);
+            auto ent = node->ent_;
 
-      ImGui::Text("Entity: %d", entt::to_integral(ent));
-      ImGui::SameLine();
-      ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-      ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-      ed::EndPin();
-    });
-  }
+            ImGui::Text("Entity: %d", entt::to_integral(ent));
+            ImGui::SameLine();
+            ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+            ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+            ed::EndPin();
+          });
+        }
 
-  Status OnConstruct() override {
-    ent_ = create_entity();
-    *RetriveOutput<Entity>(0) = ent_;
-    AX_RETURN_OK();
-  }
+        Status OnConstruct() override {
+          ent_ = create_entity();
+          *RetriveOutput<Entity>(0) = ent_;
+          AX_RETURN_OK();
+        }
 
-  Status OnDestroy() override {
-    if (ent_ != entt::null) {
-      destroy_entity(ent_);
-    }
-    *RetriveOutput<Entity>(0) = ent_;
-    AX_RETURN_OK();
-  }
+        Status OnDestroy() override {
+          if (ent_ != entt::null) {
+            destroy_entity(ent_);
+          }
+          *RetriveOutput<Entity>(0) = ent_;
+          AX_RETURN_OK();
+        }
 
-private:
-  Entity ent_ = entt::null;
-};
+      private:
+        Entity ent_ = entt::null;
+      };
 
-void register_stl_types() {
-  Input_int::register_this();
-  Input_real::register_this();
-  Input_idx::register_this();
-  Input_string::register_this();
-  Input_bool::register_this();
+      class GetFrameId : public NodeBase {
+      public:
+        GetFrameId(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+        static void register_this() {
+          NodeDescriptorFactory<GetFrameId>{}
+              .SetName("Get_frame_id")
+              .SetDescription("Get the frame id.")
+              .AddOutput<idx>("frame_id", "The frame id.")
+              .FinalizeAndRegister();
+        }
 
-  Convert_int_to_idx::register_this();
-  Convert_idx_to_int::register_this();
-  Convert_int_to_real::register_this();
-  Convert_real_to_int::register_this();
-  Convert_real_to_idx::register_this();
-  Convert_idx_to_real::register_this();
+        Status Apply(idx frame_id) {
+          SetOutput<idx>(0, frame_id);
+          AX_RETURN_OK();
+        }
+      };
 
-  Convert_int_to_string::register_this();
-  Convert_real_to_string::register_this();
-  Convert_idx_to_string::register_this();
-  Convert_string_to_int::register_this();
-  Convert_string_to_real::register_this();
-  Convert_string_to_idx::register_this();
+      void register_stl_types() {
+        Input_int::register_this();
+        Input_real::register_this();
+        Input_idx::register_this();
+        Input_string::register_this();
+        Input_bool::register_this();
 
-  Convert_bool_to_int::register_this();
-  Convert_int_to_bool::register_this();
-  Convert_bool_to_real::register_this();
-  Convert_real_to_bool::register_this();
-  Convert_bool_to_idx::register_this();
-  Convert_idx_to_bool::register_this();
+        Convert_int_to_idx::register_this();
+        Convert_idx_to_int::register_this();
+        Convert_int_to_real::register_this();
+        Convert_real_to_int::register_this();
+        Convert_real_to_idx::register_this();
+        Convert_idx_to_real::register_this();
 
-  Convert_bool_to_string::register_this();
-  Convert_string_to_bool::register_this();
+        Convert_int_to_string::register_this();
+        Convert_real_to_string::register_this();
+        Convert_idx_to_string::register_this();
+        Convert_string_to_int::register_this();
+        Convert_string_to_real::register_this();
+        Convert_string_to_idx::register_this();
 
-  Log_int_to_console_INFO::register_this();
-  Log_real_to_console_INFO::register_this();
-  Log_idx_to_console_INFO::register_this();
-  Log_string_to_console_INFO::register_this();
-  Log_bool_to_console_INFO::register_this();
-  Log_int_to_console_WARNING::register_this();
-  Log_real_to_console_WARNING::register_this();
-  Log_idx_to_console_WARNING::register_this();
-  Log_string_to_console_WARNING::register_this();
-  Log_bool_to_console_WARNING::register_this();
-  Log_int_to_console_ERROR::register_this();
-  Log_real_to_console_ERROR::register_this();
-  Log_idx_to_console_ERROR::register_this();
-  Log_string_to_console_ERROR::register_this();
-  Log_bool_to_console_ERROR::register_this();
+        Convert_bool_to_int::register_this();
+        Convert_int_to_bool::register_this();
+        Convert_bool_to_real::register_this();
+        Convert_real_to_bool::register_this();
+        Convert_bool_to_idx::register_this();
+        Convert_idx_to_bool::register_this();
 
-  Operator_int_add::register_this();
-  Operator_int_sub::register_this();
-  Operator_int_mul::register_this();
-  Operator_int_div::register_this();
-  Operator_real_add::register_this();
-  Operator_real_sub::register_this();
-  Operator_real_mul::register_this();
-  Operator_real_div::register_this();
-  Operator_idx_add::register_this();
-  Operator_idx_sub::register_this();
-  Operator_idx_mul::register_this();
-  Operator_idx_div::register_this();
+        Convert_bool_to_string::register_this();
+        Convert_string_to_bool::register_this();
 
-  CreateEntity::register_this();
-}
+        Log_int_to_console_INFO::register_this();
+        Log_real_to_console_INFO::register_this();
+        Log_idx_to_console_INFO::register_this();
+        Log_string_to_console_INFO::register_this();
+        Log_bool_to_console_INFO::register_this();
+        Log_int_to_console_WARNING::register_this();
+        Log_real_to_console_WARNING::register_this();
+        Log_idx_to_console_WARNING::register_this();
+        Log_string_to_console_WARNING::register_this();
+        Log_bool_to_console_WARNING::register_this();
+        Log_int_to_console_ERROR::register_this();
+        Log_real_to_console_ERROR::register_this();
+        Log_idx_to_console_ERROR::register_this();
+        Log_string_to_console_ERROR::register_this();
+        Log_bool_to_console_ERROR::register_this();
 
-}  // namespace ax::nodes
+        Operator_int_add::register_this();
+        Operator_int_sub::register_this();
+        Operator_int_mul::register_this();
+        Operator_int_div::register_this();
+        Operator_real_add::register_this();
+        Operator_real_sub::register_this();
+        Operator_real_mul::register_this();
+        Operator_real_div::register_this();
+        Operator_idx_add::register_this();
+        Operator_idx_sub::register_this();
+        Operator_idx_mul::register_this();
+        Operator_idx_div::register_this();
+
+        CreateEntity::register_this();
+        GetFrameId::register_this();
+      }
+    }  // namespace ax::nodes

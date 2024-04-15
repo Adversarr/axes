@@ -19,7 +19,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include <imnode/imgui_node_editor.h>
+#include <imgui_node_editor.h>
 
 #include "ax/core/echo.hpp"
 #include "ax/gl/config.hpp"
@@ -57,6 +57,7 @@ struct Context::Impl {
   bool is_pressing_shft_key_ = false;
   bool is_pressing_space_key_ = false;
   bool is_mouse_button_pressed_ = false;
+  bool is_context_window_open_{false};
   math::vec2r prev_cursor_pos_;
 
   float mouse_sensitivity_{1.0f};
@@ -74,6 +75,13 @@ struct Context::Impl {
   void UpdateLight();
 
   void UpdateAxes();
+
+  void OnMenuBar() {
+    if (ImGui::BeginMenu("File")) {
+      ImGui::Checkbox("Settings", &is_context_window_open_);
+      ImGui::EndMenu();
+    }
+  }
 };
 
 void Context::Impl::OnKey(const KeyboardEvent& evt) {
@@ -202,10 +210,10 @@ void Context::Impl::OnMouse(const MouseButtonEvent& evt) {
 void Context::Impl::OnUiRender(UiRenderEvent const&) {
   auto w = ImGui::GetIO().DisplaySize.x;
   auto h = ImGui::GetIO().DisplaySize.y;
-  ImGui::SetNextWindowPos(ImVec2(w - 500, 0));
-  ImGui::SetNextWindowSize(ImVec2(500, h));
-  ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
-  if (ImGui::Begin("AXGL Context", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+  if (!is_context_window_open_) {
+    return;
+  }
+  if (ImGui::Begin("AXGL Context", &is_context_window_open_)) {
     if (ImGui::CollapsingHeader("Scene")) {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
       ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(),
@@ -358,19 +366,25 @@ Status Context::TickRender() {
   glClearColor(impl_->clear_color_(0), impl_->clear_color_(1), impl_->clear_color_(2),
                impl_->clear_color_(3));
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  for (auto& renderer : impl_->renderers_) {
+    AX_EVAL_RETURN_NOTOK(renderer->TickRender());
+  }
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   emit<UiRenderEvent>({});
-  for (auto& renderer : impl_->renderers_) {
-    AX_EVAL_RETURN_NOTOK(renderer->TickRender());
+
+  if (ImGui::BeginMainMenuBar()) {
+    impl_->OnMenuBar();
+    emit<MainMenuBarRenderEvent>({});
+    ImGui::EndMainMenuBar();
   }
+
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
   AXGL_CALLR(glFlush());
-
   impl_->window_.SwapBuffers();
   AX_RETURN_OK();
 }

@@ -1,6 +1,6 @@
 #include "ax/nodes/math_types.hpp"
 #include <imgui.h>
-#include <imnode/imgui_node_editor.h>
+#include <imgui_node_editor.h>
 
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"

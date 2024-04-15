@@ -10,6 +10,8 @@ namespace ax::gl {
 struct UiRenderEvent {};
 struct ContextDestroyEvent {};
 struct ContextInitEvent {};
+struct MainMenuBarRenderEvent {};
+
 
 class Context {
 public:

@@ -7,8 +7,8 @@
 #include "ax/graph/render.hpp"
 #include "ax/utils/status.hpp"
 
-#include <imgui/imgui.h>
-#include <imnode/imgui_node_editor.h>
+#include <imgui.h>
+#include <imgui_node_editor.h>
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
@@ -72,9 +72,16 @@ public:
     add_custom_node_render(typeid(Selector_Mesh_Obj), CustomNodeRender{[](NodeBase* node) {
         auto n = dynamic_cast<Selector_Mesh_Obj*>(node);
         ImGui::SetNextItemWidth(100);
-        if (ImGui::Button("Select!")) {
+        if (ImGui::Button("Select")) {
           ImGui::OpenPopup("Select Mesh");
         }
+
+        ImGui::SameLine();
+        ImGui::SameLine();
+        ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
+        ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+        ed::EndPin();
+        ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
 
         ed::Suspend();
         if (ImGui::BeginPopup("Select Mesh")) {
@@ -86,14 +93,6 @@ public:
           ImGui::EndPopup();
         }
         ed::Resume();
-
-        ImGui::SameLine();
-        ImGui::Dummy(ImVec2(30, 0));
-        ImGui::SameLine();
-        ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-        ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-        ed::EndPin();
-        ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
       }});
   }
 

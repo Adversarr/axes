@@ -1,7 +1,11 @@
 #include "ax/graph/render.hpp"
 
-#include <imnode/imgui_canvas.h>
-#include <imnode/imgui_node_editor.h>
+#include <imgui_canvas.h>
+#include <imgui_node_editor.h>
+
+#include <boost/json/stream_parser.hpp>
+#include <filesystem>
+#include <fstream>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -13,17 +17,9 @@
 #include "ax/utils/asset.hpp"
 #include "ax/utils/status.hpp"
 
-#include <filesystem>
-
-#include <fstream>
-
-#include <boost/json/stream_parser.hpp>
-
 namespace ed = ax::NodeEditor;
 
-inline bool match_char(char A, char B) {
-  return A == B || std::tolower(A) == std::tolower(B);
-}
+inline bool match_char(char A, char B) { return A == B || std::tolower(A) == std::tolower(B); }
 
 static bool partially_match(std::string const& str, const char* user_input, size_t length) {
   if (length > str.length()) {
@@ -59,6 +55,14 @@ ed::EditorContext* context_;
 ed::PinId hovered_pin_;
 ed::NodeId hovered_node_;
 std::string ax_root;
+bool is_open_;
+bool has_cycle;
+bool is_config_open_;
+bool need_load_json;
+bool need_export_json;
+char json_out_path[64] = "blueprint.json";
+
+UPtr<GraphExecutorBase> executor_;
 
 void draw_node_content_default(NodeBase* node) {
   auto const& in = node->GetInputs();
@@ -245,7 +249,8 @@ static void handle_selection() {
     static char name_input[256]{0};
     static int current_size = 0;
     const char* front_name = nullptr;
-    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
+        && !ImGui::IsMouseClicked(0))
       ImGui::SetKeyboardFocusHere();
     if (ImGui::InputText("name", name_input, 256)) {
       current_size = strlen(name_input);
@@ -278,7 +283,7 @@ static void handle_selection() {
 static void export_json(std::ostream& out) {
   auto& g = ensure_resource<Graph>();
   Serializer ser(g);
-  g.ForeachNode([&](NodeBase * n) {
+  g.ForeachNode([&](NodeBase* n) {
     ImVec2 pos = ed::GetNodePosition(n->GetId());
     boost::json::object meta;
     meta["canvas_x"] = pos.x;
@@ -311,17 +316,30 @@ static void draw_hovered() {
   }
 }
 
-static void draw_once(gl::UiRenderEvent) {
+static void draw_config_window(gl::UiRenderEvent) {
+  if (!is_config_open_) {
+    return;
+  }
+  if (!ImGui::Begin("Graph Commander", &is_config_open_)) {
+    ImGui::End();
+    return;
+  }
+
   auto& g = ensure_resource<Graph>();
-  static bool has_cycle = GraphExecutorBase(g).HasCycle();
-  ImGui::SetNextWindowBgAlpha(0.7);
-  ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::Begin(
-      "Node editor", nullptr,
-      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoMove);
+  has_cycle = GraphExecutorBase(g).HasCycle();
 
   static std::string message = "";
   static int end = 1;
+
+  if (ImGui::Button("Open Editor")) {
+    is_open_ = true;
+  }
+  ImGui::SameLine();
+
+  if (ImGui::Button("Close Editor")) {
+    is_open_ = false;
+  }
+  ImGui::SameLine();
 
   if (has_cycle) {
     ImGui::Text("Cycle detected!");
@@ -348,20 +366,28 @@ static void draw_once(gl::UiRenderEvent) {
   ImGui::SameLine();
   ImGui::SetNextItemWidth(100);
   ImGui::InputInt("End Frame", &end);
-  static char json_out_path[256] = "blueprint.json";
 
-  ImGui::SameLine();
-  bool need_export_json = ImGui::Button("Export JSON");
-  ImGui::SameLine();
-  bool need_load_json = ImGui::Button("Load");
 
+  need_export_json = ImGui::Button("Export");
+  ImGui::SameLine();
+  need_load_json = ImGui::Button("Load");
+  ImGui::SameLine();
   ImGui::Text("Rel: %s", utils::get_root_dir().c_str());
-  ImGui::SameLine();
-  ImGui::InputText("/", json_out_path, 256);
-  ImGui::SameLine();
+  ImGui::InputText("Path", json_out_path, 64);
+  ImGui::TextUnformatted(message.c_str());
+  ImGui::End();
+}
 
-  ImGui::Separator();
+static void draw_once(gl::UiRenderEvent) {
+  if (!is_open_) {
+    return;
+  }
+  if (!ImGui::Begin("Node editor", &is_open_)) {
+    ImGui::End();
+    return;
+  }
 
+  auto& g = ensure_resource<Graph>();
   ed::SetCurrentEditor(context_);
   ed::Begin("Node editor", ImVec2(0.0, 0.0f));
 
@@ -400,6 +426,7 @@ static void draw_once(gl::UiRenderEvent) {
         }
       });
     }
+    need_load_json = false;
   }
 
   g.ForeachNode(draw_node);
@@ -414,24 +441,21 @@ static void draw_once(gl::UiRenderEvent) {
     } else {
       export_json(file);
     }
+    need_export_json = false;
   }
 
   // Handle other keyboard shortcuts.
-  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() &&
-      !ImGui::IsMouseClicked(0)) {
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
+      && !ImGui::IsMouseClicked(0)) {
     if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
       if (!ImGui::IsWindowCollapsed()) {
         ImGui::OpenPopup("Create New Node");
       }
     }
   }
-
   draw_hovered();
-
   ed::End();
   ed::SetCurrentEditor(nullptr);
-  ImGui::Separator();
-  ImGui::TextUnformatted(message.c_str());
   ImGui::End();
 }
 
@@ -446,9 +470,23 @@ static void cleanup(gl::ContextDestroyEvent const&) {
   context_ = nullptr;
 }
 
+void on_menu_bar(gl::MainMenuBarRenderEvent) {
+  if (ImGui::BeginMenu("Graph")) {
+    if (ImGui::MenuItem("Open Graph Editor")) {
+      is_open_ = true;
+    }
+    if (ImGui::MenuItem("Graph Commander")) {
+      is_config_open_ = true;
+    }
+    ImGui::EndMenu();
+  }
+}
+
 void install_renderer(GraphRendererOptions opt) {
   opt_ = opt;
   ax_root = utils::get_root_dir();
+  is_open_ = false;
+  is_config_open_ = true;
   for (auto& c : ax_root) {
     if (c == '\\') {
       c = '/';
@@ -458,7 +496,9 @@ void install_renderer(GraphRendererOptions opt) {
   connect<gl::ContextInitEvent, &init>();
   connect<gl::ContextDestroyEvent, &cleanup>();
   connect<gl::UiRenderEvent, &draw_once>();
-  add_clean_up_hook("Remove Graph", []() -> Status{
+  connect<gl::UiRenderEvent, &draw_config_window>();
+  connect<gl::MainMenuBarRenderEvent, &on_menu_bar>();
+  add_clean_up_hook("Remove Graph", []() -> Status {
     erase_resource<Graph>();
     AX_RETURN_OK();
   });
@@ -470,7 +510,6 @@ void add_custom_node_render(std::type_index type, CustomNodeRender const& widget
   auto& map = ensure_resource<WidgetMap>();
   map.try_emplace(type, widget);
 }
-
 
 CustomNodeRender const* get_custom_node_render(std::type_index type) {
   auto& map = ensure_resource<WidgetMap>();

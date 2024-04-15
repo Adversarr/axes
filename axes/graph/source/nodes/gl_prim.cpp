@@ -79,8 +79,6 @@ public:
       u_color_inuse = *u_color;
     }
 
-    Entity entity_inuse;
-
     if (entity != nullptr) {
       entity_inuse = *entity;
     } else {
@@ -121,13 +119,17 @@ public:
     AX_RETURN_OK();
   }
 
-  Status OnDestroy() override {
+  void CleanUp() override {
     if (ent != entt::null) {
       destroy_entity(ent);
+    } else {
+      if (entity_inuse != entt::null) {
+        remove_component<gl::Mesh>(entity_inuse);
+      }
     }
-    AX_RETURN_OK();
   }
   Entity ent = entt::null;
+  Entity entity_inuse = entt::null;
 };
 
 class Render_Lines : public NodeBase {
@@ -166,6 +168,7 @@ public:
         return utils::FailedPreconditionError("The input entity does not have a mesh");
       } else {
         auto& l = add_or_replace_component<gl::Lines>(*entity, gl::Lines::Create(*msh));
+        entity_inuse = *entity;
         SetOutput<Entity>(0, *entity);
         SetOutput<gl::Lines>(1, l);
         AX_RETURN_OK();
@@ -181,7 +184,6 @@ public:
     } else {
       indices_in_use = *indices;
     }
-    Entity entity_inuse;
     if (entity != nullptr) {
       entity_inuse = *entity;
     } else {
@@ -206,14 +208,18 @@ public:
     AX_RETURN_OK();
   }
 
-  Status OnDestroy() override {
+  void CleanUp() override {
     if (ent != entt::null) {
       destroy_entity(ent);
+    } else {
+      if (entity_inuse != entt::null) {
+        remove_component<gl::Lines>(entity_inuse);
+      }
     }
-    AX_RETURN_OK();
   }
 
   Entity ent = entt::null;
+  Entity entity_inuse = entt::null;
 };
 
 

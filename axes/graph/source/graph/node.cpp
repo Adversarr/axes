@@ -76,9 +76,9 @@ Status NodeBase::OnConnect(idx) { AX_RETURN_OK(); }
 
 Status NodeBase::OnConstruct() { AX_RETURN_OK(); }
 
-Status NodeBase::OnDestroy() { AX_RETURN_OK(); }
+void NodeBase::OnDestroy() {}
 
-Status NodeBase::CleanUp() { AX_RETURN_OK(); }
+void NodeBase::CleanUp() {}
 
 boost::json::object NodeBase::Serialize() const {
   return {};

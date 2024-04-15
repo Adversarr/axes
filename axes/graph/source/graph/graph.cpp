@@ -247,12 +247,8 @@ bool Graph::RemoveNode(idx id) {
   for (auto& pin : node->outputs_) {
     impl_->UuidRecycle(pin.id_);
   }
-
-  if (auto status = node->OnDestroy(); !status.ok()) {
-    AX_LOG(ERROR) << "When destroy node " << id
-                  << " (name: " << std::quoted(node->descriptor_->name_)
-                  << ") encountered an error: " << status.message();
-  }
+  node->CleanUp();
+  node->OnDestroy();
   if (auto it = impl_->node_to_sockets_.find(id); it != impl_->node_to_sockets_.end()) {
     auto copy = it->second;
     for (idx sock_id : copy) {
@@ -423,7 +419,7 @@ bool Graph::RemoveSocket(Socket* sock) {
   auto uinfo = impl_->uuid_info_[sock->id_];
   NodeBase* out_node = GetNode(sock->output_->node_id_);
   out_node->inputs_[output->node_io_index_].payload_ = nullptr;
-
+  out_node->CleanUp();
   impl_->RemoveSocket(uinfo.real_id_);
   return sock;
 }

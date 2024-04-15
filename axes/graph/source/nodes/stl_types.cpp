@@ -381,12 +381,11 @@ DefineLogtoConsoleNode(bool, ERROR);
           AX_RETURN_OK();
         }
 
-        Status OnDestroy() override {
+        void OnDestroy() override {
           if (ent_ != entt::null) {
             destroy_entity(ent_);
           }
           *RetriveOutput<Entity>(0) = ent_;
-          AX_RETURN_OK();
         }
 
       private:

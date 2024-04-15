@@ -105,11 +105,11 @@ public:
 
   // Call from Create().
   virtual Status OnConstruct();
-  virtual Status OnDestroy();
+  virtual void OnDestroy();
 
   // Some node can have temporary data, such as a RenderMesh node, will register an 
   // entity to the scene, and use the internal renderer to render it.
-  virtual Status CleanUp();
+  virtual void CleanUp();
 
   virtual boost::json::object Serialize() const;
   virtual void Deserialize(boost::json::object const& obj);

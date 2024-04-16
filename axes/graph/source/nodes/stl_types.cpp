@@ -145,13 +145,14 @@ public:
 
   boost::json::object Serialize() const override {
     boost::json::object obj;
-    obj["value"] = *RetriveOutput<string>(0);
+    obj["value"] = std::string(buffer);
     return obj;
   }
 
   void Deserialize(boost::json::object const& obj) override {
     if (obj.contains("value")) {
-      *RetriveOutput<string>(0) = obj.at("value").as_string().c_str();
+      auto const& s = (*RetriveOutput<string>(0) = obj.at("value").as_string().c_str());
+      memcpy(buffer, s.c_str(), s.size());
     }
   }
 
@@ -416,6 +417,33 @@ public:
   }
 };
 
+class StringConcat : public NodeBase {
+  public:
+  StringConcat(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
+  static void register_this() {
+    NodeDescriptorFactory<StringConcat>{}
+        .SetName("String_concat")
+        .SetDescription("Concatenate two strings.")
+        .AddInput<string>("input1", "input value 1")
+        .AddInput<string>("input2", "input value 2")
+        .AddOutput<string>("output", "output value")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto* p_get1 = RetriveInput<string>(0);
+    auto* p_get2 = RetriveInput<string>(1);
+    if (!p_get1 || !p_get2) {
+      return utils::InvalidArgumentError("input is null");
+    }
+    auto* p_put = RetriveOutput<string>(0);
+    *p_put = *p_get1 + *p_get2;
+    AX_RETURN_OK();
+  }
+};
+
+
+
 void register_stl_types() {
   Input_int::register_this();
   Input_real::register_this();
@@ -478,5 +506,6 @@ void register_stl_types() {
 
   CreateEntity::register_this();
   GetFrameId::register_this();
+  StringConcat::register_this();
 }
 }  // namespace ax::nodes

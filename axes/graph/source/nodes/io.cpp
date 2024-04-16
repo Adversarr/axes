@@ -6,7 +6,7 @@
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/utils/status.hpp"
-
+#include "ax/math/io.hpp"
 #include <imgui.h>
 #include <imgui_node_editor.h>
 
@@ -76,8 +76,6 @@ public:
         if (ImGui::Button("Select")) {
           ImGui::OpenPopup("Select Mesh");
         }
-
-        ImGui::SameLine();
         ImGui::SameLine();
         ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
         ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
@@ -86,6 +84,7 @@ public:
       end_draw_node();
 
       ed::Suspend();
+      ImGui::PushID(node);
       if (ImGui::BeginPopup("Select Mesh")) {
         for (int i = 0; i < (idx)n->assets_.size(); ++i) {
           if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
@@ -94,6 +93,7 @@ public:
         }
         ImGui::EndPopup();
       }
+      ImGui::PopID();
       ed::Resume();
       }});
   }
@@ -125,9 +125,63 @@ public:
   int selected_idx_;
 };
 
+#define DefineExportNumpy(type) \
+  class ExportNumpy_##type : public NodeBase { \
+  public: \
+    ExportNumpy_##type(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {} \
+    static void register_this() { \
+      NodeDescriptorFactory<ExportNumpy_##type>() \
+          .SetName("Export_numpy_" #type) \
+          .SetDescription("Exports a " #type " to a numpy file") \
+          .AddInput<type>("data", "The " #type " to export") \
+          .AddInput<std::string>("file", "The path to the numpy file") \
+          .FinalizeAndRegister(); \
+    } \
+    Status Apply(idx /* frame_id */) override { \
+      auto* data = RetriveInput<type>(0); \
+      auto* file = RetriveInput<std::string>(1); \
+      if (data == nullptr) { \
+        return utils::FailedPreconditionError("Data is not set"); \
+      } \
+      if (file == nullptr) { \
+        return utils::FailedPreconditionError("File path is not set"); \
+      } \
+      ax::math::matxxr out = *data; \
+      std::string fname = *file; \
+      if (!fname.ends_with(".npy")) { \
+        fname += ".npy"; \
+      } \
+      auto status = math::write_npy_v10(fname, out); \
+      if (!status.ok()) { \
+        return status; \
+      } \
+      AX_RETURN_OK(); \
+    } \
+  }
+
+using namespace ax::math;
+
+DefineExportNumpy(vec2r);
+DefineExportNumpy(vec3r);
+DefineExportNumpy(vec4r);
+DefineExportNumpy(field1r);
+DefineExportNumpy(field2r);
+DefineExportNumpy(field3r);
+DefineExportNumpy(field4r);
+DefineExportNumpy(matxxr);
+
 
 void register_io_nodes() {
   ReadObjNode::register_this();
   Selector_Mesh_Obj::register_this();
+
+  ExportNumpy_vec2r::register_this();
+  ExportNumpy_vec3r::register_this();
+  ExportNumpy_vec4r::register_this();
+  ExportNumpy_field1r::register_this();
+  ExportNumpy_field2r::register_this();
+  ExportNumpy_field3r::register_this();
+  ExportNumpy_field4r::register_this();
+  ExportNumpy_matxxr::register_this();
 }
 }  // namespace ax::nodes

@@ -169,7 +169,6 @@ StatusOr<NodeBase*> Graph::AddNode(NodeDescriptor const* descriptor) {
   // Not found.
   if_unlikely(!n) {
     build_failed = true;
-    AX_LOG(ERROR) << "Node " << descriptor->name_ << " not found.";
     return nullptr;
   }
 
@@ -212,13 +211,13 @@ StatusOr<NodeBase*> Graph::AddNode(NodeDescriptor const* descriptor) {
 NodeBase* Graph::GetNode(idx id) {
   auto const& uinfo = impl_->uuid_info_;
   if (id >= (idx)uinfo.size()) {
-    AX_LOG(WARNING) << "Node <uid=" << id << "> not found. (out of range)";
+    // AX_LOG(WARNING) << "Node <uid=" << id << "> not found. (out of range)";
     return nullptr;
   }
 
   auto& info = uinfo[id];
   if (info.type_ != kNode) {
-    AX_LOG(WARNING) << "Node <uid=" << id << "> not found. (uuid type not node)";
+    // AX_LOG(WARNING) << "Node <uid=" << id << "> not found. (uuid type not node)";
     return nullptr;
   }
   AX_DCHECK(info.real_id_ < (idx)impl_->nodes_.size()) << "Internal Logic Error!";
@@ -344,16 +343,16 @@ bool Graph::CanConnectSocket(idx input_node, idx input_pin, idx output_node, idx
   NodeBase const* data_in_node = GetNode(input_node);
   NodeBase const* data_out_node = GetNode(output_node);
   if (data_in_node == nullptr || data_out_node == nullptr) {
-    AX_LOG(ERROR) << "Node not found!";
+    AX_DLOG(ERROR) << "Node not found!";
     return false;
   }
 
   if (input_pin >= (idx)data_in_node->outputs_.size()) {
-    AX_LOG(ERROR) << "Pin index out of range!";
+    AX_DLOG(ERROR) << "Pin index out of range!";
     return false;
   }
   if (output_pin >= (idx)data_out_node->inputs_.size()) {
-    AX_LOG(ERROR) << "Pin index out of range!";
+    AX_DLOG(ERROR) << "Pin index out of range!";
     return false;
   }
 

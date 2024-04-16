@@ -2,6 +2,7 @@
 
 #include "ax/geometry/common.hpp"
 #include "ax/geometry/normal.hpp"
+#include "ax/geometry/primitives.hpp"
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/nodes/geometry.hpp"
@@ -132,12 +133,40 @@ public:
   idx selected_option = 0;
 };
 
+class Make_XyPlane : public NodeBase {
+public:
+  Make_XyPlane(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Make_XyPlane>()
+        .SetName("Make_XyPlane")
+        .SetDescription("Creates a xy plane (Default = [0,1]x[0,1] with 1x1 resolution)")
+        .AddInput<math::vec2r>("size", "The size of the plane")
+        .AddInput<math::vec2i>("resolution", "The resolution of the plane")
+        .AddOutput<geo::SurfaceMesh>("mesh", "The resulting surface mesh")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto size = RetriveInput<math::vec2r>(0);
+    auto resolution = RetriveInput<math::vec2i>(1);
+    math::vec2r size_inuse = size ? *size : math::vec2r(1, 1);
+    math::vec2i resolution_inuse = resolution ? *resolution : math::vec2i(1, 1);
+    if (resolution_inuse.x() < 1 || resolution_inuse.y() < 1) {
+      return utils::FailedPreconditionError("Resolution must be at least 1x1.");
+    }
+    auto mesh = geo::plane(size_inuse.x(), size_inuse.y(), resolution_inuse.x(), resolution_inuse.y());
+    SetOutput<geo::SurfaceMesh>(0, std::move(mesh));
+    AX_RETURN_OK();
+  }
+};
 
 void register_geometry_nodes() {
   MakeSurfaceMesh::register_this();
   DecomposeSurfaceMesh::register_this();
 
   Normal_PerVertex::register_this();
+  Make_XyPlane::register_this();
 }
 
 }  // namespace ax::nodes

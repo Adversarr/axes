@@ -6,6 +6,7 @@
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/math/common.hpp"
+#include "ax/math/functional.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ed = ax::NodeEditor;

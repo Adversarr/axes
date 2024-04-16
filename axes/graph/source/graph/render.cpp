@@ -88,8 +88,8 @@ void draw_node_content_default(NodeBase* node) {
       ImGui::Dummy(ImVec2(max_width + 10 - input_widths[i], 0));
       ImGui::SameLine();
     } else {
-      ImGui::Dummy(ImVec2(0, 0));
-      ImGui::SameLine(0, 0);
+      ImGui::Dummy(ImVec2(max_width + 10, 0));
+      ImGui::SameLine();
     }
     if (i < out.size()) {
       ed::BeginPin(out[i].id_, ed::PinKind::Output);
@@ -307,7 +307,7 @@ static void draw_hovered() {
   auto& g = ensure_resource<Graph>();
   if (hovered_pin_) {
     auto pin = g.GetPin(hovered_pin_.Get());
-    if (ImGui::BeginItemTooltip()) {
+    if (ImGui::BeginTooltip()) {
       ImGui::TextUnformatted(pin->descriptor_->description_.c_str());
       ImGui::EndTooltip();
     }
@@ -317,7 +317,7 @@ static void draw_hovered() {
   if (hovered_node_) {
     auto node = g.GetNode(hovered_node_.Get());
     if (node) {
-      if (ImGui::BeginItemTooltip()) {
+      if (ImGui::BeginTooltip()) {
         ImGui::TextUnformatted(node->GetDescriptor()->description_.c_str());
         ImGui::EndTooltip();
       }
@@ -378,9 +378,9 @@ static void draw_config_window(gl::UiRenderEvent) {
   ImGui::InputInt("End Frame", &end);
 
 
-  need_export_json = ImGui::Button("Export");
+  need_export_json |= ImGui::Button("Export");
   ImGui::SameLine();
-  need_load_json = ImGui::Button("Load");
+  need_load_json |= ImGui::Button("Load");
   ImGui::SameLine();
   ImGui::Text("Rel: %s", ax_blueprint_root.c_str());
   ImGui::InputText("Path", json_out_path, 64);
@@ -505,6 +505,36 @@ void install_renderer(GraphRendererOptions opt) {
     }
   }
   ax_blueprint_root = ax_blueprint_root + "/blueprints/";
+
+  auto path = get_program_path();
+  if (path) {
+    std::string spath = path;
+    for (auto& c : spath) {
+      if (c == '\\') {
+        c = '/';
+      }
+    }
+    size_t last_slash = spath.find_last_of('/');
+    if (last_slash != std::string::npos) {
+      spath = spath.substr(last_slash + 1);
+    }
+    spath = spath + ".json";
+
+    if (std::filesystem::exists(ax_blueprint_root + spath)) {
+      std::ifstream file(ax_blueprint_root + spath);
+      if (!file) {
+        AX_LOG(ERROR) << "Cannot open file: " << spath;
+      } else {
+        need_load_json = true;
+      }
+    }
+
+    for (size_t i = 0; i < spath.size(); ++i) {
+      json_out_path[i] = spath[i];
+    }
+    json_out_path[spath.size()] = 0;
+  }
+
   connect<gl::ContextInitEvent, &init>();
   connect<gl::ContextDestroyEvent, &cleanup>();
   connect<gl::UiRenderEvent, &draw_once>();

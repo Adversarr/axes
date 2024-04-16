@@ -6,7 +6,7 @@
 #include "ax/graph/node.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/utils/status.hpp"
-
+#include "ax/core/entt.hpp"
 #include <imgui_node_editor.h>
 
 namespace ed = ax::NodeEditor;
@@ -237,7 +237,7 @@ public:
         .AddOutput<math::vec4r>("color", "The color mapped from the value")
         .FinalizeAndRegister();
     add_custom_node_render<ColorMap_real>([](NodeBase *node) {
-      draw_node_content_default(node);
+      draw_node_content_default(node);draw_node_header_default(node);
       ImGui::Text("Colormap:");
       ImGui::SameLine();
       idx& n = static_cast<ColorMap_real*>(node)->which_map;

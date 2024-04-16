@@ -5,9 +5,7 @@
 #include <typeindex>
 #include <utility>
 
-#include "ax/core/echo.hpp"
-#include "ax/core/entt.hpp"
-#include "ax/utils/common.hpp"
+#include "ax/core/macros.hpp"
 
 namespace ax::graph {
 
@@ -17,52 +15,53 @@ namespace ax::graph {
 // 3. The payload is always move-contructable, even if the DataType is not move-contructable.
 // 4. the type(DataType) of data, is erased in base class.
 
-struct PayloadDtor {
+struct PayloadCtorDtor {
   std::function<void(void*)> dtor_;
   std::function<void*(void)> ctor_;
 
-  PayloadDtor(std::function<void(void*)> dtor, std::function<void*(void)> ctor)
+  PayloadCtorDtor(std::function<void(void*)> dtor, std::function<void*(void)> ctor)
       : dtor_{std::move(dtor)}, ctor_{std::move(ctor)} {}
 };
 
 namespace details {
-PayloadDtor const& ensure_dtor(std::type_index type, PayloadDtor const& dtor);
-template <typename T> PayloadDtor const& ensure_dtor() {
-  return ensure_dtor(typeid(T),
-     PayloadDtor{
-     [](void* data) -> void { delete reinterpret_cast<T*>(data); },
-     []() -> void* { return new T; }
-  });
+
+PayloadCtorDtor const& ensure_ctor_dtor(std::type_index type, PayloadCtorDtor const& dtor);
+
+template <typename T> PayloadCtorDtor const& ensure_ctor_dtor() {
+  static_assert(std::is_default_constructible_v<T>, "T must be default constructible.");
+  return ensure_ctor_dtor(
+      typeid(T), PayloadCtorDtor{[](void* data) -> void { delete reinterpret_cast<T*>(data); },
+                                 []() -> void* { return new T; }});
 }
 
-PayloadDtor const& get_dtor(std::type_index type);
+PayloadCtorDtor const& get_dtor(std::type_index type);
 }  // namespace details
 
 class Payload {
 public:
   ~Payload();
-  // Declare all the special member functions.
+  // Declare all the special member functions: The only possible one is the move construct.
   Payload(const Payload&) noexcept = delete;
+  Payload(Payload&& rhs) noexcept : Payload(rhs.type_, rhs.data_) { rhs.data_ = nullptr; }
   Payload& operator=(const Payload&) noexcept = delete;
   Payload& operator=(Payload&& rhs) = delete;
-
-  Payload(Payload&& rhs) noexcept : Payload(rhs.type_, rhs.data_) { rhs.data_ = nullptr; }
 
   // get the type
   std::type_index const& Type() const noexcept { return type_; }
 
   // get the data
   void* Data() noexcept { return data_; }
-
   void const* Data() const noexcept { return data_; }
 
   // Cast to the DataType
-  template <typename DataType> DataType* TryCast() noexcept {
-    return type_ == typeid(DataType) ? static_cast<DataType*>(data_) : nullptr;
+  template <typename DataType> DataType* Cast() noexcept {
+    if_unlikely(type_ != typeid(DataType)) return nullptr;
+    return static_cast<DataType*>(Data());
   }
 
-  template <typename DataType> DataType const* TryCast() const noexcept {
-    return type_ == typeid(DataType) ? static_cast<DataType const*>(data_) : nullptr;
+  template <typename DataType> DataType const* Cast() const noexcept {
+    if_unlikely(type_ != typeid(DataType)) return nullptr;
+    return static_cast<DataType const*>(Data());
   }
 
   // Test if the payload is empty.

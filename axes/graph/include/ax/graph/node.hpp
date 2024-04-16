@@ -1,7 +1,6 @@
 #pragma once
 #include "ax/core/common.hpp"
 #include "ax/core/config.hpp"
-#include "ax/core/echo.hpp"
 #include "ax/core/status.hpp"
 #include "ax/graph/common.hpp"
 #include "ax/graph/payload.hpp"
@@ -64,7 +63,7 @@ public:
   template<typename Tp>
   NodeDescriptorFactory& AddInput(std::string name,
                                   std::string description) {
-    details::ensure_dtor<Tp>();
+    details::ensure_ctor_dtor<Tp>();
     descriptor_.inputs_.push_back(PinDescriptor{typeid(Tp), name, description});
     return *this;
   }
@@ -73,7 +72,7 @@ public:
   template<typename Tp>
   NodeDescriptorFactory& AddOutput(std::string name,
                                    std::string description) {
-    details::ensure_dtor<Tp>();
+    details::ensure_ctor_dtor<Tp>();
     descriptor_.outputs_.push_back(PinDescriptor{typeid(Tp), name, description});
     return *this;
   }
@@ -95,10 +94,9 @@ public:
   virtual ~NodeBase() = default;
   // Core apply function, will be called by the graph system.
   virtual Status Apply(idx frame_id);
+  virtual Status PreApply();
+  virtual Status PostApply();
 
-  virtual Status PreCompute();
-  virtual Status PostCompute();
-  
   // Reserved for future use
   virtual Status OnConnect(idx in_io_index);
 
@@ -111,6 +109,7 @@ public:
   // entity to the scene, and use the internal renderer to render it.
   virtual void CleanUp();
 
+  // Serialize and Deserialize
   virtual boost::json::object Serialize() const;
   virtual void Deserialize(boost::json::object const& obj);
 
@@ -129,9 +128,6 @@ public:
   std::vector<Pin> const& GetOutputs() const { return outputs_; }
 
 protected:
-  // TODO: io.
-  void* RetriveInput(idx index, std::type_index check_type);
-
   template <typename T, typename ... Args>
   T* SetOutput(idx index, Args && ... arg) {
     T* p = RetriveOutput<T>(index);
@@ -147,7 +143,7 @@ protected:
       return nullptr;
     }
     if (Payload* p = inputs_[index].payload_; p != nullptr) {
-      return p->TryCast<T>();
+      return p->Cast<T>();
     } else {
       return nullptr;
     }
@@ -159,7 +155,7 @@ protected:
       return nullptr;
     }
     if (Payload* p = outputs_[index].payload_; p != nullptr) {
-      return p->TryCast<T>();
+      return p->Cast<T>();
     } else {
       return nullptr;
     }
@@ -171,7 +167,7 @@ protected:
       return nullptr;
     }
     if (Payload* p = outputs_[index].payload_; p != nullptr) {
-      return p->TryCast<T>();
+      return p->Cast<T>();
     } else {
       return nullptr;
     }

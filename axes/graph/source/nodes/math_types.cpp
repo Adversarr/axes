@@ -1,6 +1,7 @@
 #include "ax/nodes/math_types.hpp"
 #include <imgui.h>
 #include <imgui_node_editor.h>
+#include <random>
 
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
@@ -28,28 +29,48 @@ class InputColor3r : public NodeBase {
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(InputColor3r), {[](NodeBase* node) {
-          auto n = static_cast<InputColor3r*>(node);
-          ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), 1.0f);
-          ImGui::SetNextItemWidth(100);
-          if (ImGui::ColorButton("Color Picker", color)) {
-            ImGui::OpenPopup("ColorPicker");
-          }
-          ed::Suspend();
-          if (ImGui::BeginPopup("ColorPicker")) {
-            ImGui::ColorPicker3("Color", n->color_.data(), ImGuiColorEditFlags_Float);
-            ImGui::EndPopup();
-          }
-          ed::Resume();
-          ImGui::SameLine();
-          ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
-          ed::EndPin();
+        begin_draw_node(node);draw_node_header_default(node);
+        auto n = static_cast<InputColor3r*>(node);
+        ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), 1.0f);
+        ImGui::SetNextItemWidth(100);
+        if (ImGui::ColorButton("Color Picker", color)) {
+          ImGui::OpenPopup("ColorPicker");
+        }
+        ImGui::SameLine();
+        ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
+        ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
+        ed::EndPin();
+        end_draw_node();
+
+        ed::Suspend();
+        ImGui::PushID(node);
+        if (ImGui::BeginPopup("ColorPicker")) {
+          ImGui::ColorPicker3("Color", n->color_.data(), ImGuiColorEditFlags_Float);
+          ImGui::EndPopup();
+        }
+        ImGui::PopID();
+        ed::Resume();
       }});
     }
 
     Status Apply(idx) {
       SetOutput<math::vec3r>(0, color_.cast<real>());
       AX_RETURN_OK();
+    }
+
+    boost::json::object Serialize() const override {
+      auto obj = NodeBase::Serialize();
+      obj["color"] = boost::json::array{color_.x(), color_.y(), color_.z()};
+      return obj;
+    }
+
+    void Deserialize(boost::json::object const& obj) override {
+      NodeBase::Deserialize(obj);
+      if (!obj.contains("color")) {
+        return;
+      }
+      auto arr = obj.at("color").as_array();
+      color_ = math::vec3f(arr[0].as_double(), arr[1].as_double(), arr[2].as_double());
     }
 
     math::vec3f color_;
@@ -67,6 +88,7 @@ class InputColor4r : public NodeBase {
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(InputColor4r), {[](NodeBase* node) {
+        begin_draw_node(node);draw_node_header_default(node);
           auto n = static_cast<InputColor4r*>(node);
           ImVec4 color(n->color_.x(), n->color_.y(), n->color_.z(), n->color_.w());
           ImGui::SetNextItemWidth(100);
@@ -74,24 +96,44 @@ class InputColor4r : public NodeBase {
             ImGui::OpenPopup("ColorPicker");
           }
 
-          ed::Suspend();
-          if (ImGui::BeginPopup("ColorPicker")) {
-            ImGui::ColorPicker4("Color", n->color_.data(), ImGuiColorEditFlags_Float);
-            ImGui::EndPopup();
-          }
-          ed::Resume();
 
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
+        end_draw_node();
+
+        ed::Suspend();
+        ImGui::PushID(node);
+        if (ImGui::BeginPopup("ColorPicker")) {
+          ImGui::ColorPicker4("Color", n->color_.data(), ImGuiColorEditFlags_Float);
+          ImGui::EndPopup();
+        }
+        ImGui::PopID();
+        ed::Resume();
       }});
     }
 
-    Status Apply(idx) {
+    Status Apply(idx) final {
       SetOutput<math::vec4r>(0, color_.cast<real>());
       AX_RETURN_OK();
     }
+
+    boost::json::object Serialize() const override {
+      auto obj = NodeBase::Serialize();
+      obj["color"] = boost::json::array{color_.x(), color_.y(), color_.z(), color_.w()};
+      return obj;
+    }
+
+    void Deserialize(boost::json::object const& obj) override {
+      NodeBase::Deserialize(obj);
+      if (!obj.contains("color")) {
+        return;
+      }
+      auto arr = obj.at("color").as_array();
+      color_ = math::vec4f(arr[0].as_double(), arr[1].as_double(), arr[2].as_double(), arr[3].as_double());
+    }
+
     math::vec4f color_;
 };
 
@@ -107,6 +149,7 @@ class Input_Vec2r : public NodeBase {
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(Input_Vec2r), {[](NodeBase* node) {
+        begin_draw_node(node);draw_node_header_default(node);
           auto n = static_cast<Input_Vec2r*>(node);
           auto *p_out = n->RetriveOutput<math::vec2r>(0);
           for (int i = 0; i < 2; i++) {
@@ -115,11 +158,30 @@ class Input_Vec2r : public NodeBase {
           }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
+        end_draw_node();
       }});
     }
 
+    boost::json::object Serialize() const override {
+      auto obj = NodeBase::Serialize();
+      auto* p_out = RetriveOutput<math::vec2r>(0);
+      obj["x"] = p_out->x();
+      obj["y"] = p_out->y();
+      return obj;
+    }
+
+    void Deserialize(boost::json::object const& obj) override {
+      NodeBase::Deserialize(obj);
+      auto* p_out = RetriveOutput<math::vec2r>(0);
+      if (obj.contains("x")) {
+        p_out->x() = obj.at("x").as_double();
+      }
+      if (obj.contains("y")) {
+        p_out->y() = obj.at("y").as_double();
+      }
+    }
 
 };
 
@@ -135,6 +197,7 @@ class Input_Vec3r : public NodeBase {
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(Input_Vec3r), {[](NodeBase* node) {
+        begin_draw_node(node);draw_node_header_default(node);
           auto n = static_cast<Input_Vec3r*>(node);
           auto* p_out = n->RetriveOutput<math::vec3r>(0);
           for (int i = 0; i < 3; i++) {
@@ -143,10 +206,35 @@ class Input_Vec3r : public NodeBase {
           }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
+        end_draw_node();
       }});
     }
+
+    boost::json::object Serialize() const override {
+      auto obj = NodeBase::Serialize();
+      auto* p_out = RetriveOutput<math::vec3r>(0);
+      obj["x"] = p_out->x();
+      obj["y"] = p_out->y();
+      obj["z"] = p_out->z();
+      return obj;
+    }
+
+    void Deserialize(boost::json::object const& obj) override {
+      NodeBase::Deserialize(obj);
+      auto* p_out = RetriveOutput<math::vec3r>(0);
+      if (obj.contains("x")) {
+        p_out->x() = obj.at("x").as_double();
+      }
+      if (obj.contains("y")) {
+        p_out->y() = obj.at("y").as_double();
+      }
+      if (obj.contains("z")) {
+        p_out->z() = obj.at("z").as_double();
+      }
+    }
+
 };
 
 class Input_Vec4r : public NodeBase {
@@ -161,6 +249,7 @@ class Input_Vec4r : public NodeBase {
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(Input_Vec4r), {[](NodeBase* node) {
+        begin_draw_node(node);draw_node_header_default(node);
           auto n = static_cast<Input_Vec4r*>(node);
           auto* p_out = n->RetriveOutput<math::vec4r>(0);
           for (int i = 0; i < 4; i++) {
@@ -169,9 +258,37 @@ class Input_Vec4r : public NodeBase {
           }
           ImGui::SameLine();
           ed::BeginPin(n->GetOutput(0)->id_, ed::PinKind::Output);
-          ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
           ed::EndPin();
+        end_draw_node();
       }});
+    }
+
+    boost::json::object Serialize() const override {
+      auto obj = NodeBase::Serialize();
+      auto* p_out = RetriveOutput<math::vec4r>(0);
+      obj["x"] = p_out->x();
+      obj["y"] = p_out->y();
+      obj["z"] = p_out->z();
+      obj["w"] = p_out->w();
+      return obj;
+    }
+
+    void Deserialize(boost::json::object const& obj) override {
+      NodeBase::Deserialize(obj);
+      auto* p_out = RetriveOutput<math::vec4r>(0);
+      if (obj.contains("x")) {
+        p_out->x() = obj.at("x").as_double();
+      }
+      if (obj.contains("y")) {
+        p_out->y() = obj.at("y").as_double();
+      }
+      if (obj.contains("z")) {
+        p_out->z() = obj.at("z").as_double();
+      }
+      if (obj.contains("w")) {
+        p_out->w() = obj.at("w").as_double();
+      }
     }
 };
 
@@ -271,12 +388,11 @@ public:
     if (in == nullptr) {
       return utils::FailedPreconditionError("Input field is not set");
     }
-    if (scale == nullptr) {
-      return utils::FailedPreconditionError("Scale is not set");
-    }
-    math::fieldr<dim> out(dim, in->cols());
-    for (idx i = 0; i < dim; i++) {
-      out.row(i) = in->row(i) * ((*scale)[i]);
+    math::fieldr<dim> out = *in;
+    if (scale != nullptr) {
+      for (idx i = 0; i < dim; i++) {
+        out.row(i) = out.row(i) * ((*scale)[i]);
+      }
     }
     if (shift != nullptr) {
       out.colwise() += *shift;
@@ -363,6 +479,77 @@ class MakeConstantMatrix : public NodeBase {
     }
 };
 
+class MakeRandom_Real : public NodeBase {
+  public:
+    MakeRandom_Real(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeRandom_Real>()
+          .SetName("Make_random_real")
+          .SetDescription("Make a random real number")
+          .AddOutput<real>("out", "The random real number")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      SetOutput<real>(0, std::uniform_real_distribution<real>(0, 1)(generator_));
+      AX_RETURN_OK();
+    }
+
+    std::default_random_engine generator_;
+};
+
+template<idx dim>
+class MakeRandom_Vector : public NodeBase {
+  public:
+    MakeRandom_Vector(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeRandom_Vector<dim>>()
+          .SetName("Make_random_vec" + std::to_string(dim) + "r")
+          .SetDescription("Make a random vector")
+          .template AddOutput<math::vecr<dim>>("out", "The random vector")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      math::vecr<dim> out;
+      for (idx i = 0; i < dim; i++) {
+        out[i] = std::uniform_real_distribution<real>(0, 1)(generator_);
+      }
+      SetOutput<math::vecr<dim>>(0, std::move(out));
+      AX_RETURN_OK();
+    }
+
+    std::default_random_engine generator_;
+};
+
+template<idx rows, idx cols>
+class MakeRandom_Matrix : public NodeBase {
+  public:
+    MakeRandom_Matrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+    static void register_this() {
+      NodeDescriptorFactory<MakeRandom_Matrix<rows, cols>>()
+          .SetName("Make_random_mat" + std::to_string(rows) + std::to_string(cols) + "r")
+          .SetDescription("Make a random matrix")
+          .template AddOutput<math::matr<rows, cols>>("out", "The random matrix")
+          .FinalizeAndRegister();
+    }
+
+    Status Apply(idx) {
+      math::matr<rows, cols> out;
+      for (idx i = 0; i < rows; i++) {
+        for (idx j = 0; j < cols; j++) {
+          out(i, j) = std::uniform_real_distribution<real>(0, 1)(generator_);
+        }
+      }
+      SetOutput<math::matr<rows, cols>>(0, std::move(out));
+      AX_RETURN_OK();
+    }
+
+    std::default_random_engine generator_;
+};
 
 void register_math_types_nodes() {
   InputColor3r::register_this();
@@ -399,6 +586,13 @@ void register_math_types_nodes() {
   MakeConstantMatrix<3, 3>::register_this();
   MakeConstantMatrix<4, 4>::register_this();
 
+  MakeRandom_Real::register_this();
+  MakeRandom_Vector<2>::register_this();
+  MakeRandom_Vector<3>::register_this();
+  MakeRandom_Vector<4>::register_this();
+  MakeRandom_Matrix<2, 2>::register_this();
+  MakeRandom_Matrix<3, 3>::register_this();
+  MakeRandom_Matrix<4, 4>::register_this();
 }
 
 }  // namespace ax::nodes

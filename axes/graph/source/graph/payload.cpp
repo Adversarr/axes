@@ -1,21 +1,24 @@
 #include "ax/graph/payload.hpp"
 #include "ax/core/entt.hpp"
 
+#include "ax/core/echo.hpp"
+#include "ax/core/entt.hpp"
+
 namespace ax::graph {
 
 namespace details {
 
 struct TypeRegistry {
-  absl::flat_hash_map<std::type_index, PayloadDtor> map_;
+  absl::flat_hash_map<std::type_index, PayloadCtorDtor> map_;
 };
 
-PayloadDtor const& ensure_dtor(std::type_index type, PayloadDtor const &dtor) {
+PayloadCtorDtor const& ensure_ctor_dtor(std::type_index type, PayloadCtorDtor const &dtor) {
   auto &map = ensure_resource<TypeRegistry>().map_;
   return map.try_emplace(type, dtor).first->second;
 }
 
-PayloadDtor const& get_dtor(std::type_index type) {
-  auto &map = ensure_resource<TypeRegistry>().map_;
+PayloadCtorDtor const& get_dtor(std::type_index type) {
+  auto const &map = ensure_resource<TypeRegistry>().map_;
   return map.at(type);
 }
 

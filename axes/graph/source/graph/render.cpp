@@ -64,56 +64,62 @@ char json_out_path[64] = "blueprint.json";
 
 UPtr<GraphExecutorBase> executor_;
 
+void draw_node_header_default(NodeBase* node) {
+  ImGui::TextColored(ImVec4(0.1, 0.5, 0.8, 1), "= %s", node->GetDescriptor()->name_.c_str());
+}
+
 void draw_node_content_default(NodeBase* node) {
   auto const& in = node->GetInputs();
   auto const& out = node->GetOutputs();
   size_t n_max_io = std::max(in.size(), out.size());
-  size_t n_max_name_size = 0;
-  for (size_t i = 0; i < n_max_io; ++i) {
-    size_t current_size = 0;
-    if (i < in.size()) {
-      current_size = in[i].descriptor_->name_.length();
-    }
-    if (i < out.size()) {
-      current_size += out[i].descriptor_->name_.length();
-    }
-    n_max_name_size = std::max(n_max_name_size, current_size);
+  absl::InlinedVector<real, 16> input_widths;
+  float max_width = 0;
+  for (size_t i = 0; i < in.size(); ++i) {
+    auto size = ImGui::CalcTextSize(in[i].descriptor_->name_.c_str(), nullptr, true);
+    input_widths.push_back(size.x);
+    max_width = std::max(max_width, size.x);
   }
   for (size_t i = 0; i < n_max_io; ++i) {
     if (i < in.size()) {
       ed::BeginPin(in[i].id_, ed::PinKind::Input);
-      // std::string spacing(n_max_name_size - in[i].descriptor_->name_.size(), ' ');
-      // ed::PinPivotAlignment(ImVec2(0, 0.5));
-      ImGui::Text("-> %s", in[i].descriptor_->name_.c_str());
+      ImGui::Text("%s", in[i].descriptor_->name_.c_str());
+      ed::EndPin();
       ImGui::SameLine();
-      ed::EndPin();
+      ImGui::Dummy(ImVec2(max_width + 10 - input_widths[i], 0));
+      ImGui::SameLine();
     } else {
-      std::string spacing(n_max_name_size, ' ');
-      ImGui::Text("    %s", spacing.c_str());
+      ImGui::Dummy(ImVec2(0, 0));
+      ImGui::SameLine(0, 0);
     }
-    ImGui::SameLine();
     if (i < out.size()) {
-      std::string spacing(n_max_name_size - out[i].descriptor_->name_.size(), ' ');
       ed::BeginPin(out[i].id_, ed::PinKind::Output);
-      ImGui::Text("%s %s ->", spacing.c_str(), out[i].descriptor_->name_.c_str());
+      ImGui::TextUnformatted(out[i].descriptor_->name_.c_str());
       ed::EndPin();
     } else {
-      ImGui::Text("    ");
+      ImGui::Dummy(ImVec2(0, 0));
     }
   }
 }
 
-void draw_node(NodeBase* node) {
+void begin_draw_node(NodeBase* node) {
   ed::BeginNode(node->GetId());
   ImGui::PushID(node);
-  ImGui::Text("## %ld: %s", node->GetId(), node->GetDescriptor()->name_.c_str());
+}
+
+void end_draw_node() {
+  ImGui::PopID();
+  NodeEditor::EndNode();
+}
+
+void draw_node(NodeBase* node) {
   if (auto render = get_custom_node_render(node->GetType()); render) {
     render->widget_(node);
   } else {
+    begin_draw_node(node);
+    draw_node_header_default(node);
     draw_node_content_default(node);
+    end_draw_node();
   }
-  ImGui::PopID();
-  NodeEditor::EndNode();
 }
 
 void draw_socket(Socket* socket) {
@@ -214,9 +220,7 @@ static void handle_selection() {
   } else if (ed::ShowBackgroundContextMenu()) {
     ImGui::OpenPopup("Create New Node");
   }
-  ed::Resume();
 
-  ed::Suspend();
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
   if (ImGui::BeginPopup("Node Context Menu")) {
     auto node = g.GetNode(select_node0.Get());
@@ -282,7 +286,6 @@ static void handle_selection() {
     }
     ImGui::EndPopup();
   }
-  ImGui::PopStyleVar();
   ed::Resume();
 }
 

@@ -515,7 +515,4 @@ void Graph::ForeachSocket(std::function<void(Socket*)> const& func) {
   }
 }
 
-void Graph::EnsurePayloads() {
-}
-
 }  // namespace ax::graph

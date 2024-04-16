@@ -70,6 +70,7 @@ public:
         .FinalizeAndRegister();
 
     add_custom_node_render(typeid(Selector_Mesh_Obj), CustomNodeRender{[](NodeBase* node) {
+      begin_draw_node(node);draw_node_header_default(node);
         auto n = dynamic_cast<Selector_Mesh_Obj*>(node);
         ImGui::SetNextItemWidth(100);
         if (ImGui::Button("Select")) {
@@ -79,24 +80,25 @@ public:
         ImGui::SameLine();
         ImGui::SameLine();
         ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-        ImGui::Text("%s ->", n->GetOutputs()[0].descriptor_->name_.c_str());
+        ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
         ed::EndPin();
         ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
+      end_draw_node();
 
-        ed::Suspend();
-        if (ImGui::BeginPopup("Select Mesh")) {
-          for (int i = 0; i < (idx)n->assets_.size(); ++i) {
-            if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-              n->selected_idx_ = i;
-            }
+      ed::Suspend();
+      if (ImGui::BeginPopup("Select Mesh")) {
+        for (int i = 0; i < (idx)n->assets_.size(); ++i) {
+          if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
+            n->selected_idx_ = i;
           }
-          ImGui::EndPopup();
         }
-        ed::Resume();
+        ImGui::EndPopup();
+      }
+      ed::Resume();
       }});
   }
 
-  Status PreCompute() override {
+  Status PreApply() override {
     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_idx_]);
     AX_RETURN_OK();
   }
@@ -105,6 +107,18 @@ public:
     assets_ = utils::discover_assets("/mesh/obj/");
     selected_idx_ = 0;
     AX_RETURN_OK();
+  }
+
+  boost::json::object Serialize() const override {
+    auto obj = NodeBase::Serialize();
+    obj["selected_idx"] = selected_idx_;
+    return obj;
+  }
+
+  void Deserialize(boost::json::object const& obj) override {
+    if (obj.contains("selected_idx")) {
+      selected_idx_ = obj.at("selected_idx").as_int64();
+    }
   }
 
   std::vector<std::string> assets_;

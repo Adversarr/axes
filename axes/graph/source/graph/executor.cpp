@@ -71,8 +71,7 @@ std::vector<idx> GraphExecutorBase::TopologicalSort() {
 }
 
 Status GraphExecutorBase::Execute(idx end) {
-  idx const beg = 0;
-  if (beg > end) {
+  if (end < 0) {
     return utils::InvalidArgumentError("Invalid frame range");
   }
 
@@ -82,19 +81,17 @@ Status GraphExecutorBase::Execute(idx end) {
     return utils::FailedPreconditionError("Exist a cycle in your input graph");
   }
 
-  graph_.EnsurePayloads();
   auto status = utils::OkStatus();
-
   for (auto node_id: sorted) {
     AX_DLOG(INFO) << "Precompute " << node_id;
     auto node = graph_.GetNode(node_id);
-    if (auto status = node->PreCompute(); !status.ok()) {
+    if (auto status = node->PreApply(); !status.ok()) {
       AX_LOG(ERROR) << "Failed to precompute node " << node_id << ": " << status;
       return status;
     }
   }
 
-  for (idx frame_id = beg; frame_id < end; ++frame_id) {
+  for (idx frame_id = 0; frame_id < end; ++frame_id) {
     for (auto node_id : sorted) {
       auto node = graph_.GetNode(node_id);
       AX_DLOG(INFO) << "Executing node " << node_id;
@@ -107,7 +104,7 @@ Status GraphExecutorBase::Execute(idx end) {
 
   for (auto node_id: sorted) {
     auto node = graph_.GetNode(node_id);
-    if (auto status = node->PostCompute(); !status.ok()) {
+    if (auto status = node->PostApply(); !status.ok()) {
       AX_LOG(ERROR) << "Failed to postcompute node " << node_id << ": " << status;
       return status;
     }

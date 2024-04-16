@@ -4,9 +4,7 @@
 
 #include "ax/geometry/normal.hpp"
 #include "ax/math/decomp/svd/import_eigen.hpp"
-#include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
 #include "ax/utils/iota.hpp"
 using namespace ax::math;
@@ -58,6 +56,7 @@ void local_step(Problem& prob, idx i, Solver& solver) {
     auto result = svd.Solve(Mi);
     auto svd_r = result.value();
     // Ri = V * U.T
+    auto Rold = Ri;
     Ri = svd_r.V_ * svd_r.U_.transpose();
     if (Ri.determinant() < 0) {
         svd_r.U_.col(2) *= -1;
@@ -100,21 +99,21 @@ void Solver::Step(idx steps) {
       idx vi = mesh_.indices_(j, t);
       idx vj = mesh_.indices_((j + 1) % 3, t);
       idx vk = mesh_.indices_((j + 2) % 3, t);
-
-      problem.neighbours[vi].push_back(vj);
-      //      problem.neighbours[vj].push_back(vi);
-
       vec3r di = mesh_.vertices_.col(vj) - mesh_.vertices_.col(vi);
       vec3r dj = mesh_.vertices_.col(vk) - mesh_.vertices_.col(vi);
       real area = norm(cross(di, dj), l2) / 2;
       real cot_weight = std::max(dot(di, dj) / (2 * area), 0.);
 
+      problem.neighbours[vi].push_back(vj);
       problem.Di[vi].push_back(di);
       problem.Wi[vi].push_back(cot_weight);
       problem.ai[vi] += area;
     }
   }
   problem.Di0 = problem.Di;
+  for (idx i = 0; i < n_vert; ++i) {
+    std::cout << problem.ai[i] << std::endl;
+  }
 
   sp_coeff_list coef;
   for (idx i = 0; i < n_vert; ++i) {
@@ -155,9 +154,6 @@ void Solver::Step(idx steps) {
     for (idx vi = 0; vi < n_vert; ++vi) {
       for (idx j = 0; j < problem.neighbours[vi].size(); ++ j) {
         idx vj = problem.neighbours[vi][j];
-        math::vec3r xi = mesh_.vertices_.col(vi);
-        math::vec3r xj = mesh_.vertices_.col(vj);
-
         // ||xj - xi - Ri (x0j - x0i)||_(xj) = xj - xi - Ri (x0j - x0i)
         auto d0 = problem.Di0[vi][j];
         math::vec3r residual = (problem.Ri[vi] * d0) * problem.Wi[vi][j];

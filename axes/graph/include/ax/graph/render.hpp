@@ -27,4 +27,10 @@ CustomNodeRender const* get_custom_node_render(std::type_index t);
 
 void draw_node_content_default(NodeBase* node);
 
+void draw_node_header_default(NodeBase* node);
+
+void begin_draw_node(NodeBase* node);
+
+void end_draw_node();
+
 }  // namespace ax::graph

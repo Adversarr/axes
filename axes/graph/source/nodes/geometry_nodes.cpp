@@ -82,6 +82,8 @@ public:
         .FinalizeAndRegister();
 
     add_custom_node_render<Normal_PerVertex>([](NodeBase * node) {
+      begin_draw_node(node);
+      draw_node_header_default(node);
       draw_node_content_default(node);
       auto* n = reinterpret_cast<Normal_PerVertex*>(node);
       ImGui::Text("Strategy: ");
@@ -100,6 +102,7 @@ public:
         ImGui::EndPopup();
       }
       ed::Resume();
+      end_draw_node();
     });
   }
 

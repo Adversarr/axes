@@ -69,7 +69,7 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx frame_id) {
+  Status Apply(idx /* frame_id */) {
     auto* rhs = RetriveInput<matxxr>(0);
     auto* n = RetriveInput<idx>(1);
     if (!rhs || !n) {

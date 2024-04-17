@@ -1,29 +1,27 @@
+#include <imgui_node_editor.h>
+
+#include "ax/core/entt.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/gl/colormap.hpp"
 #include "ax/gl/primitives/lines.hpp"
+#include "ax/gl/primitives/mesh.hpp"
+#include "ax/gl/primitives/points.hpp"
+#include "ax/graph/cache_sequence.hpp"
+#include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/nodes/gl_prims.hpp"
-#include "ax/graph/node.hpp"
-#include "ax/gl/primitives/mesh.hpp"
 #include "ax/utils/status.hpp"
-#include "ax/core/entt.hpp"
-#include <imgui_node_editor.h>
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
 using namespace graph;
 
-
 namespace ax::nodes {
 
-const char * cmap_names[] = {
-  "bwr",
-  "coolwarm",
-  "jet",
-  "plasma",
-  "seismic",
+const char* cmap_names[] = {
+    "bwr", "coolwarm", "jet", "plasma", "seismic",
 };
-gl::cmap & get_colormap(idx which) {
+gl::cmap& get_colormap(idx which) {
   switch (which) {
     case 0:
       return gl::colormap_bwr;
@@ -41,7 +39,6 @@ gl::cmap & get_colormap(idx which) {
 }
 
 class Render_Mesh : public NodeBase {
-
 public:
   Render_Mesh(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
@@ -56,6 +53,7 @@ public:
         .AddInput<math::field3r>("normal", "The normal of the mesh")
         .AddInput<bool>("flat", "If true, the mesh will be rendered flat")
         .AddInput<bool>("use_lighting", "If true, the mesh will be rendered with lighting")
+        .AddInput<bool>("flush", "If true, the mesh will be rendered to screen.")
         .AddOutput<Entity>("entity", "The entity that has the mesh component")
         .AddOutput<gl::Mesh>("gl_mesh", "Mesh in render.")
         .FinalizeAndRegister();
@@ -69,12 +67,13 @@ public:
     auto* normal = RetriveInput<math::field3r>(4);
     auto* flat = RetriveInput<bool>(5);
     auto* use_lighting = RetriveInput<bool>(6);
+    auto* flush = RetriveInput<bool>(7);
 
     if (mesh == nullptr) {
       return utils::FailedPreconditionError("mesh is not set.");
     }
 
-    math::vec4r u_color_inuse = math::vec4r::Constant(0.7);
+    math::vec4r u_color_inuse = math::vec4r::Constant(0.);
     if (u_color != nullptr) {
       u_color_inuse = *u_color;
     }
@@ -95,15 +94,11 @@ public:
       mesh_comp.normals_ = *normal;
     }
 
-    if (color == nullptr) {
-      mesh_comp.colors_ = math::field4r(4, mesh->vertices_.size());
-      mesh_comp.colors_.colwise() = u_color_inuse;
-    } else {
+    mesh_comp.colors_ = math::field4r::Constant(4, mesh->vertices_.size(), 0.7);
+    if (color != nullptr) {
       mesh_comp.colors_ = *color;
-      if (u_color != nullptr) {
-        mesh_comp.colors_.colwise() = *u_color;
-      }
     }
+    mesh_comp.colors_.colwise() += u_color_inuse;
 
     if (flat != nullptr) {
       mesh_comp.is_flat_ = *flat;
@@ -111,6 +106,10 @@ public:
 
     if (use_lighting != nullptr) {
       mesh_comp.use_lighting_ = *use_lighting;
+    }
+
+    if (flush != nullptr) {
+      mesh_comp.flush_ = *flush;
     }
 
     SetOutput<gl::Mesh>(1, mesh_comp);
@@ -124,7 +123,9 @@ public:
       destroy_entity(ent);
     } else {
       if (entity_inuse != entt::null) {
-        remove_component<gl::Mesh>(entity_inuse);
+        if (global_registry().valid(entity_inuse) && has_component<gl::Mesh>(entity_inuse)) {
+          remove_component<gl::Mesh>(entity_inuse);
+        }
       }
     }
   }
@@ -196,11 +197,13 @@ public:
     auto& lines_comp = add_or_replace_component<gl::Lines>(entity_inuse);
     lines_comp.vertices_ = *points;
     lines_comp.indices_ = std::move(indices_in_use);
+    
+    lines_comp.colors_ = math::field4r::Zero(4, points->cols());
     if (color != nullptr) {
       lines_comp.colors_ = *color;
-    } else if (u_color != nullptr) {
-      lines_comp.colors_ = math::field4r(4, points->cols());
-      lines_comp.colors_.colwise() = *u_color;
+    }
+    if (u_color != nullptr) {
+      lines_comp.colors_.colwise() += *u_color;
     }
 
     SetOutput<Entity>(0, entity_inuse);
@@ -213,7 +216,9 @@ public:
       destroy_entity(ent);
     } else {
       if (entity_inuse != entt::null) {
-        remove_component<gl::Lines>(entity_inuse);
+        if (global_registry().valid(entity_inuse) && has_component<gl::Lines>(entity_inuse)) {
+          remove_component<gl::Lines>(entity_inuse);
+        }
       }
     }
   }
@@ -222,6 +227,77 @@ public:
   Entity entity_inuse = entt::null;
 };
 
+class Render_Points : public NodeBase {
+public:
+  Render_Points(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Render_Points>()
+        .SetName("Render_Points")
+        .SetDescription("Renders a point entity")
+        .AddInput<Entity>("entity", "The entity to add the component")
+        .AddInput<math::field3r>("vertices", "The points to render")
+        .AddInput<math::field4r>("color", "The color of the points")
+        .AddInput<math::vec4r>("u_color", "The color of the points")
+        .AddInput<bool>("flush", "Flush the points to screen.")
+        .AddOutput<Entity>("entity", "The entity that has the point component")
+        .AddOutput<gl::Points>("gl_points", "Points in render")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto* entity = RetriveInput<entt::entity>(0);
+    auto* points = RetriveInput<math::field3r>(1);
+    auto* color = RetriveInput<math::field4r>(2);
+    auto* u_color = RetriveInput<math::vec4r>(3);
+
+    if (points == nullptr) {
+      return utils::FailedPreconditionError("points is not set.");
+    }
+
+    if (entity != nullptr) {
+      entity_inuse = *entity;
+    } else {
+      if (ent == entt::null) {
+        ent = create_entity();
+      }
+      entity_inuse = ent;
+    }
+
+    auto& points_comp = add_or_replace_component<gl::Points>(entity_inuse);
+    points_comp.vertices_ = *points;
+    if (color == nullptr) {
+      points_comp.colors_ = math::field4r::Constant(4, points->cols(), 0.7);
+    } else {
+      if (color->cols() != points->cols()) {
+        return utils::InvalidArgumentError("The number of colors does not match the number of points.");
+      }
+      points_comp.colors_ = *color;
+    }
+    if (u_color != nullptr) {
+      points_comp.colors_.colwise() += *u_color;
+    }
+
+    SetOutput<gl::Points>(1, points_comp);
+    SetOutput<Entity>(0, entity_inuse);
+    AX_RETURN_OK();
+  }
+
+  void CleanUp() override {
+    if (ent != entt::null) {
+      destroy_entity(ent);
+    } else {
+      if (entity_inuse != entt::null) {
+        if (global_registry().valid(entity_inuse) && has_component<gl::Points>(entity_inuse)) {
+          remove_component<gl::Points>(entity_inuse);
+        }
+      }
+    }
+  }
+
+  Entity ent = entt::null;
+  Entity entity_inuse = entt::null;
+};
 
 class ColorMap_real : public NodeBase {
 public:
@@ -236,8 +312,9 @@ public:
         .AddInput<real>("high", "High value of the map")
         .AddOutput<math::vec4r>("color", "The color mapped from the value")
         .FinalizeAndRegister();
-    add_custom_node_render<ColorMap_real>([](NodeBase *node) {
-      draw_node_content_default(node);draw_node_header_default(node);
+    add_custom_node_render<ColorMap_real>([](NodeBase* node) {
+      draw_node_content_default(node);
+      draw_node_header_default(node);
       ImGui::Text("Colormap:");
       ImGui::SameLine();
       idx& n = static_cast<ColorMap_real*>(node)->which_map;
@@ -297,13 +374,12 @@ public:
   void Deserialize(boost::json::object const& obj) override {
     if (obj.contains("which_map")) {
       which_map = obj.at("which_map").as_int64();
-      if (which_map < 0 || (size_t) which_map > sizeof(cmap_names) / sizeof(cmap_names[0])) {
+      if (which_map < 0 || (size_t)which_map > sizeof(cmap_names) / sizeof(cmap_names[0])) {
         which_map = 0;
       }
     }
   }
 };
-
 
 class ColorMap_field1r : public NodeBase {
 public:
@@ -335,11 +411,70 @@ public:
   }
 };
 
-void register_gl_prim_nodes(){
+class GlMeshCachedSequence : public NodeBase {
+public:
+  GlMeshCachedSequence(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<GlMeshCachedSequence>()
+        .SetName("GlMeshCachedSequence")
+        .SetDescription("Renders a sequence of mesh entities")
+        .AddInput<gl::Mesh>("mesh", "The mesh to render")
+        .AddInput<bool>("flush", "Display the input mesh directly.")
+        .FinalizeAndRegister();
+  }
+
+  void OnUpdate(CacheSequenceUpdateEvent const& event) {
+    std::cout << "Updating..." << std::endl;
+    if (event.is_cleanup_) {
+      meshes.clear();
+      return;
+    }
+    size_t to_show = event.required_frame_id_;
+    if (to_show >= meshes.size()) {
+      return;
+    }
+    auto& mesh = meshes[to_show];
+    mesh.flush_ = true;
+    add_or_replace_component<gl::Mesh>(ent_created, mesh);
+  }
+
+  Status OnConstruct() override {
+    connect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
+    ent_created = create_entity();
+    AX_RETURN_OK();
+  }
+
+  void OnDestroy() override {
+    destroy_entity(ent_created);
+    disconnect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
+  }
+
+  Status Apply(idx) override {
+    auto* mesh = RetriveInput<gl::Mesh>(0);
+    if (mesh == nullptr) {
+      return utils::FailedPreconditionError("Mesh is not set.");
+    }
+    meshes.push_back(*mesh);
+    if (auto flush = RetriveInput<bool>(1); flush != nullptr) {
+      meshes.back().flush_ = *flush;
+    }
+    AX_RETURN_OK();
+  }
+
+  List<gl::Mesh> meshes;
+
+  Entity ent_created;
+};
+
+void register_gl_prim_nodes() {
   Render_Mesh::register_this();
   Render_Lines::register_this();
+  Render_Points::register_this();
+
   ColorMap_real::register_this();
   ColorMap_field1r::register_this();
+  GlMeshCachedSequence::register_this();
 }
 
-}
+}  // namespace ax::nodes

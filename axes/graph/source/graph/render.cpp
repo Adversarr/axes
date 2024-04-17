@@ -10,6 +10,7 @@
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/gl/context.hpp"
+#include "ax/graph/cache_sequence.hpp"
 #include "ax/graph/executor.hpp"
 #include "ax/graph/graph.hpp"
 #include "ax/graph/node.hpp"
@@ -21,27 +22,18 @@ namespace ed = ax::NodeEditor;
 
 inline bool match_char(char A, char B) { return A == B || std::tolower(A) == std::tolower(B); }
 
-static bool partially_match(std::string const& str, const char* user_input, size_t length) {
+static int partially_match(std::string const& str, const char* user_input, size_t length) {
   if (length > str.length()) {
     return false;
   }
 
   size_t j = 0, i = 0;
-  while (i < length) {
-    while (j < str.length()) {
-      if (match_char(str[j], user_input[i])) {
-        ++j;
-        break;
-      }
+  for (; i < str.length() && j < length; ++i) {
+    if (match_char(str[i], user_input[j])) {
       ++j;
     }
-
-    if (j == str.length()) {
-      return i == length - 1;
-    }
-    ++i;
   }
-  return i >= length;
+  return j == length;
 }
 
 namespace ax::graph {
@@ -377,15 +369,28 @@ static void draw_config_window(gl::UiRenderEvent) {
   ImGui::SetNextItemWidth(100);
   ImGui::InputInt("End Frame", &end);
 
+  static int cache_in_show = 0;
+  bool need_trigger_event = ImGui::DragInt("Cache Sequence", &cache_in_show, 1, 0, end);
+  need_trigger_event |= ImGui::SliderInt("Idx", &cache_in_show, 0, end);
 
+  ImGui::Separator();
   need_export_json |= ImGui::Button("Export");
   ImGui::SameLine();
+
   need_load_json |= ImGui::Button("Load");
   ImGui::SameLine();
   ImGui::Text("Rel: %s", ax_blueprint_root.c_str());
   ImGui::InputText("Path", json_out_path, 64);
   ImGui::TextUnformatted(message.c_str());
   ImGui::End();
+
+  if (need_trigger_event) {
+    CacheSequenceUpdateEvent e;
+    e.required_frame_id_ = cache_in_show;
+    e.is_cleanup_ = false;
+    emit_enqueue(e);
+    trigger_queue();
+  }
 }
 
 static void draw_once(gl::UiRenderEvent) {
@@ -518,6 +523,9 @@ void install_renderer(GraphRendererOptions opt) {
     if (last_slash != std::string::npos) {
       spath = spath.substr(last_slash + 1);
     }
+    if (spath.ends_with(".exe")) {
+      spath = spath.substr(0, spath.size() - 4);
+    }
     spath = spath + ".json";
 
     if (std::filesystem::exists(ax_blueprint_root + spath)) {
@@ -528,6 +536,7 @@ void install_renderer(GraphRendererOptions opt) {
         need_load_json = true;
       }
     }
+
 
     for (size_t i = 0; i < spath.size(); ++i) {
       json_out_path[i] = spath[i];
@@ -540,6 +549,7 @@ void install_renderer(GraphRendererOptions opt) {
   connect<gl::UiRenderEvent, &draw_once>();
   connect<gl::UiRenderEvent, &draw_config_window>();
   connect<gl::MainMenuBarRenderEvent, &on_menu_bar>();
+
   add_clean_up_hook("Remove Graph", []() -> Status {
     erase_resource<Graph>();
     AX_RETURN_OK();

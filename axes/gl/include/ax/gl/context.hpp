@@ -5,13 +5,9 @@
 #include "light.hpp"
 #include "render_base.hpp"
 #include "window.hpp"
+#include "events.hpp" // IWYU pragma: export
+
 namespace ax::gl {
-
-struct UiRenderEvent {};
-struct ContextDestroyEvent {};
-struct ContextInitEvent {};
-struct MainMenuBarRenderEvent {};
-
 
 class Context {
 public:

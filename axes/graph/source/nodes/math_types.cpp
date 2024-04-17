@@ -54,7 +54,7 @@ class InputColor3r : public NodeBase {
       }});
     }
 
-    Status Apply(idx) {
+    Status PreApply() final {
       SetOutput<math::vec3r>(0, color_.cast<real>());
       AX_RETURN_OK();
     }
@@ -488,12 +488,18 @@ class MakeRandom_Real : public NodeBase {
       NodeDescriptorFactory<MakeRandom_Real>()
           .SetName("Make_random_real")
           .SetDescription("Make a random real number")
+          .AddInput<math::vec2r>("range", "The range of the random number")
           .AddOutput<real>("out", "The random real number")
           .FinalizeAndRegister();
     }
 
     Status Apply(idx) {
-      SetOutput<real>(0, std::uniform_real_distribution<real>(0, 1)(generator_));
+      real low = 0, high = 1;
+      if (auto* range = RetriveInput<math::vec2r>(0)) {
+        low = range->minCoeff();
+        high = range->maxCoeff();
+      }
+      SetOutput<real>(0, std::uniform_real_distribution<real>(low, high)(generator_));
       AX_RETURN_OK();
     }
 
@@ -509,14 +515,20 @@ class MakeRandom_Vector : public NodeBase {
       NodeDescriptorFactory<MakeRandom_Vector<dim>>()
           .SetName("Make_random_vec" + std::to_string(dim) + "r")
           .SetDescription("Make a random vector")
+          .template AddInput<math::vec2r>("range", "The range of the random vector")
           .template AddOutput<math::vecr<dim>>("out", "The random vector")
           .FinalizeAndRegister();
     }
 
     Status Apply(idx) {
       math::vecr<dim> out;
+      real low = 0, high = 1;
+      if (auto* range = RetriveInput<math::vec2r>(0)) {
+        low = range->minCoeff();
+        high = range->maxCoeff();
+      }
       for (idx i = 0; i < dim; i++) {
-        out[i] = std::uniform_real_distribution<real>(0, 1)(generator_);
+        out[i] = std::uniform_real_distribution<real>(low, high)(generator_);
       }
       SetOutput<math::vecr<dim>>(0, std::move(out));
       AX_RETURN_OK();
@@ -534,15 +546,21 @@ class MakeRandom_Matrix : public NodeBase {
       NodeDescriptorFactory<MakeRandom_Matrix<rows, cols>>()
           .SetName("Make_random_mat" + std::to_string(rows) + std::to_string(cols) + "r")
           .SetDescription("Make a random matrix")
+          .template AddInput<math::vec2r>("range", "The matrix to convert")
           .template AddOutput<math::matr<rows, cols>>("out", "The random matrix")
           .FinalizeAndRegister();
     }
 
     Status Apply(idx) {
       math::matr<rows, cols> out;
+      real low = 0, high = 1;
+      if (auto* range = RetriveInput<math::vec2r>(0)) {
+        low = range->minCoeff();
+        high = range->maxCoeff();
+      }
       for (idx i = 0; i < rows; i++) {
         for (idx j = 0; j < cols; j++) {
-          out(i, j) = std::uniform_real_distribution<real>(0, 1)(generator_);
+          out(i, j) = std::uniform_real_distribution<real>(low, high)(generator_);
         }
       }
       SetOutput<math::matr<rows, cols>>(0, std::move(out));
@@ -551,6 +569,76 @@ class MakeRandom_Matrix : public NodeBase {
 
     std::default_random_engine generator_;
 };
+
+#define DefineConvertFromMatrixXXR(type) \
+  class ConvertFromMatrix_##type : public NodeBase { \
+  public: \
+    ConvertFromMatrix_##type(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {} \
+    static void register_this() { \
+      NodeDescriptorFactory<ConvertFromMatrix_##type>() \
+          .SetName("Convert_matxxr_to_" #type) \
+          .SetDescription("Convert a dynamic matrix to a " #type) \
+          .AddInput<math::matxxr>("mat", "The matrix to convert") \
+          .AddOutput<type>("out", "The converted value") \
+          .FinalizeAndRegister(); \
+    } \
+    Status Apply(idx) override { \
+      auto* mat = RetriveInput<math::matxxr>(0); \
+      if (mat == nullptr) { \
+        return utils::FailedPreconditionError("Input is not set"); \
+      } \
+      idx rows = type ::RowsAtCompileTime; \
+      idx cols = type ::ColsAtCompileTime; \
+      if (mat->rows() != rows  && rows != math::dynamic) { \
+        return utils::InvalidArgumentError("Rows mismatch"); \
+      } else if (mat->cols() != cols && cols != math::dynamic) { \
+        return utils::InvalidArgumentError("Cols mismatch"); \
+      } \
+      SetOutput<type>(0, *mat); \
+      AX_RETURN_OK(); \
+    } \
+  };
+
+#define DefineConvertToMatrixXXR(type) \
+  class ConvertToMatrix_##type : public NodeBase { \
+  public: \
+    ConvertToMatrix_##type(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {} \
+    static void register_this() { \
+      NodeDescriptorFactory<ConvertToMatrix_##type>() \
+          .SetName("Convert_" #type "_to_matxxr") \
+          .SetDescription("Convert a " #type " to a dynamic matrix") \
+          .AddInput<type>("in", "The value to convert") \
+          .AddOutput<math::matxxr>("out", "The converted matrix") \
+          .FinalizeAndRegister(); \
+    } \
+    Status Apply(idx) override { \
+      auto* in = RetriveInput<type>(0); \
+      if (in == nullptr) { \
+        return utils::FailedPreconditionError("Input is not set"); \
+      } \
+      SetOutput<math::matxxr>(0, math::matxxr(*in)); \
+      AX_RETURN_OK(); \
+    } \
+  };
+
+using namespace ax::math;
+DefineConvertFromMatrixXXR(vec2r);
+DefineConvertFromMatrixXXR(vec3r);
+DefineConvertFromMatrixXXR(vec4r);
+DefineConvertFromMatrixXXR(vecxr);
+DefineConvertFromMatrixXXR(field1r);
+DefineConvertFromMatrixXXR(field2r);
+DefineConvertFromMatrixXXR(field3r);
+DefineConvertFromMatrixXXR(field4r);
+
+DefineConvertToMatrixXXR(vec2r);
+DefineConvertToMatrixXXR(vec3r);
+DefineConvertToMatrixXXR(vec4r);
+DefineConvertToMatrixXXR(vecxr);
+DefineConvertToMatrixXXR(field1r);
+DefineConvertToMatrixXXR(field2r);
+DefineConvertToMatrixXXR(field3r);
+DefineConvertToMatrixXXR(field4r);
 
 void register_math_types_nodes() {
   InputColor3r::register_this();
@@ -594,6 +682,24 @@ void register_math_types_nodes() {
   MakeRandom_Matrix<2, 2>::register_this();
   MakeRandom_Matrix<3, 3>::register_this();
   MakeRandom_Matrix<4, 4>::register_this();
+
+  ConvertFromMatrix_vec2r::register_this();
+  ConvertFromMatrix_vec3r::register_this();
+  ConvertFromMatrix_vec4r::register_this();
+  ConvertFromMatrix_vecxr::register_this();
+  ConvertFromMatrix_field1r::register_this();
+  ConvertFromMatrix_field2r::register_this();
+  ConvertFromMatrix_field3r::register_this();
+  ConvertFromMatrix_field4r::register_this();
+
+  ConvertToMatrix_vec2r::register_this();
+  ConvertToMatrix_vec3r::register_this();
+  ConvertToMatrix_vec4r::register_this();
+  ConvertToMatrix_vecxr::register_this();
+  ConvertToMatrix_field1r::register_this();
+  ConvertToMatrix_field2r::register_this();
+  ConvertToMatrix_field3r::register_this();
+  ConvertToMatrix_field4r::register_this();
 }
 
 }  // namespace ax::nodes

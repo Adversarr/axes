@@ -21,6 +21,11 @@ int main(int argc, char** argv) {
 
   AX_CHECK_OK(ax::math::write_npy_v10("test.npy", m)) << "Failed to write to test.npy";
 
+  auto m2 = ax::math::read_npy_v10("test.npy");
+  AX_CHECK_OK(m2) << "Failed to read from test.npy";
+  AX_CHECK(m == m2.value()) << "Matrix read from file is not the same as the original matrix" <<
+      m << "\n" << m2.value();
+
   AX_CHECK(name != "throw") << "You let me throw.";
   ax::clean_up();
   return 0;

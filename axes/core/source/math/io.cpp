@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "ax/core/status.hpp"
+#include "ax/utils/status.hpp"
 
 char numpy_magic_code[] = "\x93NUMPY";
 
@@ -112,5 +113,217 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
 
   return write_npy_v10(out, data.data(), mat.size(), 0, mat.rows(), mat.cols());
 }
+
+struct Header {
+  std::string descr;
+  bool fortran_order = false;
+  std::vector<idx> shape;
+  Status parse(const std::string& header) {
+    if (header.empty()) {
+      return Status{StatusCode::kInvalidArgument, "The header is empty."};
+    }
+
+    std::stringstream ss(header);
+    char c;
+    // Need to escape the spaces
+    auto consume_until = [&ss](char target) -> bool {
+      char c;
+      bool status = false;
+      while ((status = (bool) (ss >> c))) {
+        if (c == target) {
+          break;
+        }
+      }
+      return status;
+    };
+    if (!consume_until('{')) {
+      return utils::InvalidArgumentError("The header is not a valid dictionary.");
+    }
+
+    while (ss >> c) {
+      std::string key;
+      std::string val;
+      if (c == '\'') {
+        while (ss >> c) {
+          if (c == '\'') {
+            break;
+          }
+          key.push_back(c);
+        }
+      }
+      std::cout << "Got " << key << std::endl;
+      if (key.empty()) {
+        break;
+      }
+
+      if (!consume_until(':')) {
+        return utils::InvalidArgumentError("The header is not a valid dictionary.");
+      }
+      if (key == "descr") {
+        if (!consume_until('\'')) {
+          return utils::InvalidArgumentError("The descr key is not a string.");
+        }
+        while (ss >> c) {
+          if (c == '\'') {
+            break;
+          }
+          val.push_back(c);
+        }
+        descr = val;
+        std::cout << "Descr: " << val << std::endl;
+      } else if (key == "fortran_order") {
+        while (ss >> c) {
+          if (!std::isblank(c)) {
+            break;
+          }
+        }
+        if (c != 'T' && c != 'F') {
+          return utils::InvalidArgumentError("The fortran_order key is not a boolean.");
+        }
+        fortran_order = c == 'T';
+        std::cout << "Fortran Order: " << fortran_order << std::endl;
+      } else if (key == "shape") {
+        while (ss >> c) {
+          if (c == '(') {
+            break;
+          }
+        }
+
+        while (ss >> c) {
+          if (c == ')') {
+            ss.putback(')');
+            break;
+          }
+          if (c == ',') {
+            continue;
+          }
+          std::string num;
+          num.push_back(c);
+          while (ss >> c) {
+            if (c != ')' && c != ',') {
+              num.push_back(c);
+            } else {
+              break;
+            }
+          }
+          shape.push_back(std::stoi(num));
+          if (c == ')') break;
+        }
+        for (auto i : shape) {
+          std::cout << i << std::endl;
+        }
+      }
+
+      while (ss >> c) {
+        std::cout << "Consuming... " << c <<std::endl;
+        if (c == '}' || c == ',') {
+          break;
+        }
+      }
+      if (c == '}') {
+        std::cout << "break!" << std::endl;
+        break;
+      }
+      while (ss >> c) {
+        if (c != ' ') {
+          ss.putback(c);
+          break;
+        }
+      }
+    }
+    AX_RETURN_OK();
+  }
+};
+
+StatusOr<math::matxxr> read_npy_v10(std::string path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in.is_open()) {
+    return utils::NotFoundError("Failed to open the file. " + path);
+  }
+
+  char magic[6];
+  in.read(magic, 6);
+  if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
+    return utils::FailedPreconditionError("The file is not a valid NPY file. (magic code mismatch)");
+  }
+
+  uint8_t major, minor;
+  in.read(reinterpret_cast<char*>(&major), 1);
+  in.read(reinterpret_cast<char*>(&minor), 1);
+  uint16_t header_len;
+  in.read(reinterpret_cast<char*>(&header_len), 2);
+
+  // Process Header
+  std::string header;
+  header.resize(header_len + 1, 0);
+  in.read(header.data(), header_len);
+  if (!in.good()) {
+      return Status{StatusCode::kUnavailable, "Failed to read the header."};
+  }
+  // Read the data
+  Header header_obj;
+  if (auto s = header_obj.parse(header); !s.ok()) {
+    return s;
+  }
+
+  if (header_obj.shape.size() > 2) {
+    return utils::UnavailableError("The shape is larger than 2D");
+  }
+  idx rows = header_obj.shape[0];
+  idx cols = header_obj.shape.size() > 1 ? header_obj.shape[1] : 1;
+  math::matxxr mat(rows, cols);
+
+  if (header_obj.descr[0] != '<') {
+    return utils::UnavailableError("The data type is not little endianed.");
+  }
+
+  if (header_obj.descr[1] != 'f') {
+    return utils::UnavailableError("The data type is not float.");
+  }
+
+  if (header_obj.descr[2] == '4') {
+    if (header_obj.fortran_order) {
+      for (idx i = 0; i < cols; ++i) {
+        for (idx j = 0; j < rows; ++j) {
+          float val;
+          in.read(reinterpret_cast<char*>(&val), 4);
+          mat(j, i) = (real) val;
+        }
+      }
+    } else {
+      for (idx j = 0; j < rows; ++j) {
+        for (idx i = 0; i < cols; ++i) {
+          float val;
+          in.read(reinterpret_cast<char*>(&val), 4);
+          mat(j, i) = (real)val;
+        }
+      }
+    }
+  } else if (header_obj.descr[2] == '8') {
+    if (header_obj.fortran_order) {
+      for (idx i = 0; i < cols; ++i) {
+            for (idx j = 0; j < rows; ++j) {
+              double val;
+              in.read(reinterpret_cast<char*>(&val), 8);
+              mat(j, i) = (real) val;
+            }
+      }
+    } else {
+      for (idx j = 0; j < rows; ++j) {
+        for (idx i = 0; i < cols; ++i) {
+          double val;
+          if (!in.read(reinterpret_cast<char*>(&val), 8)) {
+            return utils::FailedPreconditionError("Invalid npy file.");
+          }
+          mat(j, i) = (real) val;
+        }
+      }
+    }
+  } else {
+    return utils::UnavailableError("The data type is not float32 or float64.");
+  }
+  return mat;
+}
+
 
 }  // namespace ax::math

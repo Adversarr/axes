@@ -14,5 +14,6 @@ Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec);
 Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat);
 
 // TODO: Load NPY file.
+StatusOr<math::matxxr> read_npy_v10(std::string path);
 
 }  // namespace ax::math

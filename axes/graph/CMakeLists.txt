@@ -1,5 +1,5 @@
 # Library axes-core
-find_package(Boost REQUIRED COMPONENTS json)
+find_package(Boost REQUIRED COMPONENTS json graph)
 
 file(GLOB_RECURSE AX_GRAPH_SOURCE CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
@@ -20,6 +20,7 @@ target_link_libraries(axes_graph
   PUBLIC
     axes_gl
     Boost::json
+    Boost::graph
 )
 
 ax_set_warn_levels(axes_graph)

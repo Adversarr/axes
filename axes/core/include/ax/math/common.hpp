@@ -83,8 +83,10 @@ template <typename Scalar, idx rows, idx cols> using mat = Eigen::Matrix<Scalar,
 
 template <idx rows, idx cols> using matr = mat<real, rows, cols>;
 template <idx rows, idx cols> using matf = mat<float, rows, cols>;
+template <idx rows, idx cols> using mati = mat<idx, rows, cols>;
 using matxxr = matr<dynamic, dynamic>;
 using matxxf = matf<dynamic, dynamic>;
+using matxxi = mati<dynamic, dynamic>;
 
 using mat2r = matr<2, 2>;
 using mat3r = matr<3, 3>;
@@ -92,9 +94,6 @@ using mat4r = matr<4, 4>;
 using mat2f = matf<2, 2>;
 using mat3f = matf<3, 3>;
 using mat4f = matf<4, 4>;
-
-template <idx rows, idx cols> using mati = mat<idx, rows, cols>;
-using matxxi = mati<dynamic, dynamic>;
 using mat2i = mati<2, 2>;
 using mat3i = mati<3, 3>;
 using mat4i = mati<4, 4>;

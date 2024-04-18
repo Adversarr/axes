@@ -57,7 +57,7 @@ public:
 };
 
 template<> typename IsotropicARAP<3>::hessian_t
-IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResultImpl<3, real>* svd) const {
+inline IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResultImpl<3, real>* svd) const {
   real s0 = svd->sigma_[0];
   real s1 = svd->sigma_[1];
   real s2 = svd->sigma_[2];
@@ -88,4 +88,25 @@ IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp:
   dpdf -= lambda2 * (q2 * q2.transpose());
   return dpdf;
 }
+
+
+template<> typename IsotropicARAP<2>::hessian_t
+inline IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::decomp::SvdResultImpl<2, real>* svd) const {
+  // I2 - 2 I1
+  real s0 = svd->sigma_[0];
+  real s1 = svd->sigma_[1];
+  auto const& U = svd->U_, V = svd->V_;
+  // Twists:
+  math::mat2r t0;
+  t0(0, 0) = t0(1, 1) = 0;
+  t0(0, 1) = -1; t0(1, 0) = 1;
+  const real inv_sqrt2 = 1.0 / math::sqrt<real>(2.0);
+  math::mat2r T = inv_sqrt2 * U * t0 * V.transpose();
+  math::vecr<4> q = math::flatten(T);
+
+  IsotropicARAP<2>::hessian_t I1 = 2.0 / (s0 + s1) * q * q.transpose();
+  math::matr<4, 4> dpdf = this->mu_ * (2 * math::eye<4>() - 2 * I1);
+  return dpdf;
 }
+
+}  // namespace ax::fem::elasticity

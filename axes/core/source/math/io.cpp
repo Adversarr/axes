@@ -151,7 +151,7 @@ struct Header {
           key.push_back(c);
         }
       }
-      std::cout << "Got " << key << std::endl;
+      // std::cout << "Got " << key << std::endl;
       if (key.empty()) {
         break;
       }
@@ -170,7 +170,7 @@ struct Header {
           val.push_back(c);
         }
         descr = val;
-        std::cout << "Descr: " << val << std::endl;
+        // std::cout << "Descr: " << val << std::endl;
       } else if (key == "fortran_order") {
         while (ss >> c) {
           if (!std::isblank(c)) {
@@ -181,7 +181,7 @@ struct Header {
           return utils::InvalidArgumentError("The fortran_order key is not a boolean.");
         }
         fortran_order = c == 'T';
-        std::cout << "Fortran Order: " << fortran_order << std::endl;
+        // std::cout << "Fortran Order: " << fortran_order << std::endl;
       } else if (key == "shape") {
         while (ss >> c) {
           if (c == '(') {
@@ -209,19 +209,19 @@ struct Header {
           shape.push_back(std::stoi(num));
           if (c == ')') break;
         }
-        for (auto i : shape) {
-          std::cout << i << std::endl;
-        }
+        // for (auto i : shape) {
+        //   std::cout << i << std::endl;
+        // }
       }
 
       while (ss >> c) {
-        std::cout << "Consuming... " << c <<std::endl;
+        // std::cout << "Consuming... " << c <<std::endl;
         if (c == '}' || c == ',') {
           break;
         }
       }
       if (c == '}') {
-        std::cout << "break!" << std::endl;
+        // std::cout << "break!" << std::endl;
         break;
       }
       while (ss >> c) {
@@ -235,7 +235,7 @@ struct Header {
   }
 };
 
-StatusOr<math::matxxr> read_npy_v10(std::string path) {
+StatusOr<math::matxxr> read_npy_v10_real(std::string path) {
   std::ifstream in(path, std::ios::binary);
   if (!in.is_open()) {
     return utils::NotFoundError("Failed to open the file. " + path);
@@ -316,6 +316,97 @@ StatusOr<math::matxxr> read_npy_v10(std::string path) {
             return utils::FailedPreconditionError("Invalid npy file.");
           }
           mat(j, i) = (real) val;
+        }
+      }
+    }
+  } else {
+    return utils::UnavailableError("The data type is not float32 or float64.");
+  }
+  return mat;
+}
+
+
+StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in.is_open()) {
+    return utils::NotFoundError("Failed to open the file. " + path);
+  }
+
+  char magic[6];
+  in.read(magic, 6);
+  if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
+    return utils::FailedPreconditionError("The file is not a valid NPY file. (magic code mismatch)");
+  }
+
+  uint8_t major, minor;
+  in.read(reinterpret_cast<char*>(&major), 1);
+  in.read(reinterpret_cast<char*>(&minor), 1);
+  uint16_t header_len;
+  in.read(reinterpret_cast<char*>(&header_len), 2);
+
+  // Process Header
+  std::string header;
+  header.resize(header_len + 1, 0);
+  in.read(header.data(), header_len);
+  if (!in.good()) {
+      return Status{StatusCode::kUnavailable, "Failed to read the header."};
+  }
+  // Read the data
+  Header header_obj;
+  if (auto s = header_obj.parse(header); !s.ok()) {
+    return s;
+  }
+
+  if (header_obj.shape.size() > 2) {
+    return utils::UnavailableError("The shape is larger than 2D");
+  }
+  idx rows = header_obj.shape[0];
+  idx cols = header_obj.shape.size() > 1 ? header_obj.shape[1] : 1;
+  math::matxxi mat(rows, cols);
+
+  if (header_obj.descr[0] != '<') {
+    return utils::UnavailableError("The data type is not little endianed.");
+  }
+
+  if (header_obj.descr[1] != 'i') {
+    return utils::UnavailableError("The data type is not idx. got: " + header_obj.descr);
+  }
+
+  if (header_obj.descr[2] == '4') {
+    if (header_obj.fortran_order) {
+      for (idx i = 0; i < cols; ++i) {
+        for (idx j = 0; j < rows; ++j) {
+          int val;
+          in.read(reinterpret_cast<char*>(&val), 4);
+          mat(j, i) = (idx) val;
+        }
+      }
+    } else {
+      for (idx j = 0; j < rows; ++j) {
+        for (idx i = 0; i < cols; ++i) {
+          int val;
+          in.read(reinterpret_cast<char*>(&val), 4);
+          mat(j, i) = (idx)val;
+        }
+      }
+    }
+  } else if (header_obj.descr[2] == '8') {
+    if (header_obj.fortran_order) {
+      for (idx i = 0; i < cols; ++i) {
+            for (idx j = 0; j < rows; ++j) {
+              int64_t val;
+              in.read(reinterpret_cast<char*>(&val), 8);
+              mat(j, i) = (idx) val;
+            }
+      }
+    } else {
+      for (idx j = 0; j < rows; ++j) {
+        for (idx i = 0; i < cols; ++i) {
+          int64_t val;
+          if (!in.read(reinterpret_cast<char*>(&val), 8)) {
+            return utils::FailedPreconditionError("Invalid npy file.");
+          }
+          mat(j, i) = (idx) val;
         }
       }
     }

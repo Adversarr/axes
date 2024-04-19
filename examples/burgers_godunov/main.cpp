@@ -27,7 +27,7 @@ real dx;
 //   min_(u_l <= u <= u_r) f(u) quad & u_l <= u_r,
 //   max_(u_r <= u <= u_l) f(u) quad & u_r <= u_l
 // ) $
-real flux(real u_l, real u_r) {
+real godunuv_flux(real u_l, real u_r) {
   if (u_l > u_r) {
     // Use max f(u)
     real fl = 0.5 * u_l * u_l;
@@ -64,7 +64,7 @@ math::field1r step() {
     real u_l = current(i);
     real u_r = current((i + 1) % Nx);
     real u_l_next = current((i - 1 + Nx) % Nx);
-    next(i) = u_l - dtdx * (flux(u_l, u_r) - flux(u_l_next, u_l));
+    next(i) = u_l - dtdx * (godunuv_flux(u_l, u_r) - godunuv_flux(u_l_next, u_l));
   }
   return next;
 }

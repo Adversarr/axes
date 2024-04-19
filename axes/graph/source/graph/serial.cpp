@@ -89,7 +89,7 @@ Status Deserializer::Deserialize(boost::json::object const &obj) {
     if (!socket.ok() || socket.value() == nullptr) {
       AX_LOG(ERROR) << "Failed to add socket: " << "I [" << input->GetId() << ":" << input_pin 
                     << "] O [" << output->GetId() << ":" << output_pin << "]";
-      return socket.status();
+      continue;
     }
     socket_id_map_[id] = socket.value()->id_;
     inverse_socket_id_map_[socket.value()->id_] = id;

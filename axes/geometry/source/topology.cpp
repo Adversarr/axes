@@ -1,4 +1,5 @@
 #include "ax/geometry/topology.hpp"
+#include "ax/math/linalg.hpp"
 
 #include <absl/hash/hash.h>
 #include <absl/log/check.h>
@@ -51,30 +52,72 @@ math::field2i get_boundary_edges(math::field3i const& triangles) {
   return boundary_edges;
 }
 
-math::field3i get_boundary_triangles(math::field4i const& tetrahedrons) {
+math::field3i get_boundary_triangles(math::field3r const& vertices, 
+  math::field4i const& tetrahedrons) {
   List<utils::DupTuple<idx, 3>> triangles;
 
   for (idx i = 0; i < tetrahedrons.cols(); ++i) {
     for (idx j = 0; j < 4; ++j) {
+      idx o = tetrahedrons(j, i);
       idx a = tetrahedrons((j + 1) % 4, i);
       idx b = tetrahedrons((j + 2) % 4, i);
       idx c = tetrahedrons((j + 3) % 4, i);
-      if (a > b) std::swap(a, b);
-      if (a > c) std::swap(a, c);
-      if (b > c) std::swap(b, c);
-      triangles.push_back({a, b, c});
+      // check det[oabc]
+      math::vec3r oa = vertices.col(a) - vertices.col(o);
+      math::vec3r ob = vertices.col(b) - vertices.col(o);
+      math::vec3r oc = vertices.col(c) - vertices.col(o);
+      if (math::cross(oa, ob).dot(oc) > 0) {
+        triangles.push_back({a, b, c});
+      } else {
+        triangles.push_back({b, a, c});
+      }
     }
   }
 
-  std::sort(triangles.begin(), triangles.end());
-  auto end = std::unique_copy(triangles.begin(), triangles.end(), triangles.begin());
+  auto equal = [](auto const& a, auto const& b) -> bool {
+    idx min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    idx min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    idx max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    idx max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    idx mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
+    idx mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
+    if (min_a != min_b) return false;
+    if (max_a != max_b) return false;
+    return mid_a == mid_b;
+  };
 
-  math::field3i boundary_triangles(3, end - triangles.begin());
-  for (idx i = 0; i < boundary_triangles.cols(); ++i) {
-    boundary_triangles(0, i) = std::get<0>(triangles[i]);
-    boundary_triangles(1, i) = std::get<1>(triangles[i]);
-    boundary_triangles(2, i) = std::get<2>(triangles[i]);
+  auto less = [](auto const& a, auto const& b) -> bool {
+    idx min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    idx min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    if (min_a != min_b) return min_a < min_b;
+    idx max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    idx max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    idx mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
+    idx mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
+    if (mid_a != mid_b) return mid_a < mid_b;
+    return max_a < max_b;
+  };
+
+  std::sort(triangles.begin(), triangles.end(), less);
+  std::vector<utils::DupTuple<idx, 3>> unique;
+  unique.reserve(triangles.size() / 4);
+  for (size_t i = 1; i < triangles.size(); ++i) {
+    if (!equal(triangles[i], triangles[i - 1])) {
+      unique.push_back(triangles[i - 1]);
+    } else {
+      ++i;
+    }
   }
+
+  math::field3i boundary_triangles(3, unique.size());
+  for (idx i = 0; i < boundary_triangles.cols(); ++i) {
+    boundary_triangles(0, i) = std::get<0>(unique[i]);
+    boundary_triangles(1, i) = std::get<1>(unique[i]);
+    boundary_triangles(2, i) = std::get<2>(unique[i]);
+  }
+
+  std::cout << unique.size() << std::endl;
+  std::cout << tetrahedrons.cols() << std::endl;
   return boundary_triangles;
 }
 

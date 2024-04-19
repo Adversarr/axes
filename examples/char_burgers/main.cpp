@@ -6,12 +6,10 @@
 #include <ax/math/common.hpp>
 
 #include "ax/core/echo.hpp"
-#include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/gl/context.hpp"
-#include "ax/gl/utils.hpp"
 #include "ax/math/functional.hpp"
 #include "ax/math/io.hpp"
+
 using namespace ax;
 
 real tol_var = 1e-6;
@@ -33,6 +31,7 @@ ABSL_FLAG(idx, max_iter, 100, "Maximum number of iterations");
 ABSL_FLAG(idx, nx, 100, "Number of grid points");
 ABSL_FLAG(idx, nt, 100, "Number of time steps");
 ABSL_FLAG(bool, export, false, "Export the result to a file");
+ABSL_FLAG(bool, integrate, false, "Integrate the result in the computation cell");
 ABSL_FLAG(real, t, 1.0, "The max simulation time.");
 ABSL_FLAG(std::string, export_file, "result.npy", "The file to export the result.");
 
@@ -111,31 +110,8 @@ void recompute() {
   }
 }
 
-void ui_callback(gl::UiRenderEvent) {
-  static int col_to_show = 0;
-  ImGui::Begin("Burgers' equation");
-  ImGui::Text("This is a 1D Burgers' equation solver");
-  ImGui::Text("Tolerance for variable convergence: %e", tol_var);
-  ImGui::Text("Tolerance for gradient convergence: %e", tol_grad);
-  ImGui::Text("Coefficient alpha: %lf", alpha);
-  ImGui::Text("Coefficient beta: %lf", beta);
-  ImGui::Text("Maximum number of iterations: %ld", max_iter);
-  ImGui::Text("Number of grid points: %ld", nx);
-  ImGui::Text("Current time: %f", t * col_to_show / u_x_t.cols());
-
-  ImGui::SliderInt("Time step", &col_to_show, 0, u_x_t.cols() - 1);
-
-  if (ImPlot::BeginPlot("U(x, t)")) {
-    ImPlot::PlotLine("U(x, t)", grid.data(), u_x_t.col(col_to_show).data(), grid.size());
-    ImPlot::EndPlot();
-  }
-  ImGui::End();
-}
-
 int main(int argc, char** argv) {
-  gl::init(argc, argv);
-  auto& ctx = get_resource<gl::Context>();
-
+  init(argc, argv);
   // Fetch all the flags
   tol_var = absl::GetFlag(FLAGS_tol_var);
   tol_grad = absl::GetFlag(FLAGS_tol_grad);
@@ -159,19 +135,9 @@ int main(int argc, char** argv) {
     u_x_t.col(i) = result;
   }
 
-  if (absl::GetFlag(FLAGS_export)) {
-    std::string export_file = absl::GetFlag(FLAGS_export_file);
-    AX_LOG(INFO) << "Exporting the result to " << export_file;
-    AX_CHECK_OK(math::write_npy_v10(export_file, u_x_t)) << "Failed to write to " << export_file;
-  }
-  else {
-    // Create a 1D grid
-    connect<gl::UiRenderEvent, &ui_callback>();
-    while (!ctx.GetWindow().ShouldClose()) {
-      AX_CHECK_OK(ctx.TickLogic());
-      AX_CHECK_OK(ctx.TickRender());
-    }
-  }
+  std::string export_file = absl::GetFlag(FLAGS_export_file);
+  AX_LOG(INFO) << "Exporting the result to " << export_file;
+  AX_CHECK_OK(math::write_npy_v10(export_file, u_x_t)) << "Failed to write to " << export_file;
 
   clean_up();
   return 0;

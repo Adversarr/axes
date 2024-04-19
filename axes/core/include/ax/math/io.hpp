@@ -12,6 +12,7 @@ Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec);
 
 // Writes a matrix to a file in the NPY format.
 Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat);
+Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat);
 
 // TODO: Load NPY file.
 StatusOr<math::matxxr> read_npy_v10_real(std::string path);

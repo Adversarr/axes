@@ -52,8 +52,8 @@ void init(int argc, char** argv) {
 
 void init() {
   absl::InitializeLog();
-  absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
-  absl::SetStderrThreshold(absl::LogSeverity::kInfo);
+  // absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
+  // absl::SetStderrThreshold(absl::LogSeverity::kInfo);
   /****************************** Setup Entt Registry ******************************/
   registry_p = std::make_unique<entt::registry>();
   dispatcher_p = std::make_unique<entt::dispatcher>();

@@ -6,6 +6,7 @@ function(axes_add_example name deps)
 endfunction(axes_add_example)
 
 axes_add_example(empty "axes")
+axes_add_example(simd_test "axes")
 axes_add_example(basic_graphics "axes_gl")
 axes_add_example(optim "axes_optim")
 axes_add_example(poisson2d "axes_graph;axes_fem")
@@ -32,3 +33,4 @@ axes_add_example(fem_tetra_fd "axes_fem")
 # Homework for Nonlinear Numerical PDE:
 axes_add_example(char_burgers axes_gl)
 axes_add_example(burgers_godunov axes_gl)
+axes_add_example(burgers_high_order axes_graph)

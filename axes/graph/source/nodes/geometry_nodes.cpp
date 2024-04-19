@@ -3,6 +3,7 @@
 #include "ax/geometry/common.hpp"
 #include "ax/geometry/normal.hpp"
 #include "ax/geometry/primitives.hpp"
+#include "ax/geometry/topology.hpp"
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/nodes/geometry.hpp"
@@ -161,12 +162,56 @@ public:
   }
 };
 
+class ExtractBoundary_Tetrahedrons : public NodeBase {
+public:
+  ExtractBoundary_Tetrahedrons(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<ExtractBoundary_Tetrahedrons>()
+        .SetName("ExtractBoundary_Tetrahedrons_pre")
+        .SetDescription("Extracts the boundary of a tetrahedral mesh")
+        .AddInput<math::field3r>("Vertices", "The vertices of the mesh")
+        .AddInput<math::field4i>("Tetras", "The tetrahedrons of the mesh")
+        .AddInput<bool>("reload", "Whether to recompute the boundary every frame")
+        .AddOutput<math::field3i>("Boundary", "The boundary of the mesh")
+        .FinalizeAndRegister();
+  }
+
+  Status PreApply() override {
+    auto* V = RetriveInput<math::field3r>(0);
+    auto* T = RetriveInput<math::field4i>(1);
+    if (V == nullptr) {
+      return utils::FailedPreconditionError("V is not set.");
+    }
+
+    if (T == nullptr) {
+      return utils::FailedPreconditionError("T is not set.");
+    }
+
+    if (V->cols() == 0 || T->cols() == 0) {
+      AX_RETURN_OK();
+    }
+
+    auto boundary = geo::get_boundary_triangles(*V, *T);
+    SetOutput<math::field3i>(0, std::move(boundary));
+    AX_RETURN_OK();
+  }
+
+  Status Apply(idx frame) final {
+    if (auto *reload = RetriveInput<bool>(2); (frame == 0) || (reload && *reload)) {
+      return PreApply();
+    }
+    AX_RETURN_OK();
+  }
+};
+
 void register_geometry_nodes() {
   MakeSurfaceMesh::register_this();
   DecomposeSurfaceMesh::register_this();
 
   Normal_PerVertex::register_this();
   Make_XyPlane::register_this();
+  ExtractBoundary_Tetrahedrons::register_this();
 }
 
 }  // namespace ax::nodes

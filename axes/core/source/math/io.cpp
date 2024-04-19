@@ -85,7 +85,47 @@ Status write_npy_v10(std::ostream& out, const real* p, size_t write_length, size
   if (!out.good()) {
     return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
   }
-  return {};
+  AX_RETURN_OK();
+}
+
+Status write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t f, size_t i,
+                     size_t j) {
+  if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
+    return Status{StatusCode::kInvalidArgument, "The write length is not correct."};
+  }
+  out.write(numpy_magic_code, 6);
+  uint8_t major = 1;
+  uint8_t minor = 0;
+  out.write(reinterpret_cast<char*>(&major), 1);
+  out.write(reinterpret_cast<char*>(&minor), 1);
+
+  uint16_t header_len = 0;
+  std::ostringstream header_stream;
+  header_stream << "{'descr': '<i8', 'fortran_order': False, 'shape': (";
+  if (f > 0) {
+    header_stream << f << ",";
+  }
+  if (i > 0) {
+    header_stream << i << ",";
+  }
+  if (j > 0) {
+    header_stream << j;
+    if (f == 0 && i == 0) {
+      header_stream << ",";
+    }
+  }
+  header_stream << ")}";
+  std::string header = header_stream.str();
+  header_len = header.length();
+
+  out.write(reinterpret_cast<char*>(&header_len), 2);
+  out.write(header.c_str(), header_len);
+  out.write(reinterpret_cast<const char*>(p), write_length * sizeof(idx));
+
+  if (!out.good()) {
+    return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
+  }
+  AX_RETURN_OK();
 }
 
 Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec) {
@@ -104,6 +144,23 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
   }
 
   List<real> data;
+  data.reserve(mat.cols() * mat.rows());
+  for (idx j = 0; j < mat.rows(); ++j) {
+    for (idx i = 0; i < mat.cols(); ++i) {
+      data.push_back(mat(j, i));
+    }
+  }
+
+  return write_npy_v10(out, data.data(), mat.size(), 0, mat.rows(), mat.cols());
+}
+
+Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
+  std::ofstream out(path, std::ios::binary);
+  if (!out.is_open()) {
+    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+  }
+
+  List<idx> data;
   data.reserve(mat.cols() * mat.rows());
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {

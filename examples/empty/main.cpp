@@ -3,6 +3,7 @@
 
 #include "ax/core/echo.hpp"
 #include "ax/core/init.hpp"
+#include "ax/utils/asset.hpp"
 #include "ax/math/common.hpp"
 #include "ax/math/io.hpp"
 
@@ -21,12 +22,22 @@ int main(int argc, char** argv) {
 
   AX_CHECK_OK(ax::math::write_npy_v10("test.npy", m)) << "Failed to write to test.npy";
 
-  auto m2 = ax::math::read_npy_v10("test.npy");
+  auto m2 = ax::math::read_npy_v10_real("test.npy");
   AX_CHECK_OK(m2) << "Failed to read from test.npy";
   AX_CHECK(m == m2.value()) << "Matrix read from file is not the same as the original matrix" <<
       m << "\n" << m2.value();
 
   AX_CHECK(name != "throw") << "You let me throw.";
+
+  auto vertices = math::read_npy_v10_real(utils::get_asset("/mesh/npy/armadillo_low_res_vertices.npy"));
+  auto elements = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/armadillo_low_res_elements.npy"));
+
+  AX_CHECK_OK(vertices) << "Failed to read vertices";
+  AX_CHECK_OK(elements) << "Failed to read elements";
+
+  std::cout << vertices->rows() << " " << vertices->cols() << std::endl;
+  std::cout << elements->rows() << " " << elements->cols() << std::endl;
+
   ax::clean_up();
   return 0;
 }

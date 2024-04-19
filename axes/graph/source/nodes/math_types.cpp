@@ -621,6 +621,61 @@ class MakeRandom_Matrix : public NodeBase {
     } \
   };
 
+
+#define DefineConvertFromMatrixXXI(type) \
+  class ConvertFromMatrix_##type : public NodeBase { \
+  public: \
+    ConvertFromMatrix_##type(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {} \
+    static void register_this() { \
+      NodeDescriptorFactory<ConvertFromMatrix_##type>() \
+          .SetName("Convert_matxxi_to_" #type) \
+          .SetDescription("Convert a dynamic matrix to a " #type) \
+          .AddInput<math::matxxi>("mat", "The matrix to convert") \
+          .AddOutput<type>("out", "The converted value") \
+          .FinalizeAndRegister(); \
+    } \
+    Status Apply(idx) override { \
+      auto* mat = RetriveInput<math::matxxi>(0); \
+      if (mat == nullptr) { \
+        return utils::FailedPreconditionError("Input is not set"); \
+      } \
+      idx rows = type ::RowsAtCompileTime; \
+      idx cols = type ::ColsAtCompileTime; \
+      if (mat->rows() != rows  && rows != math::dynamic) { \
+        return utils::InvalidArgumentError("Rows mismatch"); \
+      } else if (mat->cols() != cols && cols != math::dynamic) { \
+        return utils::InvalidArgumentError("Cols mismatch"); \
+      } \
+      SetOutput<type>(0, *mat); \
+      AX_RETURN_OK(); \
+    } \
+  };
+
+#define DefineConvertToMatrixXXI(type) \
+  class ConvertToMatrix_##type : public NodeBase { \
+  public: \
+    ConvertToMatrix_##type(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {} \
+    static void register_this() { \
+      NodeDescriptorFactory<ConvertToMatrix_##type>() \
+          .SetName("Convert_" #type "_to_matxxi") \
+          .SetDescription("Convert a " #type " to a dynamic matrix") \
+          .AddInput<type>("in", "The value to convert") \
+          .AddOutput<math::matxxi>("out", "The converted matrix") \
+          .FinalizeAndRegister(); \
+    } \
+    Status Apply(idx) override { \
+      auto* in = RetriveInput<type>(0); \
+      if (in == nullptr) { \
+        return utils::FailedPreconditionError("Input is not set"); \
+      } \
+      SetOutput<math::matxxi>(0, math::matxxi(*in)); \
+      AX_RETURN_OK(); \
+    } \
+  };
+
+
+
+
 using namespace ax::math;
 DefineConvertFromMatrixXXR(vec2r);
 DefineConvertFromMatrixXXR(vec3r);
@@ -630,6 +685,14 @@ DefineConvertFromMatrixXXR(field1r);
 DefineConvertFromMatrixXXR(field2r);
 DefineConvertFromMatrixXXR(field3r);
 DefineConvertFromMatrixXXR(field4r);
+DefineConvertFromMatrixXXI(vec2i);
+DefineConvertFromMatrixXXI(vec3i);
+DefineConvertFromMatrixXXI(vec4i);
+DefineConvertFromMatrixXXI(vecxi);
+DefineConvertFromMatrixXXI(field1i);
+DefineConvertFromMatrixXXI(field2i);
+DefineConvertFromMatrixXXI(field3i);
+DefineConvertFromMatrixXXI(field4i);
 
 DefineConvertToMatrixXXR(vec2r);
 DefineConvertToMatrixXXR(vec3r);
@@ -639,6 +702,64 @@ DefineConvertToMatrixXXR(field1r);
 DefineConvertToMatrixXXR(field2r);
 DefineConvertToMatrixXXR(field3r);
 DefineConvertToMatrixXXR(field4r);
+
+DefineConvertToMatrixXXI(vec2i);
+DefineConvertToMatrixXXI(vec3i);
+DefineConvertToMatrixXXI(vec4i);
+DefineConvertToMatrixXXI(vecxi);
+DefineConvertToMatrixXXI(field1i);
+DefineConvertToMatrixXXI(field2i);
+DefineConvertToMatrixXXI(field3i);
+DefineConvertToMatrixXXI(field4i);
+
+class Transpose_matxxr : public NodeBase {
+public:
+  Transpose_matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Transpose_matxxr>()
+        .SetName("Transpose_matxxr")
+        .SetDescription("Transpose a matrix")
+        .AddInput<math::matxxr>("in", "The matrix to transpose")
+        .AddOutput<math::matxxr>("out", "The transposed matrix")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto* in = RetriveInput<math::matxxr>(0);
+    if (in == nullptr) {
+      return utils::FailedPreconditionError("Input is not set");
+    }
+    SetOutput<math::matxxr>(0, in->transpose());
+    AX_RETURN_OK();
+  }
+};
+
+class Transpose_matxxi : public NodeBase {
+public:
+  Transpose_matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Transpose_matxxi>()
+        .SetName("Transpose_matxxi")
+        .SetDescription("Transpose a matrix")
+        .AddInput<math::matxxi>("in", "The matrix to transpose")
+        .AddOutput<math::matxxi>("out", "The transposed matrix")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx) override {
+    auto* in = RetriveInput<math::matxxi>(0);
+    if (in == nullptr) {
+      return utils::FailedPreconditionError("Input is not set");
+    }
+    SetOutput<math::matxxi>(0, in->transpose());
+    AX_RETURN_OK();
+  }
+};
+
+
+
 
 void register_math_types_nodes() {
   InputColor3r::register_this();
@@ -691,6 +812,14 @@ void register_math_types_nodes() {
   ConvertFromMatrix_field2r::register_this();
   ConvertFromMatrix_field3r::register_this();
   ConvertFromMatrix_field4r::register_this();
+  ConvertFromMatrix_vec2i::register_this();
+  ConvertFromMatrix_vec3i::register_this();
+  ConvertFromMatrix_vec4i::register_this();
+  ConvertFromMatrix_vecxi::register_this();
+  ConvertFromMatrix_field1i::register_this();
+  ConvertFromMatrix_field2i::register_this();
+  ConvertFromMatrix_field3i::register_this();
+  ConvertFromMatrix_field4i::register_this();
 
   ConvertToMatrix_vec2r::register_this();
   ConvertToMatrix_vec3r::register_this();
@@ -700,6 +829,17 @@ void register_math_types_nodes() {
   ConvertToMatrix_field2r::register_this();
   ConvertToMatrix_field3r::register_this();
   ConvertToMatrix_field4r::register_this();
+  ConvertToMatrix_vec2i::register_this();
+  ConvertToMatrix_vec3i::register_this();
+  ConvertToMatrix_vec4i::register_this();
+  ConvertToMatrix_vecxi::register_this();
+  ConvertToMatrix_field1i::register_this();
+  ConvertToMatrix_field2i::register_this();
+  ConvertToMatrix_field3i::register_this();
+  ConvertToMatrix_field4i::register_this();
+
+  Transpose_matxxi::register_this();
+  Transpose_matxxr::register_this();
 }
 
 }  // namespace ax::nodes

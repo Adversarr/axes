@@ -356,6 +356,8 @@ Status Context::TickLogic() {
   for (auto& renderer : impl_->renderers_) {
     AX_EVAL_RETURN_NOTOK(renderer->TickLogic());
   }
+  emit_enqueue(tick_logic_event);
+  trigger_queue<TickLogicEvent>();
   AX_RETURN_OK();
 }
 

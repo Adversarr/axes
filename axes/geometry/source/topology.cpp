@@ -116,8 +116,6 @@ math::field3i get_boundary_triangles(math::field3r const& vertices,
     boundary_triangles(2, i) = std::get<2>(unique[i]);
   }
 
-  std::cout << unique.size() << std::endl;
-  std::cout << tetrahedrons.cols() << std::endl;
   return boundary_triangles;
 }
 

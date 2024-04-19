@@ -474,4 +474,84 @@ StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
 }
 
 
+Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
+  std::ofstream out(path);
+  if (!out.is_open()) {
+    return utils::NotFoundError("Failed to open the file. " + path);
+  }
+
+  out << R"(%%MatrixMarket matrix coordinate real general
+%=================================================================================
+%
+% This ASCII file represents a sparse MxN matrix with L 
+% nonzeros in the following Matrix Market format:
+%
+% +----------------------------------------------+
+% |%%MatrixMarket matrix coordinate real general | <--- header line
+% |%                                             | <--+
+% |% comments                                    |    |-- 0 or more comment lines
+% |%                                             | <--+         
+% |    M  N  L                                   | <--- rows, columns, entries
+% |    I1  J1  A(I1, J1)                         | <--+
+% |    I2  J2  A(I2, J2)                         |    |
+% |    I3  J3  A(I3, J3)                         |    |-- L lines
+% |        . . .                                 |    |
+% |    IL JL  A(IL, JL)                          | <--+
+% +----------------------------------------------+   
+%
+% Indices are 1-based, i.e. A(1,1) is the first element.
+%
+%=================================================================================)";
+
+  out << "\n" << mat.rows() << " " << mat.cols() << " " << mat.nonZeros() << "\n";
+
+  for (idx k = 0; k < mat.outerSize(); ++k) {
+    for (sp_matxxr::InnerIterator it(mat, k); it; ++it) {
+      out << it.row() + 1 << " " << it.col() + 1 << " " << it.value() << "\n";
+    }
+  }
+  AX_RETURN_OK();
+}
+
+StatusOr<sp_matxxr> read_sparse_matrix(std::string path) {
+  std::ifstream in(path);
+  if (!in.is_open()) {
+    return utils::NotFoundError("Failed to open the file. " + path);
+  }
+  char line[1024];
+  in.getline(line, 1024);
+  if (std::strncmp(line, "%%MatrixMarket matrix coordinate real general", 46) != 0) {
+    return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+  }
+
+  while (in.getline(line, 1024)) {
+    if (line[0] != '%') {
+      break;
+    }
+  }
+
+  int rows, cols, nonzeros;
+  idx n_success = std::sscanf(line, "%d %d %d", &rows, &cols, &nonzeros);
+  if (n_success != 3) {
+    return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+  }
+  sp_coeff_list triplets;
+  triplets.reserve(nonzeros);
+  for (int i = 0; i < nonzeros; ++i) {
+    if (! in.getline(line, 1024)) {
+      return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+    }
+    int r, c;
+    real val;
+    n_success = std::sscanf(line, "%d %d %lf", &r, &c, &val);
+    if (n_success != 3) {
+      return utils::FailedPreconditionError(
+          ("line " + std::to_string(i) + " is not a valid triplet: ") + line);
+    }
+    triplets.push_back({r - 1, c - 1, val});
+  }
+  return math::make_sparse_matrix(rows, cols, triplets);
+}
+
+
 }  // namespace ax::math

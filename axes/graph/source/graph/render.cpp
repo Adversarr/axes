@@ -52,9 +52,25 @@ bool has_cycle;
 bool is_config_open_;
 bool need_load_json;
 bool need_export_json;
+bool running_;
 char json_out_path[64] = "blueprint.json";
 
-UPtr<GraphExecutorBase> executor_;
+static void run_once();
+
+UPtr<GraphExecutorBase>& ensure_executor() {
+  auto &g = ensure_resource<Graph>();
+  if (auto* ptr = try_get_resource<UPtr<GraphExecutorBase>>()) {
+    if_likely (&(ptr->get()->GetGraph()) == &g) {
+      return *ptr;
+    } else {
+      erase_resource<UPtr<GraphExecutorBase>>();
+      return add_resource<UPtr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    }
+  } else {
+    auto &r = add_resource<UPtr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    return r;
+  }
+}
 
 void draw_node_header_default(NodeBase* node) {
   ImGui::TextColored(ImVec4(0.1, 0.5, 0.8, 1), "= %s", node->GetDescriptor()->name_.c_str());
@@ -114,11 +130,11 @@ void draw_node(NodeBase* node) {
   }
 }
 
-void draw_socket(Socket* socket) {
+static void draw_socket(Socket* socket) {
   ed::Link(socket->id_, socket->input_->id_, socket->output_->id_);
 }
 
-void add_node(Graph& g, char const* name) {
+static void add_node(Graph& g, char const* name) {
   auto desc = details::get_node_descriptor(name);
   if (desc) {
     auto opt_node = g.AddNode(desc);
@@ -322,13 +338,13 @@ static void draw_config_window(gl::UiRenderEvent) {
     return;
   }
   if (!ImGui::Begin("Graph Commander", &is_config_open_,
-       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::End();
     return;
   }
 
   auto& g = ensure_resource<Graph>();
-  has_cycle = GraphExecutorBase(g).HasCycle();
+  has_cycle = ensure_executor()->HasCycle();
 
   static std::string message = "";
   static int end = 1;
@@ -350,33 +366,53 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Recheck Cycle")) {
-    has_cycle = GraphExecutorBase(g).HasCycle();
+    has_cycle = ensure_executor()->HasCycle();
   }
   ImGui::SameLine();
   if (ImGui::Button("Clear")) {
     g.Clear();
   }
+  ImGui::Separator();
+
+  auto& executor = ensure_executor();
+
+  ImGui::SetNextItemWidth(100);
+  if (ImGui::InputInt("End Frame", &end)) {
+    if (end < 0) {
+      end = 0;
+    }
+    executor->SetEnd(end);
+  }
   ImGui::SameLine();
-  if (ImGui::Button("Execute")) {
-    auto executor = GraphExecutorBase(g);
-    auto status = executor.Execute(end);
+  if (ImGui::Button("Execute All")) {
+    auto status = executor->Execute();
     if (!status.ok()) {
       AX_LOG(ERROR) << status;
       message = status.message();
     }
   }
   ImGui::SameLine();
-  ImGui::SetNextItemWidth(100);
-  ImGui::InputInt("End Frame", &end);
+  if (ImGui::Button("Execute Once")) {
+    run_once();
+  }
+  ImGui::Checkbox("Running", &running_);
+  ImGui::SameLine();
+  ImGui::Text("Current Frame: %ld", executor->GetCurrentFrame());
+  ImGui::Separator();
 
+  /* Cache Sequence */
   static int cache_in_show = 0;
-  bool need_trigger_event = ImGui::DragInt("Cache Sequence", &cache_in_show, 1, 0, end);
-  need_trigger_event |= ImGui::SliderInt("Idx", &cache_in_show, 0, end);
+  ImGui::SetNextItemWidth(150);
+  bool need_trigger_event = ImGui::InputInt("Cache Sequence", &cache_in_show, 1, 0, end);
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(200);
+  need_trigger_event |= ImGui::DragInt("Idx", &cache_in_show, 0, end);
 
+
+  /* Import/Export */
   ImGui::Separator();
   need_export_json |= ImGui::Button("Export");
   ImGui::SameLine();
-
   need_load_json |= ImGui::Button("Load");
   ImGui::SameLine();
   ImGui::Text("Rel: %s", ax_blueprint_root.c_str());
@@ -426,7 +462,7 @@ static void draw_once(gl::UiRenderEvent) {
       if (!s.ok()) {
         AX_LOG(ERROR) << "Failed to load blue print!" << s;
       }
-      has_cycle = GraphExecutorBase(g).HasCycle();
+      has_cycle = ensure_executor()->HasCycle();
 
       auto const& meta = d.node_metadata_;
       auto const& node_id_map = d.inverse_node_id_map_;
@@ -499,6 +535,52 @@ void on_menu_bar(gl::MainMenuBarRenderEvent) {
   }
 }
 
+static void run_once(){
+  auto& e = ensure_executor();
+  auto stage = e->GetStage();
+  switch (stage) {
+    case GraphExecuteStage::kIdle: {
+      auto s = e->Begin();
+      if (!s.ok()) {
+        AX_LOG(ERROR) << "Failed to begin executor: " << s;
+        // Do not call end, because we may need the error stage information.
+      }
+    }
+    case GraphExecuteStage::kPrePreApply:
+    case GraphExecuteStage::kPreApplyDone:
+    case GraphExecuteStage::kApplyRunning:
+    case GraphExecuteStage::kApplyDone:
+    case GraphExecuteStage::kPrePostApply:
+    case GraphExecuteStage::kPostApplyDone: {
+      auto s = e->WorkOnce();
+      if (!s.ok()) {
+        AX_LOG(ERROR) << "Error in work once: " << s;
+      }
+      break;
+    }
+
+    case GraphExecuteStage::kPreApplyError:
+    case GraphExecuteStage::kApplyError:
+    case GraphExecuteStage::kPostApplyError: {
+      AX_LOG(ERROR) << "Error in executor: " << int(stage);
+      std::cout << "Error.." << std::endl;
+      running_ = false;
+      break;
+    }
+    case GraphExecuteStage::kDone: {
+      e->End();
+      running_ = false;
+    }
+  }
+}
+
+void on_tick_logic(gl::TickLogicEvent) {
+  if (! running_) {
+    return;
+  }
+  run_once();
+}
+
 void install_renderer(GraphRendererOptions opt) {
   opt_ = opt;
   ax_blueprint_root = utils::get_root_dir();
@@ -549,6 +631,7 @@ void install_renderer(GraphRendererOptions opt) {
   connect<gl::UiRenderEvent, &draw_once>();
   connect<gl::UiRenderEvent, &draw_config_window>();
   connect<gl::MainMenuBarRenderEvent, &on_menu_bar>();
+  connect<gl::TickLogicEvent, &on_tick_logic>();
 
   add_clean_up_hook("Remove Graph", []() -> Status {
     erase_resource<Graph>();

@@ -30,29 +30,30 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx frame_id) {
+  Status DoApply() {
     auto* file = RetriveInput<std::string>(0);
-    auto* reload = RetriveInput<bool>(1);
     if (file == nullptr) {
       return utils::FailedPreconditionError("File path is not set");
     }
 
-    bool need_reload_this_frame;
-    if (reload == nullptr) {
-      need_reload_this_frame = frame_id == 0;
-    } else {
-      need_reload_this_frame = *reload;
+    auto mesh = geo::read_obj(*file);
+    if (!mesh.ok()) {
+      return mesh.status();
     }
+    *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh.value());
 
-    if (need_reload_this_frame) {
-      auto mesh = geo::read_obj(*file);
-      if (!mesh.ok()) {
-        AX_LOG(ERROR) << "Failed to read obj file: " << file->c_str();
-        return mesh.status();
-      }
-      *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh.value());
+    AX_RETURN_OK();
+  }
+
+  Status Apply(idx frame_id) override {
+    if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
+      return DoApply();
     }
+    AX_RETURN_OK();
+  }
 
+  Status PreApply() override {
+    DoApply().IgnoreError();
     AX_RETURN_OK();
   }
 };
@@ -201,7 +202,7 @@ public:
   ExportNumpy_matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
   static void register_this() {
     NodeDescriptorFactory<ExportNumpy_matxxr>()
-        .SetName("Export_numpy_matxxr")
+        .SetName("Write_npy_matxxr")
         .SetDescription("Exports a matxxr to a numpy file")
         .AddInput<matxxr>("data", "The matxxr to export")
         .AddInput<std ::string>("file", "The path to the numpy file")
@@ -234,7 +235,7 @@ public:
   ExportNumpy_matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
   static void register_this() {
     NodeDescriptorFactory<ExportNumpy_matxxi>()
-        .SetName("Export_numpy_matxxr")
+        .SetName("Write_npy_matxxr")
         .SetDescription("Exports a matxxr to a numpy file")
         .AddInput<matxxi>("data", "The matxxr to export")
         .AddInput<std::string>("file", "The path to the numpy file")
@@ -263,24 +264,26 @@ public:
   }
 };
 
-class ImportNumpy_Matxxr : public NodeBase {
+class Read_npy_matxxr : public NodeBase {
 public:
-  ImportNumpy_Matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+  Read_npy_matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
-    NodeDescriptorFactory<ImportNumpy_Matxxr>()
-        .SetName("Import_numpy_matxxr")
+    NodeDescriptorFactory<Read_npy_matxxr>()
+        .SetName("Read_npy_matxxr")
         .SetDescription("Imports a numpy file to a matxxr")
         .AddInput<std::string>("file", "The path to the numpy file")
-        .AddOutput<math::matxxr>("data", "The matxxr read from the numpy file")
+        .AddInput<bool>("reload", "Reload every frame")
+        .AddOutput<math::matxxr>("out", "The matxxr read from the numpy file")
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) override {
+  Status DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
       return utils::FailedPreconditionError("File path is not set");
     }
+
     auto status = math::read_npy_v10_real(*file);
     if (!status.ok()) {
       return status.status();
@@ -288,25 +291,39 @@ public:
     SetOutput<matxxr>(0, std::move(status.value()));
     AX_RETURN_OK();
   }
+
+  Status Apply(idx frame_id) override {
+    if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
+      return DoApply();
+    }
+    AX_RETURN_OK();
+  }
+
+  Status PreApply() override {
+    DoApply().IgnoreError();
+    AX_RETURN_OK();
+  }
 };
-class ImportNumpy_Matxxi : public NodeBase {
+class Read_npy_matxxi : public NodeBase {
 public:
-  ImportNumpy_Matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+  Read_npy_matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
-    NodeDescriptorFactory<ImportNumpy_Matxxi>()
-        .SetName("Import_numpy_matxxi")
+    NodeDescriptorFactory<Read_npy_matxxi>()
+        .SetName("Read_npy_matxxi")
         .SetDescription("Imports a numpy file to a matxxr")
         .AddInput<std::string>("file", "The path to the numpy file")
-        .AddOutput<math::matxxi>("data", "The matxxr read from the numpy file")
+        .AddInput<bool>("reload", "Reload every frame")
+        .AddOutput<math::matxxi>("out", "The matxxr read from the numpy file")
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) override {
+  Status DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
       return utils::FailedPreconditionError("File path is not set");
     }
+
     auto status = math::read_npy_v10_idx(*file);
     if (!status.ok()) {
       return status.status();
@@ -314,7 +331,91 @@ public:
     SetOutput<matxxi>(0, std::move(status.value()));
     AX_RETURN_OK();
   }
+
+  Status Apply(idx frame_id) override {
+    if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
+      return DoApply();
+    }
+    AX_RETURN_OK();
+  }
+  Status PreApply() override {
+    DoApply().IgnoreError();
+    AX_RETURN_OK();
+  }
 };
+
+class Read_SparseMatrix : public NodeBase {
+public:
+  Read_SparseMatrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Read_SparseMatrix>()
+        .SetName("Read_SparseMatrix")
+        .SetDescription("Reads a sparse matrix from a file")
+        .AddInput<std::string>("file", "The path to the file")
+        .AddInput<bool>("reload", "Reload every frame")
+        .AddOutput<math::sp_matxxr>("matrix", "The read sparse matrix")
+        .FinalizeAndRegister();
+  }
+
+  Status DoApply() {
+    auto* file = RetriveInput<std::string>(0);
+    if (file == nullptr) {
+      return utils::FailedPreconditionError("File path is not set");
+    }
+
+    auto status = math::read_sparse_matrix(*file);
+    if (!status.ok()) {
+      return status.status();
+    }
+    *RetriveOutput<math::sp_matxxr>(0) = std::move(status.value());
+
+    AX_RETURN_OK();
+  }
+
+  Status Apply(idx frame_id) override {
+    if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
+      return DoApply();
+    }
+    AX_RETURN_OK();
+  }
+
+  Status PreApply() override {
+    DoApply().IgnoreError();
+    AX_RETURN_OK();
+  }
+};
+
+class Write_SparseMatrix : public NodeBase {
+public:
+  Write_SparseMatrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+
+  static void register_this() {
+    NodeDescriptorFactory<Write_SparseMatrix>()
+        .SetName("Write_SparseMatrix")
+        .SetDescription("Writes a sparse matrix to a file")
+        .AddInput<math::sp_matxxr>("data", "The sparse matrix to write")
+        .AddInput<std::string>("file", "The path to the file")
+        .FinalizeAndRegister();
+  }
+
+  Status Apply(idx /* frame_id */) override {
+    auto* file = RetriveInput<std::string>(1);
+    if (file == nullptr) {
+      return utils::FailedPreconditionError("File path is not set");
+    }
+    auto* matrix = RetriveInput<math::sp_matxxr>(0);
+    if (matrix == nullptr) {
+      return utils::FailedPreconditionError("Matrix is not set");
+    }
+    auto status = math::write_sparse_matrix(*file, *matrix);
+    if (!status.ok()) {
+      return status;
+    }
+    AX_RETURN_OK();
+  }
+};
+
 
 void register_io_nodes() {
   ReadObjNode::register_this();
@@ -323,7 +424,10 @@ void register_io_nodes() {
 
   ExportNumpy_matxxr::register_this();
   ExportNumpy_matxxi::register_this();
-  ImportNumpy_Matxxr::register_this();
-  ImportNumpy_Matxxi::register_this();
+  Read_npy_matxxr::register_this();
+  Read_npy_matxxi::register_this();
+
+  Write_SparseMatrix::register_this();
+  Read_SparseMatrix::register_this();
 }
 }  // namespace ax::nodes

@@ -25,8 +25,8 @@ class MakeSurfaceMesh : public NodeBase {
       NodeDescriptorFactory<MakeSurfaceMesh>()
           .SetName("Make_SurfaceMesh")
           .SetDescription("Creates a surface mesh")
-          .AddInput<math::field3r>("V", "The vertices of the mesh")
-          .AddInput<math::field3i>("F", "The faces of the mesh")
+          .AddInput<math::field3r>("vertices", "The vertices of the mesh")
+          .AddInput<math::field3i>("faces", "The faces of the mesh")
           .AddOutput<geo::SurfaceMesh>("mesh", "The resulting surface mesh")
           .FinalizeAndRegister();
     }
@@ -54,8 +54,8 @@ public:
         .SetName("Decompose_SurfaceMesh")
         .SetDescription("Decomposes a surface mesh")
         .AddInput<geo::SurfaceMesh>("mesh", "The mesh to decompose")
-        .AddOutput<math::field3r>("V", "The vertices of the mesh")
-        .AddOutput<math::field3i>("F", "The faces of the mesh")
+        .AddOutput<math::field3r>("vertices", "The vertices of the mesh")
+        .AddOutput<math::field3i>("faces", "The faces of the mesh")
         .FinalizeAndRegister();
   }
 
@@ -170,10 +170,10 @@ public:
     NodeDescriptorFactory<ExtractBoundary_Tetrahedrons>()
         .SetName("ExtractBoundary_Tetrahedrons_pre")
         .SetDescription("Extracts the boundary of a tetrahedral mesh")
-        .AddInput<math::field3r>("Vertices", "The vertices of the mesh")
-        .AddInput<math::field4i>("Tetras", "The tetrahedrons of the mesh")
+        .AddInput<math::field3r>("vertices", "The vertices of the mesh")
+        .AddInput<math::field4i>("tetras", "The tetrahedrons of the mesh")
         .AddInput<bool>("reload", "Whether to recompute the boundary every frame")
-        .AddOutput<math::field3i>("Boundary", "The boundary of the mesh")
+        .AddOutput<math::field3i>("bd_faces", "The boundary of the mesh")
         .FinalizeAndRegister();
   }
 

@@ -24,10 +24,10 @@ public:
         .SetDescription("Stylizes a mesh using cubic splines")
         .AddInput<geo::SurfaceMesh>("mesh", "The mesh to stylize")
         .AddInput<idx>("steps", "The number of steps to take")
-        .AddInput<real>("Rho", "rho")
-        .AddInput<real>("Lambda", "lambda")
-        .AddInput<real>("Tau", "tau")
-        .AddInput<real>("Mu", "mu")
+        .AddInput<real>("rho", "rho")
+        .AddInput<real>("lambda", "lambda")
+        .AddInput<real>("tau", "tau")
+        .AddInput<real>("mu", "mu")
         .AddOutput<geo::SurfaceMesh>("mesh", "The stylized mesh")
         .FinalizeAndRegister();
   }

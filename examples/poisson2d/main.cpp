@@ -63,7 +63,7 @@ public:
     NodeDescriptorFactory<SolvePoissionWithZeroDirichlet>()
         .SetName("Solve_Poission_With_Zero_Dirichlet_01_01")
         .SetDescription("Solves the Poission equation with zero Dirichlet boundary condition")
-        .AddInput<matxxr>("Rhs", "Rhs of -laplace U = f")
+        .AddInput<matxxr>("rhs", "Rhs of -laplace U = f")
         .AddInput<idx>("N", "Resolution of XY Dim")
         .AddOutput<matxxr>("solution", "The solution of the Poission equation")
         .FinalizeAndRegister();
@@ -184,10 +184,10 @@ public:
         .SetName("Generate_Random_Rhs_By_Gaussian_01")
         .SetDescription("Generates a random right-hand-side by Gaussian distribution")
         .AddInput<idx>("N", "Resolution of XY Dim")
-        .AddInput<vec2r>("Mean", "Mean of the Gaussian distribution")
-        .AddInput<vec2r>("Std", "Standard deviation of the Gaussian distribution")
-        .AddInput<real>("Scale", "Scale of the Gaussian distribution")
-        .AddOutput<matxxr>("Rhs", "The right-hand-side of the Poission equation")
+        .AddInput<vec2r>("mean", "Mean of the Gaussian distribution")
+        .AddInput<vec2r>("std", "Standard deviation of the Gaussian distribution")
+        .AddInput<real>("scale", "Scale of the Gaussian distribution")
+        .AddOutput<matxxr>("rhs", "The right-hand-side of the Poission equation")
         .FinalizeAndRegister();
   }
 
@@ -223,9 +223,9 @@ public:
     NodeDescriptorFactory<VisualizeHeightField>()
         .SetName("Visualize_Height_Field_01")
         .SetDescription("Visualizes the height field")
-        .AddInput<matxxr>("HeightField", "The height field to visualize")
-        .AddOutput<geo::SurfaceMesh>("Mesh", "The mesh of the height field")
-        .AddOutput<field4r>("Color", "The color of the height field")
+        .AddInput<matxxr>("data", "The height field to visualize")
+        .AddOutput<geo::SurfaceMesh>("mesh", "The mesh of the height field")
+        .AddOutput<field4r>("color", "The color of the height field")
         .FinalizeAndRegister();
   }
 

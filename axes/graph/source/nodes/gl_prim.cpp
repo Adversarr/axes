@@ -389,7 +389,7 @@ public:
     NodeDescriptorFactory<ColorMap_field1r>()
         .SetName("Colormap_field1r")
         .SetDescription("Maps a field1r to a color")
-        .AddInput<math::field1r>("field", "The field to map")
+        .AddInput<math::field1r>("data", "The field to map")
         .AddOutput<math::field4r>("color", "The color mapped from the field")
         .FinalizeAndRegister();
   }

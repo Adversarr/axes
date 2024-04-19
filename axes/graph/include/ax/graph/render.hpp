@@ -1,9 +1,12 @@
 #pragma once
+#include "ax/graph/executor.hpp"
 #include "ax/graph/node.hpp"
 #include <functional>
 namespace ax::graph {
 
 struct GraphRendererOptions {};
+
+UPtr<GraphExecutorBase>& ensure_executor();
 
 /**
  * @brief Install the renderer for the graph editor.

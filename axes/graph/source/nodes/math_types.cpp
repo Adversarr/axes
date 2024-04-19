@@ -146,7 +146,7 @@ class Input_Vec2r : public NodeBase {
       NodeDescriptorFactory<Input_Vec2r>()
           .SetName("Input_vec2r")
           .SetDescription("Input a 2D vector")
-          .AddOutput<math::vec2r>("vector", "The vector")
+          .AddOutput<math::vec2r>("out", "The vector")
           .FinalizeAndRegister();
 
       add_custom_node_render(typeid(Input_Vec2r), {[](NodeBase* node) {
@@ -375,7 +375,7 @@ public:
     NodeDescriptorFactory<ElementWiseAffineTransform>()
         .SetName("Elemwise_field_aft_" + std::to_string(dim))
         .SetDescription("Elementwise affine transform")
-        .template AddInput<math::fieldr<dim>>("in", "Input field")
+        .template AddInput<math::fieldr<dim>>("field", "Input field")
         .template AddInput<math::vecr<dim>>("scale", "Scale")
         .template AddInput<math::vecr<dim>>("shift", "Shift")
         .template AddOutput<math::fieldr<dim>>("out", "Output field")

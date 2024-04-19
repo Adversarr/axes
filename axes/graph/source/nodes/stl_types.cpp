@@ -26,7 +26,7 @@ namespace ax::nodes {
       NodeDescriptorFactory<Input_##class_name>{}                                          \
           .SetName("Input_" #class_name)                                                   \
           .SetDescription("User Input for " #class_name)                                   \
-          .AddOutput<class_name>("value", "value from input")                              \
+          .AddOutput<class_name>("out", "value from input")                              \
           .FinalizeAndRegister();                                                          \
       add_custom_node_render(typeid(Input_##class_name), CustomNodeRender{[](NodeBase* n) {       \
               auto node = dynamic_cast<Input_##class_name *>(n); begin_draw_node(n); draw_node_header_default(n);
@@ -81,7 +81,7 @@ public:
     NodeDescriptorFactory<Input_bool>{}
         .SetName("Input_bool")
         .SetDescription("User Input for bool")
-        .AddOutput<bool>("value", "value from input")
+        .AddOutput<bool>("out", "value from input")
         .FinalizeAndRegister();
     add_custom_node_render(typeid(Input_bool), CustomNodeRender{[](NodeBase* n) {
                              begin_draw_node(n);
@@ -123,7 +123,7 @@ public:
     NodeDescriptorFactory<Input_string>{}
         .SetName("Input_string")
         .SetDescription("User Input for string")
-        .AddOutput<string>("value", "value from input")
+        .AddOutput<string>("out", "value from input")
         .FinalizeAndRegister();
     add_custom_node_render(
         typeid(Input_string), CustomNodeRender{[](NodeBase* n) {
@@ -168,8 +168,8 @@ private:
       NodeDescriptorFactory<Convert_##from_type##_to_##to_type>{}              \
           .SetName("Convert_" #from_type "_to_" #to_type)                      \
           .SetDescription("Convert " #from_type " to " #to_type)               \
-          .AddInput<from_type>("input", "input value")                         \
-          .AddOutput<to_type>("output", "output value")                        \
+          .AddInput<from_type>("in", "input value")                         \
+          .AddOutput<to_type>("out", "output value")                        \
           .FinalizeAndRegister();                                              \
     }                                                                          \
     Status Apply(idx) override {                                               \
@@ -205,8 +205,8 @@ DefineConversionNodeBegin(idx, bool);
     static void register_this() {                                           \
       NodeDescriptorFactory<Convert_##from_type##_to_string>{}              \
           .SetName("Convert_" #from_type "_to_string")                      \
-          .AddInput<from_type>("input", "input value")                      \
-          .AddOutput<string>("output", "output value")                      \
+          .AddInput<from_type>("in", "input value")                      \
+          .AddOutput<string>("out", "output value")                      \
           .FinalizeAndRegister();                                           \
     }                                                                       \
     Status Apply(idx) override {                                            \
@@ -229,8 +229,8 @@ DefineConversionNodeBegin(idx, bool);
       NodeDescriptorFactory<Convert_string_to_##to_type>{}              \
           .SetName("Convert_string_to_" #to_type)                       \
           .SetDescription("Convert string to " #to_type)                \
-          .AddInput<string>("input", "input value")                     \
-          .AddOutput<to_type>("output", "output value")                 \
+          .AddInput<string>("in", "input value")                     \
+          .AddOutput<to_type>("out", "output value")                 \
           .FinalizeAndRegister();                                       \
     }                                                                   \
     Status Apply(idx) override {                                        \
@@ -270,8 +270,8 @@ public:
             "Convert_"
             "bool"
             "_to_string")
-        .AddInput<bool>("input", "input value")
-        .AddOutput<string>("output", "output value")
+        .AddInput<bool>("in", "input value")
+        .AddOutput<string>("out", "output value")
         .FinalizeAndRegister();
   }
   Status Apply(idx) override {
@@ -294,7 +294,7 @@ public:
       NodeDescriptorFactory<Log_##type##_to_console_##severity>{}              \
           .SetName("Log_" #type "_" #severity)                                 \
           .SetDescription("Log " #type " to console (" #severity ")")          \
-          .AddInput<type>("input", "input value")                              \
+          .AddInput<type>("in", "input value")                              \
           .FinalizeAndRegister();                                              \
     }                                                                          \
     Status Apply(idx f) override {                                             \
@@ -331,9 +331,9 @@ DefineLogtoConsoleNode(bool, ERROR);
       NodeDescriptorFactory<Operator_##type##_##name>{}                                          \
           .SetName(#type "_" #op)                                                                \
           .SetDescription("Operation " #op " for " #type)                                        \
-          .AddInput<type>("input1", "input value 1")                                             \
-          .AddInput<type>("input2", "input value 2")                                             \
-          .AddOutput<type>("output", "output value")                                             \
+          .AddInput<type>("in1", "input value 1")                                             \
+          .AddInput<type>("in2", "input value 2")                                             \
+          .AddOutput<type>("out", "output value")                                             \
           .FinalizeAndRegister();                                                                \
     }                                                                                            \
     Status Apply(idx) override {                                                                 \
@@ -424,9 +424,9 @@ class StringConcat : public NodeBase {
     NodeDescriptorFactory<StringConcat>{}
         .SetName("String_concat")
         .SetDescription("Concatenate two strings.")
-        .AddInput<string>("input1", "input value 1")
-        .AddInput<string>("input2", "input value 2")
-        .AddOutput<string>("output", "output value")
+        .AddInput<string>("in1", "input value 1")
+        .AddInput<string>("in2", "input value 2")
+        .AddOutput<string>("out", "output value")
         .FinalizeAndRegister();
   }
 

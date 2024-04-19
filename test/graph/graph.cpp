@@ -20,8 +20,8 @@ TEST_CASE("Graph") {
   auto node_desc = NodeDescriptorFactory<IntToString>{}
           .SetName("Node")
           .SetDescription("Node description")
-          .AddInput<int>("input", "input description")
-          .AddOutput<int>("output", "output description")
+          .AddInput<int>("in", "input description")
+          .AddOutput<int>("out", "output description")
           .AddOutput<int>("str out", "output description")
           .Finalize();
 

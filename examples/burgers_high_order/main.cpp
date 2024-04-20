@@ -18,7 +18,7 @@ math::field1r current;
 idx Nx;
 real dx;
 real M = 1;
-real lf_alpha = 1.5;
+real lf_alpha = 2;
 
 #define LF_FLUX 0
 #define GODUNOV_FLUX 1
@@ -81,7 +81,7 @@ real cfl() {
   // Determine delta t:
   // alpha Delta t <= Delta x / 2
   // alpha = max |f'| = max |u| = 1.5
-  return 0.3 * dx / 1.5;
+  return 0.5 * dx / 1.5;
   // return 0.5 * dx;
 }
 
@@ -100,7 +100,7 @@ real minmod_raise_to_a1(real a1, real a2, real a3, real M) {
   if (std::abs(a1) > lim) {
     return minmod(a1, a2, a3);
   } else {
-    return 0;
+    return a1;
   }
 }
 
@@ -154,14 +154,14 @@ math::field1r rk1(math::field1r const& in, real dt) {
   real dtdx = dt / dx;
   math::field2r u_c = reconstruct_3rd_order(in);
   for (idx i = 0; i < Nx; ++i) {
-    real ui_rec_right = u_c(0, i);
     real ui_rec_left = u_c(1, (i - 1 + Nx) % Nx);
+    real ui_rec_right = u_c(0, i);
     if (limiter_type == LIMITER_TVD) {
-      u_c(0, i) = tvd_limiter_right(in((i + Nx - 1) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
       u_c(1, (i - 1 + Nx) % Nx) = tvd_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+      u_c(0, i) = tvd_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
     } else if (limiter_type == LIMITER_TVB) {
-      u_c(0, i) = tvb_limiter_right(in((i + Nx - 1) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
       u_c(1, (i - 1 + Nx) % Nx) = tvb_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+      u_c(0, i) = tvb_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
     }
   }
 
@@ -182,7 +182,7 @@ math::field1r rk1(math::field1r const& in, real dt) {
 
 math::field1r rk3(real dt) {
   if (flux_type == LF_FLUX) {
-    determine_lf_alpha();
+    // determine_lf_alpha();
   }
   math::field1r u1 = rk1(current, dt);
   math::field1r u2 = 0.75 * current + 0.25 * rk1(u1, dt);

@@ -4,9 +4,9 @@
 using namespace ax;
 using namespace ax::geo;
 
-class Solver {
+class Dijkstra {
 public:
-  Solver(SurfaceMesh mesh) : mesh_(mesh) {}
+  Dijkstra(SurfaceMesh mesh) : mesh_(mesh) {}
 
   void Step(idx steps);
 

@@ -153,14 +153,14 @@ public:
 
   Status Apply(idx) override {
     auto* entity = RetriveInput<entt::entity>(0);
-    auto* points = RetriveInput<math::field3r>(1);
+    auto* vertices = RetriveInput<math::field3r>(1);
     auto* indices = RetriveInput<math::field2i>(2);
     auto* color = RetriveInput<math::field4r>(3);
     auto* u_color = RetriveInput<math::vec4r>(4);
 
     math::field2i indices_in_use;
 
-    if (points == nullptr) {
+    if (vertices == nullptr) {
       if (entity == nullptr) {
         return utils::FailedPreconditionError("points is not set.");
       }
@@ -177,10 +177,10 @@ public:
     }
 
     if (indices == nullptr) {
-      indices_in_use = math::field2i(2, points->cols() / 2);
-      for (idx i = 0; i < indices_in_use.cols(); i++) {
-        indices_in_use(0, i) = 2 * i;
-        indices_in_use(1, i) = 2 * i + 1;
+      indices_in_use = math::field2i(2, vertices->cols() - 1);
+      for (idx i = 0; i < vertices->cols() - 1; ++i) {
+        indices_in_use(0, i) = i;
+        indices_in_use(1, i) = i + 1;
       }
     } else {
       indices_in_use = *indices;
@@ -195,10 +195,10 @@ public:
     }
 
     auto& lines_comp = add_or_replace_component<gl::Lines>(entity_inuse);
-    lines_comp.vertices_ = *points;
+    lines_comp.vertices_ = *vertices;
     lines_comp.indices_ = std::move(indices_in_use);
     
-    lines_comp.colors_ = math::field4r::Zero(4, points->cols());
+    lines_comp.colors_ = math::field4r::Zero(4, vertices->cols());
     if (color != nullptr) {
       lines_comp.colors_ = *color;
     }

@@ -103,6 +103,14 @@ struct HalfedgeEdgeOnVertexIterator {
 
   AX_FORCE_INLINE pointer operator->() const { return current_; }
 
+  AX_FORCE_INLINE bool operator==(HalfedgeEdgeOnVertexIterator const& other) const {
+    return current_ == other.current_;
+  }
+
+  AX_FORCE_INLINE bool operator!=(HalfedgeEdgeOnVertexIterator const& other) const {
+    return current_ != other.current_;
+  }
+
   HalfedgeVertex_t* vertex_;
   HalfedgeEdge_t* current_;
 };
@@ -163,6 +171,8 @@ public:
   /************************* SECT: Edge Operation *************************/
   void CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_position);
   AX_NODISCARD bool CheckCollapse(HalfedgeEdge_t* edge);
+  AX_NODISCARD bool CheckFlip(HalfedgeEdge_t* edge);
+  void FlipEdge(HalfedgeEdge_t* edge);
 
   HalfedgeEdge_t* TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2);
 

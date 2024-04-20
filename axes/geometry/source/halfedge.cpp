@@ -296,6 +296,84 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge_t* edge) {
   return incidents_both.size() <= 2;
 }
 
+bool HalfedgeMesh::CheckFlip(HalfedgeEdge_t* edge) {
+  // Definition. An edge ij is flippable if i and j have degree > 1, and the triangles containing 
+  // ij form a convex quadrilateral when laid out in the plane.
+  if (edge->IsBoundary() || edge->pair_->IsBoundary()) {
+    return false;
+  }
+  // Degree check.
+  auto [i, j] = edge->HeadAndTail();
+  idx degree_i = 0, degree_j = 0;
+  ForeachEdgeAroundVertex(i, [&degree_i](HalfedgeEdge_t*) { ++degree_i; });
+  ForeachEdgeAroundVertex(j, [&degree_j](HalfedgeEdge_t*) { ++degree_j; });
+  if (degree_i <= 1 || degree_j <= 1) {
+    return false;
+  }
+
+  auto f1 = edge->face_, f2 = edge->pair_->face_;
+
+  /**
+   *    c
+   *   /  \
+   *  a-e->b
+   *   \  /
+   *     d
+   */
+  auto [a, b] = edge->HeadAndTail();
+  auto c = edge->prev_->vertex_, d = edge->pair_->prev_->vertex_;
+  // Convexity check.
+  auto flat_triangle_to_plane = [](math::vec3r const& a, math::vec3r const& b, math::vec3r const& c) -> math::vec2r {
+    real xb = (b-a).norm();
+    real xc = (c-a).dot(b-a) / xb;
+    real yc = sqrt((c-a).squaredNorm() - xc * xc);
+    return {xc, yc};
+  };
+  auto c_flat = flat_triangle_to_plane(a->position_, b->position_, c->position_);
+  auto d_flat = flat_triangle_to_plane(a->position_, b->position_, d->position_);
+  real xb = (a->position_ - b->position_).norm();
+  if (c_flat.y() * d_flat.y() > 0) {d_flat.y() = -d_flat.y();}
+  real zero_point = d_flat.x() - (c_flat.x() - d_flat.x()) / (c_flat.y() - d_flat.y()) * d_flat.y();
+  return zero_point > 0 && zero_point < xb;
+}
+
+void HalfedgeMesh::FlipEdge(HalfedgeEdge_t* edge) {
+  AX_DCHECK(CheckFlip(edge));
+  auto [a, b] = edge->HeadAndTail();
+  auto c = edge->prev_->vertex_;
+  auto d = edge->pair_->prev_->vertex_;
+  // Remove the ab, establish cd.
+
+  // Face entry modification.
+  edge->face_->halfedge_entry_ = edge->next_;
+  edge->pair_->face_->halfedge_entry_ = edge->pair_->next_;
+
+  auto e = edge, ep = edge->pair_;
+  auto e_prev = e->prev_, e_next = e->next_;
+  auto ep_prev = ep->prev_, ep_next = ep->next_;
+
+  edge->prev_->next_ = edge->pair_->next_;
+  edge->next_->prev_ = edge->pair_->prev_;
+  edge->pair_->prev_->next_ = edge->next_;
+  edge->pair_->next_->prev_ = edge->prev_;
+
+  edge->vertex_ = c; c->halfedge_entry_ = edge;
+  edge->pair_->vertex_ = d; d->halfedge_entry_ = edge->pair_;
+
+  ep_prev->prev_ = ep;
+  e_next->next_ = ep;
+  ep_next->next_ = e;
+  e_prev->prev_ = e;
+
+  e->prev_ = ep_next;
+  e->next_ = e_prev;
+  ep->prev_ = e_next;
+  ep->next_ = ep_prev;
+
+  // It seems to be correct. we still check healthy...
+  AX_CHECK(CheckOk());
+}
+
 HalfedgeEdge_t* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2) {
   HalfedgeEdge_t* edge = nullptr;
   ForeachEdgeAroundVertex(v2, [&](auto* e) {

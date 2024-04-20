@@ -15,11 +15,12 @@ axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(normal "axes_gl")
 axes_add_example(graph "axes_graph")
 
-# DGP
+# Homework for DGP
 axes_add_example(decimate "axes_gl")
 axes_add_example(surface_reconstruct "axes_gl")
 axes_add_example(arap_parm "axes_gl")
 axes_add_example(cubicstylization "axes_graph")
+axes_add_example(geodesic_only_flip "axes_graph")
 
 # FEM
 axes_add_example(fem2basic "axes_gl;axes_fem")

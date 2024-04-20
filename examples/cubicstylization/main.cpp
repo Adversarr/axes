@@ -44,7 +44,7 @@ public:
       return utils::FailedPreconditionError("Input mesh is null");
     }
 
-    Solver solver(*mesh);
+    Dijkstra solver(*mesh);
     if (rho != nullptr) {
       solver.rho_ = *rho;
     }

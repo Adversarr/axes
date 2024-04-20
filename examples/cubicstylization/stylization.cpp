@@ -27,7 +27,7 @@ vec3r shrinkage(const vec3r& v, real kappa) {
   return posmax - negmax;
 }
 
-void local_step(Problem& prob, idx i, Solver& solver) {
+void local_step(Problem& prob, idx i, Dijkstra& solver) {
   // For i-th...
   math::mat3r& Ri = prob.Ri[i];
   auto const& Di = prob.Di[i];
@@ -84,7 +84,7 @@ void local_step(Problem& prob, idx i, Solver& solver) {
   }
 }
 
-void Solver::Step(idx steps) {
+void Dijkstra::Step(idx steps) {
   Problem problem;
   idx n_vert = mesh_.vertices_.cols();
   idx n_triangle = mesh_.indices_.cols();

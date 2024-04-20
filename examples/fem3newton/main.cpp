@@ -112,8 +112,8 @@ int main(int argc, char** argv) {
   scene = absl::GetFlag(FLAGS_scene);
   lame = fem::elasticity::compute_lame(1e7, 0.45);
   nx = absl::GetFlag(FLAGS_N);
-  std::string tet_file = utils::get_asset("/mesh/npy/beam_mid_res_elements.npy"),
-              vet_file = utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy");
+  std::string tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy"),
+              vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   input_mesh.indices_ = tet->transpose();
@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     }
   }
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::IsotropicARAP>();
+  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
   ts->SetDensity(1e3);
   out = create_entity();
   add_component<gl::Mesh>(out);

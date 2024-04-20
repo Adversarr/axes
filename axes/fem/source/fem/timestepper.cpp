@@ -41,11 +41,11 @@ void TimeStepperBase<dim>::SetDensity(real density) {
 }
 
 template <idx dim>
-void TimeStepperBase<dim>::SetDensity(math::field1r const& density, bool is_density_on_elements) {
+void TimeStepperBase<dim>::SetDensity(math::field1r const& density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
   mass_matrix_
       = math::make_sparse_matrix(dim * mesh_->GetNumVertices(), dim * mesh_->GetNumVertices(),
-                                 mmc(density, is_density_on_elements));
+                                 mmc(density));
 }
 
 

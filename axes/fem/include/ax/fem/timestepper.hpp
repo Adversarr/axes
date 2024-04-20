@@ -52,7 +52,7 @@ public:
 
   void SetDensity(real density);
 
-  void SetDensity(math::field1r const &density, bool is_density_on_elements=false);
+  void SetDensity(math::field1r const &density);
 
 protected:
   // Common data

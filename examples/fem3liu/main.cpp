@@ -26,7 +26,7 @@
 
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 7, "Num of division.");
+ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(bool, scene, 0, "id of scene, 0 for twist, 1 for bend.");
 int nx;
@@ -107,6 +107,21 @@ void ui_callback(gl::UiRenderEvent ) {
   ImGui::End();
 }
 
+void fix_negative_volume(math::field4i & tets, math::field3r const& verts) {
+  for (auto i : utils::iota(tets.cols())) {
+    auto a = verts.col(tets(0, i));
+    auto b = verts.col(tets(1, i));
+    auto c = verts.col(tets(2, i));
+    auto d = verts.col(tets(3, i));
+    math::mat4r tet;
+    tet << a, b, c, d,
+           0, 0, 0, 1;
+    if (math::det(tet) < 0) {
+      std::swap(tets(1, i), tets(2, i));
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
@@ -119,7 +134,10 @@ int main(int argc, char** argv) {
   auto vet = math::read_npy_v10_real(vet_file);
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
+  fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
 
+  // input_mesh = geo::tet_cube(0.5, 10 * nx, nx, nx);
+  // input_mesh.vertices_.row(0) *= 10;
   ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));

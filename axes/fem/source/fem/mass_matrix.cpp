@@ -19,7 +19,7 @@ template <idx dim> static math::matr<dim + 1, dim + 1> p1_e(const elements::P1El
 template <idx dim> static math::sp_coeff_list p1(MeshBase<dim> const& mesh_, real uniform_density) {
   // Foreach Element: compute p1_e.
   math::sp_coeff_list result;
-  for (auto ijk : mesh_) {
+  for (auto const& ijk : mesh_) {
     std::array<math::vecr<dim>, dim + 1> vert;
     for (idx i = 0; i <= dim; ++i) {
       vert[i] = mesh_.GetVertex(ijk[i]);

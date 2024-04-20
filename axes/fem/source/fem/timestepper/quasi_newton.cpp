@@ -2,6 +2,9 @@
 
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/laplace_matrix.hpp"
+#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/elements/p1.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
@@ -15,13 +18,18 @@ Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt){
   math::LinsysProblem_Sparse problem_sparse;
   problem_sparse.A_ = this->mass_matrix_;
 
-  // Second part: K * dt * dt
-  ElasticityCompute<dim, elasticity::Linear> elast(this->GetDeformation());
-  elast.UpdateDeformationGradient(this->GetMesh().GetVertices(), DeformationGradientUpdate::kHessian);
-  math::vec2r fake_lame = {this->lame_[0], this->lame_[1] * 2};
-  idx n_dof = dim * this->GetMesh().GetNumVertices();
-  problem_sparse.A_ += 1e-4 * math::make_sparse_matrix(n_dof, n_dof, 
-                                            this->deform_->HessianToVertices(elast.Hessian(fake_lame)));
+  // ElasticityCompute<dim, elasticity::Linear> elast(this->GetDeformation());
+  // elast.UpdateDeformationGradient(this->GetMesh().GetVertices(), DeformationGradientUpdate::kHessian);
+  // math::vec2r fake_lame = {this->lame_[0], this->lame_[1] * 2};
+  // idx n_dof = dim * this->GetMesh().GetNumVertices();
+  // problem_sparse.A_ += 1e-4 * math::make_sparse_matrix(n_dof, n_dof, 
+  //                                           this->deform_->HessianToVertices(elast.Hessian(fake_lame)));
+
+  // They call you Laplace: M + dtSq * Lap.
+  const math::vec2r lame = this->lame_;
+  const real W = lame[0] + 2 * lame[1];
+  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
+  problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
 
   this->mesh_->FilterMatrix(problem_sparse.A_);
   AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
@@ -87,7 +95,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
       // });
 
   optim::Lbfgs lbfgs;
-  lbfgs.SetTolGrad(0.02);
+  lbfgs.SetTolGrad(0.002);
   lbfgs.SetMaxIter(300);
 
   lbfgs.SetApproxSolve([&](math::vecxr const & g) -> math::vecxr {

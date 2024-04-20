@@ -19,7 +19,7 @@ public:
    * @param is_density_on_element if true, the density is defined on elements, otherwise on vertices.
    * @return math::sp_coeff_list 
    */
-  math::sp_coeff_list operator()(math::field1r const& density, bool is_density_on_element);
+  math::sp_coeff_list operator()(math::field1r const& density);
 
   /**
    * @brief Compute the mass matrix.

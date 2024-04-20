@@ -93,6 +93,7 @@ public:
                         "Compute the lumped mass instead of standard FEM one. default=false")
         .AddInput<bool>("reload", "Reload every frame.")
         .AddOutput<math::sp_matxxr>("mass_matrix", "The mass matrix.")
+        .AddOutput<real>("total", "total mass.")
         .FinalizeAndRegister();
   }
 
@@ -115,10 +116,13 @@ public:
 
     MassMatrixCompute<3> mmc(**mesh);
     idx dofs = mesh->get()->GetNumVertices() * 3;
-    if (auto lumped = RetriveInput<bool>(2); true || lumped == nullptr || !(*lumped)) {
-      auto mass_matrix = mmc(u_density);
-      SetOutput<math::sp_matxxr>(0, math::make_sparse_matrix(dofs, dofs, mass_matrix));
+    auto mass_matrix = mmc(u_density);
+    SetOutput<math::sp_matxxr>(0, math::make_sparse_matrix(dofs, dofs, mass_matrix));
+    real total = 0;
+    for (auto &v : mass_matrix) {
+      total += v.value();
     }
+    SetOutput<real>(1, total / 3.0);
     AX_RETURN_OK();
   }
 

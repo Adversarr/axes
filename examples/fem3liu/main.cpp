@@ -30,6 +30,7 @@ ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
 ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
+ABSL_FLAG(std::string, optim, "liu", "optimizer lbfgs 'naive' or 'liu'");
 int nx;
 using namespace ax;
 Entity out;
@@ -76,7 +77,7 @@ static bool running = false;
 float dt = 1e-2;
 math::vecxr fps;
 
-void handle_armadillo_drags(fem::MeshBase<3> & mesh, real T) {
+void handle_armadillo_drags(fem::MeshBase<3>& mesh, real T) {
   using namespace ax::math;
   static std::vector<idx> dirichlet_handles;
   static std::vector<real> y_vals;
@@ -103,7 +104,7 @@ void handle_armadillo_drags(fem::MeshBase<3> & mesh, real T) {
   }
 }
 
-void handle_armadillo_extreme(fem::MeshBase<3> & mesh, real T) {
+void handle_armadillo_extreme(fem::MeshBase<3>& mesh, real T) {
   using namespace ax::math;
   static std::vector<idx> l_dirichlet_handles;
   static std::vector<idx> r_dirichlet_handles;
@@ -137,7 +138,6 @@ void handle_armadillo_extreme(fem::MeshBase<3> & mesh, real T) {
         r_dirichlet_handles.push_back(i);
         x_vals_r.push_back(X.x());
       }
-
     }
   }
   for (size_t i = 0; i < l_dirichlet_handles.size(); ++i) {
@@ -185,7 +185,8 @@ void ui_callback(gl::UiRenderEvent) {
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
-    std::cout << frame << " Dt=" << time_elapsed << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+    std::cout << frame << " Dt=" << time_elapsed
+              << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
@@ -226,7 +227,7 @@ int main(int argc, char** argv) {
   std::string tet_file, vet_file;
 
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
-    lame = fem::elasticity::compute_lame(1e6, 0.45);
+    lame = fem::elasticity::compute_lame(1e7, 0.45);
     tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
   } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
@@ -244,7 +245,11 @@ int main(int argc, char** argv) {
 
   // input_mesh = geo::tet_cube(0.5, 10 * nx, nx, nx);
   // input_mesh.vertices_.row(0) *= 10;
-  ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
+  if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
+    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
+  } else if (opt == "lbfgs") {
+    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::P1Mesh<3>>());
+  }
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
 

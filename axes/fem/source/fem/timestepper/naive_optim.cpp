@@ -38,6 +38,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
 
   math::vecxr eacc = this->ext_accel_.reshaped();
   mesh.FilterVector(eacc, true);
+  real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
@@ -85,16 +86,15 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         return hessian;
       })
       .SetConvergeGrad([&](const math::vecxr&, const math::vecxr& grad) -> real {
-        real ext_force = math::norm(mass_matrix * eacc);
-        real rel = grad.norm() / ext_force / (dt * dt);
-        return rel;
+        real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
+        return rv;
       })
       .SetConvergeVar(nullptr);
       // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
       //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
       // });
 
-  optim::Lbfgs optimizer;
+  optim::Newton optimizer;
   optimizer.SetTolGrad(0.02);
   optimizer.SetMaxIter(1000);
   auto result = optimizer.Optimize(problem, y);

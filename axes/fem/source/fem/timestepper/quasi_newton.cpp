@@ -26,7 +26,12 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
 
   // They call you Laplace: M + dtSq * Lap.
   const math::vec2r lame = this->lame_;
-  const real W = lame[0] + 2 * lame[1];
+  real W = lame[0] + 2 * lame[1];
+
+  // If you are using stable neohookean, you should bias the lambda and mu:
+  real lambda = lame[0] + 5.0/6.0 * lame[1], mu = 4.0/3.0 * lame[1];
+  W = 2 * mu + lambda;
+
   auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
   problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
 
@@ -125,9 +130,9 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
 
-  math::LinsysProblem_Sparse problem_sparse;
-  problem_sparse.A_ = problem.EvalSparseHessian(y);
-  AX_CHECK_OK(solver_->Analyse(problem_sparse));
+  // math::LinsysProblem_Sparse problem_sparse;
+  // problem_sparse.A_ = problem.EvalSparseHessian(y);
+  // AX_CHECK_OK(solver_->Analyse(problem_sparse));
 
   lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
     auto approx = solver_->Solve(g, g * dt * dt);

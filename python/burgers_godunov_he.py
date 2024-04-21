@@ -73,20 +73,29 @@ def plot_err_nx(Nx_list, l_inf_list, l1_list, T, prefix):
   plt.loglog(Nx_list, l1_list, label='$l_1$', marker='o')
 
   # compute the order:
+  lios = []
+  l1os = []
   for i in range(1, len(Nx_list)):
     l_inf_increased = l_inf_list[i] / l_inf_list[0]
     l1_increased = l1_list[i] / l1_list[0]
     Nx_increased = Nx_list[i] / Nx_list[0]
     l_inf_order = -np.log(l_inf_increased) / np.log(Nx_increased)
     l1_order = -np.log(l1_increased) / np.log(Nx_increased)
+    l1os.append(l1_order); lios.append(l_inf_order)
     print(f'[{prefix}]: Nx={Nx_list[i-1]} to Nx={Nx_list[i]}: l_inf_order={l_inf_order}, l1_order={l1_order}')
 
+  for i in range(len(Nx_list)):
+    if i == 0:
+      print(f'[{Nx_list[i]}], [{l1_list[i]:.2e}], [{l_inf_list[i]:.2e}], [--], [--]')
+    else:
+      print(f'[{Nx_list[i]}], [{l1_list[i]:.2e}], [{l_inf_list[i]:.2e}], [{l1os[i-1]:.2e}], [{lios[i-1]:.2e}]')
 
   # show the data around the markers.
   for i, txt in enumerate(l_inf_list):
     plt.annotate(f'{txt:.1e}', (Nx_list[i], l_inf_list[i]), textcoords="offset points", xytext=(0, 10), ha='center')
   for i, txt in enumerate(l1_list):
     plt.annotate(f'{txt:.1e}', (Nx_list[i], l1_list[i]), textcoords="offset points", xytext=(0, 10), ha='center')
+
 
   plt.xlabel('Nx')
   plt.ylabel('Error')
@@ -98,8 +107,8 @@ def plot_err_nx(Nx_list, l_inf_list, l1_list, T, prefix):
 
 plot_err_nx(Nx_list, l_inf_list, l1_list, T, 't05')
 
-T = 1.5
-Nx_list = [10, 20, 40, 80]
+T = 0.5
+Nx_list = [10, 20, 40, 80, 160, 320]
 
 subprocess.call([accurate, f'--alpha=0.5', f'--nx={Nx_list[-1]+1}', '--export', 
                  f'--export_file=exact_{Nx_list[-1]}_{int(10*T)}.npy', f'--t={T}'])
@@ -128,7 +137,7 @@ for f, flux in enumerate(FLUX):
         l1_list.append(l1)
 
         plt.figure(dpi=200)
-        plt.plot(np.linspace(0, np.pi * 2, 1+Nx), godunov, label=f'Godunov Nx={Nx}')
+        plt.plot(np.linspace(0, np.pi * 2, 1+Nx), godunov, label=f'Nuemrical Nx={Nx}')
         # plt.plot(np.linspace(0, np.pi * 2, 1+Nx), exact, label=f'MY EXACT Nx={Nx}')
         plt.plot(np.linspace(0, np.pi * 2, 1+Nx_list[-1]), exact_for_plot, label=f'Exact Nx={Nx}',linestyle= '--')
         plt.legend()

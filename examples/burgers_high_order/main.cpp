@@ -6,6 +6,7 @@
 #include "ax/core/echo.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/math/functional.hpp"
 #include "ax/math/io.hpp"
 
 using namespace ax;
@@ -54,11 +55,10 @@ real godunuv_flux(real u_l, real u_r) {
 }
 
 void determine_lf_alpha() {
-  lf_alpha = 0;
+  lf_alpha = 1.5;
   for (idx i = 0; i < Nx; ++i) {
     real u_l = current(i);
-    real u_r = current((i + 1) % Nx);
-    lf_alpha = std::max({lf_alpha, std::abs(u_l), std::abs(u_r)});
+    lf_alpha = std::max(lf_alpha, std::abs(u_l));
   }
 }
 
@@ -69,6 +69,7 @@ real lf_flux(real u_l, real u_r) {
   // 1/2 [f(u_l) + f(u_r)] - 1/2 alpha (u_r - u_l)
   // alpha: max |f' (u)| = max |u|
   // f(u) = 1/2 u^2
+  // real lf_alpha = std::max(math::abs(u_l), math::abs(u_r));
   return 0.5 * (f(u_l) + f(u_r)) - 0.5 * lf_alpha * (u_r - u_l);
 }
 
@@ -81,7 +82,7 @@ real cfl() {
   // Determine delta t:
   // alpha Delta t <= Delta x / 2
   // alpha = max |f'| = max |u| = 1.5
-  return 0.5 * dx / 1.5;
+  return 0.25 * dx / 1.5;
   // return 0.5 * dx;
 }
 
@@ -153,16 +154,20 @@ math::field1r rk1(math::field1r const& in, real dt) {
   math::field1r out = in;
   real dtdx = dt / dx;
   math::field2r u_c = reconstruct_3rd_order(in);
-  for (idx i = 0; i < Nx; ++i) {
-    real ui_rec_left = u_c(1, (i - 1 + Nx) % Nx);
-    real ui_rec_right = u_c(0, i);
-    if (limiter_type == LIMITER_TVD) {
-      u_c(1, (i - 1 + Nx) % Nx) = tvd_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
-      u_c(0, i) = tvd_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
-    } else if (limiter_type == LIMITER_TVB) {
-      u_c(1, (i - 1 + Nx) % Nx) = tvb_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
-      u_c(0, i) = tvb_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
+  if (limiter_type != LIMITER_NONE) {
+    math::field2r u_c_mod = u_c;
+    for (idx i = 0; i < Nx; ++i) {
+      real ui_rec_left = u_c(1, (i - 1 + Nx) % Nx);
+      real ui_rec_right = u_c(0, i);
+      if (limiter_type == LIMITER_TVD) {
+        u_c_mod(1, (i - 1 + Nx) % Nx) = tvd_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+        u_c_mod(0, i) = tvd_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
+      } else if (limiter_type == LIMITER_TVB) {
+        u_c_mod(1, (i - 1 + Nx) % Nx) = tvb_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+        u_c_mod(0, i) = tvb_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
+      }
     }
+    u_c = u_c_mod;
   }
 
   for (idx i = 0; i < Nx; ++i) {

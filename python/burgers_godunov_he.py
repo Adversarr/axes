@@ -16,7 +16,7 @@ for Nx in Nx_list:
   args = [accurate, f'--alpha=0.5', f'--nx={1+Nx}', '--export', f'--export_file=exact_{Nx}_{int(10*T)}.npy', f'--t={T}']
   subprocess.call(args)
 
-super_res = 640 * 2
+super_res = 640 * 16
 args = [accurate, f'--alpha=0.5', f'--nx={super_res + 1}', '--export', f'--export_file=exact_{super_res}_{int(10*T)}.npy', f'--t={T}']
 subprocess.call(args)
 g_exact = list(np.load(f'exact_{super_res}_{int(10*T)}.npy')[:-1, -1])
@@ -32,7 +32,7 @@ def run_trapz_on_exact_solution(Nx):
       if j == left or j == right:
         sum += g_exact[j] / 3
         w += 1/3
-      elif (j + interval // 2) % 2 == 0:
+      elif (j - left) % 2 == 0:
         sum += g_exact[j] * 2.0 / 3.0
         w += 2/3
       else:

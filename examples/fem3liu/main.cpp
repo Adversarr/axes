@@ -7,6 +7,7 @@
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/fem/timestepper.hpp"
@@ -20,15 +21,15 @@
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/math/io.hpp"
-#include "ax/utils/iota.hpp"
 #include "ax/utils/asset.hpp"
+#include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
-
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
-ABSL_FLAG(bool, scene, 0, "id of scene, 0 for twist, 1 for bend.");
+ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
+ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
 int nx;
 using namespace ax;
 Entity out;
@@ -37,21 +38,22 @@ math::vec2r lame;
 
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
+#define SCENE_ARMADILLO_DRAG 2
+#define SCENE_ARMADILLO_EXTREME 3
 int scene;
 
 UPtr<fem::TimeStepperBase<3>> ts;
 
-
 void update_rendering() {
-  auto &mesh = get_component<gl::Mesh>(out);
-  if (mesh.indices_ .size() == 0) {
+  auto& mesh = get_component<gl::Mesh>(out);
+  if (mesh.indices_.size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
   mesh.vertices_ = ts->GetMesh().GetVertices();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
-  auto &lines = get_component<gl::Lines>(out);
+  auto& lines = get_component<gl::Lines>(out);
   if (lines.indices_.size() == 0) {
     lines = gl::Lines::Create(mesh);
   }
@@ -71,13 +73,92 @@ void update_rendering() {
 }
 
 static bool running = false;
-float dt = 1e-3;
+float dt = 1e-2;
 math::vecxr fps;
-void ui_callback(gl::UiRenderEvent ) {
+
+void handle_armadillo_drags(fem::MeshBase<3> & mesh, real T) {
+  using namespace ax::math;
+  static std::vector<idx> dirichlet_handles;
+  static std::vector<real> y_vals;
+  if (dirichlet_handles.empty()) {
+    // first time call.
+    vec3r center{0, 0.2, 0};
+    real radius = 0.2;
+    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+      auto X = mesh.GetVertex(i);
+      if (norm(X - center) < radius) {
+        dirichlet_handles.push_back(i);
+        y_vals.push_back(X.y());
+        mesh.MarkDirichletBoundary(i, 0, X.x());
+        mesh.MarkDirichletBoundary(i, 1, X.y());
+        mesh.MarkDirichletBoundary(i, 2, X.z());
+      }
+    }
+  }
+
+  for (size_t i = 0; i < dirichlet_handles.size(); ++i) {
+    idx iv = dirichlet_handles[i];
+    real v = y_vals[i] + sin(10 * T) * 0.5;
+    mesh.MarkDirichletBoundary(iv, 1, v);
+  }
+}
+
+void handle_armadillo_extreme(fem::MeshBase<3> & mesh, real T) {
+  using namespace ax::math;
+  static std::vector<idx> l_dirichlet_handles;
+  static std::vector<idx> r_dirichlet_handles;
+  static std::vector<real> x_vals_l, x_vals_r;
+  if (l_dirichlet_handles.empty()) {
+    // first time call.
+    vec3r center{0.7, 0.6, 0.6};
+    real radius = 0.1;
+    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+      auto X = mesh.GetVertex(i);
+      if (norm(X - center) < radius) {
+        mesh.MarkDirichletBoundary(i, 0, X.x());
+        mesh.MarkDirichletBoundary(i, 1, X.y());
+        mesh.MarkDirichletBoundary(i, 2, X.z());
+        l_dirichlet_handles.push_back(i);
+        x_vals_l.push_back(X.x());
+      }
+    }
+  }
+
+  if (r_dirichlet_handles.empty()) {
+    // first time call.
+    vec3r center{-0.7, 0.77, 0.4};
+    real radius = 0.1;
+    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+      auto X = mesh.GetVertex(i);
+      if (norm(X - center) < radius) {
+        mesh.MarkDirichletBoundary(i, 0, X.x());
+        mesh.MarkDirichletBoundary(i, 1, X.y());
+        mesh.MarkDirichletBoundary(i, 2, X.z());
+        r_dirichlet_handles.push_back(i);
+        x_vals_r.push_back(X.x());
+      }
+
+    }
+  }
+  for (size_t i = 0; i < l_dirichlet_handles.size(); ++i) {
+    idx iv = l_dirichlet_handles[i];
+    real v = x_vals_l[i] + T * 0.5;
+    mesh.MarkDirichletBoundary(iv, 0, v);
+  }
+  for (size_t i = 0; i < r_dirichlet_handles.size(); ++i) {
+    idx iv = r_dirichlet_handles[i];
+    real v = x_vals_r[i] - T * 0.5;
+    mesh.MarkDirichletBoundary(iv, 0, v);
+  }
+}
+
+void ui_callback(gl::UiRenderEvent) {
+  static idx frame = 0;
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
-  ImGui::InputFloat("dt", &dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
+  ImGui::Text("dt=%lf", dt);
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
+              ts->GetMesh().GetNumVertices());
   if (ImGui::Button("Step") || running) {
     const auto& vert = ts->GetMesh().GetVertices();
     if (scene == SCENE_TWIST) {
@@ -93,29 +174,31 @@ void ui_callback(gl::UiRenderEvent ) {
           ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
         }
       }
+    } else if (scene == SCENE_ARMADILLO_DRAG) {
+      handle_armadillo_drags(ts->GetMesh(), frame * dt);
+    } else if (scene == SCENE_ARMADILLO_EXTREME) {
+      handle_armadillo_extreme(ts->GetMesh(), frame * dt);
     }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    static idx frame = 0;
     AX_CHECK_OK(ts->Step(dt));
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
-    std::cout << frame << ": FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+    std::cout << frame << " Dt=" << time_elapsed << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
 }
 
-void fix_negative_volume(math::field4i & tets, math::field3r const& verts) {
+void fix_negative_volume(math::field4i& tets, math::field3r const& verts) {
   for (auto i : utils::iota(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
     auto d = verts.col(tets(3, i));
     math::mat4r tet;
-    tet << a, b, c, d,
-           0, 0, 0, 1;
+    tet << a, b, c, d, 0, 0, 0, 1;
     if (math::det(tet) < 0) {
       std::swap(tets(1, i), tets(2, i));
     }
@@ -125,13 +208,36 @@ void fix_negative_volume(math::field4i & tets, math::field3r const& verts) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  scene = absl::GetFlag(FLAGS_scene);
-  lame = fem::elasticity::compute_lame(1e7, 0.45);
+  auto sname = absl::GetFlag(FLAGS_scene);
+  if (sname == "twist") {
+    scene = SCENE_TWIST;
+  } else if (sname == "bend") {
+    scene = SCENE_BEND;
+  } else if (sname == "drag") {
+    scene = SCENE_ARMADILLO_DRAG;
+  } else if (sname == "extreme") {
+    scene = SCENE_ARMADILLO_EXTREME;
+  } else {
+    AX_CHECK(false) << "Invalid scene name.";
+  }
+
   nx = absl::GetFlag(FLAGS_N);
-  std::string tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy"),
-              vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+
+  std::string tet_file, vet_file;
+
+  if (scene == SCENE_TWIST || scene == SCENE_BEND) {
+    lame = fem::elasticity::compute_lame(1e6, 0.45);
+    tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
+    vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+  } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
+    lame = fem::elasticity::compute_lame(1e6, 0.45);
+    tet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_elements.npy");
+    vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
+  }
+
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
+  AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
   fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
@@ -141,20 +247,31 @@ int main(int argc, char** argv) {
   ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
-  for (auto i: utils::iota(input_mesh.vertices_.cols())) {
-    const auto& position = input_mesh.vertices_.col(i);
-    if (math::abs(position.x()) > 4.9) {
-      // Mark as dirichlet bc.
-      if (scene == SCENE_TWIST || position.x() > 4.9) {
-        ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
-        ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
-        ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+
+  if (scene == SCENE_TWIST || scene == SCENE_BEND) {
+    for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+      const auto& position = input_mesh.vertices_.col(i);
+      if (math::abs(position.x()) > 4.9) {
+        // Mark as dirichlet bc.
+        if (scene == SCENE_TWIST || position.x() > 4.9) {
+          ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
+          ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
+          ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+        }
       }
     }
+  } else if (scene == SCENE_ARMADILLO_DRAG) {
+    handle_armadillo_drags(ts->GetMesh(), 0);
+  } else if (scene == SCENE_ARMADILLO_EXTREME) {
+    handle_armadillo_extreme(ts->GetMesh(), 0);
   }
+
   ts->SetDensity(1e3);
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
+  ts->SetupElasticity<fem::elasticity::StableNeoHookean>();
+  if (scene == SCENE_TWIST) {
+    ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
+  }
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

@@ -7,6 +7,11 @@
 
 namespace ax::fem {
 
+class TimeStepConfig {
+public:
+  real dt_;
+};
+
 // Use Backward Euler (with exactly 1 step backward)
 //     M (x' - (x + dt v)) = dt^2 F_int(x')
 // Apply 2nd Taylor expansion to approximate F_int(x') = F_int(x) + K (x' - x) + O(dx^2)
@@ -54,6 +59,8 @@ public:
 
   void SetDensity(math::field1r const &density);
 
+  virtual Status Precompute();
+
 protected:
   // Common data
   UPtr<MeshBase<dim>> mesh_;
@@ -67,7 +74,7 @@ protected:
 
   // cache the mass matrix
   math::sp_matxxr mass_matrix_;
-  real dt_ {1e-3}; ///< The time step, should be formulated here because many initializers use dt
+  real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
 };
 

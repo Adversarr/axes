@@ -2,27 +2,26 @@
 
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elements/p1.hpp"
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/fem/mesh/p1mesh.hpp"
-#include "ax/fem/elements/p1.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
 
 namespace ax::fem {
 
-template<idx dim>
-Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt){
+template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt) {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Init(opt));
   solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kLDLT);
   math::LinsysProblem_Sparse problem_sparse;
   problem_sparse.A_ = this->mass_matrix_;
 
   // ElasticityCompute<dim, elasticity::Linear> elast(this->GetDeformation());
-  // elast.UpdateDeformationGradient(this->GetMesh().GetVertices(), DeformationGradientUpdate::kHessian);
-  // math::vec2r fake_lame = {this->lame_[0], this->lame_[1] * 2};
-  // idx n_dof = dim * this->GetMesh().GetNumVertices();
-  // problem_sparse.A_ += 1e-4 * math::make_sparse_matrix(n_dof, n_dof, 
+  // elast.UpdateDeformationGradient(this->GetMesh().GetVertices(),
+  // DeformationGradientUpdate::kHessian); math::vec2r fake_lame = {this->lame_[0], this->lame_[1] *
+  // 2}; idx n_dof = dim * this->GetMesh().GetNumVertices(); problem_sparse.A_ += 1e-4 *
+  // math::make_sparse_matrix(n_dof, n_dof,
   //                                           this->deform_->HessianToVertices(elast.Hessian(fake_lame)));
 
   // They call you Laplace: M + dtSq * Lap.
@@ -42,7 +41,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   auto &deform = this->GetDeformation();
   auto &elasticity = this->GetElasticity();
   auto &velocity = this->velocity_;
-  auto &mass_matrix = this->mass_matrix_;
+  auto const &mass_matrix = this->mass_matrix_;
   math::vec2r lame = this->lame_;
 
   idx n_vert = mesh.GetNumVertices();
@@ -64,6 +63,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
 
   math::vecxr eacc = this->ext_accel_.reshaped();
   mesh.FilterVector(eacc, true);
+  real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
@@ -86,19 +86,20 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         return grad;
       })
       .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
-        real ext_force = eacc.dot(mass_matrix * eacc);
-        real rel = grad.norm() / ext_force / (dt * dt);
-        return rel;
-      });
-      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
-      // });
+        real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
+        return rv;
+      })
+      .SetConvergeVar(nullptr);
+  // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+  //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" <<
+  //   problem.EvalGrad(X).norm();
+  // });
 
   optim::Lbfgs lbfgs;
-  lbfgs.SetTolGrad(0.002);
+  lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
 
-  lbfgs.SetApproxSolve([&](math::vecxr const & g) -> math::vecxr {
+  lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
     auto approx = solver_->Solve(g, g * dt * dt);
     AX_CHECK_OK(approx);
     math::vecxr result = approx->solution_;

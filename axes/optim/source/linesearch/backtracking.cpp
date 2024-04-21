@@ -1,4 +1,5 @@
 #include "ax/optim/linesearch/backtracking.hpp"
+#include <cmath>
 namespace ax::optim {
 OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr const& x0,
                                            math::vecxr const& dir) const {
@@ -22,6 +23,9 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   // SECT: Backtracking Line Search
   real alpha = alpha_;
   real const f0 = prob.EvalEnergy(x0);
+  if (!math::isfinite(f0)) {
+    return utils::FailedPreconditionError("Invalid x0 in Line Search, Energy returns infinite number.");
+  }
   math::vecxr grad = prob.EvalGrad(x0);
   real df0 = grad.dot(dir);
   if (df0 >= 0 || !math::isfinite(df0)) {
@@ -36,7 +40,7 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
     math::vecxr x = x0 + alpha * dir;
     real const f = prob.EvalEnergy(x);
     expect = f0 + c_ * alpha * df0;
-    if (f <= expect) {
+    if (f <= expect && math::isfinite(f)) {
       opt = OptResultImpl{x, f, iter};
       opt.converged_ = true;
       break;

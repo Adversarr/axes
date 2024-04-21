@@ -114,7 +114,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     x = ls_result->x_opt_;
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
-    rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new));
+    rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19);
     grad = g_new;
     iter++;
   }

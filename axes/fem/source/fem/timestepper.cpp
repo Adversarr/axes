@@ -89,6 +89,9 @@ Status TimeStepperBase<dim>::Step(real dt) {
   AX_RETURN_OK();
 }
 
+template <idx dim>
+Status TimeStepperBase<dim>::Precompute() {AX_RETURN_OK();}
+
 template class TimeStepperBase<2>;
 template class TimeStepperBase<3>;
 

@@ -27,7 +27,7 @@ public:
     if_unlikely (J <= 0) {
       return math::inf<real>;
     }
-    return 0.5 * mu * (math::norm2(F) - 3) - mu * math::log(J)
+    return 0.5 * mu * (math::norm2(F) - dim) - mu * math::log(J)
            + 0.5 * lambda * math::square(math::log(J));
   }
 

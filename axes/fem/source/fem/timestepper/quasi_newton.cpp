@@ -85,6 +85,32 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         mesh.FilterVector(grad, true);
         return grad;
       })
+      .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
+        math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
+        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kHessian);
+        auto hessian_on_element = elasticity.Hessian(lame);
+        // Before move to vertex, make spsd.
+        tbb::parallel_for(tbb::blocked_range<idx>(0, hessian_on_element.size(), 1000),
+                          [&](const tbb::blocked_range<idx> &r) {
+                            for (idx i = r.begin(); i < r.end(); ++i) {
+                              optim::EigenvalueModification em;
+                              em.min_eigval_ = dt * dt;
+                              auto result = em.Modify(hessian_on_element[i]);
+                              if (!result.ok()) {
+                                AX_LOG(WARNING)
+                                    << "Eigenvalue modification failed: " << result.status();
+                              } else {
+                                hessian_on_element[i] = result.value();
+                              }
+                            }
+                          });
+        auto hessian_on_vertice = deform.HessianToVertices(hessian_on_element);
+        math::sp_matxxr stiffness
+            = math::make_sparse_matrix(dim * n_vert, dim * n_vert, hessian_on_vertice);
+        math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
+        mesh.FilterMatrix(hessian);
+        return hessian;
+      })
       .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
         real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
         return rv;
@@ -98,6 +124,10 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   optim::Lbfgs lbfgs;
   lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
+
+  math::LinsysProblem_Sparse problem_sparse;
+  problem_sparse.A_ = problem.EvalSparseHessian(y);
+  AX_CHECK_OK(solver_->Analyse(problem_sparse));
 
   lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
     auto approx = solver_->Solve(g, g * dt * dt);

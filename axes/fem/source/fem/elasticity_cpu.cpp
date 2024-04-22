@@ -1,0 +1,449 @@
+#include <tbb/parallel_for.h>
+
+#include <Eigen/SVD>
+
+#include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity/arap.hpp"
+#include "ax/fem/elasticity/linear.hpp"
+#include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elasticity/stable_neohookean.hpp"
+#include "ax/fem/elasticity/stvk.hpp"
+#include "ax/math/decomp/svd/import_eigen.hpp"
+#include "ax/math/decomp/svd/remove_rotation.hpp"
+#include "ax/utils/iota.hpp"
+
+// TBB States that, The relation between GRAINSIZE and INSTRUCTION COUNT should be:
+//    G * IC >= 100,000
+// We take Linear Elasticity as a reference:
+// 1. EnergyImpl computation: F-norm of E and trace E, E is from a F+F.T - I, with several scalar
+// operations.
+//    About 50 instructions per element(also take account of the memory ops), we set G = 4000.
+// 2. StressImpl computation: 1nd Piola-Kirchhoff stress, which is a 3x3 matrix, with 9 scalar
+// operations.
+//    Yet about 50 instructions per element, but for most nonlinears, log, det is required, the
+//    instruction count is over 100, we set G = 1500.
+// 3. HessianImpl, typically the most difficult, many instructions are memory associated. we cannot
+// expect it to be
+//    as fast as StressImpl computation. We set G = 500, this should be a reasonable value.
+// This value shoule performs well for most time consuming elasticity energies, such as Isotropic
+// ARAP. NOTE: Manually set the GRAIN SIZE if you have a different model.
+
+#ifndef AX_FEM_COMPUTE_SVD_ALGORITHM
+#  define AX_FEM_COMPUTE_SVD_ALGORITHM ax::math::decomp::JacobiSvd
+#endif
+
+#ifndef AX_FEM_COMPUTE_ENERGY_GRAIN
+#  define AX_FEM_COMPUTE_ENERGY_GRAIN 6000
+#endif
+
+#ifndef AX_FEM_COMPUTE_STRESS_GRAIN
+#  define AX_FEM_COMPUTE_STRESS_GRAIN 4000
+#endif
+
+#ifndef AX_FEM_COMPUTE_HESSIAN_GRAIN
+#  define AX_FEM_COMPUTE_HESSIAN_GRAIN 2000
+#endif
+
+namespace ax::fem {
+template <idx dim> static bool check_cache(elasticity::DeformationGradientCache<dim> const& cache) {
+  bool has_error = false;
+  for (const auto& R_inv : cache) {
+    real detR = R_inv.determinant();
+    if (math::isnan(detR) || math::abs(detR) < math::epsilon<real>) {
+      AX_LOG(ERROR) << "Found Determinant of R.inv is nan, or det is nearly zero.";
+      has_error = true;
+    }
+  }
+  return !has_error;
+}
+
+template <idx dim>
+static math::field1r dg_tev_p1(TriMesh<dim> const& mesh_, math::field1r const& e) {
+  idx n_element = mesh_.GetNumElements();
+  math::field1r result(1, mesh_.GetNumVertices());
+  result.setZero();
+  for (idx i = 0; i < n_element; ++i) {
+    const auto& ijk = mesh_.GetElement(i);
+    real energy = e[i] / real(dim + 1);
+    for (idx I = 0; I <= dim; ++I) {
+      result(ijk[I]) += energy;
+    }
+  }
+  return result;
+}
+
+template <idx dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
+    TriMesh<dim> const& mesh, List<elasticity::StressTensor<dim>> const& stress,
+    elasticity::DeformationGradientCache<dim> const& cache) {
+  typename TriMesh<dim>::vertex_list_t result;
+  result.setZero(dim, mesh.GetNumVertices());
+  // TODO: With Vertex->Element Map, the parallel is possible.
+  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+    // For P1 Element, the force on is easy to compute.
+    const auto& ijk = mesh.GetElement(i);
+    const auto& stress_i = stress[i];
+    math::matr<dim, dim> R = cache[i];
+    math::matr<dim, dim> f123 = stress_i * R.transpose();
+    for (idx I = 1; I <= dim; ++I) {
+      result.col(ijk[I]) += f123.col(I - 1);
+      result.col(ijk.x()) -= f123.col(I - 1);
+    }
+  }
+  return result;
+}
+
+/***********************************************************************************************
+ * P1 Element Implementation.
+ ***********************************************************************************************/
+AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
+  const real m = DmInv(0, 0);
+  const real n = DmInv(0, 1);
+  const real o = DmInv(0, 2);
+  const real p = DmInv(1, 0);
+  const real q = DmInv(1, 1);
+  const real r = DmInv(1, 2);
+  const real s = DmInv(2, 0);
+  const real t = DmInv(2, 1);
+  const real u = DmInv(2, 2);
+  const real t1 = -m - p - s;
+  const real t2 = -n - q - t;
+  const real t3 = -o - r - u;
+  math::matr<9, 12> PFPx;
+  PFPx.setZero();
+  PFPx(0, 0) = t1;
+  PFPx(0, 3) = m;
+  PFPx(0, 6) = p;
+  PFPx(0, 9) = s;
+  PFPx(1, 1) = t1;
+  PFPx(1, 4) = m;
+  PFPx(1, 7) = p;
+  PFPx(1, 10) = s;
+  PFPx(2, 2) = t1;
+  PFPx(2, 5) = m;
+  PFPx(2, 8) = p;
+  PFPx(2, 11) = s;
+  PFPx(3, 0) = t2;
+  PFPx(3, 3) = n;
+  PFPx(3, 6) = q;
+  PFPx(3, 9) = t;
+  PFPx(4, 1) = t2;
+  PFPx(4, 4) = n;
+  PFPx(4, 7) = q;
+  PFPx(4, 10) = t;
+  PFPx(5, 2) = t2;
+  PFPx(5, 5) = n;
+  PFPx(5, 8) = q;
+  PFPx(5, 11) = t;
+  PFPx(6, 0) = t3;
+  PFPx(6, 3) = o;
+  PFPx(6, 6) = r;
+  PFPx(6, 9) = u;
+  PFPx(7, 1) = t3;
+  PFPx(7, 4) = o;
+  PFPx(7, 7) = r;
+  PFPx(7, 10) = u;
+  PFPx(8, 2) = t3;
+  PFPx(8, 5) = o;
+  PFPx(8, 8) = r;
+  PFPx(8, 11) = u;
+  return PFPx;
+}
+
+// Auto generated code.
+AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
+  const real m = DmInv(0, 0);
+  const real n = DmInv(0, 1);
+  const real p = DmInv(1, 0);
+  const real q = DmInv(1, 1);
+  const real t1 = -m - p;
+  const real t2 = -n - q;
+  math::matr<4, 6> PFPx;
+  PFPx.setZero();
+  PFPx(0, 0) = t1;
+  PFPx(0, 2) = m;
+  PFPx(0, 4) = p;
+  PFPx(1, 1) = t1;
+  PFPx(1, 3) = m;
+  PFPx(1, 5) = p;
+  PFPx(2, 0) = t2;
+  PFPx(2, 2) = n;
+  PFPx(2, 4) = q;
+  PFPx(3, 1) = t2;
+  PFPx(3, 3) = n;
+  PFPx(3, 5) = q;
+  return PFPx;
+}
+
+template <idx dim>
+math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
+                              List<elasticity::HessianTensor<dim>> const& hessian,
+                              elasticity::DeformationGradientCache<dim> const& cache) {
+  math::sp_coeff_list coo;
+  coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
+  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(mesh.GetNumElements());
+  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
+                    [&](tbb::blocked_range<idx> const& r) {
+                      for (idx i = r.begin(); i < r.end(); ++i) {
+                        const auto& H_i = hessian[i];
+                        math::matr<dim, dim> R = cache[i];
+                        math::matr<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
+                        per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+                      }
+                    });
+
+  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+    const auto& ijk = mesh.GetElement(i);
+    const auto& H = per_element_hessian[i];
+    for (auto [I, J, Di, Dj] : utils::multi_iota(dim + 1, dim + 1, dim, dim)) {
+      idx i_idx = ijk[I];
+      idx j_idx = ijk[J];
+      idx H_idx_i = I * dim + Di;
+      idx H_idx_j = J * dim + Dj;
+      idx global_dof_i_idx = i_idx * dim + Di;
+      idx global_dof_j_idx = j_idx * dim + Dj;
+      coo.push_back({global_dof_i_idx, global_dof_j_idx, H(H_idx_i, H_idx_j)});
+    }
+  }
+  return coo;
+}
+
+template <idx dim> ElasticityComputeBase<dim>::ElasticityComputeBase(TriMesh<dim> const& mesh)
+    : mesh_(mesh), rinv_(mesh.GetNumElements()) {}
+
+template <idx dim>
+math::field1r ElasticityComputeBase<dim>::GatherEnergy(math::field1r const& element_values) const {
+  return dg_tev_p1<dim>(mesh_, element_values);
+}
+
+template <idx dim> math::fieldr<dim> ElasticityComputeBase<dim>::GatherStress(
+    List<elasticity::StressTensor<dim>> const& stress) const {
+  return dg_tsv_p1<dim>(mesh_, stress, rinv_);
+}
+
+template <idx dim> math::sp_matxxr ElasticityComputeBase<dim>::GatherHessian(
+    List<elasticity::HessianTensor<dim>> const& hessian) const {
+  auto coo = dg_thv_p1<dim>(mesh_, hessian, rinv_);
+  return math::make_sparse_matrix(mesh_.GetNumVertices() * dim, mesh_.GetNumVertices() * dim, coo);
+}
+
+/*************************
+ * SECT: CPU Implementation
+ *************************/
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateDeformationGradient(
+    math::fieldr<dim> const& pose, DeformationGradientUpdate upt) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto& dg_l = this->deformation_gradient_;
+  auto& svd_results_ = this->svd_results_;
+  dg_l.resize(n_elem);
+  svd_results_.resize(n_elem);
+  bool const need_svd
+      = (ElasticModel{}.EnergyRequiresSvd() && upt == DeformationGradientUpdate::kEnergy)
+        || (ElasticModel{}.StressRequiresSvd() && upt == DeformationGradientUpdate::kStress)
+        || (ElasticModel{}.HessianRequiresSvd() && upt == DeformationGradientUpdate::kHessian);
+  std::atomic<bool> failed = false;
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        AX_FEM_COMPUTE_SVD_ALGORITHM<dim, real> svd;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          math::matr<dim, dim> Ds;
+          math::veci<dim + 1> element = this->mesh_.GetElement(i);
+          math::vecr<dim> local_zero = pose.col(element.x());
+          for (idx I = 1; I <= dim; ++I) {
+            Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+          }
+          dg_l[i] = Ds * this->rinv_[i];
+          if (need_svd) {
+            auto result = svd.Solve(dg_l[i]);
+            if_unlikely(!result.ok()) {
+              AX_LOG(FATAL) << "Failed to compute SVD for " << i << " element!!! breaking...";
+              failed.store(true);
+              break;
+            }
+            svd_results_[i] = result.value();
+            math::decomp::svd_remove_rotation(svd_results_[i]);
+          }
+        }
+      },
+      this->svd_ap);
+  return failed.load();
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
+  auto const& rest_pose = this->mesh_.GetVertices();
+  idx const n_elem = this->mesh_.GetNumElements();
+  this->rinv_.reserve(n_elem);
+  real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
+  using namespace math;
+  for (idx i = 0; i < n_elem; ++i) {
+    matr<dim, dim> rest_local;
+    const auto& element = this->mesh_.GetElement(i);
+    const auto& local_zero = rest_pose.col(element.x());
+    for (idx I = 1; I <= dim; ++I) {
+      rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
+    }
+    this->rinv_[i] = rest_local.inverse();
+  }
+  // There exist an efficient approximation to compute the volume:
+  this->rest_volume_.resize(1, n_elem);
+  for (idx i = 0; i < n_elem; ++i) {
+    real v = coef / math::det(this->rinv_[i]);
+    this->rest_volume_(0, i) = abs(v);
+  }
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::field2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  const bool energy_requires_svd = ElasticModel().EnergyRequiresSvd();
+  math::field1r element_energy(1, n_elem);
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        ElasticModel model;
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          model.SetLame(lame.col(i));
+          element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[i] : tomb)
+                              * this->rest_volume_(i);
+        }
+      },
+      this->e_ap);
+  return element_energy;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::vec2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  math::field1r element_energy(1, n_elem);
+  const bool energy_requires_svd = ElasticModel().EnergyRequiresSvd();
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        //        AX_LOG(ERROR) << "Energy begin " << r.begin() << " end " << r.end();
+        ElasticModel model;
+        model.SetLame(lame);
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          element_energy[i] = model.Energy(F, energy_requires_svd ? (this->svd_results_[i]) : tomb)
+                              * this->rest_volume_(i);
+        }
+      },
+      this->e_ap);
+  return element_energy;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemplate>::Stress(
+    math::vec2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  List<elasticity::StressTensor<dim>> stress(n_elem);
+  const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        ElasticModel model;
+        model.SetLame(lame);
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          stress[i] = model.Stress(F, stress_requires_svd ? (this->svd_results_[i]) : tomb)
+                      * this->rest_volume_(i);
+        }
+      },
+      this->s_ap);
+  return stress;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemplate>::Stress(
+    math::field2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
+  List<elasticity::StressTensor<dim>> stress(n_elem);
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        ElasticModel model;
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          model.SetLame(lame.col(i));
+          stress[i] = model.Stress(F, stress_requires_svd ? this->svd_results_[i] : tomb)
+                      * this->rest_volume_(i);
+        }
+      },
+      this->s_ap);
+  return stress;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemplate>::Hessian(
+    math::vec2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  const bool hessian_requires_svd = ElasticModel().HessianRequiresSvd();
+  List<elasticity::HessianTensor<dim>> hessian(n_elem);
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        ElasticModel model;
+        model.SetLame(lame);
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
+                       * this->rest_volume_(i);
+        }
+      },
+      this->h_ap);
+  return hessian;
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemplate>::Hessian(
+    math::field2r const& lame) {
+  idx const n_elem = this->mesh_.GetNumElements();
+  auto const& dg_l = this->deformation_gradient_;
+  const bool hessian_requires_svd = ElasticModel().HessianRequiresSvd();
+  List<elasticity::HessianTensor<dim>> hessian(n_elem);
+  tbb::parallel_for(
+      tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
+      [&](const tbb::blocked_range<idx>& r) {
+        ElasticModel model;
+        math::decomp::SvdResultImpl<dim, real> tomb;
+        for (idx i = r.begin(); i < r.end(); ++i) {
+          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          model.SetLame(lame.col(i));
+          hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
+                       * this->rest_volume_(i);
+        }
+      },
+      this->h_ap);
+  return hessian;
+}
+
+template class ElasticityComputeBase<2>;
+template class ElasticityComputeBase<3>;
+
+template class ElasticityCompute_CPU<2, elasticity::StableNeoHookean>;
+template class ElasticityCompute_CPU<2, elasticity::NeoHookeanBW>;
+template class ElasticityCompute_CPU<2, elasticity::IsotropicARAP>;
+template class ElasticityCompute_CPU<2, elasticity::StVK>;
+template class ElasticityCompute_CPU<2, elasticity::Linear>;
+
+template class ElasticityCompute_CPU<3, elasticity::StableNeoHookean>;
+template class ElasticityCompute_CPU<3, elasticity::NeoHookeanBW>;
+template class ElasticityCompute_CPU<3, elasticity::IsotropicARAP>;
+template class ElasticityCompute_CPU<3, elasticity::StVK>;
+template class ElasticityCompute_CPU<3, elasticity::Linear>;
+}  // namespace ax::fem

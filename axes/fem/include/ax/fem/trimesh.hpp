@@ -1,18 +1,10 @@
 #pragma once
 
-#include "ax/geometry/common.hpp"
 #include "ax/core/echo.hpp"
+#include "ax/geometry/common.hpp"
 #include "ax/math/sparse.hpp"
-#include "ax/utils/enum_refl.hpp"
-
 
 namespace ax::fem {
-
-BOOST_DEFINE_FIXED_ENUM_CLASS(
-    MeshType, idx,
-    kP1,  // P1 Element, e.g. Trig in 2D, and Tet in 3D.
-    kQ1,  // Q1 Element, e.g. Quad in 2D, and Hex in 3D.
-)
 
 /**
  * @brief A base class for mesh representation in finite element method.
@@ -23,15 +15,15 @@ BOOST_DEFINE_FIXED_ENUM_CLASS(
  *
  * @tparam dim The dimension of the mesh.
  */
-template <idx dim> class MeshBase {
+template <idx dim> class TriMesh final {
 public:
-  using element_t = math::vecxi; /**< Type for storing mesh elements. */
-  using element_list_t = math::fieldxi; /**< Type for storing a list of mesh elements. */
+  using element_t = math::veci<dim + 1>;        /**< Type for storing mesh elements. */
+  using element_list_t = math::fieldi<dim + 1>; /**< Type for storing a list of mesh elements. */
 
-  using vertex_t = math::vecr<dim>; /**< Type for storing mesh vertices. */
+  using vertex_t = math::vecr<dim>;        /**< Type for storing mesh vertices. */
   using vertex_list_t = math::fieldr<dim>; /**< Type for storing a list of mesh vertices. */
 
-  using boundary_value_t = vertex_t; /**< Type for storing boundary values. */
+  using boundary_value_t = vertex_t;           /**< Type for storing boundary values. */
   using boundary_value_list_t = vertex_list_t; /**< Type for storing a list of boundary values. */
   using boundary_type_list_t = std::vector<bool>; /**< Type for storing boundary types. */
 
@@ -41,27 +33,12 @@ public:
    *
    * @param type The type of the mesh.
    */
-  explicit MeshBase(MeshType type);
+  explicit TriMesh();
 
   /**
    * @brief Destructor for the MeshBase object.
    */
-  virtual ~MeshBase() = default;
-
-  /**
-   * @brief Creates a MeshBase object of the specified type.
-   *
-   * @param type The type of the mesh.
-   * @return A unique pointer to the created MeshBase object.
-   */
-  static std::unique_ptr<MeshBase<dim>> Create(MeshType type);
-
-  /**
-   * @brief Gets the type of the mesh.
-   *
-   * @return The type of the mesh.
-   */
-  MeshType GetType() const noexcept;
+  ~TriMesh() = default;
 
   /**
    * @brief Sets the mesh elements and vertices.
@@ -130,14 +107,7 @@ public:
    *
    * @return The surface mesh.
    */
-  virtual geo::SurfaceMesh ExtractSurface() const = 0;
-
-  /**
-   * @brief Gets the number of vertices per element.
-   *
-   * @return The number of vertices per element.
-   */
-  virtual idx GetNumVerticesPerElement() const noexcept = 0;
+  geo::SurfaceMesh ExtractSurface() const;
 
   idx GetNumVertices() const noexcept;
   idx GetNumElements() const noexcept;
@@ -176,7 +146,7 @@ public:
    * @param i The index of the boundary.
    * @return True if the boundary is a Dirichlet boundary, false otherwise.
    */
-  bool IsDirichletBoundary(idx i, idx dof ) const noexcept;
+  bool IsDirichletBoundary(idx i, idx dof) const noexcept;
 
   /**
    * @brief Returns an iterator to the beginning of the mesh elements.
@@ -220,72 +190,74 @@ public:
    */
   AX_FORCE_INLINE auto end() noexcept;
 
-  void FilterMatrix(math::sp_coeff_list const& input, 
-                    math::sp_coeff_list & out) const;
-  
-  void FilterMatrix(math::sp_matxxr & mat) const;
+  void FilterMatrix(math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 
-  void FilterVector(math::vecxr& inout, bool set_zero=false) const;
+  void FilterMatrix(math::sp_matxxr& mat) const;
 
-  std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept { return v_e_map_; }
+  void FilterVector(math::vecxr& inout, bool set_zero = false) const;
 
-  math::fieldr<dim> const& GetDirichletBoundaryMask() const noexcept { return dirichlet_boundary_mask_; }
+  std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept {
+    return v_e_map_;
+  }
+
+  math::fieldr<dim> const& GetDirichletBoundaryMask() const noexcept {
+    return dirichlet_boundary_mask_;
+  }
 
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
-  vertex_list_t vertices_; /**< The list of mesh vertices. */
-  const MeshType type_; /**< The type of the mesh. */
+  vertex_list_t vertices_;  /**< The list of mesh vertices. */
 
   // We may need to compute the inverse mapping, i.e. the vertex->elements connected to it.
   std::vector<std::vector<ElementPositionPair>> v_e_map_;
 
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
-  math::fieldr<dim> dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
+  vertex_list_t dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };
 
 // NOTE: Some member functions does not have a FRIENDLY return value, we provide it as
 //       a template implementation to avoid the need of defining it in the cpp file.
 // NOTE: Also, some member functions should be defined in header file to achieve inlining.
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::GetElement(idx i) const noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::GetElement(idx i) const noexcept {
   AX_DCHECK(i < elements_.cols()) << "Index out of bounds.";
   return elements_.col(i);
 }
 
-template <idx dim> AX_FORCE_INLINE 
-typename MeshBase<dim>::vertex_t MeshBase<dim>::GetVertex(idx i) const noexcept {
+template <idx dim>
+AX_FORCE_INLINE typename TriMesh<dim>::vertex_t TriMesh<dim>::GetVertex(idx i) const noexcept {
   AX_DCHECK(i < vertices_.cols()) << "Index out of bounds.";
   return vertices_.col(i);
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::begin() const noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() const noexcept {
   return math::each(elements_).begin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::end() const noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::end() const noexcept {
   return math::each(elements_).end();
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::cbegin() const noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::cbegin() const noexcept {
   return math::each(elements_).cbegin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::cend() const noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::cend() const noexcept {
   return math::each(elements_).cend();
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::begin() noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() noexcept {
   return math::each(elements_).begin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto MeshBase<dim>::end() noexcept {
+template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::end() noexcept {
   return math::each(elements_).end();
 }
 
-template <idx dim> AX_FORCE_INLINE idx MeshBase<dim>::GetNumVertices() const noexcept {
+template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumVertices() const noexcept {
   return vertices_.cols();
 }
 
-template <idx dim> AX_FORCE_INLINE idx MeshBase<dim>::GetNumElements() const noexcept {
+template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumElements() const noexcept {
   return elements_.cols();
 }
 

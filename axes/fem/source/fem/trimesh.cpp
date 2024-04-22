@@ -1,41 +1,25 @@
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
+
 #include "ax/utils/status.hpp"
 
 #ifdef AX_PLATFORM_WINDOWS
-#undef ERROR
+#  undef ERROR
 #endif
 namespace ax::fem {
 
-template <idx dim> MeshBase<dim>::MeshBase(MeshType type) : type_(type) {}
+template <idx dim> TriMesh<dim>::TriMesh() {}
 
 template <idx dim>
-UPtr<MeshBase<dim>> MeshBase<dim>::Create(MeshType type) {
-  if (type == MeshType::kP1) {
-    return std::make_unique<P1Mesh<dim>>();
-  } else {
-    AX_LOG(ERROR) << "Unknown mesh type.";
-    return nullptr;
-  }
-  AX_UNREACHABLE();
-}
-
-template <idx dim> MeshType MeshBase<dim>::GetType() const noexcept { return type_; }
-
-template <idx dim>
-Status MeshBase<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
-  if (elements.rows() != GetNumVerticesPerElement()) {
-    return utils::InvalidArgumentError("The number of elements does not match.");
-  }
+Status TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
   elements_ = elements;
   vertices_ = vertices;
 
   idx nV = GetNumVertices(), nE = GetNumElements();
-  idx nN = GetNumVerticesPerElement();
   v_e_map_.clear();
   v_e_map_.resize(nV);
   for (idx i = 0; i < nE; ++i) {
     auto const& ijk = GetElement(i);
-    for (idx d = 0; d < nN; ++d) {
+    for (idx d = 0; d < dim + 1; ++d) {
       auto iV = ijk[d];
       ElementPositionPair en_pair{i, d};
       v_e_map_[iV].push_back(en_pair);
@@ -46,7 +30,7 @@ Status MeshBase<dim>::SetMesh(element_list_t const& elements, vertex_list_t cons
   AX_RETURN_OK();
 }
 
-template <idx dim> Status MeshBase<dim>::SetVertices(vertex_list_t const& vertices) {
+template <idx dim> Status TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
   if (vertices.size() != vertices_.size()) {
     return utils::InvalidArgumentError("The number of vertices does not match.");
   }
@@ -54,22 +38,22 @@ template <idx dim> Status MeshBase<dim>::SetVertices(vertex_list_t const& vertic
   AX_RETURN_OK();
 }
 
-template <idx dim> void MeshBase<dim>::SetVertex(idx i, vertex_t const& vertex) {
+template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
   AX_DCHECK(0 <= i && i < vertices_.size()) << "Index out of range.";
   vertices_.col(i) = vertex;
 }
 
-template <idx dim> auto MeshBase<dim>::GetVertices() const noexcept
-    -> MeshBase<dim>::vertex_list_t const& {
+template <idx dim> auto TriMesh<dim>::GetVertices() const noexcept
+    -> TriMesh<dim>::vertex_list_t const& {
   return vertices_;
 }
 
-template <idx dim> 
-typename MeshBase<dim>::element_list_t const& MeshBase<dim>::GetElements() const noexcept {
+template <idx dim>
+typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const noexcept {
   return elements_;
 }
 
-template <idx dim> math::vecxr MeshBase<dim>::GetVerticesFlattened() const noexcept {
+template <idx dim> math::vecxr TriMesh<dim>::GetVerticesFlattened() const noexcept {
   math::vecxr vertices_flattened(vertices_.size());
   for (idx i = 0; i < vertices_.cols(); ++i) {
     for (idx j = 0; j < dim; ++j) {
@@ -79,41 +63,40 @@ template <idx dim> math::vecxr MeshBase<dim>::GetVerticesFlattened() const noexc
   return vertices_flattened;
 }
 
-template <idx dim> void MeshBase<dim>::ResetBoundary(idx i, idx dof) {
+template <idx dim> void TriMesh<dim>::ResetBoundary(idx i, idx dof) {
   AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
   AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
   dirichlet_boundary_mask_(dof, i) = 1;
   boundary_values_(dof, i) = 0;
 }
 
-template <idx dim> void MeshBase<dim>::MarkDirichletBoundary(idx i, idx dof, const real& value) {
+template <idx dim> void TriMesh<dim>::MarkDirichletBoundary(idx i, idx dof, const real& value) {
   AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
   AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
   boundary_values_(dof, i) = value;
   dirichlet_boundary_mask_(dof, i) = 0;
 }
 
-template <idx dim> void MeshBase<dim>::ResetAllBoundaries() {
+template <idx dim> void TriMesh<dim>::ResetAllBoundaries() {
   boundary_values_.resize(dim, vertices_.cols());
   boundary_values_.setZero();
   dirichlet_boundary_mask_.setOnes(dim, vertices_.cols());
 }
 
-template <idx dim>
-real MeshBase<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
+template <idx dim> real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
   AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
   AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
   return boundary_values_(dof, i);
 }
 
-template <idx dim> bool MeshBase<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
+template <idx dim> bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
   AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
   AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
   return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
-template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_coeff_list const& input,
-                                                    math::sp_coeff_list& out) const {
+template <idx dim>
+void TriMesh<dim>::FilterMatrix(math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     idx row_id = coeff.row() / dim;
@@ -136,15 +119,15 @@ template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_coeff_list const& i
   }
 }
 
-template <idx dim> void MeshBase<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
+template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
   AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
-  inout.array() *= dirichlet_boundary_mask_.array();
-  if (! set_zero) {
+  inout.array() *= dirichlet_boundary_mask_.reshaped().array();
+  if (!set_zero) {
     inout += boundary_values_.reshaped();
   }
 }
 
-template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_matxxr& mat) const {
+template <idx dim> void TriMesh<dim>::FilterMatrix(math::sp_matxxr& mat) const {
   math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {
     for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
@@ -156,7 +139,26 @@ template <idx dim> void MeshBase<dim>::FilterMatrix(math::sp_matxxr& mat) const 
   mat = math::make_sparse_matrix(dim * GetNumVertices(), dim * GetNumVertices(), coo_filtered);
 }
 
-template class MeshBase<2>;
-template class MeshBase<3>;
+template <idx dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
+  AX_CHECK(dim == 3) << "Only 3D P1Mesh is supported";
+  geo::SurfaceMesh surface;
+  auto const& elem = this->elements_;
+  auto const& vert = this->vertices_;
+  if constexpr (dim == 3) {
+    surface.vertices_ = vert;
+  }
+  surface.indices_.resize(3, elem.cols() * 4);
+  for (idx i = 0; i < elem.cols(); ++i) {
+    auto const& e = elem.col(i);
+    surface.indices_.col(4 * i) = math::vec3i{e(0), e(1), e(2)};
+    surface.indices_.col(4 * i + 1) = math::vec3i{e(0), e(1), e(3)};
+    surface.indices_.col(4 * i + 2) = math::vec3i{e(1), e(2), e(3)};
+    surface.indices_.col(4 * i + 3) = math::vec3i{e(2), e(0), e(3)};
+  }
+  return surface;
+}
+
+template class TriMesh<2>;
+template class TriMesh<3>;
 
 }  // namespace ax::fem

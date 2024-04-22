@@ -6,6 +6,7 @@
 #include "ax/optim/optimizers/newton.hpp"
 #include "ax/optim/spsdm.hpp"
 #include "ax/optim/spsdm/diagonal.hpp"
+#include <tbb/parallel_for.h>
 #undef ERROR
 
 namespace ax::fem {
@@ -13,7 +14,6 @@ namespace ax::fem {
 template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
-  auto &deform = this->GetDeformation();
   auto &elasticity = this->GetElasticity();
   auto &velocity = this->velocity_;
   auto &mass_matrix = this->mass_matrix_;
@@ -53,7 +53,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kStress);
         auto stress_on_element = elasticity.Stress(lame);
-        math::fieldr<dim> neg_force = deform.StressToVertices(stress_on_element);
+        math::fieldr<dim> neg_force = elasticity.GatherStress(stress_on_element);
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
         math::vecxr grad_elasticity = dt * dt * neg_force.reshaped();
         math::vecxr grad = grad_elasticity + grad_kinematic;
@@ -78,9 +78,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
               }
             }
           });
-        auto hessian_on_vertice = deform.HessianToVertices(hessian_on_element);
-        math::sp_matxxr stiffness = math::make_sparse_matrix(dim * n_vert, dim * n_vert, 
-                                                             hessian_on_vertice);
+        auto stiffness = elasticity.GatherHessian(hessian_on_element);
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
         mesh.FilterMatrix(hessian);
         return hessian;

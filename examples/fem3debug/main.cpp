@@ -46,7 +46,7 @@ void update_entity() {
   fem::P1Mesh<3> mesh;
   AX_CHECK_OK(mesh.SetMesh(F, V));
   fem::Deformation<3> deform(mesh, input_mesh.vertices_);
-  fem::ElasticityCompute<3, fem::elasticity::NeoHookeanBW> elast(deform);
+  fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(deform);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
   auto stress = elast.Stress(lame);

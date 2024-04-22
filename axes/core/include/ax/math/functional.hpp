@@ -8,22 +8,22 @@ namespace ax::math {
 /****************************** Unary op for scalar ******************************/
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto sqrt(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
   return details::sqrt_impl(x);
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto rsqrt(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE Scalar radians(Scalar degree) {
+AX_CUDA_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {
   return degree * pi_radian<Scalar>;
 }
 
 #define IMPLEMENT_UNARY_STL(op)                                     \
   template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
-  AX_FORCE_INLINE auto op(Scalar x) {                               \
+  AX_CUDA_DEVICE AX_FORCE_INLINE auto op(Scalar x) {                               \
     return std::op(x);                                              \
   }
 
@@ -51,36 +51,36 @@ IMPLEMENT_UNARY_STL(ceil)
 #undef IMPLEMENT_UNARY_STL
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
   return std::pow(x, y);
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto cube(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto cube(Scalar x) {
   return x * x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto abs2(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto abs2(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto square(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto square(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_FORCE_INLINE auto inverse(Scalar x) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
   return Scalar(1) / x;
 }
 
 /****************************** Unary op available for matrices ******************************/
 #define IMPLEMENT_UNARY(FUNC, OP)                                                             \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
+  AX_CUDA_DEVICE AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
+  AX_CUDA_DEVICE AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
 #define A_OP_M(OP) array().OP().matrix
 #define IMPLEMENT_AOPM_UNARY(FUNC) IMPLEMENT_UNARY(FUNC, A_OP_M(FUNC))
 

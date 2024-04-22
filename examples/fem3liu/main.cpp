@@ -4,12 +4,13 @@
 #include "ax/core/init.hpp"
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/fem/timestepper/quasi_newton.hpp"
@@ -61,10 +62,10 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-
-  ts->GetElasticity().UpdateDeformationGradient();
+  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(), fem::DeformationGradientUpdate::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetDeformation().EnergyToVertices(e_per_elem);
+  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
+
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
@@ -77,7 +78,7 @@ static bool running = false;
 float dt = 1e-2;
 math::vecxr fps;
 
-void handle_armadillo_drags(fem::MeshBase<3>& mesh, real T) {
+void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
   using namespace ax::math;
   static std::vector<idx> dirichlet_handles;
   static std::vector<real> y_vals;
@@ -104,7 +105,7 @@ void handle_armadillo_drags(fem::MeshBase<3>& mesh, real T) {
   }
 }
 
-void handle_armadillo_extreme(fem::MeshBase<3>& mesh, real T) {
+void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
   using namespace ax::math;
   static std::vector<idx> l_dirichlet_handles;
   static std::vector<idx> r_dirichlet_handles;
@@ -246,9 +247,9 @@ int main(int argc, char** argv) {
   // input_mesh = geo::tet_cube(0.5, 10 * nx, nx, nx);
   // input_mesh.vertices_.row(0) *= 10;
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
-    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::P1Mesh<3>>());
+    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::TriMesh<3>>());
   } else if (opt == "lbfgs") {
-    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::P1Mesh<3>>());
+    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
   }
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
@@ -273,7 +274,7 @@ int main(int argc, char** argv) {
 
   ts->SetDensity(1e3);
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean>();
+  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
   if (scene == SCENE_TWIST) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
   }

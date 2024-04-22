@@ -1,11 +1,12 @@
 function(axes_add_example name deps)
-  file(GLOB_RECURSE sources "${name}/*.cpp")
+  file(GLOB_RECURSE sources "${name}/*.cpp" "${name}/*.cu")
   add_executable(${name} ${sources})
   target_link_libraries(${name} PUBLIC ${deps})
   ax_set_warn_levels(${name})
 endfunction(axes_add_example)
 
 axes_add_example(empty "axes")
+axes_add_example(cuda_intro "axes")
 axes_add_example(simd_test "axes")
 axes_add_example(basic_graphics "axes_gl")
 axes_add_example(optim "axes_optim")

@@ -1,13 +1,11 @@
 #include "ax/fem/timestepper/quasi_newton.hpp"
 
-#include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/elasticity/neohookean_bw.hpp"
-#include "ax/fem/elements/p1.hpp"
 #include "ax/fem/laplace_matrix.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
+
+#include <tbb/parallel_for.h>
 
 namespace ax::fem {
 
@@ -43,7 +41,6 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
-  auto &deform = this->GetDeformation();
   auto &elasticity = this->GetElasticity();
   auto &velocity = this->velocity_;
   auto const &mass_matrix = this->mass_matrix_;
@@ -83,7 +80,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kStress);
         auto stress_on_element = elasticity.Stress(lame);
-        math::fieldr<dim> neg_force = deform.StressToVertices(stress_on_element);
+        math::fieldr<dim> neg_force = elasticity.GatherStress(stress_on_element);
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
         math::vecxr grad_elasticity = neg_force.reshaped() * (dt * dt);
         math::vecxr grad = grad_elasticity + grad_kinematic;
@@ -109,9 +106,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
                               }
                             }
                           });
-        auto hessian_on_vertice = deform.HessianToVertices(hessian_on_element);
-        math::sp_matxxr stiffness
-            = math::make_sparse_matrix(dim * n_vert, dim * n_vert, hessian_on_vertice);
+        auto stiffness = elasticity.GatherHessian(hessian_on_element);
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
         mesh.FilterMatrix(hessian);
         return hessian;
@@ -121,10 +116,6 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         return rv;
       })
       .SetConvergeVar(nullptr);
-  // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-  //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" <<
-  //   problem.EvalGrad(X).norm();
-  // });
 
   optim::Lbfgs lbfgs;
   lbfgs.SetTolGrad(0.02);

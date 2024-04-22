@@ -1,7 +1,10 @@
 #pragma once
 #include "base.hpp"
 #include "extra_symbols.hpp"
+
 namespace ax::fem::elasticity {
+
+
 /**
  * @brief Stable NeoHookean Elasticity Model. (With barrier.)
  * @ref See HOBAKv1/src/Hyperelastic/Volume/SNH.cpp for details.
@@ -19,8 +22,10 @@ public:
   using hessian_t = typename base_t::hessian_t;
 
   using ElasticityBase<dim, StableNeoHookean<dim>>::ElasticityBase;
+  AX_CUDA_DEVICE StableNeoHookean() = default;
+  AX_CUDA_DEVICE StableNeoHookean(real lambda, real mu) : base_t(lambda, mu) {}
 
-  constexpr real delta() const noexcept {
+  AX_CUDA_DEVICE constexpr real delta() const noexcept {
     if constexpr(dim == 2) {
       real mu = this->mu_, lambda = this->lambda_;
       const real t = mu / lambda;
@@ -35,10 +40,10 @@ public:
   }
 
   // energy= 1/2 mu (|F|^2 - dim) + 1/2 lambda (det(F) - alpha)^2 + mu/2 log(Ic + delta)
-  real EnergyImpl(DeformationGradient<dim> const& F,
-                  const math::decomp::SvdResultImpl<dim, real>*) const {
+  AX_CUDA_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
+                  const math::decomp::SvdResultImpl<dim, real>&) const {
     real mu = this->mu_, lambda = this->lambda_;
-    real const Ic = math::norm2(F);
+    real const Ic = F.squaredNorm();
     real const del= delta();
     real alpha = (1 - 1 / (dim + del)) * mu / lambda + 1;
     real const Jminus1 = math::det(F) - alpha;
@@ -46,8 +51,8 @@ public:
   }
 
   
-  stress_t StressImpl(DeformationGradient<dim> const& F,
-                  math::decomp::SvdResultImpl<dim, real> const*) const {
+  AX_CUDA_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
+                  math::decomp::SvdResultImpl<dim, real> const&) const {
     real mu = this->mu_, lambda = this->lambda_;
     real const Ic = math::norm2(F);
     real const del= delta();
@@ -58,10 +63,9 @@ public:
   }
 
 
-  hessian_t HessianImpl(DeformationGradient<dim> const& F,
-                        const math::decomp::SvdResultImpl<dim, real>*) const {
+  AX_CUDA_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
+                        const math::decomp::SvdResultImpl<dim, real>&) const {
     real mu = this->mu_, lambda = this->lambda_;
-    real const Ic = math::norm2(F);
     real const I2 = math::norm2(F);
     real const del= delta();
     real alpha = (1 - 1 / (dim + del)) * mu / lambda + 1;
@@ -76,5 +80,6 @@ public:
     return hess;
   }
 };
+
 
 }  // namespace ax::fem::elasticity

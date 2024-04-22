@@ -6,13 +6,13 @@
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/math/approx.hpp"
 using namespace ax;
 
 constexpr idx DIM = 3;
 
-fem::P1Mesh<DIM> mesh;
+fem::TriMesh<DIM> mesh;
 auto kE = fem::DeformationGradientUpdate::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
   // Elasticity and Deformation.
   fem::Deformation<DIM> deform(mesh, mesh.GetVertices());                    //< 3d Deformation
-  fem::ElasticityCompute<DIM, fem::elasticity::NeoHookeanBW> elast(deform);  //< 3d Linear Elasticity
+  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(deform);  //< 3d Linear Elasticity
 
   // randomly perturb the vertices.
   for (idx i = 0; i <= DIM; ++i) {

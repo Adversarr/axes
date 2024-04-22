@@ -6,7 +6,7 @@
 #include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/mass_matrix.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
 
 #include "ax/utils/asset.hpp"
 
@@ -16,7 +16,7 @@ using namespace ax::math;
 
 TEST_CASE("mass2d") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
-  auto mesh = std::make_unique<fem::P1Mesh<2>>();
+  auto mesh = std::make_unique<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   // auto mesh = make_square(3);
   auto mass_compute = fem::MassMatrixCompute<2>(*mesh);
@@ -31,11 +31,11 @@ TEST_CASE("mass2d") {
 
 TEST_CASE("stress") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
-  auto mesh = std::make_unique<fem::P1Mesh<2>>();
+  auto mesh = std::make_unique<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   fem::Deformation<2> deform(*mesh, vert.topRows<2>());
   auto def = deform.Forward();
-  auto elastic = fem::ElasticityCompute<2, elasticity::Linear>(deform);
+  auto elastic = fem::ElasticityCompute_CPU<2, elasticity::Linear>(deform);
   math::vec2r lame = {1.0, 1.0};
   elastic.UpdateDeformationGradient(mesh->GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
   auto stress = elastic.Stress(lame);
@@ -50,10 +50,10 @@ TEST_CASE("stress") {
 
 TEST_CASE("Hessian") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
-  auto mesh = std::make_unique<fem::P1Mesh<2>>();
+  auto mesh = std::make_unique<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   fem::Deformation<2> deform(*mesh, vert.topRows<2>());
-  auto stress = fem::ElasticityCompute<2, elasticity::Linear>(deform);
+  auto stress = fem::ElasticityCompute_CPU<2, elasticity::Linear>(deform);
   math::vec2r lame = {1.0, 1.0};
   stress.UpdateDeformationGradient(mesh->GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
   for (auto const& s : stress.Hessian(lame)) {

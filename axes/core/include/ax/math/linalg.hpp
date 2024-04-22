@@ -14,7 +14,7 @@ constexpr linf_t linf{};
 constexpr l1_t l1{};
 
 template <typename DerivedA, typename DerivedB>
-AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
+AX_CUDA_DEVICE AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
   static_assert(DerivedA::RowsAtCompileTime == DerivedB::RowsAtCompileTime,
                 "dot product requires vectors of the same size");
 
@@ -25,7 +25,7 @@ AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
 }
 
 template <typename A, typename B>
-AX_FORCE_INLINE auto cross(MBcr<A> a, MBcr<B> b) {
+AX_CUDA_DEVICE AX_FORCE_INLINE math::vec<typename A::Scalar, 3> cross(MBcr<A> a, MBcr<B> b) {
   static_assert(A::RowsAtCompileTime == 3, "cross product requires 3D vectors");
   static_assert(B::RowsAtCompileTime == 3, "cross product requires 3D vectors");
 
@@ -37,58 +37,56 @@ AX_FORCE_INLINE auto cross(MBcr<A> a, MBcr<B> b) {
 
 /****************************** norms ******************************/
 
-template <typename A> AX_FORCE_INLINE auto norm(MBcr<A> mv, l2_t = {}) {
+template <typename A>
+AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBcr<A> mv, l2_t = {}) {
   return mv.norm();
 }
 
-template <typename A> AX_FORCE_INLINE auto norm2(MBcr<A> mv) {
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar norm2(MBcr<A> mv) {
   return mv.squaredNorm();
 }
 
-template <typename A> AX_FORCE_INLINE auto norm(MBcr<A> mv, linf_t) {
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBcr<A> mv, linf_t) {
   return mv.template lpNorm<Eigen::Infinity>();
 }
 
-template <typename A> AX_FORCE_INLINE auto norm(MBcr<A> mv, l1_t) {
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBcr<A> mv, l1_t) {
   return mv.template lpNorm<1>();
 }
 
-template <typename A> AX_FORCE_INLINE auto normalized(MBcr<A> mv) {
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE
+    math::mat<typename A::Scalar, A::RowsAtCompileTime, A::ColsAtCompileTime>
+    normalized(MBcr<A> mv) {
   return mv.normalized();
 }
 
-template <typename A> AX_FORCE_INLINE decltype(auto) normalize_(MBr<A> mv) {
-  mv.normalize();
-  return mv;
-}
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE void normalize_(MBr<A> mv) { mv.normalize(); }
 
 /****************************** outer ******************************/
-template <typename A, typename B>
-AX_FORCE_INLINE auto outer(MBcr<A> a, MBcr<B> b) {
+template <typename A, typename B> AX_CUDA_DEVICE AX_FORCE_INLINE
+    math::mat<typename A::Scalar, A::RowsAtCompileTime, B::RowsAtCompileTime>
+    outer(MBcr<A> a, MBcr<B> b) {
   return a * b.transpose();
 }
 
-template <typename A> AX_FORCE_INLINE auto outer(MBcr<A> a) {
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE
+    math::mat<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>
+    outer(MBcr<A> a) {
   return outer(a, a);
 }
 
 /****************************** determinant ******************************/
-template <typename A> AX_FORCE_INLINE auto det(MBcr<A> a) {
-  return a.determinant();
-}
+template <typename A> AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar det(MBcr<A> a) { return a.determinant(); }
 
 /****************************** inverse and solve
  * ******************************/
 // TODO: Add invertible test function.
 
 // WARN: This function may fail. Prefer to use decompositions.
-template <typename A> AX_FORCE_INLINE auto inv(MBcr<A> a) {
-  return a.inverse();
-}
+template <typename A> AX_FORCE_INLINE auto inv(MBcr<A> a) { return a.inverse(); }
 
 // WARN: This function may fail. Prefer to use decompositions.
-template <typename A, typename B>
-AX_FORCE_INLINE auto solve(MBcr<A> a, MBcr<B> b) {
+template <typename A, typename B> AX_FORCE_INLINE auto solve(MBcr<A> a, MBcr<B> b) {
   return a.solve(b);
 }
 
@@ -98,14 +96,13 @@ template <typename A> AX_FORCE_INLINE auto pinv(MBcr<A> a) {
   return a.completeOrthogonalDecomposition().pseudoInverse();
 }
 
-template <typename A, typename B>
-AX_FORCE_INLINE auto psolve(MBcr<A> a, MBcr<B> b) {
+template <typename A, typename B> AX_FORCE_INLINE auto psolve(MBcr<A> a, MBcr<B> b) {
   return a.completeOrthogonalDecomposition().solve(b);
 }
 
 /****************************** angle ******************************/
 template <typename A, typename B>
-AX_FORCE_INLINE auto angle(MBcr<A> a, MBcr<B> b) {
+AX_CUDA_DEVICE AX_FORCE_INLINE typename A::Scalar angle(MBcr<A> a, MBcr<B> b) {
   static_assert(A::ColsAtCompileTime == 1, "angle requires vectors(A)");
   static_assert(B::ColsAtCompileTime == 1, "angle requires vectors(B)");
 
@@ -114,6 +111,5 @@ AX_FORCE_INLINE auto angle(MBcr<A> a, MBcr<B> b) {
   auto cos_theta = dot(a, b) / (norm_a * norm_b);
   return acos(clamp(cos_theta, -1.0, 1.0));
 }
-
 
 }  // namespace ax::math

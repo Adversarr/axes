@@ -3,7 +3,7 @@
 #include "ax/utils/opt.hpp"
 #include "deform.hpp"
 #include "elasticity.hpp"
-#include "mesh_base.hpp"
+#include "trimesh.hpp"
 
 namespace ax::fem {
 
@@ -26,13 +26,12 @@ public:
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase(UPtr<MeshBase<dim>> mesh);
+  TimeStepperBase(UPtr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
   virtual ~TimeStepperBase() = default;
 
   // Accessors
-  MeshBase<dim> &GetMesh() { return *mesh_; }
-  Deformation<dim> &GetDeformation() { return *deform_; }
+  TriMesh<dim> &GetMesh() { return *mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
 
   // External force getter/setter
@@ -47,8 +46,12 @@ public:
   virtual Status Init(utils::Opt const &opt = {});
 
   // Overide the default elasticity.
-  template <template <idx> class ElasticModelTemplate> void SetupElasticity() {
-    elasticity_ = std::make_unique<ElasticityCompute<dim, ElasticModelTemplate>>(*deform_);
+  template <template <idx> class ElasticModelTemplate, 
+            template <idx, template <idx> class> class Compute = ElasticityCompute_CPU> void SetupElasticity() {
+    if (mesh_) {
+      elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(*mesh_);
+      elasticity_->RecomputeRestPose();
+    }
   }
 
   void SetLame(math::vec2r const &lame) { lame_ = lame; }
@@ -63,8 +66,7 @@ public:
 
 protected:
   // Common data
-  UPtr<MeshBase<dim>> mesh_;
-  UPtr<Deformation<dim>> deform_;
+  UPtr<TriMesh<dim>> mesh_;
   UPtr<ElasticityComputeBase<dim>> elasticity_;
   math::fieldr<dim> ext_accel_;
   math::fieldr<dim> velocity_;

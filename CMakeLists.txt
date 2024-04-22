@@ -42,6 +42,8 @@ if (AX_ENABLE_CUDA)
   endif()
   enable_language(CUDA)
   set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_ARCHITECTURES 86)
 endif()
 
 ##############################################################################################

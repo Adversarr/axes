@@ -1,5 +1,5 @@
 #pragma once
-#include "ax/fem/mesh_base.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/math/sparse.hpp"
 
 namespace ax::fem {
@@ -11,7 +11,7 @@ namespace ax::fem {
  */
 template <idx dim> class LaplaceMatrixCompute {
 public:
-  explicit LaplaceMatrixCompute(MeshBase<dim> const& mesh) : mesh_(&mesh) {}
+  explicit LaplaceMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
 
   /**
    * @brief Compute the Laplace matrix.
@@ -30,8 +30,7 @@ public:
   math::sp_matxxr operator()(math::field1r const& W);
 
 private:
-  MeshBase<dim> const* mesh_;
-  bool compute_lamped_;
+  TriMesh<dim> const& mesh_;
 };
 
 }

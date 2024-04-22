@@ -17,7 +17,7 @@
 
 namespace ax::math::details {
 
-inline f32 rsqrt_impl(f32 input) {
+AX_CUDA_DEVICE inline f32 rsqrt_impl(f32 input) {
 #ifdef AX_RSQRT32
   return AX_RSQRT32(input);
 #else
@@ -35,7 +35,7 @@ inline f32 rsqrt_impl(f32 input) {
 #endif
 }
 
-inline f64 rsqrt_impl(f64 input) {
+AX_CUDA_DEVICE inline f64 rsqrt_impl(f64 input) {
 #ifdef AX_RSQRT64
   return AX_RSQRT64(input);
 #else

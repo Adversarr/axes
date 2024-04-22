@@ -187,3 +187,18 @@
 #  define AX_TEMPLATE_EXPORT
 #  define AX_TEMPLATE_IMPORT
 #endif
+
+
+#if defined(AX_HAS_CUDA) && defined(__CUDACC__)
+#  define AX_CUDA_GLOBAL __global__
+#  define AX_CUDA_DEVICE __device__
+#  define AX_CUDA_HOST __host__
+#  define AX_CUDA_DEVICE_HOST __host__ __device__
+
+#else
+#  define AX_CUDA_GLOBAL
+#  define AX_CUDA_DEVICE
+#  define AX_CUDA_HOST
+#  define AX_CUDA_DEVICE_HOST
+
+#endif

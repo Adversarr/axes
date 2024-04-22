@@ -1,31 +1,32 @@
 #pragma once
-#include "mesh_base.hpp"
 #include "ax/math/sparse.hpp"
+#include "trimesh.hpp"
 
 namespace ax::fem {
 
 /**
  * @brief Compute the mass matrix for the given mesh.
- * 
- * @tparam dim 
+ *
+ * @tparam dim
  */
 template <idx dim> class MassMatrixCompute {
 public:
-  explicit MassMatrixCompute(MeshBase<dim> const& mesh) : mesh_(&mesh) {}
+  explicit MassMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
   /**
    * @brief Compute the mass matrix.
-   * 
+   *
    * @param density density field.
-   * @param is_density_on_element if true, the density is defined on elements, otherwise on vertices.
-   * @return math::sp_coeff_list 
+   * @param is_density_on_element if true, the density is defined on elements, otherwise on
+   * vertices.
+   * @return math::sp_coeff_list
    */
   math::sp_coeff_list operator()(math::field1r const& density);
 
   /**
    * @brief Compute the mass matrix.
-   * 
+   *
    * @param density Uniform density value.
-   * @return math::sp_coeff_list 
+   * @return math::sp_coeff_list
    */
   math::sp_coeff_list operator()(real density);
 
@@ -34,7 +35,7 @@ public:
   math::vecxr Lumped(real density);
 
 private:
-  MeshBase<dim> const* mesh_;
+  TriMesh<dim> const& mesh_;
   bool compute_lamped_;
 };
 

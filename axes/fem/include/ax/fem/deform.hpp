@@ -1,7 +1,7 @@
 #pragma once
 #include "elasticity/common.hpp"
 #include "ax/math/sparse.hpp"
-#include "mesh_base.hpp"
+#include "trimesh.hpp"
 
 namespace ax::fem {
 
@@ -14,14 +14,14 @@ public:
    * @param mesh Mesh to compute the deformation gradient for.
    * @param rest_pose Rest pose of the mesh.
    */
-  Deformation(MeshBase<dim> const& mesh, typename MeshBase<dim>::vertex_list_t const& rest_pose);
+  Deformation(TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose);
 
   /**
    * @brief Reset the rest pose of the mesh.
    *
    * @param rest_pose Rest pose of the mesh.
    */
-  void UpdateRestPose(typename MeshBase<dim>::vertex_list_t const& rest_pose);
+  void UpdateRestPose(typename TriMesh<dim>::vertex_list_t const& rest_pose);
 
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
@@ -36,7 +36,7 @@ public:
    * @param current current pose of vertices
    * @return List of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientList<dim> Forward(typename MeshBase<dim>::vertex_list_t const& current) const;
+  elasticity::DeformationGradientList<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.
@@ -57,7 +57,7 @@ public:
    * 
    * @return typename MeshBase<dim>::vertex_list_t 
    */
-  typename MeshBase<dim>::vertex_list_t StressToVertices(
+  typename TriMesh<dim>::vertex_list_t StressToVertices(
       List<elasticity::StressTensor<dim>> const& stress) const;
 
   /**
@@ -74,7 +74,7 @@ public:
    * @param stress 
    * @return math::field1r 
    */
-  MeshBase<dim> const& GetMesh() const { return mesh_; }
+  TriMesh<dim> const& GetMesh() const { return mesh_; }
 
   /**
    * @brief Get the rest volume list of the mesh.
@@ -93,9 +93,9 @@ public:
   }
 
 private:
-  MeshBase<dim> const& mesh_;
+  TriMesh<dim> const& mesh_;
   elasticity::DeformationGradientCache<dim> deformation_gradient_cache_;
-  typename MeshBase<dim>::vertex_list_t rest_pose_;
+  typename TriMesh<dim>::vertex_list_t rest_pose_;
   math::field1r rest_pose_volume_;
 };
 

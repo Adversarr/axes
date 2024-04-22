@@ -17,8 +17,11 @@ public:
   using hessian_t = typename base_t::hessian_t;
   using ElasticityBase<dim, StVK<dim>>::ElasticityBase;
 
-  real EnergyImpl(DeformationGradient<dim> const& F,
-                  const math::decomp::SvdResultImpl<dim, real>*) const {
+  AX_CUDA_DEVICE StVK() = default;
+  AX_CUDA_DEVICE StVK(real lambda, real mu) : base_t(lambda, mu) {}
+
+  AX_CUDA_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
+                  const math::decomp::SvdResultImpl<dim, real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -26,8 +29,8 @@ public:
   }
 
   // PStVK(F) = μFE + λ (tr E) F.
-  stress_t StressImpl(DeformationGradient<dim> const& F,
-                  math::decomp::SvdResultImpl<dim, real> const* ) const {
+  AX_CUDA_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
+                  math::decomp::SvdResultImpl<dim, real> const& ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = green_strain(F);
@@ -40,8 +43,8 @@ public:
    *
    * @return hessian_t
    */
-  hessian_t HessianImpl(DeformationGradient<dim> const& F,
-                        const math::decomp::SvdResultImpl<dim, real>*) const {
+  AX_CUDA_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
+                        const math::decomp::SvdResultImpl<dim, real>&) const {
     hessian_t H = math::make_zeros<hessian_t>();
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;

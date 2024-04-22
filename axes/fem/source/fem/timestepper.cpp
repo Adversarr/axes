@@ -1,22 +1,18 @@
-#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
-#include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/fem/timestepper.hpp"
+
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
-#include "ax/fem/timestepper.hpp"
 #include "ax/fem/mass_matrix.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/linsys/sparse/LDLT.hpp"
 namespace ax::fem {
 
-template<idx dim>
-TimeStepperBase<dim>::TimeStepperBase(UPtr<MeshBase<dim>> mesh)
-    : mesh_(std::move(mesh))
-{
-}
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase(UPtr<TriMesh<dim>> mesh)
+    : mesh_(std::move(mesh)) {}
 
-template <idx dim>
-Status TimeStepperBase<dim>::Init(utils::Opt const&) {
+template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {
   idx n_vert = mesh_->GetNumVertices();
-  deform_ = std::make_unique<Deformation<dim>>(*mesh_, mesh_->GetVertices());
-  elasticity_ = std::make_unique<ElasticityCompute<dim, elasticity::Linear>>(*deform_);
+  SetupElasticity<elasticity::Linear>();
 
   velocity_.setZero(dim, n_vert);
   // setup the external force. (Default is Gravity only.)
@@ -32,38 +28,30 @@ Status TimeStepperBase<dim>::Init(utils::Opt const&) {
   AX_RETURN_OK();
 }
 
-template<idx dim>
-void TimeStepperBase<dim>::SetDensity(real density) {
+template <idx dim> void TimeStepperBase<dim>::SetDensity(real density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_
-      = math::make_sparse_matrix(dim * mesh_->GetNumVertices(), dim * mesh_->GetNumVertices(),
-                                 mmc(density));
+  mass_matrix_ = math::make_sparse_matrix(dim * mesh_->GetNumVertices(),
+                                          dim * mesh_->GetNumVertices(), mmc(density));
 }
 
-template <idx dim>
-void TimeStepperBase<dim>::SetDensity(math::field1r const& density) {
+template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_
-      = math::make_sparse_matrix(dim * mesh_->GetNumVertices(), dim * mesh_->GetNumVertices(),
-                                 mmc(density));
+  mass_matrix_ = math::make_sparse_matrix(dim * mesh_->GetNumVertices(),
+                                          dim * mesh_->GetNumVertices(), mmc(density));
 }
 
-
-template<idx dim>
-Status TimeStepperBase<dim>::Step(real dt) {
+template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {
   auto lame = lame_;
   idx n_vert = mesh_->GetNumVertices();
   // Compute the external force. now we use -9.8 in y-direction.
   // Compute the internal force.
-  elasticity_->UpdateDeformationGradient(DeformationGradientUpdate::kStress);
   auto stress_on_elements = elasticity_->Stress(lame);
-  math::vecxr neg_force = deform_->StressToVertices(stress_on_elements).reshaped();
+  math::vecxr neg_force = elasticity_->GatherStress(stress_on_elements).reshaped();
   auto hessian_on_elements = elasticity_->Hessian(lame);
-  math::sp_coeff_list hessian_coo = deform_->HessianToVertices(hessian_on_elements);
-  math::sp_matxxr K = math::make_sparse_matrix(dim * n_vert, dim * n_vert, hessian_coo);
+  math::sp_matxxr K = elasticity_->GatherHessian(hessian_on_elements);
 
   // Solve the new (velocity * dt) = (x' - x)
-  const auto & M = mass_matrix_;
+  const auto& M = mass_matrix_;
   math::vecxr V = velocity_.reshaped();
   math::vecxr X = mesh_->GetVertices().reshaped();
   math::vecxr Y = dt * V + dt * dt * ext_accel_.reshaped();
@@ -76,7 +64,7 @@ Status TimeStepperBase<dim>::Step(real dt) {
   mesh_->FilterMatrix(linsys.A_);
 
   auto dx_flat = solver.SolveProblem(linsys);
-  if (! dx_flat.ok()) {
+  if (!dx_flat.ok()) {
     return dx_flat.status();
   }
   math::fieldr<dim> x_new = (X + dx_flat->solution_).reshaped(dim, n_vert);
@@ -89,10 +77,9 @@ Status TimeStepperBase<dim>::Step(real dt) {
   AX_RETURN_OK();
 }
 
-template <idx dim>
-Status TimeStepperBase<dim>::Precompute() {AX_RETURN_OK();}
+template <idx dim> Status TimeStepperBase<dim>::Precompute() { AX_RETURN_OK(); }
 
 template class TimeStepperBase<2>;
 template class TimeStepperBase<3>;
 
-}
+}  // namespace ax::fem

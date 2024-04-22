@@ -62,7 +62,7 @@ private:
    * @brief Finds the edge to collapse based on the current strategy.
    * @return A pointer to the HalfedgeEdge_t object representing the edge to collapse.
    */
-  HalfedgeEdge_t* FindEdgeToCollapse();
+  HalfedgeEdge* FindEdgeToCollapse();
 };
 
 }

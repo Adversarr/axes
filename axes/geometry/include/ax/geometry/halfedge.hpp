@@ -8,60 +8,60 @@
 #include "common.hpp"
 namespace ax::geo {
 
-struct HalfedgeFace_t;
-struct HalfedgeEdge_t;
-struct HalfedgeVertex_t;
+struct HalfedgeFace;
+struct HalfedgeEdge;
+struct HalfedgeVertex;
 
 constexpr idx kHalfedgeInvalidIdx = -1;
 
-struct HalfedgeFace_t {
-  HalfedgeEdge_t* halfedge_entry_;         ///< Any halfedge on the face
+struct HalfedgeFace {
+  HalfedgeEdge* halfedge_entry_;         ///< Any halfedge on the face
   idx original_id_ = kHalfedgeInvalidIdx;  ///< Original id from the input mesh
 };
 
-struct HalfedgeVertex_t {
+struct HalfedgeVertex {
   math::vec3r position_;                      ///< Position of the vertex
   idx original_id_ = kHalfedgeInvalidIdx;     ///< Original id from the input mesh
-  HalfedgeEdge_t* halfedge_entry_ = nullptr;  ///< Any halfedge on the vertex
+  HalfedgeEdge* halfedge_entry_ = nullptr;  ///< Any halfedge on the vertex
 
-  HalfedgeVertex_t() = default;
+  HalfedgeVertex() = default;
 
-  explicit HalfedgeVertex_t(math::vec3r const& position, idx original_id = kHalfedgeInvalidIdx)
+  explicit HalfedgeVertex(math::vec3r const& position, idx original_id = kHalfedgeInvalidIdx)
       : position_(position), original_id_(original_id) {}
 };
 
-struct HalfedgeEdge_t {
-  HalfedgeEdge_t* next_ = nullptr;
-  HalfedgeEdge_t* prev_ = nullptr;
-  HalfedgeVertex_t* vertex_ = nullptr;
-  HalfedgeFace_t* face_ = nullptr;
-  HalfedgeEdge_t* pair_ = nullptr;
+struct HalfedgeEdge {
+  HalfedgeEdge* next_ = nullptr;
+  HalfedgeEdge* prev_ = nullptr;
+  HalfedgeVertex* vertex_ = nullptr;
+  HalfedgeFace* face_ = nullptr;
+  HalfedgeEdge* pair_ = nullptr;
 
   bool IsBoundary() const { return face_ == nullptr; }
 
   math::vec3r Normal() const;
 
-  AX_FORCE_INLINE HalfedgeVertex_t* Tail() const { return prev_->vertex_; }
+  AX_FORCE_INLINE HalfedgeVertex* Tail() const { return prev_->vertex_; }
 
-  AX_FORCE_INLINE HalfedgeVertex_t* Head() const { return vertex_; }
+  AX_FORCE_INLINE HalfedgeVertex* Head() const { return vertex_; }
 
-  AX_FORCE_INLINE std::pair<HalfedgeVertex_t*, HalfedgeVertex_t*> HeadAndTail() const {
+  AX_FORCE_INLINE std::pair<HalfedgeVertex*, HalfedgeVertex*> HeadAndTail() const {
     return std::make_pair(Head(), Tail());
   }
 };
 
 namespace details {
 struct HalfedgeEdgeOnFaceIterator {
-  explicit HalfedgeEdgeOnFaceIterator(HalfedgeFace_t* face)
+  explicit HalfedgeEdgeOnFaceIterator(HalfedgeFace* face)
       : face_(face), current_(face->halfedge_entry_) {}
 
   using iterator_category = std::forward_iterator_tag;
-  using value_type = HalfedgeEdge_t;
+  using value_type = HalfedgeEdge;
   using difference_type = idx;
-  using pointer = HalfedgeEdge_t*;
-  using reference = HalfedgeEdge_t&;
-  using const_reference = HalfedgeEdge_t const&;
-  using const_pointer = HalfedgeEdge_t const*;
+  using pointer = HalfedgeEdge*;
+  using reference = HalfedgeEdge&;
+  using const_reference = HalfedgeEdge const&;
+  using const_pointer = HalfedgeEdge const*;
 
   AX_FORCE_INLINE HalfedgeEdgeOnFaceIterator& operator++() {
     current_ = current_->next_;
@@ -75,21 +75,21 @@ struct HalfedgeEdgeOnFaceIterator {
 
   AX_FORCE_INLINE pointer operator->() const { return current_; }
 
-  HalfedgeFace_t* face_;
-  HalfedgeEdge_t* current_;
+  HalfedgeFace* face_;
+  HalfedgeEdge* current_;
 };
 
 struct HalfedgeEdgeOnVertexIterator {
-  explicit HalfedgeEdgeOnVertexIterator(HalfedgeVertex_t* vertex)
+  explicit HalfedgeEdgeOnVertexIterator(HalfedgeVertex* vertex)
       : vertex_(vertex), current_(vertex->halfedge_entry_) {}
 
   using iterator_category = std::forward_iterator_tag;
-  using value_type = HalfedgeEdge_t;
+  using value_type = HalfedgeEdge;
   using difference_type = idx;
-  using pointer = HalfedgeEdge_t*;
-  using reference = HalfedgeEdge_t&;
-  using const_reference = HalfedgeEdge_t const&;
-  using const_pointer = HalfedgeEdge_t const*;
+  using pointer = HalfedgeEdge*;
+  using reference = HalfedgeEdge&;
+  using const_reference = HalfedgeEdge const&;
+  using const_pointer = HalfedgeEdge const*;
 
   AX_FORCE_INLINE HalfedgeEdgeOnVertexIterator& operator++() {
     current_ = current_->pair_->next_;
@@ -111,14 +111,14 @@ struct HalfedgeEdgeOnVertexIterator {
     return current_ != other.current_;
   }
 
-  HalfedgeVertex_t* vertex_;
-  HalfedgeEdge_t* current_;
+  HalfedgeVertex* vertex_;
+  HalfedgeEdge* current_;
 };
 }  // namespace details
 
 struct HalfedgeVertexHandle {
-  HalfedgeVertex_t* vertex_;
-  explicit HalfedgeVertexHandle(HalfedgeVertex_t* vertex) : vertex_(vertex) {}
+  HalfedgeVertex* vertex_;
+  explicit HalfedgeVertexHandle(HalfedgeVertex* vertex) : vertex_(vertex) {}
 
   AX_FORCE_INLINE details::HalfedgeEdgeOnVertexIterator begin() const {
     return details::HalfedgeEdgeOnVertexIterator(vertex_);
@@ -130,14 +130,14 @@ struct HalfedgeVertexHandle {
 
   AX_FORCE_INLINE explicit operator bool() const { return vertex_ != nullptr; }
 
-  AX_FORCE_INLINE HalfedgeVertex_t* operator->() const { return vertex_; }
+  AX_FORCE_INLINE HalfedgeVertex* operator->() const { return vertex_; }
 
-  AX_FORCE_INLINE HalfedgeVertex_t& operator*() const { return *vertex_; }
+  AX_FORCE_INLINE HalfedgeVertex& operator*() const { return *vertex_; }
 };
 
 struct HalfedgeFaceHandle {
-  HalfedgeFace_t* face_;
-  explicit HalfedgeFaceHandle(HalfedgeFace_t* face) : face_(face) {}
+  HalfedgeFace* face_;
+  explicit HalfedgeFaceHandle(HalfedgeFace* face) : face_(face) {}
 
   AX_FORCE_INLINE details::HalfedgeEdgeOnFaceIterator begin() const {
     return details::HalfedgeEdgeOnFaceIterator(face_);
@@ -149,9 +149,9 @@ struct HalfedgeFaceHandle {
 
   AX_FORCE_INLINE explicit operator bool() const { return face_ != nullptr; }
 
-  AX_FORCE_INLINE HalfedgeFace_t* operator->() const { return face_; }
+  AX_FORCE_INLINE HalfedgeFace* operator->() const { return face_; }
 
-  AX_FORCE_INLINE HalfedgeFace_t& operator*() const { return *face_; }
+  AX_FORCE_INLINE HalfedgeFace& operator*() const { return *face_; }
 };
 
 class HalfedgeMesh {
@@ -169,19 +169,19 @@ public:
   AX_NODISCARD HalfedgeVertexHandle GetVertex(idx idx) const;
 
   /************************* SECT: Edge Operation *************************/
-  void CollapseEdge(HalfedgeEdge_t* edge, math::vec3r const& target_position);
-  AX_NODISCARD bool CheckCollapse(HalfedgeEdge_t* edge);
-  AX_NODISCARD bool CheckFlip(HalfedgeEdge_t* edge);
-  void FlipEdge(HalfedgeEdge_t* edge);
+  void CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_position);
+  AX_NODISCARD bool CheckCollapse(HalfedgeEdge* edge);
+  AX_NODISCARD bool CheckFlip(HalfedgeEdge* edge);
+  void FlipEdge(HalfedgeEdge* edge);
 
-  HalfedgeEdge_t* TryGetEdgeBetween(HalfedgeVertex_t* v1, HalfedgeVertex_t* v2);
+  HalfedgeEdge* TryGetEdgeBetween(HalfedgeVertex* v1, HalfedgeVertex* v2);
 
   // Visitors
-  void ForeachEdgeAroundVertex(HalfedgeVertex_t* vert,
-                               std::function<void(HalfedgeEdge_t*)> const& fn);
-  void ForeachEdgeInFace(HalfedgeFace_t* face, std::function<void(HalfedgeEdge_t*)> const& fn);
-  void ForeachEdge(std::function<void(HalfedgeEdge_t*)> const& fn);
-  void ForeachVertex(std::function<void(HalfedgeVertex_t*)> const& fn);
+  void ForeachEdgeAroundVertex(HalfedgeVertex* vert,
+                               std::function<void(HalfedgeEdge*)> const& fn);
+  void ForeachEdgeInFace(HalfedgeFace* face, std::function<void(HalfedgeEdge*)> const& fn);
+  void ForeachEdge(std::function<void(HalfedgeEdge*)> const& fn);
+  void ForeachVertex(std::function<void(HalfedgeVertex*)> const& fn);
 
 
   /************************* SECT: Metadata Retrival *************************/
@@ -191,15 +191,15 @@ public:
 
 
 private:
-  void RemoveVertexInternal(HalfedgeVertex_t* vert);
-  void RemoveEdgeInternal(HalfedgeEdge_t* edge);
-  void RemoveFaceInternal(HalfedgeFace_t* face);
-  List<UPtr<HalfedgeVertex_t>> vertices_;
-  List<UPtr<HalfedgeEdge_t>> edges_;
-  List<UPtr<HalfedgeFace_t>> faces_;
+  void RemoveVertexInternal(HalfedgeVertex* vert);
+  void RemoveEdgeInternal(HalfedgeEdge* edge);
+  void RemoveFaceInternal(HalfedgeFace* face);
+  List<UPtr<HalfedgeVertex>> vertices_;
+  List<UPtr<HalfedgeEdge>> edges_;
+  List<UPtr<HalfedgeFace>> faces_;
 };
 
-math::vec3r HalfedgeEdge_t::Normal() const {
+inline math::vec3r HalfedgeEdge::Normal() const {
   if (face_ == nullptr) {
     if (pair_->face_ == nullptr) {
       return math::vec3r::Zero();

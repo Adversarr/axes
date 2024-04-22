@@ -1,8 +1,11 @@
 #include "solver.hpp"
-#include "ax/core/echo.hpp"
-#include "ax/geometry/halfedge.hpp"
+
 #include <queue>
 #include <set>
+
+#include "ax/core/echo.hpp"
+#include "ax/geometry/halfedge.hpp"
+#include "ax/math/approx.hpp"
 
 Dijkstra::Dijkstra(geo::SurfaceMesh mesh) : mesh_(std::move(mesh)) {
   // Initialize the edge flipper
@@ -24,9 +27,7 @@ Dijkstra::Dijkstra(geo::SurfaceMesh mesh) : mesh_(std::move(mesh)) {
 
 struct LESS_FOR_PATH {
   LESS_FOR_PATH(math::field1r& distances) : distances_(distances) {}
-  bool operator()(idx l, idx r) const {
-    return distances_(l) > distances_(r);
-  }
+  bool operator()(idx l, idx r) const { return distances_(l) > distances_(r); }
   math::field1r& distances_;
 };
 
@@ -81,12 +82,10 @@ Path Dijkstra::ShortestPath(idx start, idx end) {
 
 struct Widge {
   bool valid;
-  idx center_vertex;
-  std::set<idx> associated_vertices;
-  std::vector<idx> associated_faces;
-  Path original_path;
+  geo::HalfedgeVertex* center;
+  std::vector<geo::HalfedgeVertex*> associated_vertices;
+  std::vector<geo::HalfedgeFace*> associated_faces;
   geo::HalfedgeMesh* mesh;
-  Widge() : valid(false), center_vertex(0) {}
 };
 
 // 1. unfold. mesh -> path -> va -> vb -> vc -> [Widge]
@@ -99,29 +98,106 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, idx va_in_path, idx vb_in_path, id
   idx va = p0[va_in_path].id_;
   idx vb = p0[vb_in_path].id_;
   idx vc = p0[vc_in_path].id_;
-  auto A = mesh.GetVertex(va); AX_CHECK(A);
-  auto B = mesh.GetVertex(vb); AX_CHECK(B);
-  auto C = mesh.GetVertex(vc); AX_CHECK(C);
-  auto edge_ab = mesh.TryGetEdgeBetween(A.vertex_, B.vertex_); AX_CHECK(edge_ab);
-  auto edge_bc = mesh.TryGetEdgeBetween(B.vertex_, C.vertex_); AX_CHECK(edge_bc);
-  // 1. First you have to find the correct faces between them. and find the correct 
+  if (va == vc) {
+    w.valid = false;
+    return w;
+  }
+  auto A = mesh.GetVertex(va);
+  AX_CHECK(A);
+  auto B = mesh.GetVertex(vb);
+  AX_CHECK(B);
+  auto C = mesh.GetVertex(vc);
+  AX_CHECK(C);
+  auto edge_ab = mesh.TryGetEdgeBetween(A.vertex_, B.vertex_);
+  AX_CHECK(edge_ab);
+  auto edge_bc = mesh.TryGetEdgeBetween(B.vertex_, C.vertex_);
+  AX_CHECK(edge_bc);
+  w.center = B.vertex_;
+  // 1. First you have to find the correct faces between them. and find the correct
   //    vertices and faces around them.
   // Suppose you have two vertices fixed, i.e. A B, we wish to find the correct face
   // between them. We can do this by checking the all the faces around A and B.
 
-  math::vec2r ab{(B->position_ - A->position_).norm(), 0};
-  auto rel_ab = [&] (math::vec3r const& p) {
-    math::vec2r pa = p - A->position_;
-    real x = pa.dot(B->position_ - A->position_) / ab(0);
-    real y = sqrt(pa.squaredNorm() - x * x);
-    return math::vec2r{x, y};
-  };
-
-  std::vector<math::vec2r> face_vertices;
-  auto it = A.begin();
-  for (; it != A.end(); ++it) {
-    auto edge = *it;
+  std::vector<geo::HalfedgeVertex*> abc_widge_vertices{A.vertex_};
+  std::vector<geo::HalfedgeFace*> faces;
+  real sum_angles = 0;
+  auto e = edge_ab;
+  bool correct = true;
+  do {
     // Determine the position.
+    auto from = e->Tail();
+    auto oppo = e->next_->Head();
+    math::vec3r e1 = from->position_ - B->position_;
+    math::vec3r e2 = oppo->position_ - B->position_;
+    real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
+    sum_angles += angle12;
+    abc_widge_vertices.push_back(oppo);
+    faces.push_back(e->face_);
+    if (sum_angles >= math::pi<>) {
+      // The correct widge lies on another side.
+      correct = false;
+      break;
+    }
+    if (oppo == C.vertex_) {
+      break;
+    }
+    e = e->next_->pair_;
+  } while (e != edge_ab);
+
+  if (!correct) {
+    // Restart but goes to another side.
+    e = edge_ab;
+    abc_widge_vertices = {A.vertex_};
+    sum_angles = 0;
+    correct = true;
+    faces.clear();
+    do {
+      auto from = e->Tail();
+      auto oppo = e->next_->Head();
+      math::vec3r e1 = from->position_ - B->position_;
+      math::vec3r e2 = oppo->position_ - B->position_;
+      real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
+      sum_angles += angle12;
+      abc_widge_vertices.push_back(oppo);
+      faces.push_back(e->pair_->face_);
+      if (sum_angles >= math::pi<>) {
+        // The correct widge lies on another side.
+        correct = false;
+        break;
+      }
+
+      if (oppo == C.vertex_) {
+        break;
+      }
+      e = e->pair_->prev_;
+    } while (e != edge_ab);
+  }
+
+  if (!correct) {
+    // Oops, both side is not valid
+    w.valid = false;
+    return w;
+  }
+  w.associated_faces = std::move(faces);
+  w.associated_vertices = std::move(abc_widge_vertices);
+  return w;
+}
+
+void flip_out(geo::HalfedgeMesh& m, Widge const& w) {
+  // TODO: HOW???????
+  bool changed = true;
+  if (w.associated_faces.size() <= 1) {
+    return;
+  }
+  while (changed) {
+    changed = false;
+    // find the first beta_i < pi.
+    math::field2r angles(2, w.associated_faces.size());
+    geo::HalfedgeVertex const *L = w.associated_vertices[0], *R = w.associated_vertices[1],
+                              *C = w.center;
+
+    for (size_t i = 1; i < w.associated_vertices.size(); ++i) {
+    }
   }
 }
 
@@ -129,7 +205,7 @@ Path make_shortest_geodesic(geo::SurfaceMesh mesh, Path p0) {
   // By flip edge.
   // Initialize the edge flipper
   geo::HalfedgeMesh he_mesh(mesh.vertices_, mesh.indices_);
-  Path sol = p0; //< Current solution
+  Path sol = p0;  //< Current solution
   if (sol.size() <= 2) {
     return sol;
   }

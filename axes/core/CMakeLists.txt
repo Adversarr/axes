@@ -7,6 +7,11 @@ find_package(Blosc REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(OpenVDB REQUIRED)
 
+if (AX_ENABLE_CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  message(STATUS "==> CUDAToolkit: ${CUDAToolkit_DIR}")
+endif()
+
 message(STATUS "==> Eigen3: ${Eigen3_DIR}")
 message(STATUS "==> absl: ${absl_DIR}")
 message(STATUS "==> EnTT: ${EnTT_DIR}")
@@ -57,6 +62,11 @@ target_link_libraries(axes
     Blosc::blosc
     ZLIB::ZLIB
 )
+
+if (AX_ENABLE_CUDA)
+  target_link_libraries(axes PUBLIC CUDA::cudart)
+  target_compile_definitions(axes PUBLIC "AX_HAS_CUDA")
+endif()
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)

@@ -28,10 +28,21 @@ option(AX_BUILD_SHARED "Build shared library" OFF)
 option(AX_NO_EXCEPT "Enable noexcept, may lead to compile error for igl." OFF)
 option(AX_ENABLE_TIME_TRACE "Enable time trace." OFF)
 option(AX_ENABLE_AVX "Enable AVX." OFF)
+option(AX_ENABLE_CUDA "Enable cuda." ON)
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 
 project(axes)
 include(cmake/utils.cmake)
+
+if (AX_ENABLE_CUDA)
+  include(CheckLanguage)
+  check_language(CUDA)
+  if (NOT CMAKE_CUDA_COMPILER)
+    message(FATAL_ERROR "CUDA is enabled but no CUDA compiler found.")
+  endif()
+  enable_language(CUDA)
+  set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+endif()
 
 ##############################################################################################
 # Setup lookup paths for all the dependencies.

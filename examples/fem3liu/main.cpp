@@ -275,11 +275,17 @@ int main(int argc, char** argv) {
 
   ts->SetDensity(1e3);
   AX_CHECK_OK(ts->Init());
+
+#ifdef AX_HAS_CUDA
   if (auto device = absl::GetFlag(FLAGS_device); device == "cpu") {
     ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
   } else if (device == "gpu") {
     ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
   }
+#else
+  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+#endif
+
   if (scene == SCENE_TWIST) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
   }

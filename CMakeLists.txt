@@ -34,6 +34,13 @@ set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 project(axes)
 include(cmake/utils.cmake)
 
+if (APPLE)
+  if(AX_ENABLE_CUDA)
+    message(STATUS "CUDA is not supported on macOS.")
+    set(AX_ENABLE_CUDA OFF)
+  endif()
+endif()
+
 if (AX_ENABLE_CUDA)
   include(CheckLanguage)
   check_language(CUDA)

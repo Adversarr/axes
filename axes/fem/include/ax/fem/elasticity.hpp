@@ -2,8 +2,9 @@
 #include <tbb/partitioner.h>
 
 #include "ax/math/decomp/svd/common.hpp"
-#include "deform.hpp"
+#include "ax/math/sparse.hpp"
 #include "elasticity/common.hpp"
+#include "trimesh.hpp"
 
 namespace ax::fem {
 
@@ -23,7 +24,9 @@ public:
   virtual math::field1r GatherEnergy(math::field1r const& element_values) const;
   virtual math::fieldr<dim> GatherStress(List<elasticity::StressTensor<dim>> const& stress) const;
   virtual math::sp_matxxr GatherHessian(List<elasticity::HessianTensor<dim>> const& hessian) const;
-  virtual bool UpdateDeformationGradient(math::fieldr<dim> const & pose, DeformationGradientUpdate update_type) = 0;
+  virtual bool UpdateDeformationGradient(math::fieldr<dim> const& pose,
+                                         DeformationGradientUpdate update_type)
+      = 0;
 
   /**
    * @brief Compute the energy of all elements
@@ -70,7 +73,8 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
 public:
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  bool UpdateDeformationGradient(math::fieldr<dim> const & pose, DeformationGradientUpdate update_type);
+  bool UpdateDeformationGradient(math::fieldr<dim> const& pose,
+                                 DeformationGradientUpdate update_type);
   void RecomputeRestPose();
   math::field1r Energy(math::field2r const& lame);
   math::field1r Energy(math::vec2r const& lame);

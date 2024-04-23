@@ -2,13 +2,14 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
+#include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/geometry/io.hpp"
@@ -58,9 +59,10 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().UpdateDeformationGradient();
+  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(), 
+      fem::DeformationGradientUpdate::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetDeformation().EnergyToVertices(e_per_elem);
+  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
@@ -112,14 +114,19 @@ int main(int argc, char** argv) {
   scene = absl::GetFlag(FLAGS_scene);
   lame = fem::elasticity::compute_lame(1e7, 0.45);
   nx = absl::GetFlag(FLAGS_N);
-  std::string tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy"),
-              vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
-  auto tet = math::read_npy_v10_idx(tet_file);
-  auto vet = math::read_npy_v10_real(vet_file);
-  input_mesh.indices_ = tet->transpose();
-  input_mesh.vertices_ = vet->transpose();
 
-  ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::P1Mesh<3>>());
+  auto cube = geo::tet_cube(0.5, nx * 10, nx, nx);
+  input_mesh.vertices_ = std::move(cube.vertices_);
+  input_mesh.indices_ = std::move(cube.indices_);
+  input_mesh.vertices_.row(0) *= 10;
+  // std::string tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy"),
+  //             vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+  // auto tet = math::read_npy_v10_idx(tet_file);
+  // auto vet = math::read_npy_v10_real(vet_file);
+  // input_mesh.indices_ = tet->transpose();
+  // input_mesh.vertices_ = vet->transpose();
+
+  ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
@@ -134,7 +141,7 @@ int main(int argc, char** argv) {
     }
   }
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::NeoHookeanBW>();
+  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
   ts->SetDensity(1e3);
   out = create_entity();
   add_component<gl::Mesh>(out);
@@ -142,6 +149,7 @@ int main(int argc, char** argv) {
   update_rendering();
   connect<gl::UiRenderEvent, &ui_callback>();
   AX_CHECK_OK(gl::enter_main_loop());
+  ts.reset();
   clean_up();
   return 0;
 }

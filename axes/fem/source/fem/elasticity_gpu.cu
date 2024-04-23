@@ -1,4 +1,9 @@
+#ifndef AX_HAS_CUDA
+#  error "This file should only be included in CUDA mode"
+#endif
+
 #include <cuda_runtime_api.h>
+#include <cuda.h>
 #include <cuda.h>
 #include <thrust/copy.h>
 #include <thrust/device_vector.h>
@@ -20,25 +25,28 @@ template <idx dim> using SvdR = math::decomp::SvdResultImpl<dim, real>;
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 struct ElasticityCompute_GPU<dim, ElasticModelTemplate>::Impl {
-  thrust::device_vector<idx> seq_;
   thrust::device_vector<math::veci<dim + 1>> elements_;
   thrust::device_vector<math::matr<dim, dim>> deformation_gradient_;
   thrust::device_vector<math::matr<dim, dim>> rinv_gpu_;
   thrust::device_vector<real> rest_volume_gpu_;
   thrust::device_vector<SvdR<dim>> svd_results_;
+  thrust::device_vector<math::vecr<dim>> pose_gpu_;
 };
 
+#define GPU_GRAIN 128
+
 template <idx dim>
-__global__ void ComputeDeformationGradient(math::veci<dim + 1> const* elements,
+__global__ void compute_deformation_gradient(math::veci<dim + 1> const* elements,
                                            math::vecr<dim> const* pose,
                                            math::matr<dim, dim>* deformation_gradient,
                                            math::matr<dim, dim>* rinv, idx n_elem) {
   idx eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
 
-  math::veci<dim + 1> elem = elements[eid];
-  math::vecr<dim> x0 = pose[elem[0]];
+  const math::veci<dim + 1> elem = elements[eid];
+  const math::vecr<dim> x0 = pose[elem[0]];
   math::matr<dim, dim> Dm;
+#pragma unroll
   for (idx i = 0; i < dim; ++i) {
     Dm.col(i) = pose[elem[i + 1]] - x0;
   }
@@ -47,13 +55,13 @@ __global__ void ComputeDeformationGradient(math::veci<dim + 1> const* elements,
 }
 
 template <idx dim>
-__global__ void ComputeRestPose(math::veci<dim + 1> const* elements, math::vecr<dim> const* pose,
+__global__ void compute_rest_pose(math::veci<dim + 1> const* elements, math::vecr<dim> const* pose,
                                 math::matr<dim, dim>* rinv, real* rest_volume, idx n_elem) {
   idx eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
 
-  math::veci<dim + 1> elem = elements[eid];
-  math::vecr<dim> x0 = pose[elem[0]];
+  const math::veci<dim + 1> elem = elements[eid];
+  const math::vecr<dim> x0 = pose[elem[0]];
   math::matr<dim, dim> Dm;
 #pragma unroll
   for (idx i = 0; i < dim; ++i) {
@@ -61,7 +69,7 @@ __global__ void ComputeRestPose(math::veci<dim + 1> const* elements, math::vecr<
   }
 
   rinv[eid] = Dm.inverse();
-  real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
+  const real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
   rest_volume[eid] = coef / abs(math::det(rinv[eid]));
 }
 
@@ -83,25 +91,21 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::~ElasticityCompute_GPU() {
 template <idx dim, template <idx> class ElasticModelTemplate>
 bool ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateDeformationGradient(
     math::fieldr<dim> const& pose, DeformationGradientUpdate) {
-  thrust::host_vector<math::vecr<dim>> pose_cpu(pose.cols());
-  for (idx i = 0; i < pose.cols(); ++i) {
-    pose_cpu[i] = pose.col(i);
-  }
-  thrust::device_vector<math::vecr<dim>> pose_gpu(pose_cpu);
+  auto error = cudaMemcpy(thrust::raw_pointer_cast(impl_->pose_gpu_.data()), pose.data(), pose.size() * sizeof(real), 
+      cudaMemcpyHostToDevice);
+  AX_CHECK(error == cudaSuccess) << "Failed to copy pose to GPU." << cudaGetErrorString(error);
   idx n_elem = this->mesh_.GetNumElements();
-  ComputeDeformationGradient<dim><<<(n_elem + 127) / 128, 128>>>(
-      thrust::raw_pointer_cast(impl_->elements_.data()), thrust::raw_pointer_cast(pose_gpu.data()),
+  compute_deformation_gradient<dim><<<(n_elem + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+      thrust::raw_pointer_cast(impl_->elements_.data()),
+      thrust::raw_pointer_cast(impl_->pose_gpu_.data()),
       thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()), n_elem);
-  cudaDeviceSynchronize();
   return true;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   idx n_elem = this->mesh_.GetNumElements();
-  impl_->seq_.resize(n_elem);
-  thrust::sequence(impl_->seq_.begin(), impl_->seq_.end());
 
   // Elements
   impl_->elements_.resize(n_elem);
@@ -123,9 +127,10 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   for (idx i = 0; i < pose.cols(); ++i) {
     pose_cpu[i] = pose.col(i);
   }
-  thrust::device_vector<math::vecr<dim>> pose_gpu(pose_cpu);
-  ComputeRestPose<dim><<<(n_elem + 127) / 128, 128>>>(
-      thrust::raw_pointer_cast(impl_->elements_.data()), thrust::raw_pointer_cast(pose_gpu.data()),
+  impl_->pose_gpu_ = pose_cpu;
+  compute_rest_pose<dim><<<(n_elem + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+      thrust::raw_pointer_cast(impl_->elements_.data()),
+      thrust::raw_pointer_cast(impl_->pose_gpu_.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
       thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()), n_elem);
 
@@ -135,10 +140,36 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   rinv_cpu.resize(n_elem);
   thrust::copy(impl_->rest_volume_gpu_.begin(), impl_->rest_volume_gpu_.end(), rv_cpu.data());
   thrust::copy(impl_->rinv_gpu_.begin(), impl_->rinv_gpu_.end(), rinv_cpu.data());
-  auto err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    AX_LOG(ERROR) << "Error: " << cudaGetErrorString(err);
-  }
+}
+
+/*************************
+ * SECT: Energy
+ *************************/
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+__global__ void compute_energy_impl(math::matr<dim, dim>* deformation_gradient,
+                                    real* rest_volume,
+                                    SvdR<dim>* svd_results,
+                                    real* energy,
+                                    math::vec2r *lame,
+                                    idx n_elem) {
+  idx eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+  energy[eid] = ElasticModelTemplate<dim>(lame[eid][0], lame[eid][1])
+                .Energy(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+__global__ void compute_energy_impl(math::matr<dim, dim>* deformation_gradient,
+                                    real* rest_volume,
+                                    SvdR<dim>* svd_results,
+                                    real* energy,
+                                    real lambda, real mu,
+                                    idx n_elem) {
+  idx eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+  energy[eid] = ElasticModelTemplate<dim>(lambda, mu)
+                .Energy(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -157,13 +188,15 @@ math::field1r ElasticityCompute_GPU<dim, ElasticModelTemplate>::Energy(math::vec
                                                   SvdR<dim> const& svd) {
         return ElasticModel(lame[0], lame[1]).Energy(F, svd) * rest_volume;
       }));
-
+  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + 127) / 128, 128>>>(
+  //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+  //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+  //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
+  //     thrust::raw_pointer_cast(energy_device.data()),
+  //     lame[0], lame[1],
+  //     impl_->deformation_gradient_.size());
   math::field1r energy(impl_->deformation_gradient_.size());
   thrust::copy(energy_device.begin(), energy_device.end(), energy.data());
-  auto err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    AX_LOG(ERROR) << "Error: " << cudaGetErrorString(err);
-  }
   return energy;
 };
 
@@ -194,14 +227,48 @@ math::field1r ElasticityCompute_GPU<dim, ElasticModelTemplate>::Energy(math::fie
         return ElasticModel(lame[0], lame[1]).Energy(F, svd) * rest_volume;
       }));
 
+  // NOTE: Naive CUDA:
+  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + 127) / 128, 128>>>(
+  //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+  //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+  //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
+  //     thrust::raw_pointer_cast(energy_device.data()),
+  //     thrust::raw_pointer_cast(lame_device.data()),
+  //     impl_->deformation_gradient_.size());
   math::field1r energy(impl_->deformation_gradient_.size());
-  thrust::copy(energy_device.begin(), energy_device.end(), energy.data());
-  auto err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    AX_LOG(ERROR) << "Error: " << cudaGetErrorString(err);
-  }
+  cudaMemcpy(energy.data(), thrust::raw_pointer_cast(energy_device.data()),
+             energy.size() * sizeof(real), cudaMemcpyDeviceToHost);
   return energy;
 };
+
+/*************************
+ * SECT: Stress
+ *************************/
+template <idx dim, template <idx> class ElasticModelTemplate>
+__host__ void compute_stress_impl(math::matr<dim, dim>* deformation_gradient,
+                                  real* rest_volume,
+                                  SvdR<dim>* svd_results,
+                                  elasticity::StressTensor<dim>* stress,
+                                  real lambda, real mu,
+                                  idx n_elem) {
+  size_t eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+
+  stress[eid] = ElasticModelTemplate<dim>(lambda, mu)
+                .Stress(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+__host__ void compute_stress_impl(math::matr<dim, dim>* deformation_gradient,
+                                  real* rest_volume,
+                                  SvdR<dim>* svd_results,
+                                  math::vec2r* lame,
+                                  elasticity::StressTensor<dim>* stress,
+                                  idx n_elem) {
+  size_t eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+  stress[eid] = ElasticModelTemplate<dim>(lame[eid][0], lame[eid][1]).Stress(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
+}
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::StressTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemplate>::Stress(
@@ -221,12 +288,16 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTempl
         return ElasticModel(lame[0], lame[1]).Stress(F, svd) * rest_volume;
       }));
 
+  // compute_stress_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + 127) / 128, 128>>>(
+  //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+  //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+  //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
+  //     thrust::raw_pointer_cast(stress_device.data()),
+  //     lame[0], lame[1],
+  //     impl_->deformation_gradient_.size());
   List<elasticity::StressTensor<dim>> stress(impl_->deformation_gradient_.size());
+
   thrust::copy(stress_device.begin(), stress_device.end(), stress.data());
-  auto err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    AX_LOG(ERROR) << "Error: " << cudaGetErrorString(err);
-  }
   return stress;
 };
 
@@ -260,11 +331,37 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTempl
 
   List<elasticity::StressTensor<dim>> stress(impl_->deformation_gradient_.size());
   thrust::copy(stress_device.begin(), stress_device.end(), stress.data());
-  auto err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    AX_LOG(ERROR) << "Error: " << cudaGetErrorString(err);
-  }
   return stress;
+}
+
+/*************************
+ * SECT: Hessian
+ *************************/
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+__global__ void compute_hessian_impl(math::matr<dim, dim>* deformation_gradient,
+                                     real* rest_volume,
+                                     SvdR<dim>* svd_results,
+                                     elasticity::HessianTensor<dim>* hessian,
+                                     real lambda, real mu,
+                                     idx n_elem) {
+  idx eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+  hessian[eid] = ElasticModelTemplate<dim>(lambda, mu)
+                 .Hessian(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+__global__ void compute_hessian_impl(math::matr<dim, dim>* deformation_gradient,
+                                     real* rest_volume,
+                                     SvdR<dim>* svd_results,
+                                     elasticity::HessianTensor<dim>* hessian,
+                                     math::vec2r* lame,
+                                     idx n_elem) {
+  idx eid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (eid >= n_elem) return;
+  hessian[eid] = ElasticModelTemplate<dim>(lame[eid][0], lame[eid][1])
+                 .Hessian(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -295,9 +392,16 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemp
         return ElasticModel(lame[0], lame[1]).Hessian(F, svd) * rest_volume;
       }));
 
+  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + 127) / 128, 128>>>(
+  //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+  //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+  //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
+  //     thrust::raw_pointer_cast(hessian_device.data()),
+  //     thrust::raw_pointer_cast(lame_device.data()),
+  //     impl_->deformation_gradient_.size());
+  //
   List<elasticity::HessianTensor<dim>> hessian(impl_->deformation_gradient_.size());
   thrust::copy(hessian_device.begin(), hessian_device.end(), hessian.data());
-  cudaDeviceSynchronize();
   return hessian;
 }
 
@@ -319,13 +423,21 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemp
         return ElasticModel(lame[0], lame[1]).Hessian(F, svd) * rest_volume;
       }));
 
+  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + 127) / 128, 128>>>(
+  //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+  //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+  //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
+  //     thrust::raw_pointer_cast(hessian_device.data()),
+  //     lame[0], lame[1],
+  //     impl_->deformation_gradient_.size());
+
   List<elasticity::HessianTensor<dim>> hessian(impl_->deformation_gradient_.size());
   thrust::copy(hessian_device.begin(), hessian_device.end(), hessian.data());
-  cudaDeviceSynchronize();
   return hessian;
 }
 
 // NOTE: Currently, ARAP relies on Jacobi SVD.
+
 // template class ElasticityCompute_GPU<2, elasticity::StableNeoHookean>;
 // template class ElasticityCompute_GPU<2, elasticity::NeoHookeanBW>;
 // template class ElasticityCompute_GPU<2, elasticity::StVK>;

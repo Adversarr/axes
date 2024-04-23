@@ -3,9 +3,11 @@
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/host_vector.h>
+#include <thrust/sequence.h>
 #include <thrust/zip_function.h>
 #include <cstdio>
 #include <ax/math/common.hpp>
+#include "ax/math/decomp/svd/common.hpp"
 
 using real = double;
 
@@ -15,6 +17,8 @@ __global__ void GpuAddKernel(const int num, real* x, real* y) {
     for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
 }
 
+using namespace ax;
+template <idx dim> using SvdR = math::decomp::SvdResultImpl<dim, real>;
 int main() {
   // Test whether cuda is available.
   int count;
@@ -37,6 +41,10 @@ int main() {
   int driver_version;
   cudaDriverGetVersion(&driver_version);
   printf("CUDA driver version: %d\n", driver_version);
+
+  cudaDeviceProp props;
+  cudaGetDeviceProperties_v2(&props, 0);
+  printf("Device name: %s\n", props.name);
 
   real *x, *y;
   err = cudaMalloc(&x, 100 * sizeof(real));
@@ -64,6 +72,24 @@ int main() {
       a.begin(),
       thrust::make_zip_function(thrust::plus<vec2r>()));
   cudaDeviceSynchronize();
+
+  constexpr idx dim = 3;
+
+  thrust::device_vector<idx> seq_;
+  thrust::device_vector<math::veci<dim + 1>> elements_;
+  thrust::device_vector<math::matr<dim, dim>> deformation_gradient_;
+  thrust::device_vector<math::matr<dim, dim>> rinv_gpu_;
+  thrust::device_vector<real> rest_volume_gpu_;
+  thrust::device_vector<SvdR<dim>> svd_results_;
+
+  seq_.resize(100);
+  elements_.resize(100);
+  deformation_gradient_.resize(100);
+  rinv_gpu_.resize(100);
+  rest_volume_gpu_.resize(100);
+  svd_results_.resize(100);
+
+  thrust::sequence(thrust::device, seq_.begin(), seq_.end());
 
   printf("Done.\n");
   return 0;

@@ -2,18 +2,17 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/trimesh.hpp"
+#include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/fem/timestepper/quasi_newton.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -32,6 +31,7 @@ ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
 ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
 ABSL_FLAG(std::string, optim, "liu", "optimizer lbfgs 'naive' or 'liu'");
+ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 int nx;
 using namespace ax;
 Entity out;
@@ -62,7 +62,8 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(), fem::DeformationGradientUpdate::kEnergy);
+  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(),
+                                                fem::DeformationGradientUpdate::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
 
@@ -274,7 +275,11 @@ int main(int argc, char** argv) {
 
   ts->SetDensity(1e3);
   AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
+  if (auto device = absl::GetFlag(FLAGS_device); device == "cpu") {
+    ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+  } else if (device == "gpu") {
+    ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
+  }
   if (scene == SCENE_TWIST) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
   }
@@ -284,6 +289,8 @@ int main(int argc, char** argv) {
   update_rendering();
   connect<gl::UiRenderEvent, &ui_callback>();
   AX_CHECK_OK(gl::enter_main_loop());
+
+  ts.reset();
   clean_up();
   return 0;
 }

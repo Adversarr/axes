@@ -1,11 +1,11 @@
 #include "ax/fem/timestepper/quasi_newton.hpp"
 
+#include <tbb/parallel_for.h>
+
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
-
-#include <tbb/parallel_for.h>
 
 namespace ax::fem {
 
@@ -27,8 +27,8 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
   real W = lame[0] + 2 * lame[1];
 
   // If you are using stable neohookean, you should bias the lambda and mu:
-  real lambda = lame[0] + 5.0/6.0 * lame[1], mu = 4.0/3.0 * lame[1];
-  W = 2 * mu + lambda;
+  // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+  // W = 2 * mu + lambda;
 
   auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
   problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
@@ -63,14 +63,24 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
     }
   }
 
+  // static real timer_gather = 0;
+  // static real timer_map = 0;
+  // static real timer_deform = 0;
+  // static idx n_samples = 0;
   math::vecxr eacc = this->ext_accel_.reshaped();
   mesh.FilterVector(eacc, true);
   real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
+        // auto start_gpu = std::chrono::high_resolution_clock::now();
         elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kEnergy);
+        // auto end_gpu = std::chrono::high_resolution_clock::now();
+        // timer_deform += std::chrono::duration<real>(end_gpu - start_gpu).count();
+        // start_gpu = end_gpu;
         auto energy_on_element = elasticity.Energy(lame);
+        // end_gpu = std::chrono::high_resolution_clock::now();
+        // timer_map += std::chrono::duration<real>(end_gpu - start_gpu).count();
         real elasticity_energy = energy_on_element.sum() * (dt * dt);
         math::vecxr x_y = dx - y;
         real kinematic_energy = x_y.dot(mass_matrix * x_y) * 0.5;
@@ -78,9 +88,17 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
       })
       .SetGrad([&](math::vecxr const &dx) -> math::vecxr {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
+        // auto start_gpu = std::chrono::high_resolution_clock::now();
         elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kStress);
+        // auto end_gpu = std::chrono::high_resolution_clock::now();
+        // timer_deform += std::chrono::duration<real>(end_gpu - start_gpu).count();
+        // start_gpu = end_gpu;
         auto stress_on_element = elasticity.Stress(lame);
+        // timer_map += std::chrono::duration<real>(end_gpu - start_gpu).count();
+        // auto start_cpu = std::chrono::high_resolution_clock::now();
         math::fieldr<dim> neg_force = elasticity.GatherStress(stress_on_element);
+        // auto end_cpu = std::chrono::high_resolution_clock::now();
+        // timer_gather += std::chrono::duration<real>(end_cpu - start_cpu).count();
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
         math::vecxr grad_elasticity = neg_force.reshaped() * (dt * dt);
         math::vecxr grad = grad_elasticity + grad_kinematic;
@@ -140,9 +158,13 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   } else if (!(result->converged_grad_ || result->converged_var_)) {
     AX_LOG(ERROR) << "LBFGS iteration failed to converge!";
   }
+  AX_LOG(WARNING) << "#Iter: " << result->n_iter_ << " iterations.";
+  // n_samples += result->n_iter_;
+  // n_samples += 1;
+  // AX_LOG(ERROR) << "Gather: " << timer_gather / n_samples << " Map: " << timer_map / n_samples 
+  //               << " Deform: " << timer_deform / n_samples;
   math::fieldr<dim> x_new = result->x_opt_.reshaped(dim, mesh.GetNumVertices()) + x_cur;
   velocity = (x_new - x_cur) / dt;
-  AX_LOG(INFO) << "#Iter: " << result->n_iter_ << " iterations.";
   AX_RETURN_NOTOK(mesh.SetVertices(mesh.GetVertices() + velocity * dt));
   AX_RETURN_OK();
 }

@@ -1,9 +1,5 @@
 #include "elasticity.hpp"
 
-#ifndef AX_HAS_CUDA
-#  error "This file should only be included in CUDA mode"
-#endif
-
 namespace ax::fem {
 
 template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute_GPU

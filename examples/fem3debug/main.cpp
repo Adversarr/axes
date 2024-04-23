@@ -12,9 +12,8 @@
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/utils/asset.hpp"
 
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
@@ -43,19 +42,18 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  fem::P1Mesh<3> mesh;
+  fem::TriMesh<3> mesh;
   AX_CHECK_OK(mesh.SetMesh(F, V));
-  fem::Deformation<3> deform(mesh, input_mesh.vertices_);
-  fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(deform);
+  fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(mesh);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
   auto stress = elast.Stress(lame);
-  auto force = deform.StressToVertices(stress);
+  auto force = elast.GatherStress(stress);
   auto& q = add_or_replace_component<gl::Quiver>(out);
   q.colors_.setOnes(4, V.cols());
   q.positions_ = V;
   q.directions_ = force;
-  auto energy = deform.EnergyToVertices(elast.Energy(lame));
+  auto energy = elast.GatherEnergy(elast.Energy(lame));
   real m = energy.minCoeff(), M = energy.maxCoeff();
   gl::Colormap mapping(m, M);
   AX_LOG(INFO) << "m=" << m << "\tM=" << M;

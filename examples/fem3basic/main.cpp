@@ -13,9 +13,8 @@
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/deform.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/mesh/p1mesh.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/fem/timestepper.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/iota.hpp"
@@ -43,9 +42,10 @@ void update_rendering() {
   lines = gl::Lines::Create(mesh);
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().UpdateDeformationGradient();
+  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(),
+      fem::DeformationGradientUpdate::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetDeformation().EnergyToVertices(e_per_elem);
+  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;
   m = std::min(m, e_per_vert.minCoeff());
   M = std::max(M, e_per_vert.maxCoeff());
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   int nx = absl::GetFlag(FLAGS_N);
   input_mesh = geo::tet_cube(0.5, 2 * nx, nx, nx);
   input_mesh.vertices_.row(0) *= 2;
-  ts = std::make_unique<fem::TimeStepperBase<3>>(std::make_unique<fem::P1Mesh<3>>());
+  ts = std::make_unique<fem::TimeStepperBase<3>>(std::make_unique<fem::TriMesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {

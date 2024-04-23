@@ -1,7 +1,6 @@
 #pragma once
 #include "ax/math/common.hpp"
 #include "ax/utils/opt.hpp"
-#include "deform.hpp"
 #include "elasticity.hpp"
 #include "trimesh.hpp"
 

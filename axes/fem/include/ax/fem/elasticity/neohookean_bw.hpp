@@ -13,8 +13,8 @@ public:
   using hessian_t = typename base_t::hessian_t;
 
   using ElasticityBase<dim, NeoHookeanBW<dim>>::ElasticityBase;
-  AX_CUDA_DEVICE NeoHookeanBW(real lambda, real mu): ElasticityBase<dim, NeoHookeanBW<dim>>(lambda, mu) {}
-  AX_CUDA_DEVICE NeoHookeanBW() : ElasticityBase<dim, NeoHookeanBW<dim>>() {}
+  AX_HOST_DEVICE NeoHookeanBW(real lambda, real mu): ElasticityBase<dim, NeoHookeanBW<dim>>(lambda, mu) {}
+  AX_HOST_DEVICE NeoHookeanBW() : ElasticityBase<dim, NeoHookeanBW<dim>>() {}
 
   /**
    * @brief Compute the NeoHookean Elasticity Potential value.
@@ -22,7 +22,7 @@ public:
    * where J is the determinant of F
    * @return real
    */
-  AX_CUDA_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
                   const math::decomp::SvdResultImpl<dim, real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
@@ -42,7 +42,7 @@ public:
    *
    * @return stress_t
    */
-   AX_CUDA_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
+   AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
                   math::decomp::SvdResultImpl<dim, real> const&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
@@ -60,7 +60,7 @@ public:
    * μI9×9+ (mu+lambda(1-log[J]))/J^2 gJgJ^T + (λlog[J]-μ)/J Hj
    * @return hessian_t
    */
-  AX_CUDA_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
                         const math::decomp::SvdResultImpl<dim, real>&) const {
     const real& mu = this->mu_;
     const real& lambda = this->lambda_;

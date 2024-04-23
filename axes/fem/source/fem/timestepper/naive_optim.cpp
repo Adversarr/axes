@@ -68,14 +68,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         tbb::parallel_for(tbb::blocked_range<idx>(0, hessian_on_element.size(), 1000),
           [&](const tbb::blocked_range<idx> &r) {
             for (idx i = r.begin(); i < r.end(); ++i) {
-              optim::EigenvalueModification em;
-              em.min_eigval_ = dt * dt;
-              auto result = em.Modify(hessian_on_element[i]);
-              if (!result.ok()) {
-                AX_LOG(WARNING) << "Eigenvalue modification failed: " << result.status();
-              } else {
-                hessian_on_element[i] = result.value();
-              }
+              hessian_on_element[i] = optim::project_spd_by_eigvals<dim * dim>(hessian_on_element[i], dt * dt);
             }
           });
         auto stiffness = elasticity.GatherHessian(hessian_on_element);
@@ -87,10 +80,10 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
         return rv;
       })
-      .SetConvergeVar(nullptr);
-      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
-      // });
+      .SetConvergeVar(nullptr)
+      .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+        AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
+      });
 
   optim::Newton optimizer;
   optimizer.SetTolGrad(0.02);

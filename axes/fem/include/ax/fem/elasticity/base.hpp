@@ -30,31 +30,31 @@ public:
    * @param lambda Lamé parameter
    * @param mu Lamé parameter
    */
-  AX_CUDA_DEVICE ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
+  AX_HOST_DEVICE ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
 
-  AX_CUDA_DEVICE ElasticityBase() = default;
+  AX_HOST_DEVICE ElasticityBase() = default;
 
-  AX_CUDA_DEVICE AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
                               math::decomp::SvdResultImpl<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->EnergyImpl(F, svdr);
   }
 
-  AX_CUDA_DEVICE AX_FORCE_INLINE stress_t Stress(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE AX_FORCE_INLINE stress_t Stress(DeformationGradient<dim> const& F,
                                   const math::decomp::SvdResultImpl<dim, real>& svdr) const {
     return static_cast<Derived const*>(this)->StressImpl(F, svdr);
   }
 
-  AX_CUDA_DEVICE AX_FORCE_INLINE math::mat<real, dof_cnt, dof_cnt> Hessian(
+  AX_HOST_DEVICE AX_FORCE_INLINE math::mat<real, dof_cnt, dof_cnt> Hessian(
       DeformationGradient<dim> const& F, math::decomp::SvdResultImpl<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->HessianImpl(F, svdr);
   }
 
-  AX_CUDA_DEVICE void SetLame(real lambda, real mu) {
+  AX_HOST_DEVICE void SetLame(real lambda, real mu) {
     lambda_ = lambda;
     mu_ = mu;
   }
 
-  AX_CUDA_DEVICE void SetLame(math::vec2r const& lame) { SetLame(lame[0], lame[1]); }
+  AX_HOST_DEVICE void SetLame(math::vec2r const& lame) { SetLame(lame[0], lame[1]); }
 
   virtual bool EnergyRequiresSvd() const noexcept { return false; }
   virtual bool StressRequiresSvd() const noexcept { return false; }

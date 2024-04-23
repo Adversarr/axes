@@ -4,6 +4,7 @@
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LDLT.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
+#include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
 #include "ax/math/linsys/sparse.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
@@ -82,6 +83,16 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
         return utils::FailedPreconditionError("Hessian matrix size mismatch");
       }
       math::LinsysProblem_Sparse prob(H, grad);
+      if (problem_.HasConvergeGrad()) {
+        prob.converge_residual_ = [&](math::vecxr const& x, math::vecxr const& r) -> bool {
+          return problem_.EvalConvergeGrad(x, r) < tol_grad_;
+        };
+      }
+      if (problem_.HasConvergeVar()) {
+        prob.converge_solution_ = [&](math::vecxr const& x) -> bool {
+          return problem_.EvalConvergeVar(x, x0) < tol_var_;
+        };
+      }
       auto solution = sparse_solver_->SolveProblem(prob);
       if (!solution.ok()) {
         AX_LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
@@ -135,6 +146,8 @@ Newton::Newton() {
   linesearch_name_ = "kBacktracking";
   dense_solver_name_ = "kLDLT";
   sparse_solver_name_ = "kConjugateGradient";
+  math::SparseSolver_ConjugateGradient *cg = dynamic_cast<math::SparseSolver_ConjugateGradient *>(sparse_solver_.get());
+  cg->SetPreconditioner(std::make_unique<math::PreconditionerIncompleteCholesky>());
 }
 
 Status Newton::SetOptions(utils::Opt const& options) {

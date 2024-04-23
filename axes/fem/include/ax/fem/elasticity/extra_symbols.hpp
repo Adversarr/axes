@@ -5,19 +5,19 @@
 namespace ax::fem::elasticity {
 
 template <typename Derived>
-AX_CUDA_DEVICE math::matr<Derived::RowsAtCompileTime, Derived::RowsAtCompileTime> green_strain(
+AX_HOST_DEVICE math::matr<Derived::RowsAtCompileTime, Derived::RowsAtCompileTime> green_strain(
     math::MBcr<Derived> F) {
   return 0.5 * (F.transpose() * F - math::eye<math::rows_v<Derived>>());
 }
 
 template <typename Derived>
-AX_CUDA_DEVICE math::matr<Derived::RowsAtCompileTime, Derived::RowsAtCompileTime>
+AX_HOST_DEVICE math::matr<Derived::RowsAtCompileTime, Derived::RowsAtCompileTime>
 approx_green_strain(math::MBcr<Derived> F) {
   return 0.5 * (F.transpose() + F) - math::eye<math::rows_v<Derived>>();
 }
 
 namespace details {
-AX_CUDA_DEVICE AX_FORCE_INLINE math::matr<2, 2> partial_determinant(
+AX_HOST_DEVICE AX_FORCE_INLINE math::matr<2, 2> partial_determinant(
     DeformationGradient<2> const& F) {
   // [ f11, -f10;
   //  -f01,  f00]
@@ -26,7 +26,7 @@ AX_CUDA_DEVICE AX_FORCE_INLINE math::matr<2, 2> partial_determinant(
   return dJdF;
 }
 
-AX_CUDA_DEVICE AX_FORCE_INLINE math::matr<3, 3> partial_determinant(
+AX_HOST_DEVICE AX_FORCE_INLINE math::matr<3, 3> partial_determinant(
     DeformationGradient<3> const& F) {
   // [Cross[f1, f2], Cross[f2, f0], Cross[f0, f1]]
   math::matr<3, 3> dJdF;
@@ -35,7 +35,7 @@ AX_CUDA_DEVICE AX_FORCE_INLINE math::matr<3, 3> partial_determinant(
   return dJdF;
 }
 
-AX_CUDA_DEVICE AX_FORCE_INLINE void add_HJ(math::matr<4, 4>& H, const math::matr<2, 2>& /*F*/,
+AX_HOST_DEVICE AX_FORCE_INLINE void add_HJ(math::matr<4, 4>& H, const math::matr<2, 2>& /*F*/,
                                            real scale) {
   H(3, 0) += scale;
   H(0, 3) += scale;
@@ -44,13 +44,13 @@ AX_CUDA_DEVICE AX_FORCE_INLINE void add_HJ(math::matr<4, 4>& H, const math::matr
 }
 
 template <typename Derived>
-AX_CUDA_DEVICE AX_FORCE_INLINE math::mat3r x_hat(math::MBcr<Derived> Fi) {
+AX_HOST_DEVICE AX_FORCE_INLINE math::mat3r x_hat(math::MBcr<Derived> Fi) {
   math::mat3r x_hat;
   x_hat << 0, -Fi(2), Fi(1), Fi(2), 0, -Fi(0), -Fi(1), Fi(0), 0;
   return x_hat;
 }
 
-AX_CUDA_DEVICE AX_FORCE_INLINE void add_HJ(math::matr<9, 9>& H, const math::matr<3, 3>& F,
+AX_HOST_DEVICE AX_FORCE_INLINE void add_HJ(math::matr<9, 9>& H, const math::matr<3, 3>& F,
                                            real scale) {
   math::mat3r const f0 = x_hat(F.col(0)) * scale;
   math::mat3r const f1 = x_hat(F.col(1)) * scale;

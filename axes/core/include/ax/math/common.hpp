@@ -156,7 +156,8 @@ using MatShape = std::pair<idx, idx>;
  * @param mat The matrix.
  * @return The number of rows of the matrix.
  */
-template <typename Derived> AX_CONSTEVAL AX_CUDA_DEVICE idx rows_static(const Eigen::EigenBase<Derived> &) {
+template <typename Derived>
+AX_CONSTEVAL AX_HOST_DEVICE idx rows_static(const Eigen::EigenBase<Derived> &) {
   return Derived::RowsAtCompileTime;
 }
 
@@ -167,7 +168,8 @@ template <typename Derived> AX_CONSTEVAL AX_CUDA_DEVICE idx rows_static(const Ei
  * @param mat The matrix.
  * @return The number of columns of the matrix.
  */
-template <typename Derived> AX_CONSTEVAL AX_CUDA_DEVICE idx cols_static(const Eigen::EigenBase<Derived> &) {
+template <typename Derived>
+AX_CONSTEVAL AX_HOST_DEVICE idx cols_static(const Eigen::EigenBase<Derived> &) {
   return Derived::ColsAtCompileTime;
 }
 
@@ -178,7 +180,8 @@ template <typename Derived> AX_CONSTEVAL AX_CUDA_DEVICE idx cols_static(const Ei
  * @param mat The matrix.
  * @return The number of rows of the matrix.
  */
-template <typename Derived> AX_CONSTEXPR AX_CUDA_DEVICE idx rows(const Eigen::EigenBase<Derived> &mat) {
+template <typename Derived>
+AX_CONSTEXPR AX_HOST_DEVICE idx rows(const Eigen::EigenBase<Derived> &mat) {
   return mat.rows();
 }
 
@@ -189,7 +192,8 @@ template <typename Derived> AX_CONSTEXPR AX_CUDA_DEVICE idx rows(const Eigen::Ei
  * @param mat The matrix.
  * @return The number of columns of the matrix.
  */
-template <typename Derived> AX_CONSTEXPR AX_CUDA_DEVICE idx cols(const Eigen::EigenBase<Derived> &mat) {
+template <typename Derived>
+AX_CONSTEXPR AX_HOST_DEVICE idx cols(const Eigen::EigenBase<Derived> &mat) {
   return mat.cols();
 }
 
@@ -201,7 +205,7 @@ template <typename Derived> AX_CONSTEXPR AX_CUDA_DEVICE idx cols(const Eigen::Ei
  * @return The shape of the matrix as a pair of (rows, columns).
  */
 template <typename Derived>
-AX_CUDA_DEVICE AX_FORCE_INLINE MatShape shape_of(const Eigen::EigenBase<Derived> &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE MatShape shape_of(const Eigen::EigenBase<Derived> &mat) {
   return std::make_pair(rows(mat), cols(mat));
 }
 
@@ -213,7 +217,7 @@ AX_CUDA_DEVICE AX_FORCE_INLINE MatShape shape_of(const Eigen::EigenBase<Derived>
  * @return The shape of the matrix as a pair of (rows, columns).
  */
 template <typename Derived>
-AX_CUDA_DEVICE AX_FORCE_INLINE MatShape shape_of_static(const Eigen::EigenBase<Derived> &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE MatShape shape_of_static(const Eigen::EigenBase<Derived> &mat) {
   return std::make_pair(rows_static(mat), cols_static(mat));
 }
 
@@ -226,7 +230,8 @@ namespace details {
  * @param tuple The tuple to be converted.
  * @return A vector with the same elements as the tuple.
  */
-template <typename T, size_t... seq> AX_CUDA_DEVICE AX_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
+template <typename T, size_t... seq>
+AX_HOST_DEVICE AX_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
     const utils::details::dup_tuple<T, sizeof...(seq)> &tuple, std::index_sequence<seq...>) {
   return vec<T, sizeof...(seq)>{std::get<seq>(tuple)...};
 }
@@ -240,7 +245,7 @@ template <typename T, size_t... seq> AX_CUDA_DEVICE AX_FORCE_INLINE vec<T, sizeo
  * @return A tuple with the same elements as the vector.
  */
 template <typename T, size_t... seq>
-AX_CUDA_DEVICE AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tuple_impl(
+AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tuple_impl(
     const vec<T, sizeof...(seq)> &vec, std::index_sequence<seq...>) {
   return utils::DupTuple<T, sizeof...(seq)>{vec[seq]...};
 }
@@ -255,8 +260,8 @@ AX_CUDA_DEVICE AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tupl
  * @param tuple The DupTuple to be converted.
  * @return A vector with the same elements as the DupTuple.
  */
-template <typename T, idx dim>
-AX_CUDA_DEVICE AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
+template <typename T, idx dim> AX_HOST_DEVICE AX_FORCE_INLINE vec<T, dim> tuple_to_vector(
+    const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
 }
 
@@ -269,7 +274,8 @@ AX_CUDA_DEVICE AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple
  * @return A DupTuple with the same elements as the vector.
  */
 template <typename T, size_t dim>
-AX_CUDA_DEVICE AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(const vec<T, dim> &vec) {
+AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(
+    const vec<T, dim> &vec) {
   return details::vector_to_tuple_impl<T>(vec, std::make_index_sequence<dim>());
 }
 
@@ -317,7 +323,8 @@ template <typename Scalar = real> constexpr Scalar epsilon = std::numeric_limits
  * @tparam Scalar The scalar type of the matrix.
  * @return A matrix filled with ones.
  */
-template <idx rows, idx cols = 1, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto ones() {
+template <idx rows, idx cols = 1, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto ones() {
   return mat<Scalar, rows, cols>::Ones();
 }
 
@@ -329,7 +336,8 @@ template <idx rows, idx cols = 1, typename Scalar = real> AX_CUDA_DEVICE AX_FORC
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with ones.
  */
-template <idx rows, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto ones(idx cols) {
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto ones(idx cols) {
   return mat<Scalar, rows, dynamic>::Ones(rows, cols);
 }
 
@@ -341,7 +349,8 @@ template <idx rows, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with ones.
  */
-template <typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto ones(idx rows, idx cols) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto ones(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Ones(rows, cols);
 }
 
@@ -353,7 +362,8 @@ template <typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto ones(idx r
  * @tparam c The number of columns of the matrix.
  * @param mat The matrix to be filled.
  */
-template <typename Scalar, idx r, idx c> AX_CUDA_DEVICE AX_FORCE_INLINE void ones_(const mat<Scalar, r, c> &mat) {
+template <typename Scalar, idx r, idx c>
+AX_HOST_DEVICE AX_FORCE_INLINE void ones_(const mat<Scalar, r, c> &mat) {
   mat.setOnes();
 }
 
@@ -364,7 +374,7 @@ template <typename Scalar, idx r, idx c> AX_CUDA_DEVICE AX_FORCE_INLINE void one
  * @param mat The scalar to be filled.
  */
 template <typename Scalar, typename = std::enable_if_t<std::is_arithmetic_v<Scalar>>>
-AX_CUDA_DEVICE AX_FORCE_INLINE void ones_(const Scalar &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE void ones_(const Scalar &mat) {
   mat.setOnes();
 }
 
@@ -374,7 +384,7 @@ AX_CUDA_DEVICE AX_FORCE_INLINE void ones_(const Scalar &mat) {
  * @tparam T The type of the value.
  * @return A ones value.
  */
-template <typename T> AX_CUDA_DEVICE AX_FORCE_INLINE T make_ones() {
+template <typename T> AX_HOST_DEVICE AX_FORCE_INLINE T make_ones() {
   if constexpr (std::is_arithmetic_v<T>) {
     return T(1);
   } else {
@@ -392,7 +402,8 @@ template <typename T> AX_CUDA_DEVICE AX_FORCE_INLINE T make_ones() {
  * @tparam Scalar The scalar type of the matrix.
  * @return A matrix filled with zeros.
  */
-template <idx rows, idx cols = 1, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto zeros() {
+template <idx rows, idx cols = 1, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto zeros() {
   return mat<Scalar, rows, cols>::Zero();
 }
 
@@ -404,7 +415,8 @@ template <idx rows, idx cols = 1, typename Scalar = real> AX_CUDA_DEVICE AX_FORC
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with zeros.
  */
-template <idx rows, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto zeros(idx cols) {
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(idx cols) {
   return mat<Scalar, rows, dynamic>::Zero(rows, cols);
 }
 
@@ -416,7 +428,8 @@ template <idx rows, typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with zeros.
  */
-template <typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto zeros(idx rows, idx cols) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Zero(rows, cols);
 }
 
@@ -428,7 +441,8 @@ template <typename Scalar = real> AX_CUDA_DEVICE AX_FORCE_INLINE auto zeros(idx 
  * @tparam c The number of columns of the matrix.
  * @param mat The matrix to be filled.
  */
-template <typename Scalar, idx r, idx c> AX_CUDA_DEVICE AX_FORCE_INLINE void zeros_(const mat<Scalar, r, c> &mat) {
+template <typename Scalar, idx r, idx c>
+AX_HOST_DEVICE AX_FORCE_INLINE void zeros_(const mat<Scalar, r, c> &mat) {
   mat.setZero();
 }
 
@@ -439,7 +453,7 @@ template <typename Scalar, idx r, idx c> AX_CUDA_DEVICE AX_FORCE_INLINE void zer
  * @param mat The scalar to be filled.
  */
 template <typename Scalar, typename = std::enable_if_t<std::is_arithmetic_v<Scalar>>>
-AX_CUDA_DEVICE AX_FORCE_INLINE void zeros_(const Scalar &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE void zeros_(const Scalar &mat) {
   mat.setZero();
 }
 
@@ -449,7 +463,7 @@ AX_CUDA_DEVICE AX_FORCE_INLINE void zeros_(const Scalar &mat) {
  * @tparam T The type of the value.
  * @return A zeros value.
  */
-template <typename T> AX_CUDA_DEVICE AX_FORCE_INLINE T make_zeros() {
+template <typename T> AX_HOST_DEVICE AX_FORCE_INLINE T make_zeros() {
   if constexpr (std::is_arithmetic_v<T>) {
     return T(0);
   } else {
@@ -469,7 +483,7 @@ template <typename T> AX_CUDA_DEVICE AX_FORCE_INLINE T make_zeros() {
  * @return A matrix filled with the constant value.
  */
 template <idx rows, idx cols = 1, typename Scalar = real>
-AX_FORCE_INLINE auto constant(Scalar value) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value) {
   return mat<Scalar, rows, cols>::Constant(value);
 }
 
@@ -482,7 +496,8 @@ AX_FORCE_INLINE auto constant(Scalar value) {
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with the constant value.
  */
-template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
   return mat<Scalar, rows, dynamic>::Constant(rows, cols, value);
 }
 
@@ -495,7 +510,8 @@ template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with the constant value.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>::Constant(rows, cols, value);
 }
 
@@ -509,7 +525,7 @@ template <typename Scalar = real> AX_FORCE_INLINE auto constant(Scalar value, id
  * @param value The constant value.
  */
 template <typename Scalar, idx r, idx c>
-AX_FORCE_INLINE void constant_(const mat<Scalar, r, c> &mat, Scalar value) {
+AX_HOST_DEVICE AX_FORCE_INLINE void constant_(const mat<Scalar, r, c> &mat, Scalar value) {
   mat.setConstant(value);
 }
 
@@ -521,7 +537,7 @@ AX_FORCE_INLINE void constant_(const mat<Scalar, r, c> &mat, Scalar value) {
  * @param value The constant value.
  */
 template <typename Scalar, typename = std::enable_if_t<std::is_arithmetic_v<Scalar>>>
-AX_FORCE_INLINE void constant_(const Scalar &mat, Scalar value) {
+AX_HOST_DEVICE AX_FORCE_INLINE void constant_(const Scalar &mat, Scalar value) {
   mat.setConstant(value);
 }
 
@@ -532,7 +548,8 @@ AX_FORCE_INLINE void constant_(const Scalar &mat, Scalar value) {
  * @param value The constant value.
  * @return A constant value.
  */
-template <typename T, typename Scalar> AX_FORCE_INLINE T make_constant(Scalar value) {
+template <typename T, typename Scalar>
+AX_HOST_DEVICE AX_FORCE_INLINE T make_constant(Scalar value) {
   if constexpr (std::is_arithmetic_v<T>) {
     return T(value);
   } else {
@@ -552,7 +569,7 @@ template <typename T, typename Scalar> AX_FORCE_INLINE T make_constant(Scalar va
  * @return A vector filled with linearly spaced values.
  */
 template <idx rows, typename Scalar = real>
-AX_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
   return vec<Scalar, rows>::LinSpaced(rows, start, end);
 }
 
@@ -563,7 +580,8 @@ AX_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
  * @param end The end value.
  * @return A vector filled with linearly spaced values.
  */
-template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto linspace(Scalar end) {
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar end) {
   return linspace<rows, Scalar>(0, end);
 }
 
@@ -577,7 +595,7 @@ template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto linspace(Scalar
  * @return A vector filled with linearly spaced values.
  */
 template <typename Scalar = real>
-AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
   return vec<Scalar, dynamic>::LinSpaced(rows, start, end);
 }
 
@@ -590,7 +608,8 @@ AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
  * @param stop The stop value.
  * @return A vector filled with values from start to stop.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx stop) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx stop) {
   return linspace<Scalar>(stop);
 }
 
@@ -602,7 +621,8 @@ template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx stop) {
  * @param stop The stop value.
  * @return A vector filled with values from start to stop.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx start, idx stop) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx start, idx stop) {
   return linspace<Scalar>(start, stop, stop - start);
 }
 
@@ -616,8 +636,7 @@ template <typename Scalar = real> AX_FORCE_INLINE auto arange(idx start, idx sto
  * @tparam Scalar The scalar type of the matrix.
  * @return An identity matrix.
  */
-template <idx rows, typename Scalar = real> 
-AX_CUDA_DEVICE AX_FORCE_INLINE auto eye() {
+template <idx rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto eye() {
   return mat<Scalar, rows, rows>::Identity();
 }
 
@@ -629,7 +648,8 @@ AX_CUDA_DEVICE AX_FORCE_INLINE auto eye() {
  * @param cols The number of columns of the matrix.
  * @return An identity matrix.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto eye(idx rows) {
+template <typename Scalar = real> 
+AX_HOST_DEVICE AX_FORCE_INLINE auto eye(idx rows) {
   return mat<Scalar, dynamic, dynamic>::Identity(rows, rows);
 }
 
@@ -641,7 +661,8 @@ template <typename Scalar = real> AX_FORCE_INLINE auto eye(idx rows) {
  * @param cols The number of columns of the matrix.
  * @return An identity matrix.
  */
-template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto identity() {
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto identity() {
   return eye<rows, Scalar>();
 }
 
@@ -653,7 +674,8 @@ template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto identity() {
  * @param cols The number of columns of the matrix.
  * @return An identity matrix.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto identity(idx rows) {
+template <typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto identity(idx rows) {
   return eye<Scalar>(rows);
 }
 
@@ -666,7 +688,8 @@ template <typename Scalar = real> AX_FORCE_INLINE auto identity(idx rows) {
  * @param mat The matrix to be converted to a diagonal matrix.
  * @return A diagonal matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto diag(
+template <typename Derived> 
+AX_HOST_DEVICE AX_FORCE_INLINE auto diag(
     MBcr<Derived> mat,
     char (*)[Derived::ColsAtCompileTime == 1 && Derived::RowsAtCompileTime != 1] = nullptr) {
   return mat.asDiagonal();
@@ -679,7 +702,8 @@ template <typename Derived> AX_FORCE_INLINE auto diag(
  * @param mat The matrix to be converted to a diagonal matrix.
  * @return A diagonal matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto diag(
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto diag(
     MBcr<Derived> mat,
     char (*)[Derived::RowsAtCompileTime == 1 && Derived::ColsAtCompileTime != 1] = nullptr) {
   return diag(mat.transpose());
@@ -693,7 +717,7 @@ template <typename Derived> AX_FORCE_INLINE auto diag(
  * @return A diagonal matrix.
  */
 template <typename Derived>
-AX_FORCE_INLINE auto diag(MBcr<Derived> mat,
+AX_HOST_DEVICE AX_FORCE_INLINE auto diag(MBcr<Derived> mat,
                           char (*)[Derived::RowsAtCompileTime == Derived::ColsAtCompileTime]
                           = nullptr) {
   return mat.diagonal();
@@ -709,7 +733,8 @@ AX_FORCE_INLINE auto diag(MBcr<Derived> mat,
  * @tparam Scalar The scalar type of the matrix.
  * @return An empty matrix.
  */
-template <idx rows, idx cols = 1, typename Scalar = real> AX_FORCE_INLINE auto empty() {
+template <idx rows, idx cols = 1, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto empty() {
   return mat<Scalar, rows, cols>{};
 }
 
@@ -721,8 +746,9 @@ template <idx rows, idx cols = 1, typename Scalar = real> AX_FORCE_INLINE auto e
  * @param cols The number of columns of the matrix.
  * @return An empty matrix.
  */
-template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto empty(idx cols) {
-  return mat<Scalar, rows, dynamic>{rows, cols};
+template <idx rows, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto empty(idx cols) {
+  return mat<Scalar, rows, dynamic>(rows, cols);
 }
 
 /**
@@ -733,7 +759,8 @@ template <idx rows, typename Scalar = real> AX_FORCE_INLINE auto empty(idx cols)
  * @param cols The number of columns of the matrix.
  * @return An empty matrix.
  */
-template <typename Scalar = real> AX_FORCE_INLINE auto empty(idx rows, idx cols) {
+template <typename Scalar = real> 
+AX_HOST_DEVICE AX_FORCE_INLINE auto empty(idx rows, idx cols) {
   return mat<Scalar, dynamic, dynamic>{rows, cols};
 }
 
@@ -750,7 +777,8 @@ template <typename Scalar = real> AX_FORCE_INLINE auto empty(idx rows, idx cols)
  * @param i The index of the unit vector.
  * @return A unit vector.
  */
-template <idx dim, typename Scalar = real> AX_FORCE_INLINE auto unit(idx i) {
+template <idx dim, typename Scalar = real>
+AX_HOST_DEVICE AX_FORCE_INLINE auto unit(idx i) {
   return vec<Scalar, dim>::Unit(i);
 }
 
@@ -958,7 +986,7 @@ AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
  * @return The reshaped matrix.
  */
 template <typename Derived, idx rows, idx cols>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto reshape(MBcr<Derived> mat) noexcept {
+AX_HOST_DEVICE AX_FORCE_INLINE auto reshape(MBcr<Derived> mat) noexcept {
   return Eigen::Reshaped<const Derived, rows, cols>(mat.derived());
 }
 
@@ -971,7 +999,8 @@ AX_CUDA_DEVICE AX_FORCE_INLINE auto reshape(MBcr<Derived> mat) noexcept {
  * @param mat The matrix to be flattened.
  * @return The flattened matrix.
  */
-template <typename Derived> AX_CUDA_DEVICE AX_FORCE_INLINE auto flatten(MBcr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto flatten(MBcr<Derived> mat) noexcept {
   return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
 }
 
@@ -982,7 +1011,8 @@ template <typename Derived> AX_CUDA_DEVICE AX_FORCE_INLINE auto flatten(MBcr<Der
  * @param mat The matrix to be flattened.
  * @return The flattened matrix.
  */
-template <typename Derived> AX_CUDA_DEVICE AX_FORCE_INLINE auto flatten(MBr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto flatten(MBr<Derived> mat) noexcept {
   // TODO: test.
   return Eigen::Reshaped<const Derived, Derived::SizeAtCompileTime, 1>(mat.derived());
 }
@@ -996,7 +1026,7 @@ template <typename Derived> AX_CUDA_DEVICE AX_FORCE_INLINE auto flatten(MBr<Deri
  * @param dofs The number of degrees of freedom of the field.
  * @return The created field.
  */
-template <typename Derived> AX_CUDA_DEVICE AX_FORCE_INLINE auto make_field(idx dofs) {
+template <typename Derived> AX_HOST_DEVICE AX_FORCE_INLINE auto make_field(idx dofs) {
   return field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
                                                                      dofs};
 }

@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   utils::Opt opt{
     {"verbose", idx(absl::GetFlag(FLAGS_verbose))},
     {"max_iter", idx(200)},
-    {"linesearch_name", "Backtracking"},
+    {"linesearch_name", "kBacktracking"},
     {"linesearch_opt", utils::Opt{
       {"c", real(1e-4)},
     }}

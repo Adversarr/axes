@@ -8,22 +8,22 @@ namespace ax::math {
 /****************************** Unary op for scalar ******************************/
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
   return details::sqrt_impl(x);
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {
+AX_HOST_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {
   return degree * pi_radian<Scalar>;
 }
 
 #define IMPLEMENT_UNARY_STL(op)                                     \
   template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
-  AX_CUDA_DEVICE AX_FORCE_INLINE auto op(Scalar x) {                               \
+  AX_HOST_DEVICE AX_FORCE_INLINE auto op(Scalar x) {           \
     return std::op(x);                                              \
   }
 
@@ -51,36 +51,40 @@ IMPLEMENT_UNARY_STL(ceil)
 #undef IMPLEMENT_UNARY_STL
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto pow(Scalar x, Scalar y) {
   return std::pow(x, y);
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto cube(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto cube(Scalar x) {
   return x * x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto abs2(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto abs2(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto square(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto square(Scalar x) {
   return x * x;
 }
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
-AX_CUDA_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
   return Scalar(1) / x;
 }
 
 /****************************** Unary op available for matrices ******************************/
-#define IMPLEMENT_UNARY(FUNC, OP)                                                             \
+#define IMPLEMENT_UNARY(FUNC, OP)                                                          \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_CUDA_DEVICE AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) { return mv.OP(); } \
+  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) {                        \
+    return mv.OP();                                                                        \
+  }                                                                                        \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_CUDA_DEVICE AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) { return mv.FUNC(); }
+  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) {                        \
+    return mv.FUNC();                                                                      \
+  }
 #define A_OP_M(OP) array().OP().matrix
 #define IMPLEMENT_AOPM_UNARY(FUNC) IMPLEMENT_UNARY(FUNC, A_OP_M(FUNC))
 
@@ -132,47 +136,52 @@ IMPLEMENT_AOPM_UNARY(isNan)  // TODO: Naming is bad.
 #undef IMPLEMENT_AOPM_UNARY
 #undef IMPLEMENT_UNARY
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar sum(DBcr<Derived> a) {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE typename Derived::Scalar sum(DBcr<Derived> a) {
   return a.sum();
 }
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar prod(DBcr<Derived> a) {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE typename Derived::Scalar prod(DBcr<Derived> a) {
   return a.prod();
 }
 
-template <typename Derived> AX_FORCE_INLINE typename Derived::Scalar mean(DBcr<Derived> a) {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE typename Derived::Scalar mean(DBcr<Derived> a) {
   return a.mean();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::Scalar max(DBcr<A> mv) {
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar max(DBcr<A> mv) {
   return mv.maxCoeff();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::Scalar min(DBcr<A> mv) {
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar min(DBcr<A> mv) {
   return mv.minCoeff();
 }
 
-template <typename A> AX_FORCE_INLINE typename A::Scalar trace(MBcr<A> mv) {
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar trace(MBcr<A> mv) {
   return mv.trace();
 }
 
-template <typename A> AX_FORCE_INLINE bool all(DBcr<A> mv) { return mv.all(); }
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool all(DBcr<A> mv) { return mv.all(); }
 
-template <typename A> AX_FORCE_INLINE bool any(DBcr<A> mv) { return mv.any(); }
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool any(DBcr<A> mv) { return mv.any(); }
 
-template <typename A> AX_FORCE_INLINE idx count(DBcr<A> mv) { return mv.count(); }
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE idx count(DBcr<A> mv) {
+  return mv.count();
+}
 
 /****************************** argxxx ******************************/
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AX_FORCE_INLINE idx argmax(DBcr<Derived> mv) {
+AX_HOST_DEVICE AX_FORCE_INLINE idx argmax(DBcr<Derived> mv) {
   idx coef = -1;
   mv.maxCoeff(coef);
   return coef;
 }
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
+AX_HOST_DEVICE AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
   idx coef = -1;
   mv.minCoeff(coef);
   return coef;
@@ -181,16 +190,18 @@ AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
 /****************************** Specials ******************************/
 using std::clamp;
 using std::fmod;
+using std::isfinite;
+using std::isinf;
+using std::isnan;
 using std::lgamma;
 using std::tgamma;
-using std::isnan;
-using std::isinf;
-using std::isfinite;
 
-template <idx dim> math::veci<dim> imod(const math::veci<dim>& a, const math::veci<dim>& b) {
+template <idx dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
+                                                         const math::veci<dim>& b) {
   math::veci<dim> output;
 #ifdef __clang__
-#pragma unroll
+#  pragma unroll
 #endif
   for (idx d = 0; d < dim; ++d) {
     output[d] = a[d] % b[d];
@@ -203,11 +214,14 @@ struct stride_t {};
 constexpr subscript_t subscript;
 constexpr stride_t stride;
 
-template <idx dim> idx sub2ind(math::veci<dim> const& sub, math::veci<dim> const& stride, stride_t) {
+template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
+                                                                   math::veci<dim> const& stride,
+                                                                   stride_t) {
   return dot(sub, stride);
 }
 
-template<idx dim> math::veci<dim> to_stride(math::veci<dim> const& shape) {
+template <idx dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> to_stride(math::veci<dim> const& shape) {
   math::veci<dim> stride;
   stride[dim - 1] = 1;
   for (idx d = dim - 2; d >= 0; --d) {
@@ -216,11 +230,15 @@ template<idx dim> math::veci<dim> to_stride(math::veci<dim> const& shape) {
   return stride;
 }
 
-template <idx dim> idx sub2ind(math::veci<dim> const& sub, math::veci<dim> const& shape, subscript_t = subscript) {
+template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
+                                                                   math::veci<dim> const& shape,
+                                                                   subscript_t = subscript) {
   return sub2ind(sub, math::to_stride<dim>(shape), stride);
 }
 
-template <idx dim> math::veci<dim> ind2sub(idx ind, math::veci<dim> const& stride, subscript_t) {
+template <idx dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(idx ind, math::veci<dim> const& stride,
+                                                            subscript_t) {
   math::veci<dim> sub;
   for (idx d = dim - 1; d >= 0; --d) {
     sub[d] = ind / stride[d];
@@ -228,7 +246,6 @@ template <idx dim> math::veci<dim> ind2sub(idx ind, math::veci<dim> const& strid
   }
   return sub;
 }
-
 
 namespace details {
 constexpr real factorials[32] = {1.0,

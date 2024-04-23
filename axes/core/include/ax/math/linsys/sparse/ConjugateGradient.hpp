@@ -20,6 +20,8 @@ private:
                            Eigen::IncompleteCholesky<real, Eigen::Lower, Eigen::AMDOrdering<idx>>>
       solver_;
 
+  LinsysProblem_Sparse sparse_problem_;
+
   idx max_iter_ = 100;
   real tol_ = 1e-6;
 };

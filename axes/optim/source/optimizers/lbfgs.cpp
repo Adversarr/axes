@@ -35,6 +35,10 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   math::matxxr S(n_dof, history_size_);
   math::matxxr Y(n_dof, history_size_);
 
+  math::vecxr s_new(n_dof);
+  math::vecxr g_new(n_dof);
+  math::vecxr y_new(n_dof);
+
   while (iter < max_iter_) {
     // SECT: Verbose
     problem_.EvalVerbose(iter, x, f_iter);
@@ -70,7 +74,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
         auto const& yi = Y.col(rotate_id);
         real rho_i = rho[rotate_id];
         real alpha_i = (alpha[i] = rho_i * si.dot(q));
-        q = q - alpha_i * yi;
+        q.noalias() -= alpha_i * yi;
       }
       idx rotate_id = (iter + available_history - 1) % available_history;
       auto const& sback = S.col(rotate_id);
@@ -86,7 +90,8 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
         real beta = rho[rotate_id] * yi.dot(r);
-        r = r + si * (alpha[i] - beta);
+        // r = r + si * (alpha[i] - beta);
+        r.noalias() += si * (alpha[i] - beta);
       }
     } else if (approx_solve_) {
       r = approx_solve_(r);
@@ -106,16 +111,16 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
       return ls_result.status();
     }
 
-    math::vecxr s_new = ls_result->x_opt_ - x;
-    math::vecxr g_new = problem_.EvalGrad(ls_result->x_opt_);
-    math::vecxr y_new = g_new - grad;
+    s_new.noalias() = ls_result->x_opt_ - x;
+    g_new.noalias() = problem_.EvalGrad(ls_result->x_opt_);
+    y_new.noalias() = g_new - grad;
 
     f_iter = ls_result->f_opt_;
-    x = ls_result->x_opt_;
+    x = std::move(ls_result->x_opt_);
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
     rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19);
-    grad = g_new;
+    grad.swap(g_new);
     iter++;
   }
   OptResultImpl result;

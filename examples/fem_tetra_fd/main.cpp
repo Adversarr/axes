@@ -44,8 +44,7 @@ int main(int argc, char** argv) {
   AX_CHECK_OK(mesh.SetMesh(indices, original_vertices));
 
   // Elasticity and Deformation.
-  fem::Deformation<DIM> deform(mesh, mesh.GetVertices());                    //< 3d Deformation
-  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(deform);  //< 3d Linear Elasticity
+  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(mesh);  //< 3d Linear Elasticity
 
   // randomly perturb the vertices.
   for (idx i = 0; i <= DIM; ++i) {
@@ -60,10 +59,8 @@ int main(int argc, char** argv) {
 
   // Compute Gradient by Finite Difference:
   real e0 = elast.Energy(lame).sum();
-  auto stress = deform.StressToVertices(elast.Stress(lame));  // There is, and only is one tetra
-  auto stiffness = math::make_sparse_matrix(DIM * (DIM + 1), DIM * (DIM + 1),
-                                            deform.HessianToVertices(elast.Hessian(lame)))
-                       .toDense();
+  auto stress = elast.GatherStress(elast.Stress(lame));  // There is, and only is one tetra
+  auto stiffness = elast.GatherHessian(elast.Hessian(lame)).toDense();
   std::cout << "EnergyImpl: " << e0 << std::endl;  // Should be zero.
   std::cout << "StressImpl:\n" << stress << std::endl;
   std::cout << "=======================================================================\n"

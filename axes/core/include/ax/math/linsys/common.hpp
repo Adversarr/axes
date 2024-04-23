@@ -32,7 +32,7 @@ struct LinsysProblem_Sparse {
   real linf_tol_;
 
   // Additional checkers.
-  std::function<bool(vecxr const&)> converge_residual_;
+  std::function<bool(vecxr const&, vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
   LinsysProblem_Sparse(sp_matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
 

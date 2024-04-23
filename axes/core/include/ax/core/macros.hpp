@@ -24,6 +24,8 @@
 #    define AX_FORCE_INLINE inline __forceinline
 #  elif defined __GNUC__  // for gcc on Linux/Apple OS X
 #    define AX_FORCE_INLINE __attribute__((always_inline)) inline
+#  elif defined __CUDACC__
+#    define AX_FORCE_INLINE __forceinline
 #  else
 #    define AX_FORCE_INLINE inline
 #  endif
@@ -130,15 +132,13 @@
     if (cond) AX_UNLIKELY
 #endif
 
-
 /***************************************
        Loop Unrolling
 ***************************************/
 #ifndef AX_PRAGMA
-#define AX_STRINGIFY(x) #x
-#define AX_PRAGMA(x) _Pragma(#x)
+#  define AX_STRINGIFY(x) #x
+#  define AX_PRAGMA(x) _Pragma(#x)
 #endif
-
 
 /***************************************
        Debug mode
@@ -188,17 +188,17 @@
 #  define AX_TEMPLATE_IMPORT
 #endif
 
-
+/***************************************
+       CUDA SUPPORT
+***************************************/
 #if defined(AX_HAS_CUDA) && defined(__CUDACC__)
-#  define AX_CUDA_GLOBAL __global__
-#  define AX_CUDA_DEVICE __device__
-#  define AX_CUDA_HOST __host__
-#  define AX_CUDA_DEVICE_HOST __host__ __device__
-
+#  define AX_GLOBAL __global__
+#  define AX_DEVICE __device__
+#  define AX_HOST __host__
+#  define AX_HOST_DEVICE __host__ __device__
 #else
-#  define AX_CUDA_GLOBAL
-#  define AX_CUDA_DEVICE
-#  define AX_CUDA_HOST
-#  define AX_CUDA_DEVICE_HOST
-
+#  define AX_GLOBAL
+#  define AX_DEVICE
+#  define AX_HOST
+#  define AX_HOST_DEVICE
 #endif

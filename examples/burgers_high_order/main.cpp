@@ -187,7 +187,7 @@ math::field1r rk1(math::field1r const& in, real dt) {
 
 math::field1r rk3(real dt) {
   if (flux_type == LF_FLUX) {
-    // determine_lf_alpha();
+    determine_lf_alpha();
   }
   math::field1r u1 = rk1(current, dt);
   math::field1r u2 = 0.75 * current + 0.25 * rk1(u1, dt);

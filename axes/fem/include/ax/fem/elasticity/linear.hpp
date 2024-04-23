@@ -14,8 +14,8 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
   using hessian_t = typename base_t::hessian_t;
   using ElasticityBase<dim, Linear<dim>>::ElasticityBase;
 
-  AX_CUDA_DEVICE Linear(real lambda, real mu): ElasticityBase<dim, Linear<dim>>(lambda, mu) {}
-  AX_CUDA_DEVICE Linear() : ElasticityBase<dim, Linear<dim>>() {}
+  AX_HOST_DEVICE Linear(real lambda, real mu): ElasticityBase<dim, Linear<dim>>(lambda, mu) {}
+  AX_HOST_DEVICE Linear() : ElasticityBase<dim, Linear<dim>>() {}
 
   /**
    * @brief Compute the Linear Elasticity Potential value.
@@ -23,7 +23,7 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    * where e is the Approximate Green Strain (Ignore the high order terms)
    * @return real
    */
-  AX_CUDA_DEVICE real EnergyImpl(DeformationGradient<dim> const& F, const math::decomp::SvdResultImpl<dim, real>&) const {
+  AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F, const math::decomp::SvdResultImpl<dim, real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::matr<dim, dim> const E = approx_green_strain(F);
@@ -36,7 +36,7 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    *
    * @return stress_t
    */
-  AX_CUDA_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
                   math::decomp::SvdResultImpl<dim, real> const&) const {
     real lambda = this->lambda_;
     real mu = this->mu_;
@@ -49,7 +49,7 @@ template <idx dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    *
    * @return hessian_t
    */
-  AX_CUDA_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const&, const math::decomp::SvdResultImpl<dim, real>&) const {
+  AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const&, const math::decomp::SvdResultImpl<dim, real>&) const {
     hessian_t H = math::eye<dim * dim>() * this->mu_;
     // mu * dF.transpose().
     for (idx i = 0; i < dim; ++i) {

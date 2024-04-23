@@ -46,7 +46,9 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     math::vecxr r = A * x - b;
     math::vecxr y = preconditioner_->Solve(r, x0);
     math::vecxr p = -y;
+    math::vecxr p_new(r.size());
     math::vecxr Ap(p.size());
+    real rk_dot_yk = r.dot(y);
     bool converged = false, conv_residual = false;
     idx iter = 0;
     for (; iter < max_iter_; ++iter) {
@@ -66,8 +68,11 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
         break;
       }
       y.noalias() = preconditioner_->Solve(r, x0);
-      real beta = y.dot(r) / y.dot(r);
-      p = -y + beta * p;
+      real rk_dot_yk_new = r.dot(y);
+      real beta = rk_dot_yk_new / rk_dot_yk;
+      rk_dot_yk = rk_dot_yk_new;
+      p_new.noalias() = beta * p - y;
+      p_new.swap(p);
     }
     LinsysSolveResultImpl impl(x, converged || conv_residual);
     impl.num_iter_ = iter;

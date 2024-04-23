@@ -37,7 +37,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
 
   this->mesh_->FilterMatrix(problem_sparse.A_);
   solver_->SetPreconditioner(std::make_unique<math::PreconditionerDiagonal>());
-  AX_CHECK_OK(solver_->SetOptions({{"max_iter", 5}}));
+  AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
   AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
   AX_RETURN_OK();
 }
@@ -143,9 +143,9 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
 
-  math::LinsysProblem_Sparse problem_sparse;
-  problem_sparse.A_ = problem.EvalSparseHessian(y);
-  AX_CHECK_OK(solver_->Analyse(problem_sparse));
+  // math::LinsysProblem_Sparse problem_sparse;
+  // problem_sparse.A_ = problem.EvalSparseHessian(y);
+  // AX_CHECK_OK(solver_->Analyse(problem_sparse));
 
   lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
     auto approx = solver_->Solve(g, g * dt * dt);

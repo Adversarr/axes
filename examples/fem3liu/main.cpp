@@ -12,6 +12,7 @@
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
 #include "ax/fem/timestepper/quasi_newton.hpp"
+#include "ax/fem/topo.hpp"
 #include "ax/fem/trimesh.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
@@ -32,6 +33,7 @@ ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
 ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
 ABSL_FLAG(std::string, optim, "liu", "optimizer lbfgs 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
+ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
 int nx;
 using namespace ax;
 Entity out;
@@ -243,6 +245,22 @@ int main(int argc, char** argv) {
   AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
+
+  if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
+    auto [p, ip] = fem::optimize_topology<3>(input_mesh.indices_, input_mesh.vertices_.cols());
+    // input_mesh.indices_ = input_mesh.indices_.col(ip);
+    auto verts = input_mesh.vertices_;
+    auto indis = input_mesh.indices_;
+    for (auto i : utils::iota(verts.cols())) {
+      verts.col(i) = input_mesh.vertices_.col(ip[i]);
+    }
+    for (auto i : utils::iota(indis.cols())) {
+      for (auto j : utils::iota(indis.rows())) {
+        indis(j, i) = p[indis(j, i)];
+      }
+    }
+  }
+
   fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
 
   // input_mesh = geo::tet_cube(0.5, 10 * nx, nx, nx);

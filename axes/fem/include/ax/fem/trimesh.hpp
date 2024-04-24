@@ -204,6 +204,7 @@ public:
     return dirichlet_boundary_mask_;
   }
 
+  void ApplyPermutation(std::vector<idx> const& perm, std::vector<idx> const& inverse_perm);
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
   vertex_list_t vertices_;  /**< The list of mesh vertices. */

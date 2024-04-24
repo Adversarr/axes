@@ -25,7 +25,7 @@ public:
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase(UPtr<TriMesh<dim>> mesh);
+  TimeStepperBase(SPtr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
   virtual ~TimeStepperBase() = default;
 
@@ -48,7 +48,7 @@ public:
   template <template <idx> class ElasticModelTemplate, 
             template <idx, template <idx> class> class Compute = ElasticityCompute_CPU> void SetupElasticity() {
     if (mesh_) {
-      elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(*mesh_);
+      elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(mesh_);
       elasticity_->RecomputeRestPose();
     }
   }
@@ -65,7 +65,7 @@ public:
 
 protected:
   // Common data
-  UPtr<TriMesh<dim>> mesh_;
+  SPtr<TriMesh<dim>> mesh_;
   UPtr<ElasticityComputeBase<dim>> elasticity_;
   math::fieldr<dim> ext_accel_;
   math::fieldr<dim> velocity_;

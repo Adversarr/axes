@@ -158,6 +158,23 @@ template <idx dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
   return surface;
 }
 
+template <idx dim> void TriMesh<dim>::ApplyPermutation(std::vector<idx> const& perm,
+                                                       std::vector<idx> const& inverse_perm) {
+  element_list_t elements_new(elements_.rows(), elements_.cols());
+  vertex_list_t vertices_new(vertices_.rows(), vertices_.cols());
+  for (idx i = 0; i < elements_.cols(); ++i) {
+    for (idx j = 0; j < elements_.rows(); ++j) {
+      elements_new(j, i) = perm[elements_(j, i)];
+    }
+  }
+  for (idx i = 0; i < vertices_.cols(); ++i) {
+    for (idx j = 0; j < vertices_.rows(); ++j) {
+      vertices_new(j, i) = vertices_(j, inverse_perm[i]);
+    }
+  }
+  AX_CHECK_OK(SetMesh(elements_new, vertices_new));
+}
+
 template class TriMesh<2>;
 template class TriMesh<3>;
 

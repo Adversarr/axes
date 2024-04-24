@@ -13,7 +13,7 @@ using namespace ax;
 constexpr idx DIM = 3;
 
 fem::TriMesh<DIM> mesh;
-auto kE = fem::DeformationGradientUpdate::kEnergy;
+auto kE = fem::ElasticityUpdateLevel::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);
 
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   // Update the deformation gradient.
   std::cout << "Vertices:\n" << original_vertices << std::endl;
   AX_CHECK_OK(mesh.SetVertices(original_vertices));
-  elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
+  elast.Update(mesh.GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
 
   // Compute Gradient by Finite Difference:
   real e0 = elast.Energy(lame).sum();
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
       for (real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
         math::fieldr<DIM> vertices_p = mesh.GetVertices();
         vertices_p(d, i) += delta_d;
-        elast.UpdateDeformationGradient(vertices_p, kE);
+        elast.Update(vertices_p, kE);
         // EnergyImpl:
         real e_p = elast.Energy(lame).sum();
 
@@ -100,16 +100,16 @@ int main(int argc, char** argv) {
           for (real delta_id = 1e-6; delta_id >= 1e-8; delta_id *= 0.1) {
             math::fieldr<DIM> vertices_id = original_vertices;
             vertices_id(d, i) += delta_id;
-            elast.UpdateDeformationGradient(vertices_id, kE);
+            elast.Update(vertices_id, kE);
             real e_id = elast.Energy(lame).sum();
             for (real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
               math::fieldr<DIM> vertices_id_jk = vertices_id;
               vertices_id_jk(k, j) += delta_jk;
-              elast.UpdateDeformationGradient(vertices_id_jk, kE);
+              elast.Update(vertices_id_jk, kE);
               real e_id_jk = elast.Energy(lame).sum();
               math::fieldr<DIM> vertices_jk = original_vertices;
               vertices_jk(k, j) += delta_jk;
-              elast.UpdateDeformationGradient(vertices_jk, kE);
+              elast.Update(vertices_jk, kE);
               real e_jk = elast.Energy(lame).sum();
               real hessian = (e_id_jk - e_id - e_jk + e0) / (delta_jk * delta_id);
               if (std::abs(hessian - stiffness(i * DIM + d, j * DIM + k)) < clothest) {

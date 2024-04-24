@@ -14,31 +14,25 @@ namespace ax::fem {
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt) {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Init(opt));
   solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
-  math::LinsysProblem_Sparse problem_sparse;
-  problem_sparse.A_ = this->mass_matrix_;
+  if (strategy_ == LbfgsStrategy::kLaplacian) {
+    math::LinsysProblem_Sparse problem_sparse;
+    problem_sparse.A_ = this->mass_matrix_;
+    // They call you Laplace: M + dtSq * Lap.
+    const math::vec2r lame = this->lame_;
+    real W = lame[0] + 2 * lame[1];
 
-  // ElasticityCompute<dim, elasticity::Linear> elast(this->GetDeformation());
-  // elast.UpdateDeformationGradient(this->GetMesh().GetVertices(),
-  // DeformationGradientUpdate::kHessian); math::vec2r fake_lame = {this->lame_[0], this->lame_[1] *
-  // 2}; idx n_dof = dim * this->GetMesh().GetNumVertices(); problem_sparse.A_ += 1e-4 *
-  // math::make_sparse_matrix(n_dof, n_dof,
-  //                                           this->deform_->HessianToVertices(elast.Hessian(fake_lame)));
+    // If you are using stable neohookean, you should bias the lambda and mu:
+    real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+    W = 2 * mu + lambda;
 
-  // They call you Laplace: M + dtSq * Lap.
-  const math::vec2r lame = this->lame_;
-  real W = lame[0] + 2 * lame[1];
+    auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
+    problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
 
-  // If you are using stable neohookean, you should bias the lambda and mu:
-  real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-  W = 2 * mu + lambda;
-
-  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
-  problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
-
-  this->mesh_->FilterMatrix(problem_sparse.A_);
-  solver_->SetPreconditioner(std::make_unique<math::PreconditionerDiagonal>());
-  AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
-  AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
+    this->mesh_->FilterMatrix(problem_sparse.A_);
+    solver_->SetPreconditioner(std::make_unique<math::PreconditionerIncompleteCholesky>());
+    AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
+    AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
+  }
   AX_RETURN_OK();
 }
 
@@ -46,6 +40,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
+  elasticity.SetLame(this->lame_);
   auto &velocity = this->velocity_;
   auto const &mass_matrix = this->mass_matrix_;
   math::vec2r lame = this->lame_;
@@ -67,42 +62,25 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
     }
   }
 
-  // static real timer_gather = 0;
-  // static real timer_map = 0;
-  // static real timer_deform = 0;
-  // static idx n_samples = 0;
   math::vecxr eacc = this->ext_accel_.reshaped();
   mesh.FilterVector(eacc, true);
   real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        // auto start_gpu = std::chrono::high_resolution_clock::now();
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kEnergy);
-        // auto end_gpu = std::chrono::high_resolution_clock::now();
-        // timer_deform += std::chrono::duration<real>(end_gpu - start_gpu).count();
-        // start_gpu = end_gpu;
-        auto energy_on_element = elasticity.Energy(lame);
-        // end_gpu = std::chrono::high_resolution_clock::now();
-        // timer_map += std::chrono::duration<real>(end_gpu - start_gpu).count();
-        real elasticity_energy = energy_on_element.sum() * (dt * dt);
+        elasticity.Update(x_new, ElasticityUpdateLevel::kEnergy);
+        elasticity.UpdateEnergy();
+        real elasticity_energy = elasticity.GetEnergyOnElements().sum() * dt * dt;
         math::vecxr x_y = dx - y;
         real kinematic_energy = x_y.dot(mass_matrix * x_y) * 0.5;
         return elasticity_energy + kinematic_energy;
       })
       .SetGrad([&](math::vecxr const &dx) -> math::vecxr {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        // auto start_gpu = std::chrono::high_resolution_clock::now();
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kStress);
-        // auto end_gpu = std::chrono::high_resolution_clock::now();
-        // timer_deform += std::chrono::duration<real>(end_gpu - start_gpu).count();
-        // start_gpu = end_gpu;
-        auto stress_on_element = elasticity.Stress(lame);
-        // timer_map += std::chrono::duration<real>(end_gpu - start_gpu).count();
-        // auto start_cpu = std::chrono::high_resolution_clock::now();
-        math::fieldr<dim> neg_force = elasticity.GatherStress(stress_on_element);
-        // auto end_cpu = std::chrono::high_resolution_clock::now();
-        // timer_gather += std::chrono::duration<real>(end_cpu - start_cpu).count();
+        elasticity.Update(x_new, ElasticityUpdateLevel::kStress);
+        elasticity.UpdateStress();
+        elasticity.GatherStressToVertices();
+        math::fieldr<dim> neg_force = elasticity.GetStressOnVertices();
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
         math::vecxr grad_elasticity = neg_force.reshaped() * (dt * dt);
         math::vecxr grad = grad_elasticity + grad_kinematic;
@@ -111,24 +89,10 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
       })
       .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kHessian);
-        auto hessian_on_element = elasticity.Hessian(lame);
-        // Before move to vertex, make spsd.
-        tbb::parallel_for(tbb::blocked_range<idx>(0, hessian_on_element.size(), 1000),
-                          [&](const tbb::blocked_range<idx> &r) {
-                            for (idx i = r.begin(); i < r.end(); ++i) {
-                              optim::EigenvalueModification em;
-                              em.min_eigval_ = dt * dt;
-                              auto result = em.Modify(hessian_on_element[i]);
-                              if (!result.ok()) {
-                                AX_LOG(WARNING)
-                                    << "Eigenvalue modification failed: " << result.status();
-                              } else {
-                                hessian_on_element[i] = result.value();
-                              }
-                            }
-                          });
-        auto stiffness = elasticity.GatherHessian(hessian_on_element);
+        elasticity.Update(x_new, ElasticityUpdateLevel::kHessian);
+        elasticity.UpdateHessian(true);
+        elasticity.GatherHessianToVertices();
+        auto stiffness = elasticity.GetHessianOnVertices();
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
         mesh.FilterMatrix(hessian);
         return hessian;
@@ -143,18 +107,23 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   lbfgs.SetTolGrad(0.02);
   lbfgs.SetMaxIter(300);
 
-  // math::LinsysProblem_Sparse problem_sparse;
-  // problem_sparse.A_ = problem.EvalSparseHessian(y);
-  // AX_CHECK_OK(solver_->Analyse(problem_sparse));
+  if (strategy_ == LbfgsStrategy::kHard) {
+    math::LinsysProblem_Sparse problem_sparse;
+    problem_sparse.A_ = problem.EvalSparseHessian(y);
+    AX_CHECK_OK(solver_->Analyse(problem_sparse));
+  }
 
-  lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
-    auto approx = solver_->Solve(g, g * dt * dt);
-    AX_CHECK_OK(approx);
-    math::vecxr result = approx->solution_;
-    return result;
-  });
+  if (strategy_ != LbfgsStrategy::kNaive) {
+    lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
+      auto approx = solver_->Solve(g, g * dt * dt);
+      AX_CHECK_OK(approx);
+      math::vecxr result = approx->solution_;
+      return result;
+    });
+  }
 
   auto result = lbfgs.Optimize(problem, y);
+
   if (!result.ok()) {
     AX_LOG(WARNING) << "LBFGS iteration failed to compute! (not a convergency problem.)";
     return result.status();
@@ -162,10 +131,6 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
     AX_LOG(ERROR) << "LBFGS iteration failed to converge!";
   }
   AX_LOG(WARNING) << "#Iter: " << result->n_iter_ << " iterations.";
-  // n_samples += result->n_iter_;
-  // n_samples += 1;
-  // AX_LOG(ERROR) << "Gather: " << timer_gather / n_samples << " Map: " << timer_map / n_samples 
-  //               << " Deform: " << timer_deform / n_samples;
   math::fieldr<dim> x_new = result->x_opt_.reshaped(dim, mesh.GetNumVertices()) + x_cur;
   velocity = (x_new - x_cur) / dt;
   AX_RETURN_NOTOK(mesh.SetVertices(mesh.GetVertices() + velocity * dt));

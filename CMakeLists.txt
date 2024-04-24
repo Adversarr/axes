@@ -28,7 +28,7 @@ option(AX_BUILD_SHARED "Build shared library" OFF)
 option(AX_NO_EXCEPT "Enable noexcept, may lead to compile error for igl." OFF)
 option(AX_ENABLE_TIME_TRACE "Enable time trace." OFF)
 option(AX_ENABLE_AVX "Enable AVX." OFF)
-option(AX_ENABLE_CUDA "Enable cuda." ON)
+option(AX_ENABLE_CUDA "Enable cuda." OFF)
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 
 project(axes)

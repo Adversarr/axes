@@ -46,10 +46,7 @@ public:
     } else if (tetras == nullptr) {
       return utils::FailedPreconditionError("Missing input tetras");
     }
-    auto mesh = TriMesh<3>::Create(MeshType::kP1);
-    if (! mesh) {
-      return utils::FailedPreconditionError("Failed to create mesh.");
-    }
+    auto mesh = std::make_unique<TriMesh<3>>();
 
     auto s = mesh->SetMesh(*tetras, *vertices);
     if (!s.ok()) {

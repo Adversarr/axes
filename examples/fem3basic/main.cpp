@@ -42,8 +42,8 @@ void update_rendering() {
   lines = gl::Lines::Create(mesh);
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(),
-      fem::DeformationGradientUpdate::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh().GetVertices(),
+      fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;

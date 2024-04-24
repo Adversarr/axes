@@ -15,6 +15,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   // Get the mesh
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
+  elasticity.SetLame(this->lame_);
   auto &velocity = this->velocity_;
   auto &mass_matrix = this->mass_matrix_;
   math::vec2r lame = this->lame_;
@@ -42,8 +43,9 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kEnergy);
-        auto energy_on_element = elasticity.Energy(lame);
+        elasticity.Update(x_new, ElasticityUpdateLevel::kEnergy);
+        elasticity.UpdateEnergy();
+        auto energy_on_element = elasticity.GetEnergyOnElements();
         real elasticity_energy = energy_on_element.sum() * dt * dt;
         math::vecxr x_y = dx - y;
         real kinematic_energy = x_y.dot(mass_matrix * x_y) * 0.5;
@@ -51,9 +53,10 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
       })
       .SetGrad([&](math::vecxr const &dx) -> math::vecxr {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kStress);
-        auto stress_on_element = elasticity.Stress(lame);
-        math::fieldr<dim> neg_force = elasticity.GatherStress(stress_on_element);
+        elasticity.Update(x_new, ElasticityUpdateLevel::kStress);
+        elasticity.UpdateStress();
+        elasticity.GatherStressToVertices();
+        math::fieldr<dim> neg_force = elasticity.GetStressOnVertices();
         math::vecxr grad_kinematic = mass_matrix * (dx - y);
         math::vecxr grad_elasticity = dt * dt * neg_force.reshaped();
         math::vecxr grad = grad_elasticity + grad_kinematic;
@@ -62,16 +65,10 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
       })
       .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
-        elasticity.UpdateDeformationGradient(x_new, DeformationGradientUpdate::kHessian);
-        auto hessian_on_element = elasticity.Hessian(lame);
-        // Before move to vertex, make spsd.
-        tbb::parallel_for(tbb::blocked_range<idx>(0, hessian_on_element.size(), 1000),
-          [&](const tbb::blocked_range<idx> &r) {
-            for (idx i = r.begin(); i < r.end(); ++i) {
-              hessian_on_element[i] = optim::project_spd_by_eigvals<dim * dim>(hessian_on_element[i], dt * dt);
-            }
-          });
-        auto stiffness = elasticity.GatherHessian(hessian_on_element);
+        elasticity.Update(x_new, ElasticityUpdateLevel::kHessian);
+        elasticity.UpdateHessian(true);
+        elasticity.GatherHessianToVertices();
+        auto stiffness = elasticity.GetHessianOnVertices();
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
         mesh.FilterMatrix(hessian);
         return hessian;
@@ -80,10 +77,10 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
         return rv;
       })
-      .SetConvergeVar(nullptr)
-      .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-        AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
-      });
+      .SetConvergeVar(nullptr);
+      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
+      // });
 
   optim::Newton optimizer;
   optimizer.SetTolGrad(0.02);
@@ -97,7 +94,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   }
   math::fieldr<dim> x_new = result->x_opt_.reshaped(dim, mesh.GetNumVertices()) + x_cur;
   velocity = (x_new - x_cur) / dt;
-  AX_LOG(INFO) << "#Iter: " << result->n_iter_ << " iterations.";
+  AX_LOG(WARNING) << "#Iter: " << result->n_iter_ << " iterations.";
   AX_RETURN_NOTOK(mesh.SetVertices(mesh.GetVertices() + velocity * dt));
   AX_RETURN_OK();
 }

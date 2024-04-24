@@ -7,7 +7,7 @@
 #include "ax/math/linsys/sparse/LDLT.hpp"
 namespace ax::fem {
 
-template <idx dim> TimeStepperBase<dim>::TimeStepperBase(UPtr<TriMesh<dim>> mesh)
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh)
     : mesh_(std::move(mesh)) {}
 
 template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {

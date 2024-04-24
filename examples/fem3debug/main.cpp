@@ -42,11 +42,11 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  fem::TriMesh<3> mesh;
-  AX_CHECK_OK(mesh.SetMesh(F, V));
+  SPtr<fem::TriMesh<3>> mesh = std::make_shared<fem::TriMesh<3>>();
+  AX_CHECK_OK(mesh->SetMesh(F, V));
   fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(mesh);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
-  elast.UpdateDeformationGradient(mesh.GetVertices(), ax::fem::DeformationGradientUpdate::kHessian);
+  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   auto stress = elast.Stress(lame);
   auto force = elast.GatherStress(stress);
   auto& q = add_or_replace_component<gl::Quiver>(out);

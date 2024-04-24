@@ -31,9 +31,11 @@ ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
 ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
-ABSL_FLAG(std::string, optim, "liu", "optimizer lbfgs 'naive' or 'liu'");
+ABSL_FLAG(std::string, optim, "liu", "optimizer newton 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
+ABSL_FLAG(std::string, lbfgs, "naive", "naive, laplacian, hard");
+
 int nx;
 using namespace ax;
 Entity out;
@@ -64,8 +66,8 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-  ts->GetElasticity().UpdateDeformationGradient(ts->GetMesh().GetVertices(),
-                                                fem::DeformationGradientUpdate::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh().GetVertices(),
+                                                fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
 
@@ -240,39 +242,32 @@ int main(int argc, char** argv) {
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
   }
 
+  auto cube = geo::tet_cube(10, 2, 2, 2);
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
+  // fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
 
-  if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
-    auto [p, ip] = fem::optimize_topology<3>(input_mesh.indices_, input_mesh.vertices_.cols());
-    // input_mesh.indices_ = input_mesh.indices_.col(ip);
-    auto verts = input_mesh.vertices_;
-    auto indis = input_mesh.indices_;
-    for (auto i : utils::iota(verts.cols())) {
-      verts.col(i) = input_mesh.vertices_.col(ip[i]);
-    }
-    for (auto i : utils::iota(indis.cols())) {
-      for (auto j : utils::iota(indis.rows())) {
-        indis(j, i) = p[indis(j, i)];
-      }
-    }
-  }
-
-  fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
-
-  // input_mesh = geo::tet_cube(0.5, 10 * nx, nx, nx);
-  // input_mesh.vertices_.row(0) *= 10;
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
-    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::TriMesh<3>>());
-  } else if (opt == "lbfgs") {
-    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
+    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
+    auto strategy = absl::GetFlag(FLAGS_lbfgs);
+  } else if (opt == "newton") {
+    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
+  } else {
+    AX_CHECK(false) << "Invalid optimizer name, expect 'liu' or 'newton'";
   }
   ts->SetLame(lame);
-  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
 
+  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
+  if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
+    auto [p, ip] = fem::optimize_topology<3>(input_mesh.indices_, input_mesh.vertices_.cols());
+    ts->GetMesh().ApplyPermutation(p, ip);
+  }
+
+  input_mesh.vertices_ = ts->GetMesh().GetVertices();
+  input_mesh.indices_ = ts->GetMesh().GetElements();
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
     for (auto i : utils::iota(input_mesh.vertices_.cols())) {
       const auto& position = input_mesh.vertices_.col(i);

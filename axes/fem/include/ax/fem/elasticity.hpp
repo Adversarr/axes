@@ -8,7 +8,7 @@
 
 namespace ax::fem {
 
-AX_DECLARE_ENUM(DeformationGradientUpdate){kEnergy, kStress, kHessian};
+AX_DECLARE_ENUM(ElasticityUpdateLevel){kEnergy, kStress, kHessian};
 
 /**
  * @brief Base class for general elasticity computation.
@@ -16,48 +16,70 @@ AX_DECLARE_ENUM(DeformationGradientUpdate){kEnergy, kStress, kHessian};
  */
 template <idx dim> class ElasticityComputeBase {
 public:
-  explicit ElasticityComputeBase(TriMesh<dim> const& mesh);
+  using elem_stress_t = List<math::matr<dim, dim>>;
+  using vert_stress_t = math::fieldr<dim>;
+  using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
+  using vert_hessian_t = math::sp_matxxr;
+  using MeshPtr = SPtr<TriMesh<dim>>;
+
+  explicit ElasticityComputeBase(SPtr<TriMesh<dim>> mesh);
   virtual ~ElasticityComputeBase() = default;
 
-  virtual void RecomputeRestPose() = 0;
+  void SetMesh(MeshPtr const& mesh);
+  virtual void RecomputeRestPose();
 
+  virtual void SetLame(math::vec2r const& u_lame);
+  virtual void SetLame(math::field2r const& e_lame);
+
+  virtual bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) = 0;
+
+  virtual void UpdateEnergy() = 0;
+  virtual void UpdateStress() = 0;
+  virtual void UpdateHessian(bool projection) = 0;
+
+  virtual void GatherEnergyToVertices() = 0;
+  virtual void GatherStressToVertices() = 0;
+  virtual void GatherHessianToVertices() = 0;
+
+  virtual elem_hessian_t const& GetHessianOnElements() { return hessian_on_elements_; }
+  virtual vert_hessian_t const& GetHessianOnVertices() { return hessian_on_vertices_; }
+  virtual elem_stress_t const& GetStressOnElements() { return stress_on_elements_; }
+  virtual vert_stress_t const& GetStressOnVertices() { return stress_on_vertices_; }
+  virtual math::field1r const& GetEnergyOnElements() { return energy_on_elements_; }
+  virtual math::field1r const& GetEnergyOnVertices() { return energy_on_vertices_; }
+
+  // SECT: Old APIs.
   virtual math::field1r GatherEnergy(math::field1r const& element_values) const;
   virtual math::fieldr<dim> GatherStress(List<elasticity::StressTensor<dim>> const& stress) const;
   virtual math::sp_matxxr GatherHessian(List<elasticity::HessianTensor<dim>> const& hessian) const;
-  virtual bool UpdateDeformationGradient(math::fieldr<dim> const& pose,
-                                         DeformationGradientUpdate update_type)
-      = 0;
+  virtual math::field1r ComputeEnergyAndGather(math::vec2r const& u_lame);
+  virtual math::field1r ComputeEnergyAndGather(math::field2r const& lame);
+  virtual math::fieldr<dim> ComputeStressAndGather(math::vec2r const& u_lame);
+  virtual math::fieldr<dim> ComputeStressAndGather(math::field2r const& lame);
+  virtual math::sp_matxxr ComputeHessianAndGather(math::vec2r const& u_lame);
+  virtual math::sp_matxxr ComputeHessianAndGather(math::field2r const& lame);
 
-  /**
-   * @brief Compute the energy of all elements
-   *
-   * @param u_lame
-   * @return real
-   */
   virtual math::field1r Energy(math::vec2r const& u_lame) = 0;
   virtual math::field1r Energy(math::field2r const& lame) = 0;
 
-  /**
-   * @brief Compute the stress tensor of each element.
-   *
-   * @param u_lame
-   * @return List<elasticity::StressTensor<dim>>
-   */
   virtual List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) = 0;
   virtual List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) = 0;
 
-  /**
-   * @brief Compute the Hessian tensor of each element.
-   *
-   * @param u_lame
-   * @return List<elasticity::HessianTensor<dim>>
-   */
   virtual List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) = 0;
   virtual List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) = 0;
 
-  TriMesh<dim> const& mesh_;
+protected:
+  SPtr<TriMesh<dim>> mesh_;
   elasticity::DeformationGradientCache<dim> rinv_;
   math::field1r rest_volume_;
+  math::field2r lame_;
+
+  math::field1r energy_on_elements_;
+  math::field1r energy_on_vertices_;
+  elem_stress_t stress_on_elements_;
+  vert_stress_t stress_on_vertices_;
+  elem_hessian_t hessian_on_elements_;
+  vert_hessian_t hessian_on_vertices_;
 };
 
 /**
@@ -71,10 +93,22 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
+  using elem_stress_t = List<math::matr<dim, dim>>;
+  using vert_stress_t = math::fieldr<dim>;
+  using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
+  using vert_hessian_t = math::sp_matxxr;
+  using MeshPtr = SPtr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  bool UpdateDeformationGradient(math::fieldr<dim> const& pose,
-                                 DeformationGradientUpdate update_type);
+  virtual void UpdateEnergy();
+  virtual void UpdateStress();
+  virtual void UpdateHessian(bool projection);
+
+  virtual void GatherEnergyToVertices();
+  virtual void GatherStressToVertices();
+  virtual void GatherHessianToVertices();
+
+  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type);
   void RecomputeRestPose();
   math::field1r Energy(math::field2r const& lame);
   math::field1r Energy(math::vec2r const& lame);

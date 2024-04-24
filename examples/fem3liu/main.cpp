@@ -66,8 +66,7 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(),
-                                                fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
 
@@ -248,12 +247,23 @@ int main(int argc, char** argv) {
   AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
-  // fix_negative_volume(input_mesh.indices_, input_mesh.vertices_);
 
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
     auto strategy = absl::GetFlag(FLAGS_lbfgs);
+    auto p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
+    if (strategy == "naive") {
+      std::cout << "LBFGS: Naive" << std::endl;
+      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kNaive);
+    } else if (strategy == "laplacian") {
+      std::cout << "LBFGS: Liu17" << std::endl;
+      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kLaplacian);
+    } else {
+      std::cout << "LBFGS: Hard" << std::endl;
+      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kHard);
+    }
   } else if (opt == "newton") {
+    std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
   } else {
     AX_CHECK(false) << "Invalid optimizer name, expect 'liu' or 'newton'";
@@ -299,7 +309,7 @@ int main(int argc, char** argv) {
   ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
 #endif
 
-  if (scene == SCENE_TWIST) {
+  if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
   }
   out = create_entity();

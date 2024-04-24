@@ -14,6 +14,7 @@ namespace ax::fem {
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt const &opt) {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Init(opt));
   solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
+  solver_->SetPreconditioner(std::make_unique<math::PreconditionerDiagonal>());
   if (strategy_ == LbfgsStrategy::kLaplacian) {
     math::LinsysProblem_Sparse problem_sparse;
     problem_sparse.A_ = this->mass_matrix_;
@@ -29,7 +30,6 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
     problem_sparse.A_ = this->mass_matrix_ + 1e-4 * L;
 
     this->mesh_->FilterMatrix(problem_sparse.A_);
-    solver_->SetPreconditioner(std::make_unique<math::PreconditionerIncompleteCholesky>());
     AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
     AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
   }
@@ -105,7 +105,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
 
   optim::Lbfgs lbfgs;
   lbfgs.SetTolGrad(0.02);
-  lbfgs.SetMaxIter(300);
+  lbfgs.SetMaxIter(1000);
 
   if (strategy_ == LbfgsStrategy::kHard) {
     math::LinsysProblem_Sparse problem_sparse;
@@ -117,8 +117,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
     lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
       auto approx = solver_->Solve(g, g * dt * dt);
       AX_CHECK_OK(approx);
-      math::vecxr result = approx->solution_;
-      return result;
+      return std::move(approx->solution_);
     });
   }
 

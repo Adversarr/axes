@@ -12,7 +12,8 @@ public:
   PreconditionerKind Kind() const final { return PreconditionerKind::kIncompleteCholesky; }
 
 private:
-  Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;
+  // Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;
+  Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::NaturalOrdering<idx>> impl_;
 };
 
 }  // namespace ax::math

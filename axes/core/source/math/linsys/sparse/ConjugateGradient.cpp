@@ -1,4 +1,5 @@
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+
 #include "ax/math/linalg.hpp"
 
 namespace ax::math {
@@ -34,7 +35,11 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     impl.l2_err_ = solver_.error();
     return impl;
   } else {
-    sp_matxxr const& A = sparse_problem_.A_;
+    sp_matxxr const &A = sparse_problem_.A_;
+    if (b.size() != A.rows()) {
+      return utils::InvalidArgumentError("Invalid rhs vector: b" + std::to_string(b.size())
+                                         + " != A" + std::to_string(A.rows()));
+    }
     // Initialize the solution vector.
     math::vecxr x = x0;
     if (x.size() != A.cols()) {
@@ -54,8 +59,8 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     for (; iter < max_iter_; ++iter) {
       Ap.noalias() = A * p;
       real alpha = r.dot(y) / p.dot(Ap);
-      x += alpha * p;  // 5.39b
-      r += alpha * Ap; // 5.39c
+      x.noalias() += alpha * p;   // 5.39b
+      r.noalias() += alpha * Ap;  // 5.39c
       real residual_norm = math::norm(r);
       if (residual_norm <= tol_) {
         converged = true;
@@ -81,7 +86,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
 }
 
 Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
-  AX_SYNC_OPT_IF(opt, idx, max_iter){
+  AX_SYNC_OPT_IF(opt, idx, max_iter) {
     if (max_iter_ < 1) {
       return utils::InvalidArgumentError("max_iter must be positive");
     }
@@ -89,7 +94,7 @@ Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
     solver_.setMaxIterations(max_iter_);
   }
 
-  AX_SYNC_OPT_IF(opt, real, tol){
+  AX_SYNC_OPT_IF(opt, real, tol) {
     if (tol_ < 0) {
       return utils::InvalidArgumentError("tol must be non-negative");
     }
@@ -117,9 +122,9 @@ Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
 }
 
 utils::Opt SparseSolver_ConjugateGradient::GetOptions() const {
-  utils::Opt opt {
-    {"max_iter", max_iter_},
-    {"tol", tol_},
+  utils::Opt opt{
+      {"max_iter", max_iter_},
+      {"tol", tol_},
   };
   if (preconditioner_) {
     auto name = utils::reflect_name(preconditioner_->Kind());

@@ -23,8 +23,8 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
     real W = lame[0] + 2 * lame[1];
 
     // If you are using stable neohookean, you should bias the lambda and mu:
-    real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-    W = 2 * mu + lambda;
+    // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+    // W = 2 * mu + lambda;
 
     auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
     auto full_laplacian = this->mass_matrix_original_ + 1e-4 * L;

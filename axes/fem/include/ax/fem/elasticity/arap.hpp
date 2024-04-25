@@ -13,6 +13,8 @@ public:
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
   using ElasticityBase<dim, IsotropicARAP<dim>>::ElasticityBase;
+  AX_HOST_DEVICE IsotropicARAP(real lambda, real mu): ElasticityBase<dim, IsotropicARAP<dim>>(lambda, mu) {}
+  AX_HOST_DEVICE IsotropicARAP() : ElasticityBase<dim, IsotropicARAP<dim>>() {}
 
   /**
    * @brief Compute the ARAP Elasticity Potential value.
@@ -20,7 +22,7 @@ public:
    * where e is the Approximate Green Strain (Ignore the high order terms)
    * @return real
    */
-  real EnergyImpl(DeformationGradient<dim> const& F,
+  AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
                   const math::decomp::SvdResultImpl<dim, real>& svd) const {
     const auto& mu = this->mu_;
     // F should be Ut Sigma V,
@@ -33,7 +35,7 @@ public:
    *
    * @return stress_t
    */
-  stress_t StressImpl(DeformationGradient<dim> const& ,
+  AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& ,
                   math::decomp::SvdResultImpl<dim, real> const& svd) const {
     real mu = this->mu_;
     math::matr<dim, dim> R = svd.U_ * svd.V_.transpose();
@@ -46,7 +48,7 @@ public:
    *
    * @return hessian_t
    */
-  hessian_t HessianImpl(DeformationGradient<dim> const&,
+  AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const&,
                         const math::decomp::SvdResultImpl<dim, real>& svd) const;
 
   bool EnergyRequiresSvd() const noexcept final { return true; }
@@ -55,7 +57,7 @@ public:
 };
 
 template<> typename IsotropicARAP<3>::hessian_t
-inline IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResultImpl<3, real>& svd) const {
+AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResultImpl<3, real>& svd) const {
   real s0 = svd.sigma_[0];
   real s1 = svd.sigma_[1];
   real s2 = svd.sigma_[2];
@@ -67,7 +69,7 @@ inline IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::
   t2.setZero(); t2(0, 1) = 1; t2(1, 0) = -1;
 
   // Eigen Vectors.
-  real inv_sqrt2 = 1.0 / math::sqrt<real>(2.0);
+  real inv_sqrt2 = 1.0 / sqrt(2.0);
   t0 = inv_sqrt2 * U * t0 * V.transpose();
   t1 = inv_sqrt2 * U * t1 * V.transpose();
   t2 = inv_sqrt2 * U * t2 * V.transpose();
@@ -89,7 +91,7 @@ inline IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::
 
 
 template<> typename IsotropicARAP<2>::hessian_t
-inline IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::decomp::SvdResultImpl<2, real>& svd) const {
+AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::decomp::SvdResultImpl<2, real>& svd) const {
   // I2 - 2 I1
   real s0 = svd.sigma_[0];
   real s1 = svd.sigma_[1];
@@ -98,7 +100,7 @@ inline IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::
   math::mat2r t0;
   t0(0, 0) = t0(1, 1) = 0;
   t0(0, 1) = -1; t0(1, 0) = 1;
-  const real inv_sqrt2 = 1.0 / math::sqrt<real>(2.0);
+  const real inv_sqrt2 = 1.0 / sqrt(2.0);
   math::mat2r T = inv_sqrt2 * U * t0 * V.transpose();
   math::vecr<4> q = math::flatten(T);
 

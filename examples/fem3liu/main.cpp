@@ -302,9 +302,17 @@ int main(int argc, char** argv) {
 
 #ifdef AX_HAS_CUDA
   if (auto device = absl::GetFlag(FLAGS_device); device == "cpu") {
-    ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
+      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+    } else {
+      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_CPU>();
+    }
   } else if (device == "gpu") {
-    ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
+    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
+      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
+    } else {
+      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_GPU>();
+    }
   }
 #else
   ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();

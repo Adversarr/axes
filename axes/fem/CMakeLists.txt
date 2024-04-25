@@ -30,7 +30,6 @@ target_link_libraries(axes_fem
     axes_geometry)
 
 ax_set_warn_levels(axes_fem)
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda")
 target_compile_options(axes_fem PRIVATE ${AX_CXX_FLAGS})
 set_property(TARGET axes_fem PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 

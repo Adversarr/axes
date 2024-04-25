@@ -1,6 +1,5 @@
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
-find_package(OpenMP)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(Blosc REQUIRED)
@@ -25,6 +24,13 @@ message(STATUS "==> zlib: ${ZLIB_INCLUDEDIR}")
 file(GLOB_RECURSE AX_CORE_SOURCE CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
+
+if (${AX_HAS_CUDA})
+  file(GLOB_RECURSE AX_CORE_CUDA_SOURCE CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cuh)
+  list(APPEND AX_CORE_SOURCE ${AX_CORE_CUDA_SOURCE})
+endif()
 
 if (${AX_BUILD_SHARED})
   add_library(axes SHARED ${AX_CORE_SOURCE})
@@ -66,12 +72,9 @@ target_link_libraries(axes
 if (AX_ENABLE_CUDA)
   target_link_libraries(axes PUBLIC CUDA::cudart)
   target_compile_definitions(axes PUBLIC "AX_HAS_CUDA")
-endif()
-
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
-  message(STATUS "OpenMP found and link to axes.")
-  target_compile_definitions(axes PUBLIC "AX_HAS_OPENMP")
+  set_property(TARGET axes PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  target_compile_options(axes PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+  target_compile_options(axes PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 endif()
 
 ax_set_warn_levels(axes)

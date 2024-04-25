@@ -28,10 +28,7 @@ template <idx dim> math::sp_coeff_list MassMatrixCompute<dim>::operator()(real d
     auto element_mass = p1_e<dim>(E, density);
     for (idx i = 0; i <= dim; ++i) {
       for (idx j = 0; j <= dim; ++j) {
-        // Foreach vertex, we have dim components.
-        for (idx D = 0; D < dim; ++D) {
-          result.push_back({D + dim * ijk[i], D + dim * ijk[j], element_mass(i, j)});
-        }
+        result.push_back({ijk[i], ijk[j], element_mass(i, j)});
       }
     }
   }

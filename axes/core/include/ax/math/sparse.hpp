@@ -3,6 +3,7 @@
 #include <Eigen/SparseCore>
 
 #include "ax/core/common.hpp"
+#include "ax/math/common.hpp"
 
 namespace ax::math {
 
@@ -34,6 +35,22 @@ AX_FORCE_INLINE sp_matxxr make_sparse_matrix(idx rows, idx cols,
   sp_matxxr mat(rows, cols);
   mat.setFromTriplets(coeff_list.begin(), coeff_list.end());
   return mat;
+}
+
+template<idx dim>
+sp_matxxr kronecker_identity(sp_matxxr A) {
+  idx const rows = A.rows() * dim;
+  idx const cols = A.cols() * dim;
+  sp_coeff_list coeff_list;
+  coeff_list.reserve(A.nonZeros() * dim);
+  for (idx k = 0; k < A.outerSize(); ++k) {
+    for (sp_matxxr::InnerIterator it(A, k); it; ++it) {
+      for (idx i = 0; i < dim; ++i) {
+        coeff_list.push_back({it.row() * dim + i, it.col() * dim + i, it.value()});
+      }
+    }
+  }
+  return make_sparse_matrix(rows, cols, coeff_list);
 }
 
 }  // namespace ax::math

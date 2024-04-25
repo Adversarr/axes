@@ -30,14 +30,16 @@ template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {
 
 template <idx dim> void TimeStepperBase<dim>::SetDensity(real density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_ = math::make_sparse_matrix(dim * mesh_->GetNumVertices(),
-                                          dim * mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_original_ = math::make_sparse_matrix(mesh_->GetNumVertices(),
+                                          mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
 template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_ = math::make_sparse_matrix(dim * mesh_->GetNumVertices(),
-                                          dim * mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_original_ = math::make_sparse_matrix(mesh_->GetNumVertices(),
+                                          mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {

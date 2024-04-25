@@ -21,13 +21,11 @@ template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(real W)
         for (idx D = 0; D < dim; ++D) {
           lap += E.Integrate_PF_PF(i, j, D, D);
         }
-        for (idx D = 0; D < dim; ++D) {
-          l_coef.push_back({dim * elem[i] + D, dim * elem[j] + D, lap * W});
-        }
+        l_coef.push_back({elem[i], elem[j], lap * W});
       }
     }
   }
-  idx dofs = mesh_.GetNumVertices() * dim;
+  idx dofs = mesh_.GetNumVertices();
   return math::make_sparse_matrix(dofs, dofs, l_coef);
 }
 
@@ -48,13 +46,11 @@ template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(math::f
         for (idx D = 0; D < dim; ++D) {
           lap += E.Integrate_PF_PF(i, j, D, D);
         }
-        for (idx D = 0; D < dim; ++D) {
-          l_coef.push_back({dim * elem[i] + D, dim * elem[j] + D, lap * W(iElem)});
-        }
+        l_coef.push_back({elem[i], elem[j], lap * W(iElem)});
       }
     }
   }
-  idx dofs = mesh_.GetNumVertices() * dim;
+  idx dofs = mesh_.GetNumVertices();
   return math::make_sparse_matrix(dofs, dofs, l_coef);
 }
 

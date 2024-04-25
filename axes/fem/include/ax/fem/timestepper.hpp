@@ -75,6 +75,7 @@ protected:
 
   // cache the mass matrix
   math::sp_matxxr mass_matrix_;
+  math::sp_matxxr mass_matrix_original_;
   real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
 };

@@ -108,7 +108,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
     }
 
     // SECT: Line search
-    auto lsr = linesearch_->Optimize(problem_, x, dir);
+    auto lsr = linesearch_->Optimize(problem_, x, grad, dir);
     OptResultImpl ls_result;
     if (!lsr.ok()) {
       AX_LOG(ERROR) << "Line Search Error: " << lsr.status()

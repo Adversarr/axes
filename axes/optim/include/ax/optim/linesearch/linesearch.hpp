@@ -15,7 +15,7 @@ class LinesearchBase : public utils::Tunable {
 public:
   virtual ~LinesearchBase() = default;
 
-  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& dir) const = 0;
+  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const = 0;
 
   static UPtr<LinesearchBase> Create(LineSearchKind kind);
 

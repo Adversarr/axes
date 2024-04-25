@@ -104,7 +104,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     }
 
     // SECT: Line search
-    auto ls_result = linesearch_->Optimize(problem_, x, dir);
+    auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
     if (!ls_result.ok()) {
       AX_LOG(ERROR) << "Line search failed: " << ls_result.status();
       AX_LOG(ERROR) << "at Iteration" << iter;

@@ -2,7 +2,7 @@
 #include <cmath>
 namespace ax::optim {
 OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr const& x0,
-                                           math::vecxr const& dir) const {
+                                           math::vecxr const& grad, math::vecxr const& dir) const {
   // SECT: Check Inputs
   if (alpha_ <= 0) {
     return utils::InvalidArgumentError("Invalid alpha_: " + std::to_string(alpha_));
@@ -26,7 +26,6 @@ OptResult BacktrackingLinesearch::Optimize(OptProblem const& prob, math::vecxr c
   if (!math::isfinite(f0)) {
     return utils::FailedPreconditionError("Invalid x0 in Line Search, Energy returns infinite number.");
   }
-  math::vecxr grad = prob.EvalGrad(x0);
   real df0 = grad.dot(dir);
   if (df0 >= 0 || !math::isfinite(df0)) {
     AX_LOG(ERROR) << "grad: " << grad.transpose();

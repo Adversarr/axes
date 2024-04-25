@@ -30,15 +30,13 @@ template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {
 
 template <idx dim> void TimeStepperBase<dim>::SetDensity(real density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_original_ = math::make_sparse_matrix(mesh_->GetNumVertices(),
-                                          mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_original_ = mmc(density);
   mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
 template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& density) {
   auto mmc = MassMatrixCompute<dim>(*mesh_);
-  mass_matrix_original_ = math::make_sparse_matrix(mesh_->GetNumVertices(),
-                                          mesh_->GetNumVertices(), mmc(density));
+  mass_matrix_original_ = mmc(density);
   mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
@@ -63,7 +61,7 @@ template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {
   linsys.A_ = (M + K * dt * dt);
   linsys.b_ = M * Y - neg_force * dt * dt;
   mesh_->FilterVector(linsys.b_, true);
-  mesh_->FilterMatrix(linsys.A_);
+  mesh_->FilterMatrixFull(linsys.A_);
 
   auto dx_flat = solver.SolveProblem(linsys);
   if (!dx_flat.ok()) {

@@ -18,7 +18,6 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
   solver_->SetPreconditioner(std::make_unique<math::PreconditionerDiagonal>());
   if (strategy_ == LbfgsStrategy::kLaplacian) {
     math::LinsysProblem_Sparse problem_sparse;
-    problem_sparse.A_ = this->mass_matrix_;
     // They call you Laplace: M + dtSq * Lap.
     const math::vec2r lame = this->lame_;
     real W = lame[0] + 2 * lame[1];
@@ -28,15 +27,11 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
     W = 2 * mu + lambda;
 
     auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
-    problem_sparse.A_ = this->mass_matrix_original_ + 1e-4 * L;
-
-    std::cout << "Mass Shape" << this->mass_matrix_original_.rows() << std::endl;
-    std::cout << "Laplace Shape" << L.rows() << std::endl;
-
-
-    // this->mesh_->FilterMatrix(problem_sparse.A_);
+    auto full_laplacian = this->mass_matrix_original_ + 1e-4 * L;
+    problem_sparse.A_ = math::kronecker_identity<dim>(full_laplacian);
+    this->mesh_->FilterMatrixFull(problem_sparse.A_);
     AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
-    AX_RETURN_NOTOK(solver_->Analyse(problem_sparse));
+    AX_CHECK_OK(solver_->Analyse(problem_sparse));
   }
   AX_RETURN_OK();
 }
@@ -99,7 +94,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         elasticity.GatherHessianToVertices();
         auto stiffness = elasticity.GetHessianOnVertices();
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
-        mesh.FilterMatrix(hessian);
+        mesh.FilterMatrixFull(hessian);
         return hessian;
       })
       .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
@@ -120,14 +115,9 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
 
   if (strategy_ == LbfgsStrategy::kLaplacian) {
     lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
-      auto grad_field = g.reshaped(dim, mesh.GetNumVertices()).eval();
-      for (auto D: utils::iota(dim)) {
-        math::vecxr this_dim = grad_field.row(D).transpose().eval();
-        auto approx = solver_->Solve(this_dim, this_dim * dt * dt);
-        AX_CHECK_OK(approx) << "Laplace solve at dim "<< this_dim << " failed.";
-        grad_field.row(D) = approx->solution_;
-      }
-      return grad_field.reshaped();
+      auto approx = solver_->Solve(g, g * dt * dt);
+      AX_CHECK_OK(approx);
+      return std::move(approx->solution_);
     });
   } else if (strategy_ == LbfgsStrategy::kHard) {
     lbfgs.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {

@@ -29,12 +29,13 @@
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
-ABSL_FLAG(std::string, scene, "twist", "id of scene, 0 for twist, 1 for bend.");
+ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
 ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
 ABSL_FLAG(std::string, optim, "liu", "optimizer newton 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
-ABSL_FLAG(std::string, lbfgs, "naive", "naive, laplacian, hard");
+ABSL_FLAG(std::string, lbfgs, "laplacian", "naive, laplacian, hard");
+ABSL_FLAG(double, youngs, 1e7, "Youngs");
 
 int nx;
 using namespace ax;
@@ -231,22 +232,22 @@ int main(int argc, char** argv) {
 
   std::string tet_file, vet_file;
 
+  lame = fem::elasticity::compute_lame(absl::GetFlag(FLAGS_youngs), 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
-    lame = fem::elasticity::compute_lame(1e7, 0.45);
     tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
   } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
-    lame = fem::elasticity::compute_lame(1e6, 0.45);
     tet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
   }
 
-  auto cube = geo::tet_cube(10, 2, 2, 2);
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
+  auto cube = geo::tet_cube(10, 2, 2, 2);
   input_mesh.indices_ = tet->transpose();
   input_mesh.vertices_ = vet->transpose();
+  // input_mesh = cube;
 
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());

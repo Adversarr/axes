@@ -13,6 +13,7 @@
 #include "ax/utils/common.hpp"
 #include <openvdb/openvdb.h>
 
+ABSL_FLAG(int, n_eigen_threads, 0, "Number of eigen parallelism");
 
 namespace ax {
 
@@ -60,7 +61,10 @@ void init() {
 
   /****************************** Vdb ******************************/
   openvdb::initialize();
-  math::init_parallel();
+  int nT = absl::GetFlag(FLAGS_n_eigen_threads);
+  if (nT > 1) {
+    math::init_parallel();
+  }
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {

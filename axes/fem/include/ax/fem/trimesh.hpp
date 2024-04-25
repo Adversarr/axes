@@ -190,9 +190,13 @@ public:
    */
   AX_FORCE_INLINE auto end() noexcept;
 
-  void FilterMatrix(math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
+  void FilterMatrixFull(math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 
-  void FilterMatrix(math::sp_matxxr& mat) const;
+  void FilterMatrixFull(math::sp_matxxr& mat) const;
+
+  void FilterMatrixDof(idx dof, math::sp_matxxr& mat) const;
+
+  void FilterMatrixDof(idx dif, math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 
   void FilterVector(math::vecxr& inout, bool set_zero = false) const;
 

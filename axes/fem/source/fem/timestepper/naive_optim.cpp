@@ -70,7 +70,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         elasticity.GatherHessianToVertices();
         auto stiffness = elasticity.GetHessianOnVertices();
         math::sp_matxxr hessian = mass_matrix + (dt * dt) * stiffness;
-        mesh.FilterMatrix(hessian);
+        mesh.FilterMatrixFull(hessian);
         return hessian;
       })
       .SetConvergeGrad([&](const math::vecxr&, const math::vecxr& grad) -> real {

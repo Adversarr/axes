@@ -20,7 +20,7 @@ public:
    * vertices.
    * @return math::sp_coeff_list
    */
-  math::sp_coeff_list operator()(math::field1r const& density);
+  math::sp_matxxr operator()(math::field1r const& density);
 
   /**
    * @brief Compute the mass matrix.
@@ -28,7 +28,7 @@ public:
    * @param density Uniform density value.
    * @return math::sp_coeff_list
    */
-  math::sp_coeff_list operator()(real density);
+  math::sp_matxxr operator()(real density);
 
   math::vecxr Lumped(math::field1r const& density, bool is_density_on_element);
 

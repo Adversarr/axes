@@ -6,15 +6,29 @@
 namespace ax::math {
 
 /****************************** Unary op for scalar ******************************/
+#ifdef __CUDACC__
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
-  return details::sqrt_impl(x);
+  return ::sqrt(x);
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
+  return 1.0 / ::sqrt(x);
+}
+
+#else
+
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto sqrt(Scalar x) {
+  return details::sqrt_impl(x);
+}
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_FORCE_INLINE auto rsqrt(Scalar x) {
   return details::rsqrt_impl(x);
 }
+
+#endif
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {

@@ -96,7 +96,7 @@ template <idx dim> bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const 
 }
 
 template <idx dim>
-void TriMesh<dim>::FilterMatrix(math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
+void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     idx row_id = coeff.row() / dim;
@@ -119,6 +119,24 @@ void TriMesh<dim>::FilterMatrix(math::sp_coeff_list const& input, math::sp_coeff
   }
 }
 
+template <idx dim>
+void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
+  out.reserve(input.size());
+  for (auto& coeff : input) {
+    if (IsDirichletBoundary(coeff.row(), d) || IsDirichletBoundary(coeff.row(), d)) {
+      continue;
+    }
+    out.push_back(coeff);
+  }
+
+  // Add the Dirichlet boundary conditions.
+  for (idx i = 0; i < vertices_.cols(); ++i) {
+    if (IsDirichletBoundary(i, d)) {
+      out.push_back(math::sp_coeff(i, i, 1));
+    }
+  }
+}
+
 template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
   AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
   inout.array() *= dirichlet_boundary_mask_.reshaped().array();
@@ -127,7 +145,7 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
   }
 }
 
-template <idx dim> void TriMesh<dim>::FilterMatrix(math::sp_matxxr& mat) const {
+template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_matxxr& mat) const {
   math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {
     for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
@@ -135,8 +153,20 @@ template <idx dim> void TriMesh<dim>::FilterMatrix(math::sp_matxxr& mat) const {
     }
   }
   math::sp_coeff_list coo_filtered;
-  FilterMatrix(coo, coo_filtered);
+  FilterMatrixFull(coo, coo_filtered);
   mat = math::make_sparse_matrix(dim * GetNumVertices(), dim * GetNumVertices(), coo_filtered);
+}
+
+template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_matxxr& mat) const {
+  math::sp_coeff_list coo;
+  for (idx i = 0; i < mat.outerSize(); ++i) {
+    for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
+      coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
+    }
+  }
+  math::sp_coeff_list coo_filtered;
+  FilterMatrixDof(d, coo, coo_filtered);
+  mat = math::make_sparse_matrix(GetNumVertices(), GetNumVertices(), coo_filtered);
 }
 
 template <idx dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {

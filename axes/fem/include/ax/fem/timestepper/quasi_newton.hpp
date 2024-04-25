@@ -20,7 +20,6 @@ public:
 
 protected:
   UPtr<math::SparseSolverBase> solver_;
-
   LbfgsStrategy strategy_;
 };
 

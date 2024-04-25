@@ -17,7 +17,9 @@ public:
 template<idx dim>
 AX_HOST_DEVICE AX_FORCE_INLINE math::matr<dim, dim>
 project_spd_by_eigvals(math::matr<dim, dim> const& A, real min_eigval) {
-  auto && [V, D] = math::eig(A);
+  math::matr<dim, dim> V;
+  math::vecr<dim> D;
+  math::eig(A, V, D);
   D = D.cwiseMax(min_eigval);
   return V * D.asDiagonal() * V.transpose();
 }

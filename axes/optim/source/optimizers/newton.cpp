@@ -12,10 +12,12 @@
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/status.hpp"
+#include "ax/utils/time.hpp"
 
 namespace ax::optim {
 
 OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
+  AX_TIME_FUNC();
   if (!problem_.HasEnergy()) {
     return utils::FailedPreconditionError("Energy function not set");
   }
@@ -78,6 +80,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       }
       dir = -solution.value().solution_;
     } else {
+      AX_TIMEIT("Eval and Solve Sparse System");
       math::sp_matxxr H = problem_.EvalSparseHessian(x);
       if (H.rows() != x.rows() || H.cols() != x.rows()) {
         return utils::FailedPreconditionError("Hessian matrix size mismatch");

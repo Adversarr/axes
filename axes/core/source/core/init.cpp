@@ -1,17 +1,20 @@
 #include "ax/core/init.hpp"
-#include <absl/log/initialize.h>
+
 #include <absl/debugging/failure_signal_handler.h>
 #include <absl/debugging/symbolize.h>
 #include <absl/flags/parse.h>
-#include <absl/log/log.h>
-#include <absl/log/globals.h>
 #include <absl/log/die_if_null.h>
+#include <absl/log/globals.h>
+#include <absl/log/initialize.h>
+#include <absl/log/log.h>
+#include <openvdb/openvdb.h>
 
 #include "ax/core/echo.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/math/init.hpp"
 #include "ax/utils/common.hpp"
-#include <openvdb/openvdb.h>
+#include "ax/utils/status.hpp"
+#include "ax/utils/time.hpp"
 
 ABSL_FLAG(int, n_eigen_threads, 0, "Number of eigen parallelism");
 
@@ -31,9 +34,7 @@ List<Hook> clean_up_hooks;
 
 const char* program_path = nullptr;
 
-const char* get_program_path() {
-  return program_path;
-}
+const char* get_program_path() { return program_path; }
 
 /****************************** Implementation ******************************/
 
@@ -48,6 +49,11 @@ void init(int argc, char** argv) {
   program_path = argv[0];
   FailureSignalHandlerOptions failure_signal_handler{};
   absl::InstallFailureSignalHandler(failure_signal_handler);
+  add_clean_up_hook("Show Timers", []() {
+    erase_resource<utils::TimerRegistry>();
+    AX_RETURN_OK();
+  });
+
   init();
 }
 

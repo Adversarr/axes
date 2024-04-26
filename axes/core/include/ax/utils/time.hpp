@@ -1,7 +1,8 @@
 #pragma once
-#include "ax/core/entt.hpp"
 #include <absl/time/clock.h>
 #include <absl/time/time.h>
+
+#include "ax/core/entt.hpp"
 
 namespace ax::utils {
 
@@ -20,24 +21,36 @@ using absl::Now;                  // void -> Time
 using absl::SleepFor;             // Duration -> void
 
 class TimerRegistry {
- public:
+public:
   TimerRegistry() = default;
   ~TimerRegistry() {
-    for (const auto& [name, duration] : total_durations_) {
-      std::cout << "Timer: " << name << " took " << duration << std::endl;
+    for (const auto& [name, desc] : total_durations_) {
+      std::cout << "Timer: " << name
+                << "\n- total: " << desc.total_
+                << "\n- count: " << desc.cnt_
+                << "\n- avg:   " << (desc.total_ / desc.cnt_) << '\n';
     }
   }
+
+  struct Desc {
+    Duration total_;
+    idx cnt_ = 0;
+  };
 
   void AddDuration(const std::string& name, Duration duration) {
     if (total_durations_.find(name) == total_durations_.end()) {
-      total_durations_[name] = duration;
+      auto [it, _] = total_durations_.emplace(name, Desc{});
+      it->second.total_ = duration;
+      it->second.cnt_ = 1;
     } else {
-      total_durations_[name] += duration;
+      auto &cur = total_durations_[name];
+      cur.total_ += duration;
+      cur.cnt_ += 1;
     }
   }
 
- private:
-  std::unordered_map<std::string, Duration> total_durations_;
+private:
+  std::unordered_map<std::string, Desc> total_durations_;
 };
 
 // Use RAII to measure time
@@ -54,18 +67,19 @@ public:
       reg->AddDuration(name_, duration);
     }
   }
+
 private:
   const std::string name_;
   const absl::Time start_time_;
 };
 
-#define AX_TIMEIT(name) ::ax::utils::Timer timer_##name(#name)
+#define AX_TIMEIT(name) ::ax::utils::Timer timer_do_not_use(#name)
 #ifdef _MSC_VER
-#define AX_PRETTY_FUNCTION_NAME __func__
-#define AX_TIME_FUNC() ::ax::utils::Timer _timer(__func__)
+#  define AX_PRETTY_FUNCTION_NAME __func__
+#  define AX_TIME_FUNC() ::ax::utils::Timer _timer(__func__)
 #else
-#define AX_PRETTY_FUNCTION_NAME __PRETTY_FUNCTION__
-#define AX_TIME_FUNC() ::ax::utils::Timer _timer(__PRETTY_FUNCTION__)
+#  define AX_PRETTY_FUNCTION_NAME __PRETTY_FUNCTION__
+#  define AX_TIME_FUNC() ::ax::utils::Timer _timer(__PRETTY_FUNCTION__)
 #endif
 
 }  // namespace ax::utils

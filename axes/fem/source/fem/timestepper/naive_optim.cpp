@@ -1,18 +1,21 @@
 #include "ax/fem/timestepper/naive_optim.hpp"
-#include "ax/optim/spsdm/eigenvalue.hpp"
+
+#include <tbb/parallel_for.h>
 
 #include "ax/math/approx.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
 #include "ax/optim/spsdm.hpp"
 #include "ax/optim/spsdm/diagonal.hpp"
-#include <tbb/parallel_for.h>
+#include "ax/optim/spsdm/eigenvalue.hpp"
+#include "ax/utils/time.hpp"
 #undef ERROR
 
 namespace ax::fem {
 
 template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   // Get the mesh
+  AX_TIME_FUNC();
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
   elasticity.SetLame(this->lame_);
@@ -42,6 +45,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
   real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
+        AX_TIMEIT("Eval Energy");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kEnergy);
         elasticity.UpdateEnergy();
@@ -52,6 +56,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         return elasticity_energy + kinematic_energy;
       })
       .SetGrad([&](math::vecxr const &dx) -> math::vecxr {
+        AX_TIMEIT("Eval Grad");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kStress);
         elasticity.UpdateStress();
@@ -64,6 +69,7 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         return grad;
       })
       .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
+        AX_TIMEIT("Eval Sparse Hessian");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kHessian);
         elasticity.UpdateHessian(true);
@@ -73,14 +79,15 @@ template <idx dim> Status Timestepper_NaiveOptim<dim>::Step(real dt) {
         mesh.FilterMatrixFull(hessian);
         return hessian;
       })
-      .SetConvergeGrad([&](const math::vecxr&, const math::vecxr& grad) -> real {
+      .SetConvergeGrad([&](const math::vecxr &, const math::vecxr &grad) -> real {
         real rv = math::abs(grad).maxCoeff() / max_tol / (dt * dt);
         return rv;
       })
       .SetConvergeVar(nullptr);
-      // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
-      //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" << problem.EvalGrad(X).norm();
-      // });
+  // .SetVerbose([&](idx i, const math::vecxr& X, const real energy) {
+  //   AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy << "|g|=" <<
+  //   problem.EvalGrad(X).norm();
+  // });
 
   optim::Newton optimizer;
   optimizer.SetTolGrad(0.02);

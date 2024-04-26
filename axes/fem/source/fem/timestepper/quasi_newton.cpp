@@ -9,6 +9,7 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/utils/time.hpp"
 
 namespace ax::fem {
 
@@ -23,12 +24,13 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
     real W = lame[0] + 2 * lame[1];
 
     // If you are using stable neohookean, you should bias the lambda and mu:
-    // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-    // W = 2 * mu + lambda;
+    real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+    W = 2 * mu + lambda;
 
     auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
     auto full_laplacian = this->mass_matrix_original_ + 1e-4 * L;
     problem_sparse.A_ = math::kronecker_identity<dim>(full_laplacian);
+    problem_sparse.A_.makeCompressed();
     this->mesh_->FilterMatrixFull(problem_sparse.A_);
     AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
     AX_CHECK_OK(solver_->Analyse(problem_sparse));
@@ -38,6 +40,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
 
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   // Get the mesh
+  AX_TIME_FUNC();
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
   elasticity.SetLame(this->lame_);
@@ -67,6 +70,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
   problem
       .SetEnergy([&](math::vecxr const &dx) -> real {
+        AX_TIMEIT("Eval Energy");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kEnergy);
         elasticity.UpdateEnergy();
@@ -76,6 +80,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         return elasticity_energy + kinematic_energy;
       })
       .SetGrad([&](math::vecxr const &dx) -> math::vecxr {
+        AX_TIMEIT("Eval Grad");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kStress);
         elasticity.UpdateStress();
@@ -88,6 +93,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
         return grad;
       })
       .SetSparseHessian([&](math::vecxr const &dx) -> math::sp_matxxr {
+        AX_TIMEIT("Eval Sparse Hessian");
         math::fieldr<dim> x_new = dx.reshaped(dim, n_vert) + x_cur;
         elasticity.Update(x_new, ElasticityUpdateLevel::kHessian);
         elasticity.UpdateHessian(true);

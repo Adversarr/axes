@@ -104,8 +104,10 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
 
 IMPLEMENT_UNARY(abs, cwiseAbs)
 IMPLEMENT_UNARY(inverse, cwiseInverse)
-IMPLEMENT_UNARY(conjugate, conjugate)
-IMPLEMENT_UNARY(arg, cwiseArg)
+
+// NOTE: MSVC+NVCC does not support arg
+// IMPLEMENT_UNARY(conjugate, conjugate)
+// IMPLEMENT_UNARY(arg, cwiseArg)
 
 /****************************** Exponential functions ******************************/
 IMPLEMENT_AOPM_UNARY(exp)

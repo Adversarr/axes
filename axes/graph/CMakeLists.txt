@@ -23,5 +23,4 @@ target_link_libraries(axes_graph
     Boost::graph
 )
 
-ax_set_warn_levels(axes_graph)
-target_compile_options(axes_graph PRIVATE ${AX_CXX_FLAGS})
+ax_target_apply_flag(axes_graph PRIVATE)

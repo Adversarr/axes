@@ -19,5 +19,4 @@ target_link_libraries(axes_fdfv
     axes
 )
 
-ax_set_warn_levels(axes_fdfv)
-target_compile_options(axes_fdfv PRIVATE ${AX_CXX_FLAGS})
+ax_target_apply_flag(axes_fdfv PRIVATE)

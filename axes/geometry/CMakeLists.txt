@@ -22,5 +22,4 @@ target_link_libraries(axes_geometry
     igl::igl_core
 )
 
-ax_set_warn_levels(axes_geometry)
-target_compile_options(axes_geometry PRIVATE ${AX_CXX_FLAGS})
+ax_target_apply_flag(axes_geometry PRIVATE)

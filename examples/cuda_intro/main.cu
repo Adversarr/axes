@@ -6,8 +6,12 @@
 #include <thrust/sequence.h>
 #include <thrust/zip_function.h>
 #include <cstdio>
-#include <ax/math/common.hpp>
-#include "ax/math/decomp/svd/common.hpp"
+#include <complex>
+template <typename T> auto arg(T x) { return std::arg(x); }
+
+#include "ax/math/common.hpp"
+using namespace ax;
+using namespace ax::math;
 
 using real = double;
 
@@ -17,8 +21,6 @@ __global__ void GpuAddKernel(const int num, real* x, real* y) {
     for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
 }
 
-using namespace ax;
-template <idx dim> using SvdR = math::decomp::SvdResultImpl<dim, real>;
 int main() {
   // Test whether cuda is available.
   int count;
@@ -47,12 +49,12 @@ int main() {
   printf("Device name: %s\n", props.name);
 
   real *x, *y;
-  err = cudaMalloc(&x, 100 * sizeof(real));
+  err = cudaMalloc((void**) & x, 100 * sizeof(real));
   if (err != cudaSuccess) {
     printf("Failed to allocate memory for x.\n");
     return 1;
   }
-  err = cudaMalloc(&y, 100 * sizeof(real));
+  err = cudaMalloc((void**)&y, 100 * sizeof(real));
   if (err != cudaSuccess) {
     printf("Failed to allocate memory for y.\n");
     return 1;
@@ -61,7 +63,6 @@ int main() {
   cudaDeviceSynchronize();
 
 
-  using namespace ax::math;
   thrust::host_vector<vec2r> h(102400);
   for (int i = 0; i < 102400; ++i) h[i] .setRandom();
   thrust::device_vector<vec2r> a = h;
@@ -80,14 +81,12 @@ int main() {
   thrust::device_vector<math::matr<dim, dim>> deformation_gradient_;
   thrust::device_vector<math::matr<dim, dim>> rinv_gpu_;
   thrust::device_vector<real> rest_volume_gpu_;
-  thrust::device_vector<SvdR<dim>> svd_results_;
 
   seq_.resize(100);
   elements_.resize(100);
   deformation_gradient_.resize(100);
   rinv_gpu_.resize(100);
   rest_volume_gpu_.resize(100);
-  svd_results_.resize(100);
 
   thrust::sequence(thrust::device, seq_.begin(), seq_.end());
 

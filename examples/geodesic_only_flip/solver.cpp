@@ -91,6 +91,53 @@ struct Widge {
 // 1. unfold. mesh -> path -> va -> vb -> vc -> [Widge]
 // 2. flip edge. [Widge] -> Path
 
+struct Edge {
+  idx from, to;
+  real len;
+};
+
+struct Graph {
+  std::vector<std::vector<Edge>> adj;
+
+  Edge* operator()(idx from, idx to) {
+    if (from >= to) {
+      std::swap(from, to);
+    }
+    auto& al = adj[from];
+    for (auto & item: al) {
+      if (item.to == to) {
+        return &item;
+      }
+    }
+    return nullptr;
+  }
+
+  void Emplace(idx from, idx to, real len) {
+    if (from >= to) {
+      std::swap(from, to);
+    }
+    for (auto& i: adj[from]) {
+      if (i.to == to) {
+        i.len = len;
+        return;
+      }
+    }
+    adj[from].push_back({from, to, len});
+  }
+
+  void Remove(idx from, idx to) {
+    if (from >= to) {
+      std::swap(from, to);
+    }
+    auto it = std::find_if(adj[from].begin(), adj[from].end(), [to](Edge const& e) { return e.to == to; });
+    if (it != adj[from].end()) {
+      adj[from].erase(it);
+    }
+  }
+};
+
+std::map<geo::HalfedgeEdge*, real> edge_length_cache;
+
 Widge unfold(geo::HalfedgeMesh mesh, Path p0, idx va_in_path, idx vb_in_path, idx vc_in_path) {
   // Unfold the mesh to a widge
   Widge w;
@@ -201,6 +248,13 @@ void flip_out(geo::HalfedgeMesh& m, Widge const& w) {
   }
 }
 
+real angle_of(real a, real b, real c) {
+  // Opposite is c.
+  real cosine_c = (a*a + b*b - c*c) / (2*a*b);
+  real ang = acos(cosine_c);
+  return ang;
+}
+
 Path make_shortest_geodesic(geo::SurfaceMesh mesh, Path p0) {
   // By flip edge.
   // Initialize the edge flipper
@@ -209,6 +263,14 @@ Path make_shortest_geodesic(geo::SurfaceMesh mesh, Path p0) {
   if (sol.size() <= 2) {
     return sol;
   }
-  idx start = p0.back().id_;
-  idx end = p0.front().id_;
+
+  for (auto t: math::each(mesh.indices_)) {
+    for (idx d = 0; d < 3; ++d) {
+      idx e = (d + 1) % 3;
+      idx i = t(d), j = t(e);
+      auto edge = he_mesh.TryGetEdgeBetween(he_mesh.GetVertex(i).vertex_,
+                                            he_mesh.GetVertex(j).vertex_);
+      edge_length_cache[edge] = (mesh.vertices_.col(i) - mesh.vertices_.col(j)).norm();
+    }
+  }
 }

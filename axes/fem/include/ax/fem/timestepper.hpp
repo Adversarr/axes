@@ -31,6 +31,7 @@ public:
 
   // Accessors
   TriMesh<dim> &GetMesh() { return *mesh_; }
+  SPtr<TriMesh<dim>> &GetMeshPtr() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
 
   // External force getter/setter

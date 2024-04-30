@@ -6,7 +6,6 @@ function(axes_add_test TARGET_NAME LIBRARIES)
   add_executable(${_target} ${TEST_SOURCE})
   target_link_libraries(${_target} PRIVATE doctest::doctest ${LIBRARIES})
   add_test(NAME test_${TARGET_NAME} COMMAND ${_target})
-  ax_set_warn_levels(${_target})
 endfunction(axes_add_test)
 
 axes_add_test(math axes)

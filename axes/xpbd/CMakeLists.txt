@@ -19,5 +19,4 @@ target_link_libraries(axes_xpbd
     axes_optim
 )
 
-ax_set_warn_levels(axes_xpbd)
-target_compile_options(axes_xpbd PRIVATE ${AX_CXX_FLAGS})
+ax_target_apply_flag(axes_xpbd PRIVATE)

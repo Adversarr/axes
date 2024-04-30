@@ -33,13 +33,4 @@ target_link_libraries(axes_gl
     OpenGL::GLU)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
-ax_set_warn_levels(axes_gl)
-
-if(AX_NO_EXCEPT)
-  if(MSVC)
-    target_compile_options(axes_gl PRIVATE /EHsc)
-  else()
-    target_compile_options(axes_gl PRIVATE -fno-exceptions)
-  endif()
-endif()
-target_compile_options(axes_gl PRIVATE ${AX_CXX_FLAGS})
+ax_target_apply_flag(axes_gl PRIVATE)

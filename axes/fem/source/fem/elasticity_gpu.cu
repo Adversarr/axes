@@ -1,6 +1,3 @@
-#include "ax/fem/elasticity/arap.hpp"
-#include "ax/math/decomp/svd/remove_rotation.hpp"
-#include "ax/math/decomp/svd/svd_cuda.cuh"
 #ifndef AX_HAS_CUDA
 #  error "This file should only be included in CUDA mode"
 #endif
@@ -14,31 +11,31 @@
 #include <thrust/transform.h>
 #include <thrust/zip_function.h>
 
+// just MSVC + NVCC requires this:
+#ifdef _MSC_VER
+#include <complex>
+template<typename T>
+auto arg(T x) { return std::arg(x); }
+#endif
+
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity_gpu.cuh"
-#include "ax/optim/spsdm/eigenvalue.hpp"
+#include "ax/fem/elasticity/arap.hpp"
+#include "ax/math/decomp/svd/remove_rotation.hpp"
+#include "ax/math/decomp/svd/svd_cuda.cuh"
+#include "ax/utils/time.hpp"
 
-namespace ax::fem {
 
-class Timed {
-public:
-  Timed(const char* name) : start(absl::GetCurrentTimeNanos()), name(name) {}
+namespace ax {
 
-  ~Timed() {
-    end = absl::GetCurrentTimeNanos();
-    AX_LOG(INFO) << "Timed [" << name << "] done in" << (end - start) * 1e-6 << "ms.";
-  }
-
-  int64_t start, end;
-  const char* name;
-};
+namespace fem {
 #ifdef ENABLE_TIMER
-#define TimeThisOne() Timed timer_do_not_use(__PRETTY_FUNCTION__)
+#  define TimeThisOne() Timed timer_do_not_use(__PRETTY_FUNCTION__)
 #else
-#define TimeThisOne()
+#  define TimeThisOne()
 #endif
 
 template <idx dim> using SvdR = math::decomp::SvdResultImpl<dim, real>;
@@ -319,8 +316,8 @@ math::field1r ElasticityCompute_GPU<dim, ElasticModelTemplate>::Energy(math::vec
                                                   real const& rest_volume, SvdR<dim> const& svd) {
         return ElasticModel(lame[0], lame[1]).Energy(F, svd) * rest_volume;
       }));
-  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) /
-  // GPU_GRAIN, GPU_GRAIN>>>(
+  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() +
+  // GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
   //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
   //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
   //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
@@ -356,8 +353,8 @@ math::field1r ElasticityCompute_GPU<dim, ElasticModelTemplate>::Energy(math::fie
                         }));
 
   // NOTE: Naive CUDA:
-  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) /
-  // GPU_GRAIN, GPU_GRAIN>>>(
+  // compute_energy_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() +
+  // GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
   //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
   //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
   //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
@@ -415,8 +412,8 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTempl
         return ElasticModel(lame[0], lame[1]).Stress(F, svd) * rest_volume;
       }));
 
-  // compute_stress_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) /
-  // GPU_GRAIN, GPU_GRAIN>>>(
+  // compute_stress_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() +
+  // GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
   //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
   //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
   //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
@@ -478,13 +475,20 @@ template <idx dim, template <idx> class ElasticModelTemplate>
 __global__ void compute_hessian_impl(math::matr<dim, dim>* deformation_gradient, real* rest_volume,
                                      SvdR<dim>* svd_results,
                                      elasticity::HessianTensor<dim>* hessian, math::vec2r* lame,
-                                     idx n_elem) {
+                                     idx n_elem, bool projection) {
   idx eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
   hessian[eid] = ElasticModelTemplate<dim>(lame[eid][0], lame[eid][1])
                      .Hessian(deformation_gradient[eid], svd_results[eid])
                  * rest_volume[eid];
-}
+  if (projection) {
+    math::matr<dim * dim, dim * dim> & H = hessian[eid];
+    Eigen::SelfAdjointEigenSolver<math::matr<dim * dim, dim * dim>> es(H);
+    math::vecr<dim * dim> D = es.eigenvalues().cwiseMax(1e-4);
+    math::matr<dim * dim, dim * dim> V = es.eigenvectors();
+    H = V * D.asDiagonal() * V.transpose();
+  }
+ }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 List<elasticity::HessianTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemplate>::Hessian(
@@ -510,8 +514,8 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemp
                           return ElasticModel(lame[0], lame[1]).Hessian(F, svd) * rest_volume;
                         }));
 
-  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) /
-  // GPU_GRAIN, GPU_GRAIN>>>(
+  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() +
+  // GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
   //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
   //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
   //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
@@ -542,8 +546,8 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_GPU<dim, ElasticModelTemp
         return ElasticModel(lame[0], lame[1]).Hessian(F, svd) * rest_volume;
       }));
 
-  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) /
-  // GPU_GRAIN, GPU_GRAIN>>>(
+  // compute_hessian_impl<dim, ElasticModelTemplate><<<(impl_->deformation_gradient_.size() +
+  // GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
   //     thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
   //     thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
   //     thrust::raw_pointer_cast(impl_->svd_results_.data()),
@@ -643,7 +647,8 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
           thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
           thrust::raw_pointer_cast(impl_->svd_results_.data()),
           thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()),
-          thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size());
+          thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size(),
+          projection);
 }
 
 template <idx dim> __global__ void gather_energy(real* energy_on_vertices,
@@ -847,11 +852,11 @@ template <idx dim, template <idx> class ElasticModelTemplate>
 void ElasticityCompute_GPU<dim, ElasticModelTemplate>::GatherHessianToVertices() {
   TimeThisOne();
   auto const ne = this->mesh_->GetNumElements();
-  gather_hessian<dim>
-      <<<(ne + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
-                                  thrust::raw_pointer_cast(impl_->elements_.data()),
-                                  thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
-                                  thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()), ne);
+  gather_hessian<dim><<<(ne + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+      thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
+      thrust::raw_pointer_cast(impl_->elements_.data()),
+      thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
+      thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()), ne);
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -930,4 +935,5 @@ template class ElasticityCompute_GPU<3, elasticity::StableNeoHookean>;
 // template class ElasticityCompute_GPU<3, elasticity::Linear>;
 template class ElasticityCompute_GPU<3, elasticity::IsotropicARAP>;
 
-}  // namespace ax::fem
+}  // namespace fem
+}  // namespace ax

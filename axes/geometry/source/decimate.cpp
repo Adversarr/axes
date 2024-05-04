@@ -165,4 +165,95 @@ MeshDecimator& MeshDecimator::SetStrategy(Strategy s) {
   return *this;
 }
 
+void MeshDecimator::Precompute() {
+  // Laplace:
+  math::sp_coeff_list D_coef;
+  idx cnt_d = 0;
+  mesh_->ForeachEdge([&](HalfedgeEdge* e) {
+    cnt_d += 1;
+    D_coef.push_back({cnt_d, e->Tail()->original_id_, 1});
+    D_coef.push_back({cnt_d, e->Head()->original_id_, -1});
+  });
+
+  math::sp_matxxr D = math::make_sparse_matrix(cnt_d, mesh_->NVertices(), D_coef);
+  laplacian_ = D.transpose() * D;
+  laplacian_.makeCompressed();
+
+  // Mass: Use Lumped one.
+  mass_.setOnes(mesh_->NVertices());
+  m_tilde_.setOnes(mesh_->NVertices());
+
+  // Projection, Initialize with identity matrix.
+  math::sp_coeff_list P_coef;
+  for (idx i = 0; i < mesh_->NVertices(); ++i) {
+    P_coef.push_back({i, i, 1});
+  }
+  projection_matrix_ = math::make_sparse_matrix(mesh_->NVertices(), mesh_->NVertices(), P_coef);
+
+  // Eigen Decomposition
+  auto [evec, eval] = math::eig(laplacian_.toDense());
+  top_k_eigenvecs_ = evec.rightCols(5);
+  Precompute_PlfPrecomputed();
+  Precompute_PfPrecomputed();
+}
+
+real MeshDecimator::Spectral_RowV(idx original_id) {
+  auto v = mesh_->GetVertex(original_id);
+  AX_CHECK(static_cast<bool>(v)) << "Cannot find vertex with original id " << original_id;
+  // (PM^(-1)LF - M_tilde^(-1)L_tilde P F)
+  math::vecxr pmlf = plf_precomputed_.row(original_id).transpose();
+  real mtilde = m_tilde_(original_id);
+  
+  // compute L * PF
+  math::vecxr lpf;
+  mesh_->ForeachEdgeAroundVertex(v.vertex_, [&](HalfedgeEdge* e) { 
+    lpf += pf_precomputed_.row(original_id).transpose();
+    lpf -= pf_precomputed_.row(e->Tail()->original_id_).transpose();
+  });
+
+  return mtilde * math::norm2(pmlf - lpf / mtilde);
+}
+
+real MeshDecimator::Spectral_RowV(idx collapse_a, idx collapse_b) {
+  // (PM^(-1)LF - M_tilde^(-1)L_tilde P F)
+  auto va = mesh_->GetVertex(collapse_a);
+  auto vb = mesh_->GetVertex(collapse_b);
+
+  AX_CHECK(static_cast<bool>(va)) << "Cannot find vertex with original id " << collapse_a;
+  AX_CHECK(static_cast<bool>(vb)) << "Cannot find vertex with original id " << collapse_b;
+
+  math::vecxr pmlf = plf_precomputed_.row(collapse_a).transpose();
+  real mtilde = m_tilde_(collapse_a);
+  
+  // compute L * PF
+  math::vecxr lpf;
+  mesh_->ForeachEdgeAroundVertex(va.vertex_, [&](HalfedgeEdge* e) {
+    if (e->Tail()->original_id_ != collapse_b) {
+      lpf += pf_precomputed_.row(collapse_a).transpose();
+      lpf -= pf_precomputed_.row(e->Tail()->original_id_).transpose();
+    }
+  });
+  mesh_->ForeachEdgeAroundVertex(vb.vertex_, [&](HalfedgeEdge* e) {
+    if (e->Tail()->original_id_ != collapse_a) {
+      lpf += pf_precomputed_.row(collapse_b).transpose();
+      lpf -= pf_precomputed_.row(e->Tail()->original_id_).transpose();
+    }
+  });
+
+  return mtilde * math::norm2(pmlf - lpf / mtilde);
+}
+
+void MeshDecimator::Precompute_PlfPrecomputed() {
+  plf_precomputed_ = projection_matrix_ * laplacian_ * top_k_eigenvecs_;
+  pf_precomputed_ = projection_matrix_ * top_k_eigenvecs_;
+}
+
+real MeshDecimator::EvalCost(idx a, idx b) {
+  return Spectral_RowV(a, b) - Spectral_RowV(a) - Spectral_RowV(b);
+}
+
+void MeshDecimator::DoCollapse(idx a, idx b) {
+  
+}
+
 }  // namespace ax::geo

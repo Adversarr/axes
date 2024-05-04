@@ -16,7 +16,7 @@ axes_add_example(normal "axes_gl")
 axes_add_example(graph "axes_graph")
 
 # Homework for DGP
-axes_add_example(decimate "axes_gl")
+axes_add_example(decimate "axes_graph")
 axes_add_example(surface_reconstruct "axes_gl")
 axes_add_example(arap_parm "axes_gl")
 axes_add_example(cubicstylization "axes_graph")

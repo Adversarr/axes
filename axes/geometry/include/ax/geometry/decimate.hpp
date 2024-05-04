@@ -1,5 +1,5 @@
 #pragma once
-
+#include "ax/math/sparse.hpp"
 #include "ax/geometry/halfedge.hpp"
 /**
  * @brief The MeshDecimator class provides functionality to decimate a mesh by reducing the number of vertices.
@@ -42,7 +42,8 @@ public:
    */
   enum Strategy {
     kDirect,    /**< Direct strategy: collapses edges directly. */
-    kQuadratic  /**< Quadratic strategy: collapses edges quadratically. */
+    kQuadratic,  /**< Quadratic strategy: collapses edges quadratically. */
+    kSpectral    /**< Spectral strategy: collapses edges spectrally. */
   };
 
   /**
@@ -57,6 +58,22 @@ private:
   real cost_threshold_{1e9}; /**< The cost threshold for edge collapse. */
   HalfedgeMesh* mesh_; /**< A pointer to the HalfedgeMesh object representing the mesh. */
   idx target_count_; /**< The target vertex count of the decimation. */
+
+  math::matxxr top_k_eigenvecs_;
+  math::sp_matxxr laplacian_, projection_matrix_;
+  
+  math::vecxr mass_, m_tilde_;
+
+  math::matxxr plf_precomputed_, pf_precomputed_;
+
+  real Spectral_RowV(idx original_id);
+  real Spectral_RowV(idx collapse_a, idx collapse_b);
+  void Precompute_PfPrecomputed();
+  void Precompute_PlfPrecomputed();
+  void Precompute();
+  void DoCollapse(idx a, idx b);
+
+  real EvalCost(idx a, idx b);
 
   /**
    * @brief Finds the edge to collapse based on the current strategy.

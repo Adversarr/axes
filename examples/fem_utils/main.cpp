@@ -114,11 +114,7 @@ public:
     MassMatrixCompute<3> mmc(**mesh);
     idx dofs = mesh->get()->GetNumVertices() * 3;
     auto mass_matrix = mmc(u_density);
-    SetOutput<math::sp_matxxr>(0, math::make_sparse_matrix(dofs, dofs, mass_matrix));
-    real total = 0;
-    for (auto &v : mass_matrix) {
-      total += v.value();
-    }
+    real total = mass_matrix.sum();
     SetOutput<real>(1, total / 3.0);
     AX_RETURN_OK();
   }

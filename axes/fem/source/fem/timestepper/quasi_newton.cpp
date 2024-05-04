@@ -20,7 +20,7 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Init(utils::Opt con
   if (strategy_ == LbfgsStrategy::kLaplacian) {
     math::LinsysProblem_Sparse problem_sparse;
     // They call you Laplace: M + dtSq * Lap.
-    const math::vec2r lame = this->lame_;
+    const math::vec2r lame = this->u_lame_;
     real W = lame[0] + 2 * lame[1];
 
     // If you are using stable neohookean, you should bias the lambda and mu:
@@ -43,10 +43,10 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Step(real dt) {
   AX_TIME_FUNC();
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
-  elasticity.SetLame(this->lame_);
+  elasticity.SetLame(this->u_lame_);
   auto &velocity = this->velocity_;
   auto const &mass_matrix = this->mass_matrix_;
-  math::vec2r lame = this->lame_;
+  math::vec2r lame = this->u_lame_;
 
   idx n_vert = mesh.GetNumVertices();
 

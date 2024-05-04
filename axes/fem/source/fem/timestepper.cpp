@@ -41,7 +41,7 @@ template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& de
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {
-  auto lame = lame_;
+  auto lame = u_lame_;
   idx n_vert = mesh_->GetNumVertices();
   // Compute the external force. now we use -9.8 in y-direction.
   // Compute the internal force.
@@ -78,6 +78,26 @@ template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Precompute() { AX_RETURN_OK(); }
+
+template<idx dim> math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x, bool project) const {
+  auto lame = u_lame_;
+  elasticity_->Update(x, ElasticityUpdateLevel::kHessian);
+  elasticity_->UpdateHessian(project);
+  elasticity_->GatherHessianToVertices();
+  return elasticity_->GetHessianOnVertices();
+}
+
+template<idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const& x) const {
+  auto lame = u_lame_;
+  elasticity_->Update(x, ElasticityUpdateLevel::kStress);
+  elasticity_->UpdateStress();
+  elasticity_->GatherStressToVertices();
+  return elasticity_->GetStressOnVertices();
+}
+
+template <idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetInertiaPosition(real dt) const {
+  return mesh_->GetVertices() + dt * velocity_ + dt * dt * ext_accel_;
+}
 
 template class TimeStepperBase<2>;
 template class TimeStepperBase<3>;

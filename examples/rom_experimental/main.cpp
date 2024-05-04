@@ -101,6 +101,11 @@ void ui_callback(gl::UiRenderEvent ) {
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;
+    auto p = (fem::TimeStepper_ROM<3>*) ts.get();
+    auto K = ts->GetStiffnessMatrix(ts->GetMesh().GetVertices(), true);
+    ts->GetMesh().FilterMatrixFull(K);
+    auto [vec, val] = math::eig(K.toDense());
+    p->SetBasis(vec.leftCols(100));
     AX_CHECK_OK(ts->Step(dt));
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;

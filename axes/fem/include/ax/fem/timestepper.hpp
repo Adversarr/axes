@@ -54,13 +54,23 @@ public:
     }
   }
 
-  void SetLame(math::vec2r const &lame) { lame_ = lame; }
+  void SetLame(math::vec2r const &lame) { u_lame_ = lame; }
 
-  math::vec2r const &GetLame() const { return lame_; }
+  math::vec2r const &GetLame() const { return u_lame_; }
 
   void SetDensity(real density);
 
   void SetDensity(math::field1r const &density);
+
+  math::sp_matxxr const &GetMassMatrix() const { return mass_matrix_; }
+
+  math::sp_matxxr const &GetMassMatrixOriginal() const { return mass_matrix_original_; }
+
+  math::sp_matxxr GetStiffnessMatrix(math::fieldr<dim> const& x, bool project = false) const;
+
+  math::fieldr<dim> GetElasticForce(math::fieldr<dim> const& x) const;
+
+  math::fieldr<dim> GetInertiaPosition(real dt) const;
 
   virtual Status Precompute();
 
@@ -70,7 +80,7 @@ protected:
   UPtr<ElasticityComputeBase<dim>> elasticity_;
   math::fieldr<dim> ext_accel_;
   math::fieldr<dim> velocity_;
-  math::vec2r lame_;
+  math::vec2r u_lame_;
 
   // TODO: add switches for BDF-1, BDF-2, etc.
 

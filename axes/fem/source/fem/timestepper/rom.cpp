@@ -18,10 +18,10 @@ template <idx dim> Status TimeStepper_ROM<dim>::Step(real dt) {
   AX_TIME_FUNC();
   auto &mesh = this->GetMesh();
   auto &elasticity = this->GetElasticity();
-  elasticity.SetLame(this->lame_);
+  elasticity.SetLame(this->u_lame_);
   auto &velocity = this->velocity_;
   auto &mass_matrix = this->mass_matrix_;
-  math::vec2r lame = this->lame_;
+  math::vec2r lame = this->u_lame_;
   idx n_vert = mesh.GetNumVertices();
   // Setup the NonLinear Problem.
   optim::OptProblem problem;

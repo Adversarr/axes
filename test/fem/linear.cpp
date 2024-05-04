@@ -20,19 +20,15 @@ TEST_CASE("mass2d") {
   // auto mesh = make_square(3);
   auto mass_compute = fem::MassMatrixCompute<2>(*mesh);
   auto result = mass_compute(1.0);
-  real sum = 0;
-  for (auto ijv : result) {
-    // std::cout << ijv.row() << " " << ijv.col() << " " << ijv.value() << std::endl;
-    sum += ijv.value();
-  }
+  real sum = result.sum();
   CHECK(sum == doctest::Approx(1.0));
 }
 
 TEST_CASE("stress") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
-  auto mesh = std::make_unique<fem::TriMesh<2>>();
+  auto mesh = std::make_shared<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
-  auto elastic = fem::ElasticityCompute_CPU<2, elasticity::Linear>(*mesh);
+  auto elastic = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);
   math::vec2r lame = {1.0, 1.0};
   elastic.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   auto stress = elastic.Stress(lame);
@@ -47,9 +43,9 @@ TEST_CASE("stress") {
 
 TEST_CASE("Hessian") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
-  auto mesh = std::make_unique<fem::TriMesh<2>>();
+  auto mesh = std::make_shared<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
-  auto stress = fem::ElasticityCompute_CPU<2, elasticity::Linear>(*mesh);
+  auto stress = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);
   math::vec2r lame = {1.0, 1.0};
   stress.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   for (auto const& s : stress.Hessian(lame)) {

@@ -101,21 +101,29 @@ Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
     solver_.setTolerance(tol_);
   }
 
-  if (opt.Holds<std::string>("preconditioner")) {
-    std::string precond = opt.Get<std::string>("preconditioner");
-    auto kind = utils::reflect_enum<PreconditionerKind>(precond);
-    if (!kind) {
-      return utils::InvalidArgumentError("Invalid preconditioner kind: " + precond);
+  PreconditionerKind pk;
+  if (auto it = opt.find("preconditioner"); it != opt.end()) {
+    if (it->value().is_string()) {
+      std::string name = it->value().as_string().c_str();
+      auto kind = utils::reflect_enum<PreconditionerKind>(name);
+      if (!kind) {
+        return utils::InvalidArgumentError("Invalid preconditioner kind: "
+                                           + std::string(it->value().as_string().c_str()));
+      }
+      pk = kind.value();
+      preconditioner_ = PreconditionerBase::Create(pk);
+      if (!preconditioner_) {
+        return utils::FailedPreconditionError("Failed to create preconditioner: " + name);
+      }
+    } else {
+      return utils::InvalidArgumentError("Expect value under 'preconditioner' to be a string.");
     }
-    auto pc = PreconditionerBase::Create(kind.value());
-    if (!pc) {
-      return utils::InvalidArgumentError("Failed to create preconditioner: " + precond);
-    }
-    pc.swap(preconditioner_);
   }
 
-  if (opt.Holds<utils::Opt>("preconditioner_options")) {
-    return preconditioner_->SetOptions(opt.Get<utils::Opt>("preconditioner_options"));
+  if (auto it = opt.find("preconditioner_options"); it != opt.end()) {
+    if (preconditioner_ || it->value().is_object()) {
+      auto status = preconditioner_->SetOptions(it->value().as_object());
+    }
   }
 
   AX_RETURN_OK();
@@ -131,8 +139,8 @@ utils::Opt SparseSolver_ConjugateGradient::GetOptions() const {
     if (!name) {
       AX_LOG(FATAL) << "Invalid preconditioner kind: " << static_cast<idx>(preconditioner_->Kind());
     }
-    opt.Emplace("preconditioner", name.value());
-    opt.Emplace("preconditioner_options", preconditioner_->GetOptions());
+    opt.insert_or_assign("preconditioner", name.value());
+    opt.insert_or_assign("preconditioner_options", preconditioner_->GetOptions());
   }
   return opt;
 }

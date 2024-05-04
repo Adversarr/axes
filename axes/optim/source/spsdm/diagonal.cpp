@@ -16,7 +16,7 @@ Status DiagonalModification::SetOptions(utils::Opt const& options) {
 
 utils::Opt DiagonalModification::GetOptions() const {
   utils::Opt opt = SpsdModificationBase::GetOptions();
-  opt.Emplace("additional_offset", additional_offset_);
+  opt.insert_or_assign("additional_offset", additional_offset_);
   return opt;
 }
 

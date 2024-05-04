@@ -12,7 +12,7 @@ using namespace ax;
 
 constexpr idx DIM = 3;
 
-fem::TriMesh<DIM> mesh;
+SPtr<fem::TriMesh<DIM>> mesh;
 auto kE = fem::ElasticityUpdateLevel::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
   // Apply Random Rotation:
   // math::mat3r R = Eigen::AngleAxis(math::pi<> / 4, math::vec3r::UnitX()).toRotationMatrix();
   // original_vertices = R * original_vertices;
-  AX_CHECK_OK(mesh.SetMesh(indices, original_vertices));
+  AX_CHECK_OK(mesh->SetMesh(indices, original_vertices));
 
   // Elasticity and Deformation.
   fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(mesh);  //< 3d Linear Elasticity
@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
   }
   // Update the deformation gradient.
   std::cout << "Vertices:\n" << original_vertices << std::endl;
-  AX_CHECK_OK(mesh.SetVertices(original_vertices));
-  elast.Update(mesh.GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
+  AX_CHECK_OK(mesh->SetVertices(original_vertices));
+  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
 
   // Compute Gradient by Finite Difference:
   real e0 = elast.Energy(lame).sum();
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   for (idx i = 0; i <= DIM; ++i) {
     for (idx d = 0; d < DIM; ++d) {
       for (real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
-        math::fieldr<DIM> vertices_p = mesh.GetVertices();
+        math::fieldr<DIM> vertices_p = mesh->GetVertices();
         vertices_p(d, i) += delta_d;
         elast.Update(vertices_p, kE);
         // EnergyImpl:

@@ -30,6 +30,8 @@ public:
     preconditioner_ = std::move(preconditioner);
   }
 
+  PreconditionerBase const* GetPreconditioner() const { return preconditioner_.get(); }
+
   virtual ~SparseSolverBase() = default;
 
   virtual SparseSolverKind Kind() const = 0;

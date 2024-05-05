@@ -8,7 +8,7 @@ function(axes_add_test TARGET_NAME LIBRARIES)
   add_test(NAME test_${TARGET_NAME} COMMAND ${_target})
 endfunction(axes_add_test)
 
-axes_add_test(math axes)
+axes_add_test(math axes_core)
 axes_add_test(fem axes_fem)
 axes_add_test(geometry axes_geometry)
 axes_add_test(graph axes_graph)

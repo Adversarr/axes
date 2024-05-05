@@ -26,9 +26,11 @@ target_include_directories(axes_gl PUBLIC ${Stb_INCLUDE_DIR}
                                            ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(axes_gl
-  PUBLIC axes axes_geometry
   PUBLIC 
-    glfw glad::glad
+    axes_core
+    axes_geometry 
+    glfw
+    glad::glad
     imgui::imgui_core imgui::implot imgui::imnode
     OpenGL::GLU)
 

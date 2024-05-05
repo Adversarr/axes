@@ -18,7 +18,7 @@ target_include_directories(axes_geometry
 
 target_link_libraries(axes_geometry
   PUBLIC
-    axes
+    axes_core
     igl::igl_core
 )
 

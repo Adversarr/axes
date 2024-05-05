@@ -23,7 +23,7 @@ target_include_directories(axes_fem
 
 target_link_libraries(axes_fem
   PUBLIC
-    axes
+    axes_core
     axes_optim
     axes_geometry)
 

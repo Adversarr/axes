@@ -32,11 +32,11 @@ if (${AX_HAS_CUDA})
 endif()
 
 if (${AX_BUILD_SHARED})
-  add_library(axes SHARED ${AX_CORE_SOURCE})
+  add_library(axes_core SHARED ${AX_CORE_SOURCE})
 else()
-  add_library(axes STATIC ${AX_CORE_SOURCE})
+  add_library(axes_core STATIC ${AX_CORE_SOURCE})
 endif()
-target_include_directories(axes
+target_include_directories(axes_core
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
@@ -57,7 +57,7 @@ set(ABSL_LIBRARIES
   absl::failure_signal_handler
   absl::statusor)
 
-target_link_libraries(axes
+target_link_libraries(axes_core
   PUBLIC
     Eigen3::Eigen
     ${ABSL_LIBRARIES}
@@ -69,16 +69,16 @@ target_link_libraries(axes
 )
 
 if (AX_ENABLE_CUDA)
-  target_link_libraries(axes PUBLIC CUDA::cudart)
-  target_compile_definitions(axes PUBLIC "AX_HAS_CUDA")
+  target_link_libraries(axes_core PUBLIC CUDA::cudart)
+  target_compile_definitions(axes_core PUBLIC "AX_HAS_CUDA")
 endif()
 
 if (AX_ENABLE_OPENMP)
   if (OpenMP_CXX_FOUND)
-    target_link_libraries(axes PUBLIC OpenMP::OpenMP_CXX)
-    target_compile_definitions(axes PUBLIC "AX_HAS_OPENMP")
+    target_link_libraries(axes_core PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(axes_core PUBLIC "AX_HAS_OPENMP")
   endif()
 endif()
 
-target_compile_definitions(axes PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")
-ax_target_apply_flag(axes PRIVATE)
+target_compile_definitions(axes_core PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")
+ax_target_apply_flag(axes_core PRIVATE)

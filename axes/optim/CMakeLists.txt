@@ -16,7 +16,7 @@ target_include_directories(axes_optim
 
 target_link_libraries(axes_optim
   PUBLIC
-    axes
+    axes_core
 )
 
 ax_target_apply_flag(axes_optim PRIVATE)

@@ -25,12 +25,12 @@ option(AX_INSTALL_SIGNAL_HANDLER "Enable Signal Handler from absl" ON)
 option(AX_DEBUG_INTERNAL "Enable detailed debug asserts for internal implementation" ON)
 option(AX_ENABLE_TEST "Enable test." ON)
 option(AX_BUILD_SHARED "Build shared library" OFF)
-option(AX_NO_EXCEPT "Enable noexcept, may lead to compile error for igl." OFF)
 option(AX_ENABLE_TIME_TRACE "Enable time trace." OFF)
 option(AX_ENABLE_AVX "Enable AVX." OFF)
 option(AX_ENABLE_CUDA "Enable cuda." OFF)
 option(AX_NO_WARNING "Disable all warnings." OFF)
 option(AX_ENABLE_OPENMP "Enable OpenMP for automatic multi-threading in Eigen." ON)
+option(AX_ENABLE_PYBIND "Enable pybind11." OFF)
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 
 project(axes LANGUAGES C CXX)
@@ -173,16 +173,6 @@ if (AX_ENABLE_AVX)
   endif()
 endif()
 
-
-# Disable Exceptions
-if(AX_NO_EXCEPT)
-  if(MSVC)
-    ax_add_cxx_compiler_flag("/EHsc")
-  else()
-    ax_add_cxx_compiler_flag("-fno-exceptions")
-  endif()
-endif()
-
 # Time trace
 if(AX_ENABLE_TIME_TRACE AND NOT MSVC)
   ax_add_cxx_compiler_flag("-ftime-trace")
@@ -202,4 +192,7 @@ if (${AX_ENABLE_TEST})
   add_subdirectory(test)
 endif()
 
+if (${AX_ENABLE_PYBIND})
+  add_subdirectory(binding)
+endif()
 

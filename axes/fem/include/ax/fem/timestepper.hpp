@@ -3,14 +3,9 @@
 #include "ax/utils/opt.hpp"
 #include "elasticity.hpp"
 #include "trimesh.hpp"
+#include "scheme.hpp"
 
 namespace ax::fem {
-
-class TimeStepConfig {
-public:
-  real dt_;
-};
-
 // Use Backward Euler (with exactly 1 step backward)
 //     M (x' - (x + dt v)) = dt^2 F_int(x')
 // Apply 2nd Taylor expansion to approximate F_int(x') = F_int(x) + K (x' - x) + O(dx^2)
@@ -25,8 +20,9 @@ public:
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
+  TimeStepperBase() = default;
   TimeStepperBase(SPtr<TriMesh<dim>> mesh);
-  AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
+  AX_DECLARE_CONSTRUCTOR(TimeStepperBase, default, default);
   virtual ~TimeStepperBase() = default;
 
   // Accessors
@@ -74,21 +70,41 @@ public:
 
   virtual Status Precompute();
 
+  /* New APIs */
+  // acknowledge the beginning of simulation
+  virtual void BeginSimulation(real dt = -1);
+  // Start a new timestep, prepare the data, we assume dt does not change during this timestep
+  virtual void BeginTimestep(real dt);
+  // Set the mesh to new position
+  virtual void EndTimestep(math::fieldr<dim> const& du);
+  // Solve the timestep
+  virtual math::fieldr<dim> const& SolveTimestep();
+
+  math::fieldr<dim> const& GetDisplacement() const { return u_; }
+  math::fieldr<dim> const& GetVelocity() const { return velocity_; }
+
+  real Energy(math::fieldr<dim> const& du) const;
+  math::fieldr<dim> Gradient(math::fieldr<dim> const& du) const;
+  math::sp_matxxr Hessian(math::fieldr<dim> const& du) const;
+
 protected:
   // Common data
   SPtr<TriMesh<dim>> mesh_;
   UPtr<ElasticityComputeBase<dim>> elasticity_;
-  math::fieldr<dim> ext_accel_;
-  math::fieldr<dim> velocity_;
-  math::vec2r u_lame_;
+  UPtr<TimestepSchemeBase<dim>> integration_scheme_;
 
-  // TODO: add switches for BDF-1, BDF-2, etc.
+  math::fieldr<dim> u_, u_back_, du_precompute_, u_next_;
+  math::fieldr<dim> ext_accel_;
+  math::fieldr<dim> velocity_, velocity_back_;
+  math::vec2r u_lame_;
 
   // cache the mass matrix
   math::sp_matxxr mass_matrix_;
   math::sp_matxxr mass_matrix_original_;
   real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
+private:
+  bool has_time_step_begin_;
 };
 
 }  // namespace ax::fem

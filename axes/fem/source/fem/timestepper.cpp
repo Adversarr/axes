@@ -8,18 +8,21 @@
 namespace ax::fem {
 
 template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh)
-    : mesh_(std::move(mesh)) {}
+    : mesh_(std::move(mesh)) {
+  integration_scheme_ = TimestepSchemeBase<dim>::Create(TimestepSchemeKind::kBackwardEuler);
+}
 
 template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {
   idx n_vert = mesh_->GetNumVertices();
   SetupElasticity<elasticity::Linear>();
 
+  u_.setZero(dim, n_vert);
+  u_back_ = u_;
+  u_next_ = u_;
+  du_precompute_ = u_;
   velocity_.setZero(dim, n_vert);
-  // setup the external force. (Default is Gravity only.)
+  velocity_back_ = velocity_;
   ext_accel_.setZero(dim, n_vert);
-  for (idx i = 0; i < n_vert; ++i) {
-    ext_accel_(1, i) = -9.8;
-  }
 
   if (mass_matrix_.size() == 0) {
     AX_LOG(WARNING) << "Density not set. Default to 1.0e3.";
@@ -97,6 +100,44 @@ template<idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::
 
 template <idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetInertiaPosition(real dt) const {
   return mesh_->GetVertices() + dt * velocity_ + dt * dt * ext_accel_;
+}
+
+template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real dt) {
+  has_time_step_begin_ = false;
+  return;
+}
+
+template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
+  integration_scheme_->SetDeltaT(dt);
+  du_precompute_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
+                                                   velocity_back_, ext_accel_);
+  u_next_ = integration_scheme_->InitialGuess(u_, u_back_, velocity_, velocity_back_, ext_accel_);
+  // TODO: Lame parameters should be set uniformly or per element.
+  elasticity_->SetLame(u_lame_);
+  return;
+}
+
+template <idx dim> void TimeStepperBase<dim>::EndTimestep(math::fieldr<dim> const &du) {
+  velocity_back_ = integration_scheme_->NewVelocity(u_, u_back_, velocity_, velocity_back_, du);
+  std::swap(u_back_, u_);
+  std::swap(velocity_back_, velocity_);
+  u_.noalias() = du + u_back_;
+}
+
+template <idx dim> math::fieldr<dim> const& TimeStepperBase<dim>::SolveTimestep() {
+  u_next_.setZero();
+  return u_next_;
+}
+
+template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& du) const {
+  math::fieldr<dim> x_new = du + u_ + mesh_->GetVertices();
+  elasticity_->Update(x_new, ElasticityUpdateLevel::kEnergy);
+  elasticity_->UpdateEnergy();
+  real stiffness = elasticity_->GetEnergyOnElements().sum();
+  math::fieldr<dim> duu = du - du_precompute_;
+  math::fieldr<dim> Mdx = duu * mass_matrix_original_;
+  real inertia = (duu.array() * Mdx.array()).sum();
+  return integration_scheme_->ComposeEnergy(inertia, stiffness);
 }
 
 template class TimeStepperBase<2>;

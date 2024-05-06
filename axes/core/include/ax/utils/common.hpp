@@ -17,11 +17,11 @@ template <typename T> struct DoNotUse {
 
 #define AX_DECLARE_COPY_CTOR(T, en) \
   T(const T&) noexcept = en;        \
-  T& operator=(const T&) noexcept = en;
+  T& operator=(const T&) noexcept = en
 
 #define AX_DECLARE_MOVE_CTOR(T, en) \
   T(T&&) noexcept = en;             \
-  T& operator=(T&&) noexcept = en;
+  T& operator=(T&&) noexcept = en
 
 #define AX_DECLARE_CONSTRUCTOR(T, copy_en, move_en) \
   AX_DECLARE_COPY_CTOR(T, copy_en);                 \

@@ -4,34 +4,34 @@ namespace ax::fem {
 
 template<idx dim>
 math::sp_matxxr TimestepScheme_BackwardEuler<dim>::ComposeHessian(
-  math::sp_matxxr const& M, 
-  math::sp_matxxr const& K) const {
+    math::sp_matxxr const& M, 
+    math::sp_matxxr const& K) const {
   real const dt = this->dt_;
   return M + dt * dt * K;
 }
 
-template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::ComposeResidual(
+template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::ComposeGradient(
     math::sp_matxxr const& M,
-    math::fieldr<dim> const& x_next,
+    math::fieldr<dim> const& u_next,
     math::fieldr<dim> const& internal_neg_force,
     math::fieldr<dim> const& precomputed) const {
   real const dt = this->dt_;
-  return M * (x_next - precomputed) + dt * dt * internal_neg_force;
+  return M * (u_next - precomputed) + dt * dt * internal_neg_force;
 }
 
 template <idx dim>
 math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::Precomputed(
-    math::sp_matxxr const& M, math::fieldr<dim> const& x_current,
-    math::fieldr<dim> const& x_old,
+    math::sp_matxxr const& M, math::fieldr<dim> const& u_current,
+    math::fieldr<dim> const& u_old,
     math::fieldr<dim> const& v_current,
     math::fieldr<dim> const& v_old,
     math::fieldr<dim> const& ext_accel) const {
   real const dt = this->dt_;
-  return x_current + dt * v_current + dt * dt * ext_accel;
+  return u_current + dt * v_current + dt * dt * ext_accel;
 }
 
 template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::InitialGuess(
-    math::fieldr<dim> const& x_current, math::fieldr<dim> const& x_old,
+    math::fieldr<dim> const& u_current, math::fieldr<dim> const& u_old,
     math::fieldr<dim> const& v_current, math::fieldr<dim> const& v_old,
     math::fieldr<dim> const& ext_accel) const {
   real const dt = this->dt_;
@@ -40,7 +40,7 @@ template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::InitialG
 
 template <idx dim>
 math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::NewVelocity(
-    math::fieldr<dim> const& x_current, math::fieldr<dim> const& x_old,
+    math::fieldr<dim> const& u_current, math::fieldr<dim> const& u_old,
     math::fieldr<dim> const& v_current, math::fieldr<dim> const& v_old,
     math::fieldr<dim> const& du) const {
   return du / this->dt_;

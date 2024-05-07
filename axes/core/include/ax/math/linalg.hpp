@@ -47,11 +47,11 @@ template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar norm2(MB
 }
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBcr<A> mv, linf_t) {
-  return mv.template lpNorm<Eigen::Infinity>();
+  return mv.cwiseAbs().maxCoeff();
 }
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBcr<A> mv, l1_t) {
-  return mv.template lpNorm<1>();
+  return mv.cwiseAbs().sum();
 }
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE

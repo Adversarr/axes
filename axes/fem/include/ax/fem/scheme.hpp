@@ -6,8 +6,7 @@ namespace ax::fem {
 
 BOOST_DEFINE_ENUM_CLASS(TimestepSchemeKind, kBackwardEuler, kBDF2);
 
-template<idx dim>
-class TimestepSchemeBase {
+template <idx dim> class TimestepSchemeBase {
 public:
   TimestepSchemeBase() = default;
   ~TimestepSchemeBase() = default;
@@ -18,12 +17,11 @@ public:
 
   void SetDeltaT(real dt) { dt_ = dt; }
 
-  virtual math::sp_matxxr ComposeHessian(math::sp_matxxr const& M,
-                                         math::sp_matxxr const& K) const
+  virtual math::sp_matxxr ComposeHessian(math::sp_matxxr const& M, math::sp_matxxr const& K) const
       = 0;
 
-  virtual math::fieldr<dim> ComposeResidual(math::sp_matxxr const& M,
-                                            math::fieldr<dim> const& x_next,
+  virtual math::fieldr<dim> ComposeGradient(math::sp_matxxr const& M,
+                                            math::fieldr<dim> const& u_next,
                                             math::fieldr<dim> const& internal_force,
                                             math::fieldr<dim> const& precomputed) const
       = 0;
@@ -31,29 +29,29 @@ public:
   virtual real ComposeEnergy(real inertia_term, real stiffness_term) const = 0;
 
   virtual math::fieldr<dim> Precomputed(math::sp_matxxr const& M,
-                                        math::fieldr<dim> const& x_current,
-                                        math::fieldr<dim> const& x_old,
+                                        math::fieldr<dim> const& u_current,
+                                        math::fieldr<dim> const& u_old,
                                         math::fieldr<dim> const& v_current,
                                         math::fieldr<dim> const& v_old,
                                         math::fieldr<dim> const& ext_accel) const
       = 0;
 
-  virtual math::fieldr<dim> InitialGuess(math::fieldr<dim> const& x_current,
-                                        math::fieldr<dim> const& x_old,
-                                        math::fieldr<dim> const& v_current,
-                                        math::fieldr<dim> const& v_old,
-                                        math::fieldr<dim> const& ext_accel) const
+  virtual math::fieldr<dim> InitialGuess(math::fieldr<dim> const& u_current,
+                                         math::fieldr<dim> const& u_old,
+                                         math::fieldr<dim> const& v_current,
+                                         math::fieldr<dim> const& v_old,
+                                         math::fieldr<dim> const& ext_accel) const
       = 0;
 
-  virtual math::fieldr<dim> NewVelocity(math::fieldr<dim> const& x_current,
-                                       math::fieldr<dim> const& x_old,
-                                       math::fieldr<dim> const& v_current,
-                                       math::fieldr<dim> const& v_old,
-                                       math::fieldr<dim> const& du) const
+  virtual math::fieldr<dim> NewVelocity(math::fieldr<dim> const& u_current,
+                                        math::fieldr<dim> const& u_old,
+                                        math::fieldr<dim> const& v_current,
+                                        math::fieldr<dim> const& v_old,
+                                        math::fieldr<dim> const& du) const
       = 0;
 
 protected:
   real dt_;
 };
 
-}
+}  // namespace ax::fem

@@ -18,8 +18,8 @@ template <idx dim> Status TimeStepperBase<dim>::Init(utils::Opt const&) {
 
   u_.setZero(dim, n_vert);
   u_back_ = u_;
-  u_next_ = u_;
-  du_precompute_ = u_;
+  du_ = u_;
+  du_inertia_ = u_;
   velocity_.setZero(dim, n_vert);
   velocity_back_ = velocity_;
   ext_accel_.setZero(dim, n_vert);
@@ -82,7 +82,9 @@ template <idx dim> Status TimeStepperBase<dim>::Step(real dt) {
 
 template <idx dim> Status TimeStepperBase<dim>::Precompute() { AX_RETURN_OK(); }
 
-template<idx dim> math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x, bool project) const {
+template <idx dim>
+math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
+                                                         bool project) const {
   auto lame = u_lame_;
   elasticity_->Update(x, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(project);
@@ -90,7 +92,8 @@ template<idx dim> math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math:
   return elasticity_->GetHessianOnVertices();
 }
 
-template<idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const& x) const {
+template <idx dim>
+math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const& x) const {
   auto lame = u_lame_;
   elasticity_->Update(x, ElasticityUpdateLevel::kStress);
   elasticity_->UpdateStress();
@@ -108,25 +111,38 @@ template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real dt) {
 }
 
 template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
+  if (has_time_step_begin_) {
+    throw LogicError("Timestep has already begun. Call EndTimestep before starting a new one.");
+  }
   integration_scheme_->SetDeltaT(dt);
-  du_precompute_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
-                                                   velocity_back_, ext_accel_);
-  u_next_ = integration_scheme_->InitialGuess(u_, u_back_, velocity_, velocity_back_, ext_accel_);
+  du_inertia_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
+                                                 velocity_back_, ext_accel_);
+  du_ = integration_scheme_->InitialGuess(u_, u_back_, velocity_, velocity_back_, ext_accel_);
   // TODO: Lame parameters should be set uniformly or per element.
   elasticity_->SetLame(u_lame_);
+
+  // convergency test parameters
+  idx n_vert = mesh_->GetNumVertices();
+  math::fieldr<dim> body_force = (math::fieldr<dim>::Ones(dim, n_vert) * mass_matrix_original_);
+  abs_tol_grad_ = dt * dt * ResidualNorm(body_force) + math::epsilon<real>;
+
+  has_time_step_begin_ = true;
   return;
 }
 
-template <idx dim> void TimeStepperBase<dim>::EndTimestep(math::fieldr<dim> const &du) {
-  velocity_back_ = integration_scheme_->NewVelocity(u_, u_back_, velocity_, velocity_back_, du);
+template <idx dim> void TimeStepperBase<dim>::EndTimestep() {
+  velocity_back_ = integration_scheme_->NewVelocity(u_, u_back_, velocity_, velocity_back_, du_);
   std::swap(u_back_, u_);
   std::swap(velocity_back_, velocity_);
-  u_.noalias() = du + u_back_;
+  u_.noalias() = du_ + u_back_;
+  has_time_step_begin_ = false;
 }
 
 template <idx dim> math::fieldr<dim> const& TimeStepperBase<dim>::SolveTimestep() {
-  u_next_.setZero();
-  return u_next_;
+  // Do nothing, do not throw anything, for testing.
+  AX_LOG(ERROR) << "SolveTimestep is not implemented!";
+  du_.setZero();
+  return du_;
 }
 
 template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& du) const {
@@ -134,10 +150,83 @@ template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& du
   elasticity_->Update(x_new, ElasticityUpdateLevel::kEnergy);
   elasticity_->UpdateEnergy();
   real stiffness = elasticity_->GetEnergyOnElements().sum();
-  math::fieldr<dim> duu = du - du_precompute_;
+  math::fieldr<dim> duu = du - du_inertia_;
   math::fieldr<dim> Mdx = duu * mass_matrix_original_;
   real inertia = (duu.array() * Mdx.array()).sum();
   return integration_scheme_->ComposeEnergy(inertia, stiffness);
+}
+
+template <idx dim>
+math::fieldr<dim> TimeStepperBase<dim>::Gradient(math::fieldr<dim> const& du) const {
+  math::fieldr<dim> u_cur = du + u_;
+  math::fieldr<dim> x_new = u_cur + mesh_->GetVertices();
+
+  elasticity_->Update(x_new, ElasticityUpdateLevel::kStress);
+  elasticity_->UpdateStress();
+  elasticity_->GatherStressToVertices();
+  math::fieldr<dim> neg_force = elasticity_->GetStressOnVertices();
+  return integration_scheme_->ComposeGradient(mass_matrix_original_, u_ + du, neg_force,
+                                              du_inertia_);
+}
+
+template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr const& du) const {
+  idx n_vert = mesh_->GetNumVertices();
+  return Gradient(du.reshaped(dim, n_vert)).reshaped();
+}
+
+template <idx dim>
+math::sp_matxxr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& du) const {
+  auto x_cur = u_ + mesh_->GetVertices();
+  math::fieldr<dim> x_new = du + x_cur;
+  elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
+  elasticity_->UpdateHessian(true);
+  elasticity_->GatherHessianToVertices();
+  auto stiffness = elasticity_->GetHessianOnVertices();
+  return integration_scheme_->ComposeHessian(mass_matrix_original_, stiffness);
+}
+
+template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() const {
+  optim::OptProblem problem;
+  problem
+      .SetEnergy([this](math::vecxr const& du) -> real {
+        return Energy(du.reshaped(dim, mesh_->GetNumVertices()));
+      })
+      .SetGrad([this](math::vecxr const& du) -> math::vecxr { return GradientFlat(du); })
+      .SetSparseHessian([this](math::vecxr const& du) -> math::sp_matxxr {
+        return Hessian(du.reshaped(dim, mesh_->GetNumVertices()));
+      })
+      .SetConvergeGrad([this](const math::vecxr& du, const math::vecxr& grad) -> real {
+        return ResidualNorm(grad) / abs_tol_grad_;
+      })
+      .SetConvergeVar([this](const math::vecxr& du_back, const math::vecxr& du) -> real {
+        return (du_back - du).cwiseAbs().maxCoeff();
+      });
+
+  return problem;
+}
+
+template <idx dim> real TimeStepperBase<dim>::ResidualNorm(math::fieldr<dim> const& grad) const {
+  switch (converge_kind_) {
+    case TimestepConvergeNormKind::kL1:
+      return L1Residual(grad);
+    case TimestepConvergeNormKind::kLinf:
+      return LinfResidual(grad);
+    case TimestepConvergeNormKind::kL2:
+    default:
+      return L2Residual(grad);
+  }
+}
+
+template <idx dim> real TimeStepperBase<dim>::L2Residual(math::fieldr<dim> const& grad) const {
+  return math::norm(grad, math::l2_t{});
+}
+
+template <idx dim> real TimeStepperBase<dim>::L1Residual(math::fieldr<dim> const& grad) const {
+  return math::norm(grad, math::l1_t{});
+}
+
+template <idx dim> real TimeStepperBase<dim>::LinfResidual(math::fieldr<dim> const& grad) const {
+  return math::norm(grad, math::linf_t{});
 }
 
 template class TimeStepperBase<2>;

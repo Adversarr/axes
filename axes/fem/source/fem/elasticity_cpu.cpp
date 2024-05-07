@@ -343,9 +343,9 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        model.SetLame(lame);
         math::decomp::SvdResultImpl<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
+          model.SetLame(lame.col(i));
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
                        * this->rest_volume_(i);

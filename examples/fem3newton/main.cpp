@@ -47,7 +47,7 @@ void update_rendering() {
   if (mesh.indices_ .size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
-  mesh.vertices_ = ts->GetMesh().GetVertices();
+  mesh.vertices_ = ts->GetPosition();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
@@ -98,7 +98,9 @@ void ui_callback(gl::UiRenderEvent ) {
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;
-    AX_CHECK_OK(ts->Step(dt));
+    ts->BeginTimestep(dt);
+    ts->SolveTimestep();
+    ts->EndTimestep();
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
@@ -140,9 +142,12 @@ int main(int argc, char** argv) {
       }
     }
   }
+
   AX_CHECK_OK(ts->Init());
+  ts->SetExternalAccelerationUniform(math::vec3r::UnitY() * -9.8);
   ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
   ts->SetDensity(1e3);
+  ts->BeginSimulation();
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

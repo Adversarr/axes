@@ -9,7 +9,7 @@ BOOST_DEFINE_ENUM_CLASS(TimestepSchemeKind, kBackwardEuler, kBDF2);
 template <idx dim> class TimestepSchemeBase {
 public:
   TimestepSchemeBase() = default;
-  ~TimestepSchemeBase() = default;
+  virtual ~TimestepSchemeBase() = default;
 
   virtual TimestepSchemeKind GetKind() const = 0;
 
@@ -34,13 +34,6 @@ public:
                                         math::fieldr<dim> const& v_current,
                                         math::fieldr<dim> const& v_old,
                                         math::fieldr<dim> const& ext_accel) const
-      = 0;
-
-  virtual math::fieldr<dim> InitialGuess(math::fieldr<dim> const& u_current,
-                                         math::fieldr<dim> const& u_old,
-                                         math::fieldr<dim> const& v_current,
-                                         math::fieldr<dim> const& v_old,
-                                         math::fieldr<dim> const& ext_accel) const
       = 0;
 
   virtual math::fieldr<dim> NewVelocity(math::fieldr<dim> const& u_current,

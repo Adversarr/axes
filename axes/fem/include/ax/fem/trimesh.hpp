@@ -200,6 +200,8 @@ public:
 
   void FilterVector(math::vecxr& inout, bool set_zero = false) const;
 
+  void FilterField(math::fieldr<dim> & inout, bool set_zero = false) const;
+
   std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept {
     return v_e_map_;
   }

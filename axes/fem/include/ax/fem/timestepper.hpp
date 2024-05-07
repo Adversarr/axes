@@ -40,15 +40,14 @@ public:
   // External force getter/setter
   math::fieldr<dim> const &GetExternalAcceleration() const { return ext_accel_; }
   void SetExternalAcceleration(math::fieldr<dim> const &ext_force) { ext_accel_ = ext_force; }
+  void SetExternalAccelerationUniform(math::vecr<dim> const &ext_force) { SetExternalAcceleration(ext_force.replicate(1, mesh_->GetNumVertices())); }
 
   // Do the time stepping.
-  // TODO: Deprecate.
-  virtual Status Step(real dt);
-
   /*************************
    * SECT: Constant APIs.
    *************************/
   math::fieldr<dim> const &GetDisplacement() const { return u_; }
+  math::fieldr<dim> const &GetNextDisplacementDelta() const { return du_; }
   math::fieldr<dim> const &GetVelocity() const { return velocity_; }
   math::fieldr<dim> GetPosition() const { return u_ + mesh_->GetVertices(); }
 
@@ -89,16 +88,19 @@ public:
    *************************/
 
   // Requiest the Simulator to setup basic buffers. such as deformation map, velocity.
-  virtual Status Init(utils::Opt const &opt = {});
+  virtual Status Initialize();
   // acknowledge the beginning of simulation
   virtual void BeginSimulation(real dt = -1);
   // Start a new timestep, prepare the data, we assume dt does not change during this timestep
   virtual void BeginTimestep(real dt);
   // Set the mesh to new position
   virtual void EndTimestep();
+  virtual void EndTimestep(math::fieldr<dim> const& du);
   // Solve the timestep
   optim::OptProblem AssembleProblem() const;
-  virtual math::fieldr<dim> const &SolveTimestep();
+  math::fieldr<dim> const &GetInitialGuess() const { return du_inertia_; }
+  math::fieldr<dim> const &GetSolution() const { return du_; }
+  virtual void SolveTimestep();
 
   // SECT: During the timestep, optimizers may require such information
   real Energy(math::fieldr<dim> const &du) const;
@@ -136,8 +138,8 @@ protected:
   real rel_tol_grad_{0.02};
   real tol_var_{1e-12};
   real abs_tol_grad_; // Dynamically set according to rel_tol_grad.
-  TimestepConvergeNormKind converge_kind_;
-
+  TimestepConvergeNormKind converge_kind_ = TimestepConvergeNormKind::kLinf;
+  idx max_iter_{1000};
 
 private:
   bool has_time_step_begin_;

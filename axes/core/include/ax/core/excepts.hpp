@@ -1,7 +1,12 @@
 #pragma once
 
 #include <exception>
+#include <functional>
+#include <optional>
+#include <variant>
+#include <memory>
 #include <stdexcept>
+#include <typeinfo>
 
 namespace ax {
 

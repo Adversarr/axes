@@ -1,5 +1,9 @@
 #include "ax/fem/timestepper.hpp"
 
+#ifdef AX_HAS_CUDA
+#include "ax/fem/elasticity_gpu.cuh"
+#endif
+
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"

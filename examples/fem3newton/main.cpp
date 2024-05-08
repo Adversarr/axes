@@ -143,9 +143,9 @@ int main(int argc, char** argv) {
     }
   }
 
-  AX_CHECK_OK(ts->Init());
+  AX_CHECK_OK(ts->Initialize());
   ts->SetExternalAccelerationUniform(math::vec3r::UnitY() * -9.8);
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+  ts->SetupElasticity("stable_neohookean", "gpu");
   ts->SetDensity(1e3);
   ts->BeginSimulation();
   out = create_entity();

@@ -30,3 +30,16 @@ using UnderflowError = std::underflow_error;
 using DomainError = std::domain_error;
 
 }
+
+#define AX_THROW_IF_LT(lhs, rhs, ...) do { if ((lhs) < (rhs)) throw ax::RuntimeError(#lhs " < " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GT(lhs, rhs, ...) do { if ((lhs) > (rhs)) throw ax::RuntimeError(#lhs " > " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_LE(lhs, rhs, ...) do { if ((lhs) <= (rhs)) throw ax::RuntimeError(#lhs " <= " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GE(lhs, rhs, ...) do { if ((lhs) >= (rhs)) throw ax::RuntimeError(#lhs " >= " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_EQ(lhs, rhs, ...) do { if ((lhs) == (rhs)) throw ax::RuntimeError(#lhs " == " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NE(lhs, rhs, ...) do { if ((lhs) != (rhs)) throw ax::RuntimeError(#lhs " != " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULL(ptr, ...) do { if (!(ptr)) throw ax::RuntimeError(#ptr " is null" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULL(ptr, ...) do { if ((ptr)) throw ax::RuntimeError(#ptr " is not null" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_FALSE(cond, ...) do { if (!(cond)) throw ax::RuntimeError(#cond " is false" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_TRUE(cond, ...) do { if ((cond)) throw ax::RuntimeError(#cond " is true" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULLPTR(ptr, ...) do { if ((ptr) == nullptr) throw ax::RuntimeError(#ptr " is nullptr" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULLPTR(ptr, ...) do { if ((ptr) != nullptr) throw ax::RuntimeError(#ptr " is not nullptr" __VA_OPT__(": ") __VA_ARGS__); } while (0)

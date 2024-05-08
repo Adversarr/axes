@@ -30,7 +30,7 @@ ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
-ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
+ABSL_FLAG(std::string, elast, "stable_neohookean", "Hyperelasticity model, nh=Neohookean arap=Arap");
 ABSL_FLAG(std::string, optim, "liu", "optimizer newton 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
@@ -272,7 +272,8 @@ int main(int argc, char** argv) {
   } else {
     AX_CHECK(false) << "Invalid optimizer name, expect 'liu' or 'newton'";
   }
-  ts->SetLame(lame);
+  ts->SetYoungs(absl::GetFlag(FLAGS_youngs));
+  ts->SetPoissonRatio(0.45);
 
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
@@ -303,23 +304,15 @@ int main(int argc, char** argv) {
   ts->SetDensity(1e3);
   AX_CHECK_OK(ts->Initialize());
 
+  ts->SetupElasticity(absl::GetFlag(FLAGS_elast),
 #ifdef AX_HAS_CUDA
-  if (auto device = absl::GetFlag(FLAGS_device); device == "cpu") {
-    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
-      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
-    } else {
-      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_CPU>();
-    }
-  } else if (device == "gpu") {
-    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
-      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
-    } else {
-      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_GPU>();
-    }
-  }
+                      absl::GetFlag(FLAGS_device)
 #else
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+                      "cpu"
 #endif
+  );
+
+  std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
   if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));

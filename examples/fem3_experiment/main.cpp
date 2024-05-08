@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
   }
 
   AX_CHECK_OK(ts->Initialize());
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+  ts->SetupElasticity("stable_neohookean", "cpu");
   ts->SetDensity(1e3);
   ts->BeginSimulation();
 

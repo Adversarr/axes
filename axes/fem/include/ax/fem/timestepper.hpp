@@ -36,6 +36,8 @@ public:
   SPtr<TriMesh<dim>> &GetMeshPtr() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
   TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
+  virtual Status SetOptions(const utils::Opt &option) override;
+  virtual utils::Opt GetOptions() const override;
 
   // External force getter/setter
   math::fieldr<dim> const &GetExternalAcceleration() const { return ext_accel_; }
@@ -59,19 +61,11 @@ public:
 
   // SECT: Lame:
   void SetLame(math::vec2r const &lame) { u_lame_ = lame; }
+  void SetYoungs(real youngs) { youngs_ = youngs; }
+  void SetPoissonRatio(real poisson_ratio) { poisson_ratio_ = poisson_ratio; }
   math::vec2r const &GetLame() const { return u_lame_; }
 
-  // SECT: Elasticity:
-  template <template <idx> class ElasticModelTemplate,
-            template <idx, template <idx> class> class Compute = ElasticityCompute_CPU>
-  void SetupElasticity() {
-    if (!mesh_) {
-      throw LogicError("Cannot setup elasticity when mesh is not set.");
-    }
-    elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(mesh_);
-    elasticity_->RecomputeRestPose();
-  }
-
+  void SetupElasticity(std::string name, std::string device);
   /*************************
    * SECT: Runtim APIs
    *************************/
@@ -118,7 +112,9 @@ protected:
   SPtr<TriMesh<dim>> mesh_;
   UPtr<ElasticityComputeBase<dim>> elasticity_;
   UPtr<TimestepSchemeBase<dim>> integration_scheme_;
-  math::vec2r u_lame_;
+  std::string elasticity_name_{"linear"}, device_{"cpu"};
+
+  real youngs_{3e6}, poisson_ratio_{0.33}, density_{1e3};
 
   // State variables
   math::fieldr<dim> u_, u_back_;                ///< Displacement
@@ -128,21 +124,29 @@ protected:
   // Solve Results.
   math::fieldr<dim> du_inertia_, du_;  ///< Stores the solution of displacement of displacement.
 
-  // cache the mass matrix
+  // runtime parameters.
+  math::vec2r u_lame_;
   math::sp_matxxr mass_matrix_;
   math::sp_matxxr mass_matrix_original_;
   real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
+  real abs_tol_grad_; // Dynamically set according to rel_tol_grad.
 
   // Convergency Parameters:
   real rel_tol_grad_{0.02};
   real tol_var_{1e-12};
-  real abs_tol_grad_; // Dynamically set according to rel_tol_grad.
-  TimestepConvergeNormKind converge_kind_ = TimestepConvergeNormKind::kLinf;
+  TimestepConvergeNormKind converge_kind_{TimestepConvergeNormKind::kLinf};
   idx max_iter_{1000};
+  bool verbose_{false};
 
 private:
   bool has_time_step_begin_;
+
+  template <template <idx> class ElasticModelTemplate,
+            template <idx, template <idx> class> class Compute = ElasticityCompute_CPU>
+  void SetupElasticity() {
+    elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(mesh_);
+  }
 };
 
 }  // namespace ax::fem

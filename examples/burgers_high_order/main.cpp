@@ -1,5 +1,6 @@
 #include <absl/flags/flag.h>
 #include <absl/log/globals.h>
+
 #include <ax/math/common.hpp>
 #include <cmath>
 
@@ -7,8 +8,8 @@
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/math/functional.hpp"
-#include "ax/math/linalg.hpp"
 #include "ax/math/io.hpp"
+#include "ax/math/linalg.hpp"
 
 using namespace ax;
 
@@ -22,6 +23,7 @@ real dx;
 real M = 1;
 real lf_alpha = 2;
 bool is_weno = true;
+bool time_high_accuracy = false;
 
 #define LF_FLUX 0
 #define GODUNOV_FLUX 1
@@ -84,7 +86,12 @@ real cfl() {
   // Determine delta t:
   // alpha Delta t <= Delta x / 2
   // alpha = max |f'| = max |u| = 1.5
-  return 0.25 * dx / 1.5;
+  if (time_high_accuracy) {
+    // To achieve 5 order,
+    return 0.25 * dx / 1.5 * math::pow(dx, 5. / 3.);
+  } else {
+    return 0.25 * dx / 1.5;
+  }
   // return 0.5 * dx;
 }
 
@@ -135,7 +142,9 @@ real tvb_limiter_left(real u_l, real u_c, real u_r, real u_reconstruct) {
   return u_c - minmod_raise_to_a1(rec_c, rc, cl, M);
 }
 
-real no_limiter(real /* u_l */, real /* u_c */, real /* u_r */, real u_reconstruct) { return u_reconstruct; }
+real no_limiter(real /* u_l */, real /* u_c */, real /* u_r */, real u_reconstruct) {
+  return u_reconstruct;
+}
 
 math::field2r reconstruct_3rd_order_direct(math::field1r const& in) {
   math::field2r out(2, in.cols());
@@ -147,31 +156,31 @@ math::field2r reconstruct_3rd_order_direct(math::field1r const& in) {
     real u_r = in((i + 1) % Nx);
     real u_rr = in((i + 2) % Nx);
     out(0, i) = -1.0 / 6.0 * u_l + 5.0 / 6.0 * u_c + 1.0 / 3.0 * u_r;
-    out(1, i) =  1.0 / 3.0 * u_c + 5.0 / 6.0 * u_r - 1.0 / 6.0 * u_rr;
+    out(1, i) = 1.0 / 3.0 * u_c + 5.0 / 6.0 * u_r - 1.0 / 6.0 * u_rr;
   }
   return out;
 }
 
-math::field3r weno_weights(math::field1r const& u) {
+math::field3r weno_smooth_indicator(math::field1r const& u) {
   math::field3r beta(3, u.cols());
   for (idx i = 0; i < u.cols(); ++i) {
+    real u_ll = u((i + Nx - 2) % Nx);
     real u_l = u((i + Nx - 1) % Nx);
     real u_c = u(i);
     real u_r = u((i + 1) % Nx);
     real u_rr = u((i + 2) % Nx);
-    real u_rrr = u((i + 3) % Nx);
 
-    real d0 = 13.0 / 12.0 * (u_l - 2.0 * u_c + u_r) * (u_l - 2.0 * u_c + u_r) +
-              0.25 * (u_l - 4.0 * u_c + 3.0 * u_r) * (u_l - 4.0 * u_c + 3.0 * u_r);
-    real d1 = 13.0 / 12.0 * (u_c - 2.0 * u_r + u_rr) * (u_c - 2.0 * u_r + u_rr) +
-              0.25 * (u_c - u_rr) * (u_c - u_rr);
-    real d2 = 13.0 / 12.0 * (u_r - 2.0 * u_rr + u_rrr) * (u_r - 2.0 * u_rr + u_rrr) +
-              0.25 * (3.0 * u_r - 4.0 * u_rr + u_rrr) * (3.0 * u_r - 4.0 * u_rr + u_rrr);
-    real eps = 1e-6;
+    real d0 = 13.0 / 12.0 * (u_ll - 2.0 * u_l + u_c) * (u_ll - 2.0 * u_l + u_c)
+              + 0.25 * (u_ll - 4.0 * u_l + 3.0 * u_c) * (u_ll - 4.0 * u_l + 3.0 * u_c);
+    real d1 = 13.0 / 12.0 * (u_l - 2.0 * u_c + u_r) * (u_l - 2.0 * u_c + u_r)
+              + 0.25 * (u_l - u_r) * (u_l - u_r);
+    real d2 = 13.0 / 12.0 * (u_c - 2.0 * u_r + u_rr) * (u_c - 2.0 * u_r + u_rr)
+              + 0.25 * (3.0 * u_c - 4.0 * u_r + u_rr) * (3.0 * u_c - 4.0 * u_r + u_rr);
+    real eps = 1e-12;
     real alpha0 = 0.1 / ((d0 + eps) * (d0 + eps));
     real alpha1 = 0.6 / ((d1 + eps) * (d1 + eps));
     real alpha2 = 0.3 / ((d2 + eps) * (d2 + eps));
-    real sum_alpha = alpha0 + alpha1 + alpha2 + eps;
+    real sum_alpha = alpha0 + alpha1 + alpha2;
     beta(0, i) = alpha0 / sum_alpha;
     beta(1, i) = alpha1 / sum_alpha;
     beta(2, i) = alpha2 / sum_alpha;
@@ -188,10 +197,9 @@ math::field3r reconstruct_3rd_order_weno_left(math::field1r const& in) {
     real u_r = in((i + 1) % Nx);
     real u_rr = in((i + 2) % Nx);
     real u_rrr = in((i + 3) % Nx);
-    
-    left(0, i) = 1.0 / 3.0 * u_ll + 5.0 / 6.0 * u_l - 1.0 / 6.0 * u_c;
-    left(1, i) = -1.0 / 6.0 * u_l + 5.0 / 6.0 * u_c + 1.0 / 3.0 * u_r;
-    left(2, i) = 11.0 / 6.0 * u_c - 7.0 / 6.0 * u_r + 1.0 / 3.0 * u_rr;
+    left(0, i) = (-u_ll + 5 * u_l + 2 * u_c) / 6;
+    left(1, i) = (2 * u_l + 5 * u_c - u_r) / 6;
+    left(2, i) = (11 * u_c - 7 * u_r + 2 * u_rr) / 6;
   }
   return left;
 }
@@ -205,10 +213,10 @@ math::field3r reconstruct_3rd_order_weno_right(math::field1r const& in) {
     real u_r = in((i + 1) % Nx);
     real u_rr = in((i + 2) % Nx);
     real u_rrr = in((i + 3) % Nx);
-    
-    right(0, i) = 11.0 / 6.0 * u_c - 7.0 / 6.0 * u_l + 1.0 / 3.0 * u_ll;
-    right(1, i) = -1.0 / 6.0 * u_r + 5.0 / 6.0 * u_c + 1.0 / 3.0 * u_l;
-    right(2, i) = 1.0 / 3.0 * u_rr + 5.0 / 6.0 * u_r - 1.0 / 6.0 * u_c;
+
+    right(0, i) = (2 * u_ll - 7 * u_l + 11 * u_c) / 6;
+    right(1, i) = (-u_l + 5 * u_c + 2 * u_r) / 6;
+    right(2, i) = (2 * u_c + 5 * u_r - u_rr) / 6;
   }
   return right;
 }
@@ -216,11 +224,11 @@ math::field3r reconstruct_3rd_order_weno_right(math::field1r const& in) {
 math::field2r reconstruct_3rd_order_weno(math::field1r const& in) {
   math::field3r left = reconstruct_3rd_order_weno_left(in);
   math::field3r right = reconstruct_3rd_order_weno_right(in);
-  math::field3r beta = weno_weights(in);
+  math::field3r beta = weno_smooth_indicator(in);
   math::field2r out(2, in.cols());
   for (idx i = 0; i < Nx; ++i) {
-    out(0, i) = math::dot(left.col(i), beta.col(i));
-    out(1, i) = math::dot(right.col(i), beta.col(i));
+    out(0, i) = math::dot(right.col(i), beta.col(i));
+    out(1, i) = math::dot(left.col((i + 1) % Nx), beta.col((i + 1) % Nx));
   }
   return out;
 }
@@ -239,11 +247,15 @@ math::field1r rk1(math::field1r const& in, real dt) {
         real ui_rec_left = u_c(1, (i - 1 + Nx) % Nx);
         real ui_rec_right = u_c(0, i);
         if (limiter_type == LIMITER_TVD) {
-          u_c_mod(1, (i - 1 + Nx) % Nx) = tvd_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
-          u_c_mod(0, i) = tvd_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
+          u_c_mod(1, (i - 1 + Nx) % Nx)
+              = tvd_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+          u_c_mod(0, i)
+              = tvd_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
         } else if (limiter_type == LIMITER_TVB) {
-          u_c_mod(1, (i - 1 + Nx) % Nx) = tvb_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
-          u_c_mod(0, i) = tvb_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
+          u_c_mod(1, (i - 1 + Nx) % Nx)
+              = tvb_limiter_left(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_left);
+          u_c_mod(0, i)
+              = tvb_limiter_right(in((i - 1 + Nx) % Nx), in(i), in((i + 1) % Nx), ui_rec_right);
         }
       }
       u_c = u_c_mod;
@@ -282,9 +294,8 @@ ABSL_FLAG(int, flux_type, GODUNOV_FLUX, "Flux type");
 ABSL_FLAG(int, limiter_type, LIMITER_NONE, "Limiter type");
 ABSL_FLAG(bool, weno, true, "enable weno");
 ABSL_FLAG(real, M, 1, "M for TVB limiter");
-
+ABSL_FLAG(bool, time_high_accuracy, false, "Time high accuracy");
 ABSL_FLAG(std::string, input, "", "Input file");
-
 
 int main(int argc, char** argv) {
   ax::init(argc, argv);
@@ -300,6 +311,7 @@ int main(int argc, char** argv) {
   }
 
   limiter_type = absl::GetFlag(FLAGS_limiter_type);
+  time_high_accuracy = absl::GetFlag(FLAGS_time_high_accuracy);
   M = absl::GetFlag(FLAGS_M);
   if (limiter_type == LIMITER_NONE) {
     AX_LOG(INFO) << "No limiter";
@@ -324,6 +336,8 @@ int main(int argc, char** argv) {
   }
   final_result_list.push_back(current.transpose());
   real tt = 0;
+
+  std::cout << "Expected Time step count = " << T / cfl() << std::endl;
 
   /* 2. Loop until finish */
   while (tt < T) {

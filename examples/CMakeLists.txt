@@ -13,6 +13,7 @@ axes_add_example(poisson2d "axes_graph;axes_fem")
 axes_add_example(poisson3d "axes_fem")
 axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(normal "axes_gl")
+axes_add_example(springs "axes_graph")
 axes_add_example(graph "axes_graph")
 
 # Homework for DGP

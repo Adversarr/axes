@@ -1,11 +1,9 @@
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/gl/primitives/lines.hpp"
-#include "ax/math/sparse.hpp"
 #include "ax/math/linsys/sparse.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/gl/events.hpp"
-#include "ax/utils/iota.hpp"
 #include <imgui.h>
 
 using namespace ax;
@@ -13,7 +11,7 @@ using namespace ax;
 constexpr real MASS_PER_VERTEX = 1;
 constexpr real DELTA_TIME = 0.01;
 constexpr real STIFFNESS = 1e3;
-constexpr idx MAX_ITER = 10;
+constexpr idx MAX_ITER = 3;
 
 math::field2i springs;
 math::field3r vertices;
@@ -21,46 +19,68 @@ math::field1r initial;
 math::field3r velocities;
 List<idx> fixed;
 
+
+math::vec3r center_of_ball;
+real radius = 0.5;
+
 Entity render;
 
 UPtr<math::SparseSolverBase> solver;
 
-math::field3r grad(math::field3r const& vert) {
-  math::field3r g = velocities * MASS_PER_VERTEX;
-  idx cnt = 0;
-  g.row(1).setConstant(-1);
-  for (auto ij: math::each(springs)) {
-    idx i = ij[0];
-    idx j = ij[1];
-    real len = initial[cnt];
-    math::vec3r cur = vert.col(i) - vert.col(j);
-    math::vec3r d = cur / cur.norm() * (cur.norm() - len);
-    g.col(i) -= d;
-    g.col(j) += d;
-    cnt += 1;
-  }
-  for (auto i: fixed) {
-    g.col(i).setZero();
-  }
-  return g;
-}
-
 void step() {
-  for (idx i = 0; i < MAX_ITER; ++i) {
-    math::field3r g = grad(vertices);
-    math::field3r v = velocities + g * DELTA_TIME;
-    math::field3r new_vertices = vertices + v * DELTA_TIME;
-    math::field3r new_g = grad(new_vertices);
-    math::field3r new_v = v + (new_g - g) * DELTA_TIME;
-    velocities = new_v;
-    vertices = new_vertices;
+  math::field3r x = vertices + DELTA_TIME * velocities;
+  for (idx dof: fixed) {
+    x.col(dof) = vertices.col(dof);
   }
+  math::field3r x_expect = x;
+  x.row(1).array() += -DELTA_TIME * DELTA_TIME * 9.8;
+  for (idx i = 0; i < MAX_ITER; ++i) {
+    // by pbd.
+    idx cnt = 0;
+    for (auto ij : math::each(springs)) {
+      idx i = ij[0];
+      idx j = ij[1];
+      math::vec3r p0 = x.col(i);
+      math::vec3r p1 = x.col(j);
+      math::vec3r center = (p0 + p1) * 0.5;
+      math::vec3r delta = (p1 - p0).normalized();
+      real len = initial[cnt];
+      x.col(i) = center - delta * len * 0.5;
+      x.col(j) = center + delta * len * 0.5;
+      cnt += 1;
+    }
+
+    // collision tests
+    for (idx i = 0; i < x.cols(); i++) {
+      math::vec3r p = x.col(i);
+      math::vec3r dir = p - center_of_ball;
+      if (dir.norm() < radius) {
+        x.col(i) = center_of_ball + dir.normalized() * radius;
+      }
+    }
+
+    for (idx dof: fixed) {
+      x.col(dof) = vertices.col(dof);
+    }
+  }
+  vertices = x;
 }
 
 void ui_render(gl::UiRenderEvent ) {
   ImGui::Begin("Spring System");
-  if (ImGui::Button("Step") ){
+  static bool run = false;
+  ImGui::Checkbox("Running", &run);
+  ImGui::InputDouble("Radius", &radius);
+  ImGui::InputDouble("Center X", &center_of_ball[0]);
+  ImGui::InputDouble("Center Y", &center_of_ball[1]);
+  ImGui::InputDouble("Center Z", &center_of_ball[2]);
+  if (ImGui::Button("Step") || run){
     step();
+    auto &lines = get_component<gl::Lines>(render);
+    velocities = (vertices - lines.vertices_) / DELTA_TIME;
+    std::cout << velocities.norm() << std::endl;
+    lines.vertices_ = vertices;
+    lines.flush_ = true;
   }
   ImGui::End();
 }
@@ -78,7 +98,7 @@ int main(int argc, char** argv) {
   idx cnt = 0;
   for (idx i = 0; i < ndiv; i++) {
     for (idx j = 0; j < ndiv; j++) {
-      vertices.col(cnt) = math::vec3r(i, j, 0) / (ndiv - 1);
+      vertices.col(cnt) = math::vec3r(i, 0, j) / (ndiv - 1);
       cnt++;
     }
   }
@@ -112,26 +132,6 @@ int main(int argc, char** argv) {
   }
   velocities = math::field3r(3, ndiv * ndiv);
   velocities.setZero();
-
-  // set liu13 matrix
-  math::sp_coeff_list D_c;
-  cnt = 0;
-  for (auto ij: math::each(springs)) {
-    idx i = ij[0];
-    idx j = ij[1];
-    D_c.push_back({cnt, i, 1});
-    D_c.push_back({cnt, j, -1});
-    cnt++;
-  }
-  auto D = math::make_sparse_matrix(cnt, ndiv * ndiv, D_c);
-  math::sp_matxxr A = D.transpose() * D * DELTA_TIME * DELTA_TIME * STIFFNESS;
-  for (idx i = 0; i < ndiv * ndiv; i++) {
-    A.coeffRef(i, i) += MASS_PER_VERTEX;
-  }
-  A.makeCompressed();
-  math::LinsysProblem_Sparse lin;
-  lin.A_ = A;
-  AX_CHECK_OK(solver->Analyse(lin));
 
   // Render it.
   render = create_entity();

@@ -25,8 +25,6 @@ axes_add_example(cubicstylization "axes_graph")
 axes_add_example(geodesic_only_flip "axes_graph")
 
 # FEM
-axes_add_example(fem2basic "axes_gl;axes_fem")
-axes_add_example(fem3basic "axes_gl;axes_fem")
 axes_add_example(fem2debug "axes_gl;axes_fem")
 axes_add_example(fem3debug "axes_gl;axes_fem")
 axes_add_example(fem3newton "axes_gl;axes_fem")

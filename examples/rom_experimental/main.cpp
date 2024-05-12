@@ -106,7 +106,7 @@ void ui_callback(gl::UiRenderEvent ) {
     ts->GetMesh().FilterMatrixFull(K);
     auto [vec, val] = math::eig(K.toDense());
     p->SetBasis(vec.leftCols(100));
-    AX_CHECK_OK(ts->Step(dt));
+    // AX_CHECK_OK(ts->Step(dt));
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
   math::matxxr eigen_vectors = solver.eigenvectors().leftCols(absl::GetFlag(FLAGS_modes));
   p->SetBasis(eigen_vectors);
 
-  AX_CHECK_OK(ts->Init());
+  AX_CHECK_OK(ts->Initialize());
   ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
   ts->SetDensity(1e3);
   out = create_entity();

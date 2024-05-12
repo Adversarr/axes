@@ -13,12 +13,19 @@ class Timestepper_QuasiNewton : public TimeStepperBase<dim> {
 public:
   using TimeStepperBase<dim>::TimeStepperBase;
   virtual ~Timestepper_QuasiNewton() = default;
-  virtual Status Init(utils::Opt const &opt = {}) final;
-  virtual Status Step(real dt = 0.01) final;
 
+  virtual Status Initialize() final;
   void SetLbfgsStrategy(LbfgsStrategy strategy) { strategy_ = strategy; }
+  void UpdateSolverLaplace();
+
+  // Override the defaults.
+  void BeginSimulation(real dt) final;
+  void BeginTimestep(real dt) final;
+  void SolveTimestep() final;
 
 protected:
+  real dt_back_ = -1;
+
   UPtr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_;
 };

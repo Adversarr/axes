@@ -107,7 +107,7 @@ public:
   virtual void GatherEnergyToVertices();
   virtual void GatherStressToVertices();
   virtual void GatherHessianToVertices();
-
+    
   bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type);
   void RecomputeRestPose();
   math::field1r Energy(math::field2r const& lame);

@@ -9,7 +9,7 @@
 
 #include "ax/utils/time.hpp"
 
-#define CHECK_APPROX_SOLVER
+// #define CHECK_APPROX_SOLVER
 
 
 namespace ax::optim {

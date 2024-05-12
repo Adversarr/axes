@@ -8,9 +8,9 @@ class TimeStepper_ROM : public TimeStepperBase<dim> {
 public:
   TimeStepper_ROM(SPtr<TriMesh<dim>> mesh): TimeStepperBase<dim>(mesh) {}
 
-  Status Step(real dt) final;
+  // Status Step(real dt) final;
 
-  Status Init(utils::Opt const& opt = {}) final;
+  Status Initialize() final;
 
   void SetBasis(math::matxxr const& basis) {
     basis_ = basis;

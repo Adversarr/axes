@@ -5,6 +5,7 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(Blosc REQUIRED)
 find_package(Boost REQUIRED COMPONENTS json)
 find_package(ZLIB REQUIRED)
+find_package(Boost REQUIRED COMPONENTS json)
 find_package(OpenVDB REQUIRED)
 
 if (AX_ENABLE_OPENMP)
@@ -68,6 +69,7 @@ target_link_libraries(axes_core
     Boost::json
     Blosc::blosc
     ZLIB::ZLIB
+    Boost::json
 )
 
 if (AX_ENABLE_CUDA)

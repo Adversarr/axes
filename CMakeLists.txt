@@ -161,6 +161,7 @@ endforeach()
 # MSVC is special.
 if (MSVC)
   ax_add_cxx_compiler_flag("/bigobj")
+  ax_add_cxx_compiler_flag("/Zc:preprocessor")
 endif()
 
 # Further optimize for SIMD.

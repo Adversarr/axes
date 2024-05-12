@@ -1,7 +1,16 @@
 #pragma once
 
 #include <exception>
+#include <functional>
+#include <optional>
+#include <variant>
+#include <memory>
 #include <stdexcept>
+#include <typeinfo>
+
+#include <boost/preprocessor/facilities/va_opt.hpp>
+
+#include "ax/core/macros.hpp"
 
 namespace ax {
 
@@ -30,3 +39,31 @@ public:
 };
 
 }  // namespace ax
+
+#ifdef AX_PLATFORM_WINDOWS
+#define AX_THROW_IF_LT(lhs, rhs, ...) do { if ((lhs) < (rhs)) throw ax::RuntimeError(#lhs " < " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GT(lhs, rhs, ...) do { if ((lhs) > (rhs)) throw ax::RuntimeError(#lhs " > " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_LE(lhs, rhs, ...) do { if ((lhs) <= (rhs)) throw ax::RuntimeError(#lhs " <= " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GE(lhs, rhs, ...) do { if ((lhs) >= (rhs)) throw ax::RuntimeError(#lhs " >= " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_EQ(lhs, rhs, ...) do { if ((lhs) == (rhs)) throw ax::RuntimeError(#lhs " == " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NE(lhs, rhs, ...) do { if ((lhs) != (rhs)) throw ax::RuntimeError(#lhs " != " #rhs ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULL(ptr, ...) do { if (!(ptr)) throw ax::RuntimeError(#ptr " is null" ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULL(ptr, ...) do { if ((ptr)) throw ax::RuntimeError(#ptr " is not null" ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_FALSE(cond, ...) do { if (!(cond)) throw ax::RuntimeError(#cond " is false" ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_TRUE(cond, ...) do { if ((cond)) throw ax::RuntimeError(#cond " is true" ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULLPTR(ptr, ...) do { if ((ptr) == nullptr) throw ax::RuntimeError(#ptr " is nullptr" ": " __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULLPTR(ptr, ...) do { if ((ptr) != nullptr) throw ax::RuntimeError(#ptr " is not nullptr" ": " __VA_ARGS__); } while (0)
+#else
+#define AX_THROW_IF_LT(lhs, rhs, ...) do { if ((lhs) < (rhs)) throw ax::RuntimeError(#lhs " < " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GT(lhs, rhs, ...) do { if ((lhs) > (rhs)) throw ax::RuntimeError(#lhs " > " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_LE(lhs, rhs, ...) do { if ((lhs) <= (rhs)) throw ax::RuntimeError(#lhs " <= " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_GE(lhs, rhs, ...) do { if ((lhs) >= (rhs)) throw ax::RuntimeError(#lhs " >= " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_EQ(lhs, rhs, ...) do { if ((lhs) == (rhs)) throw ax::RuntimeError(#lhs " == " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NE(lhs, rhs, ...) do { if ((lhs) != (rhs)) throw ax::RuntimeError(#lhs " != " #rhs __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULL(ptr, ...) do { if (!(ptr)) throw ax::RuntimeError(#ptr " is null" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULL(ptr, ...) do { if ((ptr)) throw ax::RuntimeError(#ptr " is not null" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_FALSE(cond, ...) do { if (!(cond)) throw ax::RuntimeError(#cond " is false" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_TRUE(cond, ...) do { if ((cond)) throw ax::RuntimeError(#cond " is true" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NULLPTR(ptr, ...) do { if ((ptr) == nullptr) throw ax::RuntimeError(#ptr " is nullptr" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#define AX_THROW_IF_NOT_NULLPTR(ptr, ...) do { if ((ptr) != nullptr) throw ax::RuntimeError(#ptr " is not nullptr" __VA_OPT__(": ") __VA_ARGS__); } while (0)
+#endif

@@ -18,12 +18,12 @@ template<typename T>
 auto arg(T x) { return std::arg(x); }
 #endif
 
+#include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity_gpu.cuh"
-#include "ax/fem/elasticity/arap.hpp"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/decomp/svd/svd_cuda.cuh"
 #include "ax/utils/time.hpp"
@@ -98,13 +98,13 @@ __global__ void compute_deformation_gradient(math::veci<dim + 1> const* elements
   math::matr<dim, dim> F = Dm * rinv[eid];
   deformation_gradient[eid] = F;
   if (need_svd) {
-    math::mat3f U, V, Ff;
+    math::mat<f32, dim, dim> U, V, Ff;
     Ff = F.template cast<float>();
-    math::vec3f S;
+    math::vec<f32, dim> S;
     math::decomp::svd(Ff, U, V, S);
-    svdr[eid].U_ = U.cast<real>();
-    svdr[eid].V_ = V.cast<real>();
-    svdr[eid].sigma_ = S.cast<real>();
+    svdr[eid].U_ = U.template cast<real>();
+    svdr[eid].V_ = V.template cast<real>();
+    svdr[eid].sigma_ = S.template cast<real>();
     ax::math::decomp::svd_remove_rotation<ax::real>(svdr[eid]);
   }
 }
@@ -923,16 +923,16 @@ math::sp_matxxr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHess
 
 // NOTE: Currently, ARAP relies on Jacobi SVD.
 
-// template class ElasticityCompute_GPU<2, elasticity::StableNeoHookean>;
-// template class ElasticityCompute_GPU<2, elasticity::NeoHookeanBW>;
-// template class ElasticityCompute_GPU<2, elasticity::StVK>;
-// template class ElasticityCompute_GPU<2, elasticity::Linear>;
-// template class ElasticityCompute_GPU<2, elasticity::IsotropicARAP>;
+ template class ElasticityCompute_GPU<2, elasticity::StableNeoHookean>;
+ template class ElasticityCompute_GPU<2, elasticity::NeoHookeanBW>;
+ template class ElasticityCompute_GPU<2, elasticity::StVK>;
+ template class ElasticityCompute_GPU<2, elasticity::Linear>;
+ template class ElasticityCompute_GPU<2, elasticity::IsotropicARAP>;
 
 template class ElasticityCompute_GPU<3, elasticity::StableNeoHookean>;
-// template class ElasticityCompute_GPU<3, elasticity::NeoHookeanBW>;
-// template class ElasticityCompute_GPU<3, elasticity::StVK>;
-// template class ElasticityCompute_GPU<3, elasticity::Linear>;
+template class ElasticityCompute_GPU<3, elasticity::NeoHookeanBW>;
+template class ElasticityCompute_GPU<3, elasticity::StVK>;
+template class ElasticityCompute_GPU<3, elasticity::Linear>;
 template class ElasticityCompute_GPU<3, elasticity::IsotropicARAP>;
 
 }  // namespace fem

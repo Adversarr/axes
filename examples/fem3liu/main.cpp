@@ -30,7 +30,7 @@ ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
-ABSL_FLAG(std::string, elast, "nh", "Hyperelasticity model, nh=Neohookean arap=Arap");
+ABSL_FLAG(std::string, elast, "stable_neohookean", "Hyperelasticity model, nh=Neohookean arap=Arap");
 ABSL_FLAG(std::string, optim, "liu", "optimizer newton 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
@@ -56,7 +56,7 @@ void update_rendering() {
   if (mesh.indices_.size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
-  mesh.vertices_ = ts->GetMesh().GetVertices();
+  mesh.vertices_ = ts->GetPosition();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
@@ -187,7 +187,9 @@ void ui_callback(gl::UiRenderEvent) {
     }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    AX_CHECK_OK(ts->Step(dt));
+    ts->BeginTimestep(dt);
+    ts->SolveTimestep();
+    ts->EndTimestep();
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
@@ -243,10 +245,11 @@ int main(int argc, char** argv) {
 
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
-  auto cube = geo::tet_cube(10, 2, 2, 2);
-  input_mesh.indices_ = tet.transpose();
-  input_mesh.vertices_ = vet.transpose();
-  // input_mesh = cube;
+  auto cube = geo::tet_cube(0.5, 10 * nx, nx, nx);
+  cube.vertices_.row(0) *= 10;
+  // input_mesh.indices_ = tet->transpose();
+  // input_mesh.vertices_ = vet->transpose();
+  input_mesh = cube;
 
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
@@ -268,7 +271,8 @@ int main(int argc, char** argv) {
   } else {
     AX_CHECK(false) << "Invalid optimizer name, expect 'liu' or 'newton'";
   }
-  ts->SetLame(lame);
+  ts->SetYoungs(absl::GetFlag(FLAGS_youngs));
+  ts->SetPoissonRatio(0.45);
 
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
@@ -297,29 +301,25 @@ int main(int argc, char** argv) {
   }
 
   ts->SetDensity(1e3);
-  AX_CHECK_OK(ts->Init());
+  AX_CHECK_OK(ts->Initialize());
 
+  ts->SetupElasticity(absl::GetFlag(FLAGS_elast),
 #ifdef AX_HAS_CUDA
-  if (auto device = absl::GetFlag(FLAGS_device); device == "cpu") {
-    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
-      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
-    } else {
-      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_CPU>();
-    }
-  } else if (device == "gpu") {
-    if (auto elast = absl::GetFlag(FLAGS_elast); elast == "nh") {
-      ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_GPU>();
-    } else {
-      ts->SetupElasticity<fem::elasticity::IsotropicARAP, fem::ElasticityCompute_GPU>();
-    }
-  }
+                      absl::GetFlag(FLAGS_device)
 #else
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+                      "cpu"
 #endif
+  );
+
+  std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
   if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
+  } else {
+    ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
   }
+
+  ts->BeginSimulation(dt);
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

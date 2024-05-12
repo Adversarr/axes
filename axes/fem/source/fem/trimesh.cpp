@@ -145,6 +145,14 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
   }
 }
 
+template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool set_zero) const {
+  AX_CHECK(inout.cols() == GetNumVertices()) << "Invalid size.";
+  inout.array() *= dirichlet_boundary_mask_.array();
+  if (!set_zero) {
+    inout += boundary_values_;
+  }
+}
+
 template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_matxxr& mat) const {
   math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {

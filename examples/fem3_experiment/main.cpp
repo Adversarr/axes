@@ -46,7 +46,7 @@ void update_rendering() {
   if (mesh.indices_.size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
-  mesh.vertices_ = ts->GetMesh().GetVertices();
+  mesh.vertices_ = ts->GetPosition();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
@@ -83,21 +83,23 @@ void ui_callback(gl::UiRenderEvent) {
               ts->GetMesh().GetNumVertices());
   ImGui::Checkbox("Log", &plot_log);
   if (ImGui::Button("Step") || running) {
-    math::field3r vert = ts->GetMesh().GetVertices();
-    AX_CHECK_OK(ts->Step(dt));
-    math::field3r vert_new = ts->GetMesh().GetVertices();
+    ts->BeginTimestep(dt);
+    math::field3r u0 = ts->GetInitialGuess();
+    ts->SolveTimestep();
+    math::field3r u1 = ts->GetSolution();
+    ts->EndTimestep();
 
-    math::vecxr dx = (vert_new - vert).reshaped();
+    math::vecxr dx = (u1 - u0).reshaped();
     ts->GetMesh().FilterVector(dx, true);
     // stiffness:
-    math::sp_matxxr K = ts->GetStiffnessMatrix(vert_new, true);
+    math::sp_matxxr K = ts->GetStiffnessMatrix(ts->GetPosition(), true);
     math::sp_matxxr M = ts->GetMassMatrix();
 
-    math::field3r rot_field = vert;
-    rot_field.row(0).setOnes();
-    rot_field.row(1).setZero();
-    rot_field.row(2).setZero();
-    std::cout << rot_field.reshaped().dot(K * rot_field.reshaped()) << std::endl;
+    // math::field3r rot_field = vert;
+    // rot_field.row(0).setOnes();
+    // rot_field.row(1).setZero();
+    // rot_field.row(2).setZero();
+    // std::cout << rot_field.reshaped().dot(K * rot_field.reshaped()) << std::endl;
 
     // ts->GetMesh().FilterMatrixFull(K);
     // ts->GetMesh().FilterMatrixFull(M);
@@ -131,9 +133,9 @@ void ui_callback(gl::UiRenderEvent) {
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
       math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
-      vert = ts->GetMesh().GetVertices();
-      for (auto i : utils::iota(vert.cols())) {
-        const auto& position = vert.col(i);
+      u0 = ts->GetPosition();
+      for (auto i : utils::iota(u0.cols())) {
+        const auto& position = u0.col(i);
         if (-position.x() > 1.9) {
           // Mark as dirichlet bc.
           math::vec3r p = rotate * position;
@@ -149,18 +151,17 @@ void ui_callback(gl::UiRenderEvent) {
     ImPlot::PlotLine("dx_eig", dx_eig.data(), dx_eig.size());
     ImPlot::PlotLine("eval", eval.data(), eval.size());
     // fit the curve dx_eig by n.
-    math::matxxr a(dx_eig.size(), 2);
-    a.col(0).setLinSpaced(0, 1); a.col(1).setOnes();
-    math::mat2r ata = a.transpose() * a;
-    math::vec2r atb = a.transpose() * dx_eig;
+    math::matxxr a(dx_eig.size(), 3);
+    a.col(0).setLinSpaced(0, 1);
+    a.col(1) = a.col(0).array() * a.col(0).array();
+    a.col(2).setOnes();
+    math::mat3r ata = a.transpose() * a;
+    math::vec3r atb = a.transpose() * dx_eig;
     auto qr = ata.householderQr();
-    math::vec2r c = qr.solve(atb);
-    linear_fit = c[0] * math::linspace<real>(0, 1, dx_eig.size());
-    linear_fit.array() += c[1];
+    math::vec3r c = qr.solve(atb);
+    linear_fit = c[0] * a.col(0) + c[1] * a.col(1) + c[2] * a.col(2);
     ImPlot::PlotLine("fit", linear_fit.data(), linear_fit.size());
-
     std::cout << "Slope and Bias: " << c.transpose() << std::endl;
-
     ImPlot::EndPlot();
   }
 
@@ -171,7 +172,7 @@ int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   fps.setZero(100);
   scene = absl::GetFlag(FLAGS_scene);
-  lame = fem::elasticity::compute_lame(3e6, 0.45);
+  lame = fem::elasticity::compute_lame(1e7, 0.45);
   nx = absl::GetFlag(FLAGS_N);
 
   auto cube = geo::tet_cube(0.5, nx * 4, nx, nx);
@@ -199,9 +200,14 @@ int main(int argc, char** argv) {
       }
     }
   }
-  AX_CHECK_OK(ts->Init());
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+
+  AX_CHECK_OK(ts->Initialize());
+  ts->SetupElasticity("stable_neohookean", "cpu");
   ts->SetDensity(1e3);
+  ts->BeginSimulation();
+
+  ts->SetExternalAccelerationUniform(math::vec3r(0, -9.8, 0));
+
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

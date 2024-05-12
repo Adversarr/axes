@@ -1,16 +1,12 @@
 #pragma once
 #include <absl/container/flat_hash_map.h>
 
+#include <boost/json/object.hpp>
 #include <string>
-#include <variant>
 
 #include "ax/core/common.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/utils/status.hpp"
-#include "common.hpp"
-
-#include "enum_refl.hpp"
-
-#include <boost/json/object.hpp>
 
 namespace ax::utils {
 
@@ -163,6 +159,35 @@ template <typename T>
 StatusOr<bool> sync_to_field(T& value, Opt const& options, const char* name) {
   return SyncToFieldHelper<std::decay_t<T>>{}.Apply(value, options, name);
 }
+
+inline const char* extract_string(boost::json::value const& v) {
+  AX_THROW_IF_FALSE(v.is_string(), "Expect a string.");
+  return v.as_string().c_str();
+}
+
+inline bool extract_bool(boost::json::value const& v) {
+  AX_THROW_IF_FALSE(v.is_bool(), "Expect a bool.");
+  return v.as_bool();
+}
+
+inline idx extract_idx(boost::json::value const& v) {
+  AX_THROW_IF_FALSE(v.is_int64(), "Expect a int64.");
+  return v.as_int64();
+}
+
+inline real extract_real(boost::json::value const& v) {
+  AX_THROW_IF_FALSE(v.is_double() || v.is_int64() || v.is_uint64(),
+                    "Expect a double, int64 or uint64.");
+  if (v.is_double()) {
+    return v.as_double();
+  } else if (v.is_int64()) {
+    return static_cast<real>(v.as_int64());
+  } else if (v.is_uint64()) {
+    return static_cast<real>(v.as_uint64());
+  }
+  AX_UNREACHABLE();
+}
+
 
 #define AX_SYNC_OPT(opt, type, var)                                         \
   if (auto status = ::ax::utils::sync_to_field<type>(var##_, opt, #var); !status.ok()) { \

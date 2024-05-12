@@ -8,11 +8,11 @@ OptProblem::OptProblem()
     : converge_var_(default_converge_var<math::l2_t>),
       converge_grad_(default_converge_grad<math::l2_t>) {}
 
-std::pair<math::vecxr, real> OptResultImpl::GetResult() const {
+std::pair<math::vecxr, real> OptResult::GetResult() const {
   return {x_opt_, f_opt_};
 }
 
-std::ostream& operator<<(std::ostream& os, OptResultImpl const& result) {
+std::ostream& operator<<(std::ostream& os, OptResult const& result) {
   os << "Optimization Result:\n";
   os << "  x_opt: " << result.x_opt_.transpose() << "\n";
   os << "  f_opt: " << result.f_opt_ << "\n";

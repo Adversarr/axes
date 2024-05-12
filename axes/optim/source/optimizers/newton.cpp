@@ -18,16 +18,19 @@ namespace ax::optim {
 
 OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_TIME_FUNC();
-  if (!problem_.HasEnergy()) {
-    return utils::FailedPreconditionError("Energy function not set");
-  }
-  if (!problem_.HasGrad()) {
-    return utils::FailedPreconditionError("Gradient function not set");
-  }
+  // if (!problem_.HasEnergy()) {
+  //   return utils::FailedPreconditionError("Energy function not set");
+  // }
+  // if (!problem_.HasGrad()) {
+  //   return utils::FailedPreconditionError("Gradient function not set");
+  // }
 
-  if (!problem_.HasHessian() && !problem_.HasSparseHessian()) {
-    return utils::FailedPreconditionError("Hessian function not set");
-  }
+  // if (!problem_.HasHessian() && !problem_.HasSparseHessian()) {
+  //   return utils::FailedPreconditionError("Hessian function not set");
+  // }
+  AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
+  AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
+  AX_THROW_IF_FALSE(problem_.HasHessian() || problem_.HasSparseHessian(), "Hessian function not set");
   bool is_dense_hessian = problem_.HasHessian();
 
   // SECT: Initialize
@@ -39,7 +42,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
   idx iter = 0;
   bool converged = false;
 
-  OptResultImpl result;
+  OptResult result;
   bool converge_grad = false;
   bool converge_var = false;
   // Main loop
@@ -53,9 +56,10 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
                     << "  grad: " << grad.transpose();
     }
 
-    if (math::isnan(f_iter) || math::isinf(f_iter)) {
-      return utils::FailedPreconditionError("Energy function returns NaN or Inf");
-    }
+    // if (math::isnan(f_iter) || math::isinf(f_iter)) {
+    //   return utils::FailedPreconditionError("Energy function returns NaN or Inf");
+    // }
+    AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns NaN or Inf");
 
     // SECT: Check convergence
     converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
@@ -69,22 +73,17 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
     // SECT: Find a Dir
     if (is_dense_hessian) {
       math::matxxr H = problem_.EvalHessian(x);
-      if (H.rows() != x.rows() || H.cols() != x.rows()) {
-        return utils::FailedPreconditionError("Hessian matrix size mismatch");
-      }
+      // if (H.rows() != x.rows() || H.cols() != x.rows()) {
+      //   return utils::FailedPreconditionError("Hessian matrix size mismatch");
+      // }
+      AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
       math::LinsysProblem_Dense prob(std::move(H), grad);
       auto solution = dense_solver_->SolveProblem(prob);
-      if (!solution.ok()) {
-        AX_LOG(ERROR) << "Dense Linsys Solver Error: Hessian may not be invertible";
-        return solution.status();
-      }
       dir = -solution.value().solution_;
     } else {
       AX_TIMEIT("Eval and Solve Sparse System");
       math::sp_matxxr H = problem_.EvalSparseHessian(x);
-      if (H.rows() != x.rows() || H.cols() != x.rows()) {
-        return utils::FailedPreconditionError("Hessian matrix size mismatch");
-      }
+      AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
       math::LinsysProblem_Sparse prob(H, grad);
       if (problem_.HasConvergeGrad()) {
         prob.converge_residual_ = [&](math::vecxr const& x, math::vecxr const& r) -> bool {
@@ -97,10 +96,6 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
         };
       }
       auto solution = sparse_solver_->SolveProblem(prob);
-      if (!solution.ok()) {
-        AX_LOG(ERROR) << "Sparse Linsys Solver Error: Hessian may not be invertible";
-        return solution.status();
-      }
       dir = -solution.value().solution_;
     }
 
@@ -111,15 +106,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
     }
 
     // SECT: Line search
-    auto lsr = linesearch_->Optimize(problem_, x, grad, dir);
-    OptResultImpl ls_result;
-    if (!lsr.ok()) {
-      AX_LOG(ERROR) << "Line Search Error: " << lsr.status()
-                    << "Possible Reason: Your Hessian matrix is not SPSD";
-      AX_LOG(ERROR) << "Search Dir = " << dir.transpose();
-      return lsr.status();
-    }
-    ls_result = lsr.value();
+    OptResult ls_result = linesearch_->Optimize(problem_, x, grad, dir);
     x = ls_result.x_opt_;
     real f_last = f_iter;
     f_iter = ls_result.f_opt_;

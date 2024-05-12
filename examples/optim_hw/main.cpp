@@ -85,6 +85,7 @@ int main(int argc, char** argv) {
                                      {"tol_var", absl::GetFlag(FLAGS_tol_var)},
                                      {"tol_grad", absl::GetFlag(FLAGS_tol_grad)},
                                      {"verbose", absl::GetFlag(FLAGS_verbose)}}));
+  AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
 
   if (absl::GetFlag(FLAGS_verbose)) {
     prob.SetVerbose([&splr](idx iter, vecxr const& x, real energy) {
@@ -99,17 +100,16 @@ int main(int argc, char** argv) {
   OptResult result = optimizer->Optimize(prob, x0);
 
   // Reason for termination
-  AX_LOG(WARNING) << "Converged Grad: " << std::boolalpha << result->converged_grad_;
-  AX_LOG(WARNING) << "Converged Energy: " << std::boolalpha << result->converged_var_;
-  AX_LOG(WARNING) << "Converged Iter: " << result->n_iter_;
-  AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
+  AX_LOG(WARNING) << "Converged Grad: " << std::boolalpha << result.converged_grad_;
+  AX_LOG(WARNING) << "Converged Energy: " << std::boolalpha << result.converged_var_;
+  AX_LOG(WARNING) << "Converged Iter: " << result.n_iter_;
   if (auto export_file = absl::GetFlag(FLAGS_export); !export_file.empty()) {
     std::ofstream file(export_file);
     if (!file.is_open()) {
       throw std::runtime_error("Cannot open file " + export_file);
     }
     // LINE 1: F optimal.
-    auto const& x_opt = result->x_opt_;
+    auto const& x_opt = result.x_opt_;
     file << splr.Energy(x_opt) << std::endl;
     // LINE 2: x_opt.
     for (idx i = 0; i < x_opt.size(); ++i) {

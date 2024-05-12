@@ -89,14 +89,10 @@ int main(int argc, char** argv) {
   auto end = utils::GetCurrentTimeNanos();
 
   AX_LOG(INFO) << "Time: " << (end - start) / 1e6 << " ms";
-  if (!solution.ok()) {
-    AX_LOG(ERROR) << "Optimization failed: " << solution.status();
-    return 1;
-  }
-  AX_LOG(INFO) << "Optimization finished in " << solution->n_iter_ << " iterations";
-  AX_LOG(INFO) << "Solution: " << solution->x_opt_.transpose();
+  AX_LOG(INFO) << "Optimization finished in " << solution.n_iter_ << " iterations";
+  AX_LOG(INFO) << "Solution: " << solution.x_opt_.transpose();
   AX_LOG(INFO) << "Accurate: " << optimal.transpose();
-  if (!solution->converged_) {
+  if (!solution.converged_) {
     AX_LOG(ERROR) << "Optimization failed to converge";
   } else {
     AX_LOG(INFO) << "Optimization converged";

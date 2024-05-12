@@ -1,6 +1,7 @@
 #include "ax/fem/timestepper/quasi_newton.hpp"
 
 #include <tbb/parallel_for.h>
+#include <exception>
 
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/math/linsys/preconditioner/Diagonal.hpp"
@@ -81,15 +82,19 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   }
 
   auto problem = this->AssembleProblem();
-  auto result = optimizer.Optimize(problem, this->du_inertia_.reshaped());
-  if (!result.ok()) {
-    AX_LOG(WARNING) << "LBFGS iteration failed to compute! (not a convergency problem.)";
-  } else if (!(result->converged_grad_ || result->converged_var_)) {
+  optim::OptResult result;
+  try {
+    result = optimizer.Optimize(problem, this->du_inertia_.reshaped());
+  } catch (std::exception const &e){
+    AX_LOG(ERROR) << "Timestep solve failed: " << e.what();
+    return;
+  }
+  if (!(result.converged_grad_ || result.converged_var_)) {
     AX_LOG(ERROR) << "LBFGS iteration failed to converge!";
   }
 
-  AX_LOG(WARNING) << "#Iter: " << result->n_iter_ << " iterations.";
-  this->du_ = result->x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
+  AX_LOG(WARNING) << "#Iter: " << result.n_iter_ << " iterations.";
+  this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
 template class Timestepper_QuasiNewton<2>;

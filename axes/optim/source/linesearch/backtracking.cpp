@@ -1,36 +1,25 @@
 #include "ax/optim/linesearch/backtracking.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 namespace ax::optim {
 OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr const& x0,
                                            math::vecxr const& grad, math::vecxr const& dir) const {
   // SECT: Check Inputs
-  if (initial_step_length_ <= 0) {
-    return utils::InvalidArgumentError("Invalid alpha_: " + std::to_string(initial_step_length_));
-  }
-  if (step_shrink_rate_ <= 0 || step_shrink_rate_ >= 1) {
-    return utils::InvalidArgumentError("Invalid rho_: " + std::to_string(step_shrink_rate_));
-  }
-  if (required_descent_rate_ <= 0 || required_descent_rate_ > 1) {
-    return utils::InvalidArgumentError("Invalid c_: " + std::to_string(required_descent_rate_));
-  }
-  if (!prob.HasEnergy()) {
-    return utils::FailedPreconditionError("Energy function not set");
-  }
-  if (!prob.HasGrad()) {
-    return utils::FailedPreconditionError("Gradient function not set");
-  }
+  AX_THROW_IF_LT(initial_step_length_, 0, "Initial step length must be positive");
+  AX_THROW_IF_FALSE(0 < step_shrink_rate_ && step_shrink_rate_ < 1, "Step shrink rate must be in (0, 1)");
+  AX_THROW_IF_FALSE(0 < required_descent_rate_ && required_descent_rate_ < 1, "Required descent rate must be in (0, 1)");
+  AX_THROW_IF_FALSE(prob.HasGrad(), "Gradient function not set");
+  AX_THROW_IF_FALSE(prob.HasEnergy(), "Energy function not set");
 
   // SECT: Backtracking Line Search
   real alpha = initial_step_length_;
   real const f0 = prob.EvalEnergy(x0);
-  if (!math::isfinite(f0)) {
-    return utils::FailedPreconditionError("Invalid x0 in Line Search, Energy returns infinite number.");
-  }
+  AX_THROW_IF_FALSE(math::isfinite(f0), "Invalid x0 in Line Search, Energy returns infinite number.");
   real expected_descent = grad.dot(dir);
   if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
     AX_LOG(ERROR) << "grad: " << grad.transpose();
     AX_LOG(ERROR) << "dir: " << dir.transpose();
-    return utils::FailedPreconditionError("Invalid descent direction: df0=" + std::to_string(expected_descent));
+    throw RuntimeError("Invalid descent direction: df0=" + std::to_string(expected_descent));
   }
 
   idx iter = 0;
@@ -45,7 +34,7 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
     alpha *= step_shrink_rate_;
   }
 
-  OptResultImpl opt;
+  OptResult opt;
   opt.x_opt_ = x;
   opt.f_opt_ = f;
   opt.n_iter_ = iter;

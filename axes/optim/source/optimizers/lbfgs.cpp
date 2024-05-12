@@ -6,6 +6,7 @@
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/status.hpp"
+#include "ax/core/excepts.hpp"
 
 #include "ax/utils/time.hpp"
 
@@ -18,16 +19,9 @@ real cosine_sim(math::vecxr const& a, math::vecxr const& b) { return a.dot(b) / 
 }
 
 OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
-  if (!problem_.HasGrad()) {
-    return utils::FailedPreconditionError("Gradient function not set");
-  }
-  if (!problem_.HasEnergy()) {
-    return utils::FailedPreconditionError("Energy function not set");
-  }
-
-  if (history_size_ < 0) {
-    return utils::InvalidArgumentError("Invalid history size: " + std::to_string(history_size_));
-  }
+  AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
+  AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
+  AX_THROW_IF_LT(history_size_, 0, "Invalid history size: " + std::to_string(history_size_));
 
   AX_TIME_FUNC();
 
@@ -52,6 +46,14 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   math::vecxr y_new(n_dof);
   math::vecxr x_old = x;
 
+  math::sp_matxxr sp_hessian;
+  bool check_approx_quality = check_approx_quality_ && problem_.HasSparseHessian() && approx_solve_;
+  if (!check_approx_quality && check_approx_quality_) {
+    AX_LOG(WARNING) << "Approx Hessian is not set or Hessian is not sparse, "
+                    << "Approx quality check is disabled.";
+  }
+
+
   while (iter < max_iter_) {
     // SECT: Verbose
     problem_.EvalVerbose(iter, x, f_iter);
@@ -62,9 +64,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
                     << "  grad: " << grad.transpose();
     }
 
-    if (!math::isfinite(f_iter)) {
-      return utils::FailedPreconditionError("Energy function returns Infinite number!");
-    }
+    AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns Infinite number!");
 
     // SECT: Check convergence
     converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
@@ -80,12 +80,10 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr r = q;
     idx const available_history = std::min(iter, history_size_);
 
-#ifdef CHECK_APPROX_SOLVER
-    math::sp_matxxr sp_hessian;
-    if (problem_.HasSparseHessian()) {
+
+    if (check_approx_quality) {
       sp_hessian = problem_.EvalSparseHessian(x);
     }
-#endif
 
     if (available_history > 0) {
       AX_TIMEIT("Two Loop");
@@ -103,8 +101,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
       if (approx_solve_) {
         AX_TIMEIT("Approx Solve");
         r = approx_solve_(q);
-#ifdef CHECK_APPROX_SOLVER
-        if (sp_hessian.size() > 0) {
+        if (sp_hessian.size() > 0 && check_approx_quality) {
           math::LinsysProblem_Sparse sp;
           sp.A_ = sp_hessian;
           sp.b_ = q;
@@ -121,7 +118,6 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
                           << "\t rel-l2=" << l2 / result->solution_.norm();
           }
         }
-#endif
       } else {
         real H0 = sback.dot(yback) / (yback.dot(yback) + 1e-19);
         r = H0 * q;
@@ -142,8 +138,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
       }
     }
 
-#ifdef CHECK_APPROX_SOLVER
-    if (sp_hessian.size() > 0) {
+    if (sp_hessian.size() > 0 && check_approx_quality) {
       math::LinsysProblem_Sparse sp;
       sp.A_ = sp_hessian;
       sp.b_ = grad;
@@ -160,37 +155,28 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
                       << "\t rel-l2=" << l2 / result->solution_.norm();
       }
     }
-#endif
 
     math::vecxr dir = -r;
 
-    if (math::dot(dir, grad) >= real(0)) {
-      AX_LOG(ERROR) << "Direction is not descent: " << math::dot(dir, grad);
-      return utils::FailedPreconditionError("Direction is not descent: Your Approx Hessian is not valid.");
-    }
-
+    AX_THROW_IF_TRUE(math::dot(dir, grad) >= real(0), "Direction is not descent: " + std::to_string(math::dot(dir, grad)));
     // SECT: Line search
     auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
-    if (!ls_result.ok()) {
-      AX_LOG(ERROR) << "Line search failed: " << ls_result.status();
-      AX_LOG(ERROR) << "at Iteration" << iter;
-      return ls_result.status();
-    }
 
-    s_new.noalias() = ls_result->x_opt_ - x;
-    g_new.noalias() = problem_.EvalGrad(ls_result->x_opt_);
+    s_new.noalias() = ls_result.x_opt_ - x;
+    g_new.noalias() = problem_.EvalGrad(ls_result.x_opt_);
     y_new.noalias() = g_new - grad;
 
-    f_iter = ls_result->f_opt_;
+    f_iter = ls_result.f_opt_;
     std::swap(x, x_old);
-    x = std::move(ls_result->x_opt_);
+    x = std::move(ls_result.x_opt_);
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
     rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19);
     grad.swap(g_new);
     iter++;
   }
-  OptResultImpl result;
+
+  OptResult result;
   result.x_opt_ = x;
   result.f_opt_ = f_iter;
   result.converged_ = converged;

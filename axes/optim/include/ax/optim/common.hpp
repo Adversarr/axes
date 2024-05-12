@@ -83,7 +83,7 @@ private:
 
 /****************************** Optimization Result
  * ******************************/
-struct OptResultImpl {
+struct OptResult {
   // Optimal x
   math::vecxr x_opt_;
   // Optimal energy
@@ -97,16 +97,14 @@ struct OptResultImpl {
   // For Iterative Solver:
   idx n_iter_;
 
-  OptResultImpl() = default;
+  OptResult() = default;
 
-  OptResultImpl(math::vecxr const& x_opt, real f_opt, idx n_iter)
+  OptResult(math::vecxr const& x_opt, real f_opt, idx n_iter)
       : x_opt_(x_opt), f_opt_(f_opt), n_iter_(n_iter) {}
 
   std::pair<math::vecxr, real> GetResult() const;
 };
 
-using OptResult = StatusOr<OptResultImpl>;
-
-std::ostream& operator<<(std::ostream& os, OptResultImpl const& result);
+std::ostream& operator<<(std::ostream& os, OptResult const& result);
 
 }  // namespace ax::optim

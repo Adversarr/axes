@@ -24,6 +24,7 @@ public:
 
 protected:
   std::string linesearch_name_;
+  bool check_approx_quality_{false};
   UPtr<LinesearchBase> linesearch_;
   std::function<math::vecxr(math::vecxr const& )> approx_solve_;
 };

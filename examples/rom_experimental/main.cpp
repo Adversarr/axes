@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
   p->SetBasis(eigen_vectors);
 
   AX_CHECK_OK(ts->Initialize());
-  ts->SetupElasticity<fem::elasticity::StableNeoHookean, fem::ElasticityCompute_CPU>();
+  ts->SetupElasticity("stable_neohookean", "gpu");
   ts->SetDensity(1e3);
   out = create_entity();
   add_component<gl::Mesh>(out);

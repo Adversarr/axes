@@ -299,7 +299,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           model.SetLame(this->lame_.col(i));
@@ -321,7 +321,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           model.SetLame(lame.col(i));
@@ -344,7 +344,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
         model.SetLame(lame);
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
@@ -455,13 +455,7 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
           }
           dg_l[i] = Ds * this->rinv_[i];
           if (need_svd) {
-            auto result = svd.Solve(dg_l[i]);
-            if_unlikely(!result.ok()) {
-              AX_LOG(FATAL) << "Failed to compute SVD for " << i << " element!!! breaking...";
-              failed.store(true);
-              break;
-            }
-            svd_results_[i] = result.value();
+            svd_results_[i] = svd.Solve(dg_l[i]);
             math::decomp::svd_remove_rotation(svd_results_[i]);
           }
         }
@@ -507,7 +501,7 @@ math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::fie
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           model.SetLame(lame.col(i));
@@ -531,7 +525,7 @@ math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::vec
         //        AX_LOG(ERROR) << "Energy begin " << r.begin() << " end " << r.end();
         ElasticModel model;
         model.SetLame(lame);
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           element_energy[i] = model.Energy(F, energy_requires_svd ? (this->svd_results_[i]) : tomb)
@@ -554,7 +548,7 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTempl
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
         model.SetLame(lame);
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           stress[i] = model.Stress(F, stress_requires_svd ? (this->svd_results_[i]) : tomb)
@@ -576,7 +570,7 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTempl
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           model.SetLame(lame.col(i));
@@ -600,7 +594,7 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemp
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
         model.SetLame(lame);
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
@@ -622,7 +616,7 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemp
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
         ElasticModel model;
-        math::decomp::SvdResultImpl<dim, real> tomb;
+        math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
           elasticity::DeformationGradient<dim> const& F = dg_l[i];
           model.SetLame(lame.col(i));

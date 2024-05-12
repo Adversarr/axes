@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "ax/core/excepts.hpp"
 #include "ax/core/status.hpp"
 #include "ax/utils/status.hpp"
 
@@ -186,7 +187,7 @@ struct Header {
     auto consume_until = [&ss](char target) -> bool {
       char c;
       bool status = false;
-      while ((status = (bool) (ss >> c))) {
+      while ((status = (bool)(ss >> c))) {
         if (c == target) {
           break;
         }
@@ -292,16 +293,16 @@ struct Header {
   }
 };
 
-StatusOr<math::matxxr> read_npy_v10_real(std::string path) {
+math::matxxr read_npy_v10_real(std::string path) {
   std::ifstream in(path, std::ios::binary);
   if (!in.is_open()) {
-    return utils::NotFoundError("Failed to open the file. " + path);
+    throw FileNotFoundError(path);
   }
 
   char magic[6];
   in.read(magic, 6);
   if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
-    return utils::FailedPreconditionError("The file is not a valid NPY file. (magic code mismatch)");
+    throw RuntimeError("The file is not a valid NPY file. (magic code mismatch)");
   }
 
   uint8_t major, minor;
@@ -315,27 +316,27 @@ StatusOr<math::matxxr> read_npy_v10_real(std::string path) {
   header.resize(header_len + 1, 0);
   in.read(header.data(), header_len);
   if (!in.good()) {
-      return Status{StatusCode::kUnavailable, "Failed to read the header."};
+    throw RuntimeError("The file is not a valid NPY file. (Failed to read the header)");
   }
   // Read the data
   Header header_obj;
   if (auto s = header_obj.parse(header); !s.ok()) {
-    return s;
+    throw RuntimeError("The file is not a valid NPY file. (Header Parse Failed)");
   }
 
   if (header_obj.shape.size() > 2) {
-    return utils::UnavailableError("The shape is larger than 2D");
+    throw RuntimeError("dim > 2 is not supported");
   }
   idx rows = header_obj.shape[0];
   idx cols = header_obj.shape.size() > 1 ? header_obj.shape[1] : 1;
   math::matxxr mat(rows, cols);
 
   if (header_obj.descr[0] != '<') {
-    return utils::UnavailableError("The data type is not little endianed.");
+    throw RuntimeError("The data type is not little endianed.");
   }
 
   if (header_obj.descr[1] != 'f') {
-    return utils::UnavailableError("The data type is not float.");
+    throw RuntimeError("The data type is not float.");
   }
 
   if (header_obj.descr[2] == '4') {
@@ -344,7 +345,7 @@ StatusOr<math::matxxr> read_npy_v10_real(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           float val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (real) val;
+          mat(j, i) = (real)val;
         }
       }
     } else {
@@ -359,40 +360,39 @@ StatusOr<math::matxxr> read_npy_v10_real(std::string path) {
   } else if (header_obj.descr[2] == '8') {
     if (header_obj.fortran_order) {
       for (idx i = 0; i < cols; ++i) {
-            for (idx j = 0; j < rows; ++j) {
-              double val;
-              in.read(reinterpret_cast<char*>(&val), 8);
-              mat(j, i) = (real) val;
-            }
+        for (idx j = 0; j < rows; ++j) {
+          double val;
+          in.read(reinterpret_cast<char*>(&val), 8);
+          mat(j, i) = (real)val;
+        }
       }
     } else {
       for (idx j = 0; j < rows; ++j) {
         for (idx i = 0; i < cols; ++i) {
           double val;
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
-            return utils::FailedPreconditionError("Invalid npy file.");
+            throw RuntimeError("Invalid npy file.");
           }
-          mat(j, i) = (real) val;
+          mat(j, i) = (real)val;
         }
       }
     }
   } else {
-    return utils::UnavailableError("The data type is not float32 or float64.");
+    throw RuntimeError("The data type is not float32 or float64.");
   }
   return mat;
 }
 
-
-StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
+math::matxxi read_npy_v10_idx(std::string path) {
   std::ifstream in(path, std::ios::binary);
   if (!in.is_open()) {
-    return utils::NotFoundError("Failed to open the file. " + path);
+    throw FileNotFoundError(path);
   }
 
   char magic[6];
   in.read(magic, 6);
   if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
-    return utils::FailedPreconditionError("The file is not a valid NPY file. (magic code mismatch)");
+    throw RuntimeError("The file is not a valid NPY file. (magic code mismatch)");
   }
 
   uint8_t major, minor;
@@ -406,27 +406,27 @@ StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
   header.resize(header_len + 1, 0);
   in.read(header.data(), header_len);
   if (!in.good()) {
-      return Status{StatusCode::kUnavailable, "Failed to read the header."};
+    throw RuntimeError("The file is not a valid NPY file. (Failed to read the header)");
   }
   // Read the data
   Header header_obj;
   if (auto s = header_obj.parse(header); !s.ok()) {
-    return s;
+    throw RuntimeError("The file is not a valid NPY file. (Header Parse Failed)");
   }
 
   if (header_obj.shape.size() > 2) {
-    return utils::UnavailableError("The shape is larger than 2D");
+    throw RuntimeError("dim > 2 is not supported");
   }
   idx rows = header_obj.shape[0];
   idx cols = header_obj.shape.size() > 1 ? header_obj.shape[1] : 1;
   math::matxxi mat(rows, cols);
 
   if (header_obj.descr[0] != '<') {
-    return utils::UnavailableError("The data type is not little endianed.");
+    throw RuntimeError("The data type is not little endianed.");
   }
 
   if (header_obj.descr[1] != 'i') {
-    return utils::UnavailableError("The data type is not idx. got: " + header_obj.descr);
+    throw RuntimeError("The data type is not long or int.");
   }
 
   if (header_obj.descr[2] == '4') {
@@ -435,7 +435,7 @@ StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           int val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (idx) val;
+          mat(j, i) = (idx)val;
         }
       }
     } else {
@@ -450,29 +450,28 @@ StatusOr<math::matxxi> read_npy_v10_idx(std::string path) {
   } else if (header_obj.descr[2] == '8') {
     if (header_obj.fortran_order) {
       for (idx i = 0; i < cols; ++i) {
-            for (idx j = 0; j < rows; ++j) {
-              int64_t val;
-              in.read(reinterpret_cast<char*>(&val), 8);
-              mat(j, i) = (idx) val;
-            }
+        for (idx j = 0; j < rows; ++j) {
+          int64_t val;
+          in.read(reinterpret_cast<char*>(&val), 8);
+          mat(j, i) = (idx)val;
+        }
       }
     } else {
       for (idx j = 0; j < rows; ++j) {
         for (idx i = 0; i < cols; ++i) {
           int64_t val;
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
-            return utils::FailedPreconditionError("Invalid npy file.");
+            throw RuntimeError("Invalid npy file.");
           }
-          mat(j, i) = (idx) val;
+          mat(j, i) = (idx)val;
         }
       }
     }
   } else {
-    return utils::UnavailableError("The data type is not float32 or float64.");
+    throw RuntimeError("The data type is not long or int");
   }
   return mat;
 }
-
 
 Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
   std::ofstream out(path);
@@ -513,15 +512,15 @@ Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
   AX_RETURN_OK();
 }
 
-StatusOr<sp_matxxr> read_sparse_matrix(std::string path) {
+sp_matxxr read_sparse_matrix(std::string path) {
   std::ifstream in(path);
   if (!in.is_open()) {
-    return utils::NotFoundError("Failed to open the file. " + path);
+    throw FileNotFoundError(path);
   }
   char line[1024];
   in.getline(line, 1024);
   if (std::strncmp(line, "%%MatrixMarket matrix coordinate real general", 46) != 0) {
-    return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+    throw RuntimeError("The file is not a valid MatrixMarket file.");
   }
 
   while (in.getline(line, 1024)) {
@@ -533,25 +532,23 @@ StatusOr<sp_matxxr> read_sparse_matrix(std::string path) {
   int rows, cols, nonzeros;
   idx n_success = std::sscanf(line, "%d %d %d", &rows, &cols, &nonzeros);
   if (n_success != 3) {
-    return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+    throw RuntimeError("The file is not a valid MatrixMarket file.");
   }
   sp_coeff_list triplets;
   triplets.reserve(nonzeros);
   for (int i = 0; i < nonzeros; ++i) {
-    if (! in.getline(line, 1024)) {
-      return utils::FailedPreconditionError("The file is not a valid MatrixMarket file.");
+    if (!in.getline(line, 1024)) {
+      throw RuntimeError("The file is not a valid MatrixMarket file.");
     }
     int r, c;
     real val;
     n_success = std::sscanf(line, "%d %d %lf", &r, &c, &val);
     if (n_success != 3) {
-      return utils::FailedPreconditionError(
-          ("line " + std::to_string(i) + " is not a valid triplet: ") + line);
+      throw RuntimeError(("line " + std::to_string(i) + " is not a valid triplet: ") + line);
     }
     triplets.push_back({r - 1, c - 1, val});
   }
   return math::make_sparse_matrix(rows, cols, triplets);
 }
-
 
 }  // namespace ax::math

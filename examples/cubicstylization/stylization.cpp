@@ -53,8 +53,7 @@ void local_step(Problem& prob, idx i, Dijkstra& solver) {
     Mi.noalias() += rho * ni * (zi - ui).transpose();
 
     // SVD
-    auto result = svd.Solve(Mi);
-    auto svd_r = result.value();
+    auto svd_r =  svd.Solve(Mi);
     // Ri = V * U.T
     auto Rold = Ri;
     Ri = svd_r.V_ * svd_r.U_.transpose();

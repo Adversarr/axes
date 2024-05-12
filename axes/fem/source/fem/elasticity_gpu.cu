@@ -38,7 +38,7 @@ namespace fem {
 #  define TimeThisOne()
 #endif
 
-template <idx dim> using SvdR = math::decomp::SvdResultImpl<dim, real>;
+template <idx dim> using SvdR = math::decomp::SvdResult<dim, real>;
 
 struct VertexOnElementInfo {
   idx vert_id;

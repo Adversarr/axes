@@ -118,7 +118,7 @@ public:
   List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame);
 
 protected:
-  List<math::decomp::SvdResultImpl<dim, real>> svd_results_;
+  List<math::decomp::SvdResult<dim, real>> svd_results_;
   elasticity::DeformationGradientList<dim> deformation_gradient_;
   tbb::affinity_partitioner e_ap, s_ap, h_ap, svd_ap;
 };

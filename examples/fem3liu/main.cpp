@@ -243,10 +243,9 @@ int main(int argc, char** argv) {
 
   auto tet = math::read_npy_v10_idx(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
-  AX_CHECK(tet.ok() && vet.ok()) << "Failed to load mesh.";
   auto cube = geo::tet_cube(10, 2, 2, 2);
-  input_mesh.indices_ = tet->transpose();
-  input_mesh.vertices_ = vet->transpose();
+  input_mesh.indices_ = tet.transpose();
+  input_mesh.vertices_ = vet.transpose();
   // input_mesh = cube;
 
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {

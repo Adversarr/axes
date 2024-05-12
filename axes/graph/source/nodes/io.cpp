@@ -284,11 +284,12 @@ public:
       return utils::FailedPreconditionError("File path is not set");
     }
 
-    auto status = math::read_npy_v10_real(*file);
-    if (!status.ok()) {
-      return status.status();
+    try {
+      auto val = math::read_npy_v10_real(*file);
+      SetOutput<matxxr>(0, val);
+    } catch (std::exception const& e) {
+      AX_LOG(ERROR) << "Read Npy failed: " << e.what();
     }
-    SetOutput<matxxr>(0, std::move(status.value()));
     AX_RETURN_OK();
   }
 
@@ -324,11 +325,13 @@ public:
       return utils::FailedPreconditionError("File path is not set");
     }
 
-    auto status = math::read_npy_v10_idx(*file);
-    if (!status.ok()) {
-      return status.status();
+    try {
+      auto val = math::read_npy_v10_idx(*file);
+      SetOutput<matxxi>(0, val);
+    } catch (std::exception const& e) {
+      AX_LOG(ERROR) << "Read Npy failed: " << e.what();
     }
-    SetOutput<matxxi>(0, std::move(status.value()));
+
     AX_RETURN_OK();
   }
 
@@ -364,12 +367,12 @@ public:
       return utils::FailedPreconditionError("File path is not set");
     }
 
-    auto status = math::read_sparse_matrix(*file);
-    if (!status.ok()) {
-      return status.status();
+    try {
+      auto val = math::read_sparse_matrix(*file);
+      SetOutput<sp_matxxr>(0, val);
+    } catch (std::exception const& e) {
+      AX_LOG(ERROR) << "Read sparse failed: " << e.what();
     }
-    *RetriveOutput<math::sp_matxxr>(0) = std::move(status.value());
-
     AX_RETURN_OK();
   }
 

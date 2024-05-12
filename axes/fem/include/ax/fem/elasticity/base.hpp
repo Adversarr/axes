@@ -35,17 +35,17 @@ public:
   AX_HOST_DEVICE ElasticityBase() = default;
 
   AX_HOST_DEVICE AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
-                              math::decomp::SvdResultImpl<dim, real> const& svdr) const {
+                              math::decomp::SvdResult<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->EnergyImpl(F, svdr);
   }
 
   AX_HOST_DEVICE AX_FORCE_INLINE stress_t Stress(DeformationGradient<dim> const& F,
-                                  const math::decomp::SvdResultImpl<dim, real>& svdr) const {
+                                  const math::decomp::SvdResult<dim, real>& svdr) const {
     return static_cast<Derived const*>(this)->StressImpl(F, svdr);
   }
 
   AX_HOST_DEVICE AX_FORCE_INLINE math::mat<real, dof_cnt, dof_cnt> Hessian(
-      DeformationGradient<dim> const& F, math::decomp::SvdResultImpl<dim, real> const& svdr) const {
+      DeformationGradient<dim> const& F, math::decomp::SvdResult<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->HessianImpl(F, svdr);
   }
 

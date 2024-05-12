@@ -14,10 +14,8 @@ public:
 
   AX_FORCE_INLINE result_t Solve(mat_t const& A) const {
     auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
-    if (svd.info() != Eigen::Success) {
-      return utils::InvalidArgumentError("Eigen::JacobiSVD failed.");
-    }
-    return SvdResultImpl<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
+    // WARN: We are not checking the convergence of JacobiSVD.
+    return SvdResult<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
   }
 };
 
@@ -34,7 +32,7 @@ public:
     if (svd.info() != Eigen::Success) {
       return utils::InvalidArgumentError("Eigen::BDCSVD failed.");
     }
-    return SvdResultImpl<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
+    return SvdResult<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
   }
 };
 

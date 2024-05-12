@@ -23,7 +23,7 @@ public:
    * @return real
    */
   AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
-                  const math::decomp::SvdResultImpl<dim, real>& svd) const {
+                  const math::decomp::SvdResult<dim, real>& svd) const {
     const auto& mu = this->mu_;
     // F should be Ut Sigma V,
     math::matr<dim, dim> R = svd.U_ * svd.V_.transpose();
@@ -36,7 +36,7 @@ public:
    * @return stress_t
    */
   AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& ,
-                  math::decomp::SvdResultImpl<dim, real> const& svd) const {
+                  math::decomp::SvdResult<dim, real> const& svd) const {
     real mu = this->mu_;
     math::matr<dim, dim> R = svd.U_ * svd.V_.transpose();
     math::matr<dim, dim> S = svd.V_ * svd.sigma_.asDiagonal() * svd.V_.transpose();
@@ -49,7 +49,7 @@ public:
    * @return hessian_t
    */
   AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const&,
-                        const math::decomp::SvdResultImpl<dim, real>& svd) const;
+                        const math::decomp::SvdResult<dim, real>& svd) const;
 
   bool EnergyRequiresSvd() const noexcept final { return true; }
   bool StressRequiresSvd() const noexcept final { return true; }
@@ -57,7 +57,7 @@ public:
 };
 
 template<> typename IsotropicARAP<3>::hessian_t
-AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResultImpl<3, real>& svd) const {
+AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGradient<3>&, const math::decomp::SvdResult<3, real>& svd) const {
   real s0 = svd.sigma_[0];
   real s1 = svd.sigma_[1];
   real s2 = svd.sigma_[2];
@@ -91,7 +91,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGr
 
 
 template<> typename IsotropicARAP<2>::hessian_t
-AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::decomp::SvdResultImpl<2, real>& svd) const {
+AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<2>::HessianImpl(const DeformationGradient<2>&, const math::decomp::SvdResult<2, real>& svd) const {
   // I2 - 2 I1
   real s0 = svd.sigma_[0];
   real s1 = svd.sigma_[1];

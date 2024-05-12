@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
     current(i) = initial_data(i * dx, dx);
   }
   if (std::string file = absl::GetFlag(FLAGS_input); !file.empty()) {
-    current = math::read_npy_v10_real(file).value();
+    current = math::read_npy_v10_real(file);
   }
   final_result_list.push_back(current.transpose());
   real tt = 0;

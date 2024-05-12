@@ -23,7 +23,7 @@ public:
    * @return real
    */
   AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
-                  const math::decomp::SvdResultImpl<dim, real>&) const {
+                  const math::decomp::SvdResult<dim, real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -43,7 +43,7 @@ public:
    * @return stress_t
    */
    AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
-                  math::decomp::SvdResultImpl<dim, real> const&) const {
+                  math::decomp::SvdResult<dim, real> const&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     real J = math::det(F);
@@ -61,7 +61,7 @@ public:
    * @return hessian_t
    */
   AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
-                        const math::decomp::SvdResultImpl<dim, real>&) const {
+                        const math::decomp::SvdResult<dim, real>&) const {
     const real& mu = this->mu_;
     const real& lambda = this->lambda_;
     real J = math::det(F);

@@ -9,7 +9,7 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
-  Status SetOptions(utils::Opt const &) final;
+  void SetOptions(utils::Opt const &) final;
 
   utils::Opt GetOptions() const final;
 

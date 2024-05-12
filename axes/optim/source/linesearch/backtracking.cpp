@@ -43,11 +43,11 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
   return opt;
 }
 
-Status Linesearch_Backtracking::SetOptions(utils::Opt const& options) {
+void Linesearch_Backtracking::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT(options, real, initial_step_length);
   AX_SYNC_OPT(options, real, step_shrink_rate);
   AX_SYNC_OPT(options, real, required_descent_rate);
-  return LinesearchBase::SetOptions(options);
+  LinesearchBase::SetOptions(options);
 }
 
 utils::Opt Linesearch_Backtracking::GetOptions() const {

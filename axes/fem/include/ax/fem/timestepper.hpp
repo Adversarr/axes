@@ -36,7 +36,7 @@ public:
   SPtr<TriMesh<dim>> &GetMeshPtr() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
   TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
-  virtual Status SetOptions(const utils::Opt &option) override;
+  virtual void SetOptions(const utils::Opt &option) override;
   virtual utils::Opt GetOptions() const override;
 
   // External force getter/setter

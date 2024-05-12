@@ -8,7 +8,7 @@ public:
   ~VdbPoissonSolver() = default;
   StatusOr<RealGridPtr> operator()(RealGridPtr source) override;
 
-  virtual Status SetOptions(utils::Opt const& option) final;
+  virtual void SetOptions(utils::Opt const& option) final;
   virtual utils::Opt GetOptions() const final;
 
 private:

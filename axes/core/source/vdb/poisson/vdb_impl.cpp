@@ -23,11 +23,10 @@ StatusOr<RealGridPtr> VdbPoissonSolver::operator()(RealGridPtr source) {
   return RealGrid::create(solution_tree);
 }
 
-Status VdbPoissonSolver::SetOptions(utils::Opt const& option) {
+void VdbPoissonSolver::SetOptions(utils::Opt const& option) {
   AX_SYNC_OPT_IF(option, idx, max_iterations) { AX_CHECK_GT(max_iterations_, 0); }
   AX_SYNC_OPT_IF(option, real, rel_error) { AX_CHECK_GT(rel_error_, 0); }
   AX_SYNC_OPT_IF(option, real, abs_error) { AX_CHECK_GT(abs_error_, 0); }
-  AX_RETURN_OK();
 }
 
 utils::Opt VdbPoissonSolver::GetOptions() const {

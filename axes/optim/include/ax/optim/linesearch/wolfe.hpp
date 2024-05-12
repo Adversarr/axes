@@ -11,7 +11,7 @@ public:
   virtual ~Linesearch_Wofle() = default;
   virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const;
   virtual LineSearchKind GetKind() const;
-  virtual Status SetOptions(utils::Opt const& options);
+  virtual void SetOptions(utils::Opt const& options);
   virtual utils::Opt GetOptions() const;
 
 

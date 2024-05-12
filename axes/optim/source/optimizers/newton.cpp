@@ -140,28 +140,28 @@ Newton::Newton() {
   cg->SetPreconditioner(std::make_unique<math::PreconditionerIncompleteCholesky>());
 }
 
-Status Newton::SetOptions(utils::Opt const& options) {
+void Newton::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
     auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
     AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
     linesearch_ = LinesearchBase::Create(ls.value());
-    AX_RETURN_NOTOK_OR(utils::sync_to_field(*linesearch_, options, "linesearch_opt"));
+    utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
   }
 
   AX_SYNC_OPT_IF(options, std::string, dense_solver_name) {
     auto ds = utils::reflect_enum<math::DenseSolverKind>(dense_solver_name_);
     AX_CHECK(ds) << "Unknown dense_solver_name: " << dense_solver_name_;
     dense_solver_ = math::DenseSolverBase::Create(ds.value());
-    AX_RETURN_NOTOK_OR(utils::sync_to_field(*dense_solver_, options, "dense_solver_opt"));
+    utils::sync_from_opt(*dense_solver_, options, "dense_solver_opt");
   }
 
   AX_SYNC_OPT_IF(options, std::string, sparse_solver_name) {
     auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
     AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;
     sparse_solver_ = math::SparseSolverBase::Create(ss.value());
-    AX_RETURN_NOTOK_OR(utils::sync_to_field(*sparse_solver_, options, "sparse_solver_opt"));
+    utils::sync_from_opt(*sparse_solver_, options, "sparse_solver_opt");
   }
-  return OptimizerBase::SetOptions(options);
+  OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Newton::GetOptions() const {

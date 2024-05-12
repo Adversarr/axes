@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
   /************************* SECT: Run Optimize *************************/
   auto start = utils::GetCurrentTimeNanos();
-  AX_CHECK_OK(optimizer->SetOptions(opt));
+  optimizer->SetOptions(opt);
   // AX_LOG(INFO) << "Initial : " << x0.transpose();
   AX_LOG(INFO) << "Optimizer Options: " << std::endl << optimizer->GetOptions();
   auto solution = optimizer->Optimize(*prob, x0);

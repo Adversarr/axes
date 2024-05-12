@@ -59,19 +59,16 @@ int main(int argc, char** argv) {
     if (absl::GetFlag(FLAGS_linesearch) == "backtracking") {
       std::cout << "Using backtracking line search.\n";
       auto p = LinesearchBase::Create(ax::optim::LineSearchKind::kBacktracking);
-      AX_CHECK_OK(p->SetOptions({
-        {"initial_step_length", 1},
-        {"step_shrink_rate", 0.3},
-        {"required_descent_rate", 0.1}}));
+      p->SetOptions(
+          {{"initial_step_length", 1}, {"step_shrink_rate", 0.3}, {"required_descent_rate", 0.1}});
       gd->SetLineSearch(std::move(p));
     } else if (absl::GetFlag(FLAGS_linesearch) == "wolfe") {
       std::cout << "Using Wolfe line search.\n";
       auto p = LinesearchBase::Create(ax::optim::LineSearchKind::kWolfe);
-      AX_CHECK_OK(p->SetOptions({
-        {"initial_step_length", 1},
-        {"step_shrink_rate", 0.3},
-        {"required_descent_rate", 0.1},
-        {"required_curvature_rate", 0.1}}));
+      p->SetOptions({{"initial_step_length", 1},
+                     {"step_shrink_rate", 0.3},
+                     {"required_descent_rate", 0.1},
+                     {"required_curvature_rate", 0.1}});
       gd->SetLineSearch(std::move(p));
     }
 
@@ -81,10 +78,10 @@ int main(int argc, char** argv) {
     throw std::runtime_error("Unknown optimizer: " + opt_name);
   }
 
-  AX_CHECK_OK(optimizer->SetOptions({{"max_iter", absl::GetFlag(FLAGS_max_iter)},
-                                     {"tol_var", absl::GetFlag(FLAGS_tol_var)},
-                                     {"tol_grad", absl::GetFlag(FLAGS_tol_grad)},
-                                     {"verbose", absl::GetFlag(FLAGS_verbose)}}));
+  optimizer->SetOptions({{"max_iter", absl::GetFlag(FLAGS_max_iter)},
+                         {"tol_var", absl::GetFlag(FLAGS_tol_var)},
+                         {"tol_grad", absl::GetFlag(FLAGS_tol_grad)},
+                         {"verbose", absl::GetFlag(FLAGS_verbose)}});
   AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
 
   if (absl::GetFlag(FLAGS_verbose)) {

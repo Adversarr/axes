@@ -2,6 +2,9 @@
 
 #include "ax/core/excepts.hpp"
 #include "ax/math/linalg.hpp"
+#include "ax/math/linsys/common.hpp"
+#include "ax/math/linsys/solver_base.hpp"
+#include "ax/math/linsys/sparse.hpp"
 
 namespace ax::math {
 
@@ -89,19 +92,21 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
   }
 }
 
-Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
+void SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
   AX_SYNC_OPT_IF(opt, idx, max_iter) {
-    if (max_iter_ < 1) {
-      return utils::InvalidArgumentError("max_iter must be positive");
-    }
+    // if (max_iter_ < 1) {
+    //   return utils::InvalidArgumentError("max_iter must be positive");
+    // }
+    AX_THROW_IF_LT(max_iter_, 1, "max_iter must be positive");
 
     solver_.setMaxIterations(max_iter_);
   }
 
   AX_SYNC_OPT_IF(opt, real, tol) {
-    if (tol_ < 0) {
-      return utils::InvalidArgumentError("tol must be non-negative");
-    }
+    // if (tol_ < 0) {
+    //   return utils::InvalidArgumentError("tol must be non-negative");
+    // }
+    AX_THROW_IF_LT(tol_, 0, "tol must be non-negative");
     solver_.setTolerance(tol_);
   }
 
@@ -110,27 +115,29 @@ Status SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
     if (it->value().is_string()) {
       std::string name = it->value().as_string().c_str();
       auto kind = utils::reflect_enum<PreconditionerKind>(name);
-      if (!kind) {
-        return utils::InvalidArgumentError("Invalid preconditioner kind: "
-                                           + std::string(it->value().as_string().c_str()));
-      }
+      // if (!kind) {
+      //   return utils::InvalidArgumentError("Invalid preconditioner kind: "
+      //                                      + std::string(it->value().as_string().c_str()));
+      // }
+      AX_THROW_IF_NULL(kind, "Invalid preconditioner kind: " + name);
       pk = kind.value();
       preconditioner_ = PreconditionerBase::Create(pk);
-      if (!preconditioner_) {
-        return utils::FailedPreconditionError("Failed to create preconditioner: " + name);
-      }
+      // if (!preconditioner_) {
+      //   return utils::FailedPreconditionError("Failed to create preconditioner: " + name);
+      // }
+      AX_THROW_IF_NULLPTR(preconditioner_, "Failed to create preconditioner: " + name);
     } else {
-      return utils::InvalidArgumentError("Expect value under 'preconditioner' to be a string.");
+      // return utils::InvalidArgumentError("Expect value under 'preconditioner' to be a string.");
+      throw RuntimeError("Expect value under 'preconditioner' to be a string.");
     }
   }
 
   if (auto it = opt.find("preconditioner_options"); it != opt.end()) {
     if (preconditioner_ || it->value().is_object()) {
-      auto status = preconditioner_->SetOptions(it->value().as_object());
+      preconditioner_->SetOptions(it->value().as_object());
     }
   }
-
-  AX_RETURN_OK();
+  SparseSolverBase::SetOptions(opt);
 }
 
 utils::Opt SparseSolver_ConjugateGradient::GetOptions() const {

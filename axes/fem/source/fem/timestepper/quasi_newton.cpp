@@ -29,7 +29,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   problem_sparse.A_ = math::kronecker_identity<dim>(full_laplacian);
   problem_sparse.A_.makeCompressed();
   this->mesh_->FilterMatrixFull(problem_sparse.A_);
-  AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
+  solver_->SetOptions({{"max_iter", 20}});
   solver_->Analyse(problem_sparse);
 }
 
@@ -57,7 +57,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep(real dt
     problem_sparse.A_.makeCompressed();
 
     this->mesh_->FilterMatrixFull(problem_sparse.A_);
-    AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
+    solver_->SetOptions({{"max_iter", 20}});
     solver_->Analyse(problem_sparse);
   }
 }

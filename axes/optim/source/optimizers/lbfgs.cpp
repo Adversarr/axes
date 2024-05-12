@@ -193,15 +193,15 @@ Lbfgs::Lbfgs() {
   ls->step_shrink_rate_ = 0.7;
 }
 
-Status Lbfgs::SetOptions(utils::Opt const& options) {
+void Lbfgs::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT(options, idx, history_size);
   AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
     auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
     AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
     linesearch_ = LinesearchBase::Create(ls.value());
-    AX_RETURN_NOTOK_OR(utils::sync_to_field(*linesearch_, options, "linesearch_opt"));
+    utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
   }
-  return OptimizerBase::SetOptions(options);
+  OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Lbfgs::GetOptions() const {

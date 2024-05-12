@@ -10,7 +10,7 @@ public:
 
   OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const override;
 
-  Status SetOptions(utils::Opt const& options) override;
+  void SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const final;
 

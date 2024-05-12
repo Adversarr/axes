@@ -2,6 +2,7 @@
 
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCholesky>
+#include "ax/utils/opt.hpp"
 
 #define is_interior(sub) ((sub).minCoeff() >= 0 && ((sub).array() - n_).maxCoeff() < 0)
 
@@ -266,14 +267,13 @@ template <idx dim> utils::Opt PoissonProblemCellCentered<dim>::GetOptions() cons
   return opt;
 }
 
-template <idx dim> Status PoissonProblemCellCentered<dim>::SetOptions(utils::Opt const& option) {
+template <idx dim> void PoissonProblemCellCentered<dim>::SetOptions(utils::Opt const& option) {
   AX_SYNC_OPT_IF(option, std::string, sparse_solver_name) {
     auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
     AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;
     sparse_solver_ = math::SparseSolverBase::Create(ss.value());
-    AX_RETURN_NOTOK_OR(utils::sync_to_field(*sparse_solver_, option, "sparse_solver_opt"));
+    utils::sync_from_opt(*sparse_solver_, option, "sparse_solver_opt");
   }
-  AX_RETURN_OK();
 }
 
 template class PoissonProblemCellCentered<2>;

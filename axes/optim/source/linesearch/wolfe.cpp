@@ -74,13 +74,13 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& 
   return opt;
 }
 
-Status Linesearch_Wofle::SetOptions(utils::Opt const& options) {
+void Linesearch_Wofle::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT(options, real, initial_step_length);
   AX_SYNC_OPT(options, real, step_shrink_rate);
   AX_SYNC_OPT(options, real, required_descent_rate);
   AX_SYNC_OPT(options, real, required_curvature_rate);
   AX_SYNC_OPT(options, bool, strong_wolfe);
-  return LinesearchBase::SetOptions(options);
+  LinesearchBase::SetOptions(options);
 }
 
 utils::Opt Linesearch_Wofle::GetOptions() const {

@@ -2,6 +2,7 @@
 
 #include "ax/core/echo.hpp"
 #include "ax/core/excepts.hpp"
+#include "ax/optim/spsdm.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ax::optim {
@@ -34,9 +35,9 @@ math::sp_matxxr EigenvalueModification::Modify(math::sp_matxxr const& A) {
 }
 
 
-Status EigenvalueModification::SetOptions(utils::Opt const& options) {
+void EigenvalueModification::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT(options, real, min_eigval);
-  AX_RETURN_OK();
+  SpsdModificationBase::SetOptions(options);
 }
 
 utils::Opt EigenvalueModification::GetOptions() const {

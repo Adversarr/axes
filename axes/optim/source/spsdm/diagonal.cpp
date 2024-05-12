@@ -5,13 +5,11 @@
 
 namespace ax::optim {
 
-Status DiagonalModification::SetOptions(utils::Opt const& options) {
+void DiagonalModification::SetOptions(utils::Opt const& options) {
   AX_SYNC_OPT_IF(options, real, additional_offset) {
-    if (additional_offset_ < 0) {
-      return utils::InvalidArgumentError("additional_offset must be non-negative.");
-    }
+    AX_THROW_IF_LT(additional_offset_, 0, "Eigen modification encountered negative offset");
   }
-  return SpsdModificationBase::SetOptions(options);
+  SpsdModificationBase::SetOptions(options);
 }
 
 utils::Opt DiagonalModification::GetOptions() const {

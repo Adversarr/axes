@@ -38,7 +38,7 @@ template <idx dim> Status TimeStepperBase<dim>::Initialize() {
   AX_RETURN_OK();
 }
 
-template <idx dim> Status TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) {
+template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) {
   AX_SYNC_OPT_IF(opt, real, rel_tol_grad) { AX_THROW_IF_LT(rel_tol_grad_, 1e-6, "The relative tol grad is too small"); }
   AX_SYNC_OPT_IF(opt, real, tol_var) { AX_LOG(INFO) << "Tol Variance: " << tol_var_; }
   AX_SYNC_OPT_IF(opt, idx, max_iter) { AX_LOG(INFO) << "Max Iteration: " << max_iter_; }
@@ -69,7 +69,7 @@ template <idx dim> Status TimeStepperBase<dim>::SetOptions(utils::Opt const& opt
   AX_SYNC_OPT_IF(opt, real, youngs) {
     AX_THROW_IF_LT(youngs_, 0, "Young's modulus should be positive.");
   }
-  AX_SYNC_OPT(opt, real, poisson_ratio) {
+  AX_SYNC_OPT_IF(opt, real, poisson_ratio) {
     AX_THROW_IF_FALSE(0 < poisson_ratio_ && poisson_ratio_ < 0.5, "Poisson ratio should be in (0, 0.5).");
     if (poisson_ratio_ > 0.49) {
       AX_LOG_FIRST_N(WARNING, 1) << "Poisson ratio is close to 0.5, which may cause numerical instability.";
@@ -80,7 +80,7 @@ template <idx dim> Status TimeStepperBase<dim>::SetOptions(utils::Opt const& opt
   AX_SYNC_OPT_IF(opt, real, density) {
     SetDensity(density_);
   }
-  return utils::Tunable::SetOptions(opt);
+  utils::Tunable::SetOptions(opt);
 }
 
 template <idx dim>

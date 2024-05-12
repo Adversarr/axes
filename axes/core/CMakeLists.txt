@@ -3,6 +3,7 @@ find_package(absl CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(Blosc REQUIRED)
+find_package(Boost REQUIRED COMPONENTS json)
 find_package(ZLIB REQUIRED)
 find_package(OpenVDB REQUIRED)
 
@@ -64,6 +65,7 @@ target_link_libraries(axes_core
     EnTT::EnTT
     range-v3::range-v3
     OpenVDB::openvdb
+    Boost::json
     Blosc::blosc
     ZLIB::ZLIB
 )

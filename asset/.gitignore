@@ -1,0 +1,3 @@
+# Everything except keep.
+temporaries/*
+!temporaries/.keep

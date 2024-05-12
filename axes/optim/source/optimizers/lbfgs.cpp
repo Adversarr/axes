@@ -50,6 +50,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   math::vecxr s_new(n_dof);
   math::vecxr g_new(n_dof);
   math::vecxr y_new(n_dof);
+  math::vecxr x_old = x;
 
   while (iter < max_iter_) {
     // SECT: Verbose
@@ -68,7 +69,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     // SECT: Check convergence
     converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
     converge_var
-        = iter > 1 && problem_.HasConvergeVar() && problem_.EvalConvergeVar(x, x0) < tol_var_;
+        = iter > 1 && problem_.HasConvergeVar() && problem_.EvalConvergeVar(x, x_old) < tol_var_;
     if (converge_grad || converge_var) {
       converged = true;
       break;
@@ -181,6 +182,7 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     y_new.noalias() = g_new - grad;
 
     f_iter = ls_result->f_opt_;
+    std::swap(x, x_old);
     x = std::move(ls_result->x_opt_);
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
@@ -200,13 +202,13 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
 }
 
 Lbfgs::Lbfgs() {
-  linesearch_ = std::make_unique<BacktrackingLinesearch>();
+  linesearch_ = std::make_unique<Linesearch_Backtracking>();
   linesearch_name_ = "kBacktracking";
 
-  auto ls = reinterpret_cast<BacktrackingLinesearch*>(linesearch_.get());
-  ls->c_ = 1e-4;
-  ls->alpha_ = 1.0;
-  ls->rho_ = 0.7;
+  auto ls = reinterpret_cast<Linesearch_Backtracking*>(linesearch_.get());
+  ls->required_descent_rate_ = 1e-4;
+  ls->initial_step_length_ = 1.0;
+  ls->step_shrink_rate_ = 0.7;
 }
 
 Status Lbfgs::SetOptions(utils::Opt const& options) {

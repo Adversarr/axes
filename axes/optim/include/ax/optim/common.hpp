@@ -88,6 +88,7 @@ struct OptResultImpl {
   math::vecxr x_opt_;
   // Optimal energy
   real f_opt_;
+  real step_length_{1.0}; // for linesarchers.
   // Indicates whether the optimization algorithm has converged.
   bool converged_grad_{false};
   bool converged_var_{false};

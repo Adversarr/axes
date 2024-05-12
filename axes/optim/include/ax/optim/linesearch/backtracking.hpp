@@ -4,9 +4,9 @@
 
 namespace ax::optim {
 
-class BacktrackingLinesearch : public LinesearchBase {
+class Linesearch_Backtracking : public LinesearchBase {
 public:
-  BacktrackingLinesearch() {}
+  Linesearch_Backtracking() {}
 
   OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const override;
 
@@ -14,9 +14,11 @@ public:
 
   utils::Opt GetOptions() const final;
 
-  real alpha_ = 1.0;
-  real rho_ = 0.5;
-  real c_ = 1e-4;
+  LineSearchKind GetKind() const override;
+
+  real initial_step_length_ = 1.0;
+  real step_shrink_rate_ = 0.5;
+  real required_descent_rate_ = 1e-4;
 };
 
 }

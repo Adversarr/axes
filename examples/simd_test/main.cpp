@@ -1,5 +1,6 @@
 #include "ax/core/init.hpp"
 #include "ax/math/common.hpp"
+#include <chrono>
 
 using namespace ax;
 using namespace math;
@@ -12,13 +13,12 @@ double launch_test_abc(idx n, idx test_iteration) {
   c.setRandom(n);
   d.setRandom(n);
 
-  double start_time = omp_get_wtime();
+  auto start_time = std::chrono::high_resolution_clock::now();
   for (idx i = 0; i < test_iteration; i++) {
     d.noalias() = a * b + c;
   }
-  double end_time = omp_get_wtime();
-  std::cout << d.sum() << std::endl;
-  return (end_time - start_time) / test_iteration;
+  auto end_time = std::chrono::high_resolution_clock::now();
+  return (end_time - start_time).count() / (real) test_iteration;
 }
 
 int main(int argc, char* argv[]) {

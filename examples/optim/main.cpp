@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     {"max_iter", idx(200)},
     {"linesearch_name", "kBacktracking"},
     {"linesearch_opt", utils::Opt{
-      {"c", real(1e-4)},
+      {"required_descent_rate", real(1e-4)},
     }}
   };
 

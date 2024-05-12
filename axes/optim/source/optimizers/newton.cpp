@@ -145,7 +145,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
 Newton::Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
   sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
-  linesearch_ = std::make_unique<BacktrackingLinesearch>();
+  linesearch_ = std::make_unique<Linesearch_Backtracking>();
   linesearch_name_ = "kBacktracking";
   dense_solver_name_ = "kLDLT";
   sparse_solver_name_ = "kConjugateGradient";

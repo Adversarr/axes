@@ -97,7 +97,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     global_problem_.A_ = math::make_sparse_matrix(2 * n_vertex, 2 * n_vertex, coeff_list);
     // AX_LOG(INFO) << problem.A_.toDense().determinant();
   }  
-  AX_CHECK_OK(global_solver_->Analyse(global_problem_));
+  global_solver_->Analyse(global_problem_);
 }
 
 void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> solver) {
@@ -106,7 +106,8 @@ void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> sol
 
 ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
   global_solver_ = std::move(solver);
-  return global_solver_->Analyse(global_problem_);
+  global_solver_->Analyse(global_problem_);
+  AX_RETURN_OK();
 }
 
 
@@ -156,15 +157,12 @@ Status ParameterizationSolver::Solve(idx max_iter) {
     }
 
     auto global_step_result = global_solver_->Solve(rhs, last_global_optimal);
-    if (!global_step_result.ok()) {
-      return global_step_result.status();
-    }
-    if (!global_step_result.value().converged_) {
-      AX_LOG(ERROR) << "PCG Failed to converge in " << global_step_result.value().num_iter_ << " iterations";
+    if (!global_step_result.converged_) {
+      AX_LOG(ERROR) << "PCG Failed to converge in " << global_step_result.num_iter_ << " iterations";
       return utils::DataLossError("Global step not converged");
     }
     real dx2 = 0;
-    auto global_optimal = global_step_result.value().solution_;
+    auto global_optimal = global_step_result.solution_;
     /*AX_LOG(INFO) << "RHS=" << rhs;
     AX_LOG(INFO) << "opt=" << global_optimal;
     AX_LOG(INFO) << "A opt=" << problem.A_ * global_optimal;

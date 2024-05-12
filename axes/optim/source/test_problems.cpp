@@ -39,8 +39,7 @@ math::matxxr rosenbrock_hessian(math::vecxr const& x) {
   optim::EigenvalueModification modification;
   modification.min_eigval_ = 1e-3;
   auto spsd_hessian = modification.Modify(hessian);
-  AX_CHECK_OK(spsd_hessian);
-  return spsd_hessian.value();
+  return spsd_hessian;
 }
 
 math::vecxr RosenbrockProblem::Optimal(math::vecxr const& x0) {
@@ -85,10 +84,9 @@ math::vecxr SparseLeastSquareProblem::Optimal(math::vecxr const&) {
   math::vecxr x_opt = math::vecxr::Zero(b_.rows());
   math::SparseSolver_QR solver;
   math::LinsysProblem_Sparse linsys{A_, b_};
-  AX_CHECK_OK(solver.Analyse(linsys));
+  solver.Analyse(linsys);
   auto solution = solver.Solve(b_, {});
-  AX_CHECK_OK(solution);
-  x_opt = solution->solution_;
+  x_opt = solution.solution_;
   return x_opt;
 }
 

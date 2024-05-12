@@ -5,7 +5,7 @@ namespace ax::math {
 
 class SparseSolver_LLT : public SparseSolverBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
+  void Analyse(LinsysProblem_Sparse const &problem) override;
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 

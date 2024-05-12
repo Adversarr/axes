@@ -1,21 +1,22 @@
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 
+#include "ax/core/excepts.hpp"
 #include "ax/math/linalg.hpp"
 
 namespace ax::math {
 
-Status SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
+void SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
   if (preconditioner_) {
     sparse_problem_ = problem;
-    AX_RETURN_NOTOK(preconditioner_->Analyse(sparse_problem_));
+    // AX_RETURN_NOTOK(preconditioner_->Analyse(sparse_problem_));
+    preconditioner_->Analyse(sparse_problem_);
   } else {
     solver_.compute(problem.A_);
-    if (solver_.info() != Eigen::Success) {
-      return utils::FailedPreconditionError("SparseSolver_ConjugateGradient: factorization failed");
-    }
+    // if (solver_.info() != Eigen::Success) {
+    //   return utils::FailedPreconditionError("SparseSolver_ConjugateGradient: factorization failed");
+    // }
+    AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_ConjugateGradient: factorization failed");
   }
-
-  AX_RETURN_OK();
 }
 
 LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
@@ -23,23 +24,26 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     // ERROR: Use the Eigen Solver!!!
     vecxr x;
     if (x0.size() > 0) {
-      if (x0.size() != b.size()) {
-        return utils::FailedPreconditionError("Size mismatch!");
-      }
+      // if (x0.size() != b.size()) {
+      //   return utils::FailedPreconditionError("Size mismatch!");
+      // }
+      AX_THROW_IF_NE(x0.size(), b.size(), "Size mismatch!");
       x = solver_.solveWithGuess(b, x0);
     } else {
       x = solver_.solve(b);
     }
-    LinsysSolveResultImpl impl(x, solver_.info() == Eigen::Success);
+    LinsysSolveResult impl(x, solver_.info() == Eigen::Success);
     impl.num_iter_ = solver_.iterations();
     impl.l2_err_ = solver_.error();
     return impl;
   } else {
     sp_matxxr const &A = sparse_problem_.A_;
-    if (b.size() != A.rows()) {
-      return utils::InvalidArgumentError("Invalid rhs vector: b" + std::to_string(b.size())
-                                         + " != A" + std::to_string(A.rows()));
-    }
+    // if (b.size() != A.rows()) {
+    //   return utils::InvalidArgumentError("Invalid rhs vector: b" + std::to_string(b.size())
+    //                                      + " != A" + std::to_string(A.rows()));
+    // }
+    AX_THROW_IF_NE(b.size(), A.rows(), "Invalid rhs vector: b" + std::to_string(b.size())
+                                       + " != A" + std::to_string(A.rows()));
     // Initialize the solution vector.
     math::vecxr x = x0;
     if (x.size() != A.cols()) {
@@ -79,7 +83,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
       p_new.noalias() = beta * p - y;
       p_new.swap(p);
     }
-    LinsysSolveResultImpl impl(x, converged || conv_residual);
+    LinsysSolveResult impl(x, converged || conv_residual);
     impl.num_iter_ = iter;
     return impl;
   }

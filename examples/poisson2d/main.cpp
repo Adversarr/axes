@@ -147,11 +147,7 @@ public:
     SparseSolver_LDLT ldlt;
     LinsysProblem_Sparse problem(A, b);
     auto solution = ldlt.SolveProblem(problem);
-    if (!solution.ok()) {
-      AX_LOG(ERROR) << "Failed to solve the linear system";
-      return solution.status();
-    }
-    vecxr x = solution->solution_;
+    vecxr x = solution.solution_;
     math::matxxr solution_field(*n, *n);
     for (idx i = 0; i < *n; ++i) {
       for (idx j = 0; j < *n; ++j) {

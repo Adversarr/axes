@@ -37,13 +37,9 @@ TEST_CASE("Solve Invertible") {
   for (auto kind : kinds) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b);
-    CHECK(status.ok());
-
+    solver->Analyse(A_b);
     auto result = solver->Solve(b, {});
-    CHECK(result.ok());
-    CHECK(result.value().converged_);
-    CHECK(result.value().solution_.isApprox(x));
+    CHECK(result.solution_.isApprox(x));
   }
 }
 
@@ -62,8 +58,11 @@ TEST_CASE("Solve Non-Invertible") {
        }) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b);
-    CHECK(!status.ok());
+    try {
+      solver->Analyse(A_b);
+      CHECK(false);
+    } catch (std::exception const &e) {
+    }
   }
 
   for (auto kind : {
@@ -73,11 +72,11 @@ TEST_CASE("Solve Non-Invertible") {
        }) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b);
-    CHECK(status.ok());
-
-    auto result = solver->Solve(b, {});
-    CHECK(result.ok());
+    try {
+      solver->Analyse(A_b);
+      CHECK(false);
+    } catch (std::exception const &e) {
+    }
   }
 }
 
@@ -96,12 +95,8 @@ TEST_CASE("Sparse LU") {
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    auto status = solver->Analyse(A_b);
-    CHECK(status.ok());
-
+    solver->Analyse(A_b);
     auto result = solver->Solve(b, {});
-    CHECK(result.ok());
-    CHECK(result.value().converged_);
-    CHECK(result.value().solution_.isApprox(x));
+    CHECK(result.solution_.isApprox(x));
   }
 }

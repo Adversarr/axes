@@ -5,7 +5,7 @@ namespace ax::math {
 
 class PreconditionerIncompleteCholesky : public PreconditionerBase {
 public:
-  Status Analyse(LinsysProblem_Sparse const &problem) override;
+  void Analyse(LinsysProblem_Sparse const &problem) override;
 
   vecxr Solve(vecxr const &b, vecxr const &x0) override;
 

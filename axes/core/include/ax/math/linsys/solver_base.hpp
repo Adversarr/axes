@@ -32,7 +32,7 @@ public:
    * @param problem The linear system problem to be analyzed.
    * @return The status of the analysis operation.
    */
-  virtual Status Analyse(problem_t const& problem) = 0;
+  virtual void Analyse(problem_t const& problem) = 0;
 
   /**
    * @brief Solves the linear system problem.
@@ -57,10 +57,7 @@ public:
    * @return The result of the solve operation.
    */
   virtual result_type SolveProblem(problem_t const& problem, vecxr const& init_guess = {}) {
-    auto status = Analyse(problem);
-    if (!status.ok()) {
-      return status;
-    }
+    Analyse(problem);
     return Solve(problem.b_, init_guess);
   }
 };

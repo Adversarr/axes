@@ -228,12 +228,7 @@ PoissonProblemCellCentered<dim>::Solve() {
   sp_problem.A_ = std::move(A);
   sp_problem.b_ = rhs + bc_source_;
   auto result = sparse_solver_->SolveProblem(sp_problem);
-
-  if (!result.ok()) {
-    return result.status();
-  }
-
-  const auto& sol = result.value().solution_;
+  const auto& sol = result.solution_;
 
   RealLattice solution(f_.Shape());
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
@@ -252,11 +247,7 @@ PoissonProblemCellCentered<dim>::SolveUnchanged(math::vecxr const& source) {
     return utils::InvalidArgumentError("Source size mismatch.");
   }
   auto result = sparse_solver_->Solve(bc_source_ + source, math::vecxr::Zero(bc_source_.size()));
-  if (!result.ok()) {
-    return result.status();
-  }
-
-  const auto& sol = result.value().solution_;
+  const auto& sol = result.solution_;
   RealLattice solution(f_.Shape());
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     idx dof = dof_map_(sub);

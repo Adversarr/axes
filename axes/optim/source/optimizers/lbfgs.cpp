@@ -110,13 +110,11 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
           };
           math::SparseSolver_ConjugateGradient cg;
           auto result = cg.SolveProblem(sp, {});
-          if (result.ok()) {
-            auto cs = cosine_sim(r, result->solution_);
-            auto l2 = (r - result->solution_).norm();
-            AX_LOG(ERROR) << "Q-Sovle Approx: Cosine Sim=" << cs
-                          << "\t 2-norm=" << l2
-                          << "\t rel-l2=" << l2 / result->solution_.norm();
-          }
+          auto cs = cosine_sim(r, result.solution_);
+          auto l2 = (r - result.solution_).norm();
+          AX_LOG(ERROR) << "Q-Sovle Approx: Cosine Sim=" << cs
+                        << "\t 2-norm=" << l2
+                        << "\t rel-l2=" << l2 / result.solution_.norm();
         }
       } else {
         real H0 = sback.dot(yback) / (yback.dot(yback) + 1e-19);
@@ -147,13 +145,11 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
       };
       math::SparseSolver_ConjugateGradient cg;
       auto result = cg.SolveProblem(sp, {});
-      if (result.ok()) {
-        auto cs = cosine_sim(r, result->solution_);
-        auto l2 = (r - result->solution_).norm();
-        AX_LOG(ERROR) << "L-BFGS Approx: Cosine Sim=" << cs
-                      << "\t 2-norm=" << l2
-                      << "\t rel-l2=" << l2 / result->solution_.norm();
-      }
+      auto cs = cosine_sim(r, result.solution_);
+      auto l2 = (r - result.solution_).norm();
+      AX_LOG(ERROR) << "Approx: Cosine Sim=" << cs
+                    << "\t 2-norm=" << l2
+                    << "\t rel-l2=" << l2 / result.solution_.norm();
     }
 
     math::vecxr dir = -r;

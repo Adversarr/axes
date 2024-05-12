@@ -18,7 +18,7 @@ public:
   static UPtr<PreconditionerBase> Create(PreconditionerKind kind);
 
   virtual ~PreconditionerBase() = default;
-  virtual Status Analyse(LinsysProblem_Sparse const &problem) = 0;
+  virtual void Analyse(LinsysProblem_Sparse const &problem) = 0;
   virtual vecxr Solve(vecxr const &b, vecxr const &x0) = 0;
 
   virtual PreconditionerKind Kind() const = 0;

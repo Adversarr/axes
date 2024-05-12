@@ -134,7 +134,7 @@ void Dijkstra::Step(idx steps) {
   LinsysProblem_Sparse linsys;
   linsys.A_ = make_sparse_matrix(3 * n_vert, 3 * n_vert, coef);
   SparseSolver_LDLT ldlt;
-  AX_CHECK_OK(ldlt.Analyse(linsys));
+  ldlt.Analyse(linsys);
 
 
   // Do Local global
@@ -160,7 +160,7 @@ void Dijkstra::Step(idx steps) {
         b.segment<3>(3 * vi) -= residual;
       }
     }
-    vert_result = ldlt.Solve(b, b)->solution_.reshaped(3, n_vert).eval();
+    vert_result = ldlt.Solve(b, b).solution_.reshaped(3, n_vert).eval();
     AX_LOG(INFO) << "Global Iteration " << i << ": dx=" << norm(vert_result - mesh_.vertices_);
     mesh_.vertices_ = vert_result;
 

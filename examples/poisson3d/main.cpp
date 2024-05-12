@@ -163,11 +163,7 @@ int main(int argc, char** argv) {
   SparseSolver_LDLT ldlt;
 
   auto result = ldlt.SolveProblem(problem);
-  if (!result.ok()) {
-    AX_LOG(ERROR) << "Failed to solve the linear system.";
-  }
-
-  vecxr x = result->solution_;
+  vecxr x = result.solution_;
   vecxr error = x - accurate;
   real l2_error = error.norm() / (n * n * n);
 

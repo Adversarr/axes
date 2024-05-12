@@ -3,7 +3,7 @@
 #include "ax/utils/status.hpp"
 
 namespace ax::math {
-Status PreconditionerIdentity::Analyse(LinsysProblem_Sparse const &) { AX_RETURN_OK(); }
+void PreconditionerIdentity::Analyse(LinsysProblem_Sparse const &) {}
 
 vecxr PreconditionerIdentity::Solve(vecxr const &b, vecxr const &) { return b; }
 }  // namespace ax::math

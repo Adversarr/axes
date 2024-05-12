@@ -17,9 +17,9 @@ public:
   virtual ~SpsdModificationBase() = default;
   UPtr<SpsdModificationBase> Create(SpsdModificationKind kind);
 
-  virtual StatusOr<math::matxxr> Modify(math::matxxr const& A) = 0;
+  virtual math::matxxr Modify(math::matxxr const& A) = 0;
 
-  virtual StatusOr<math::sp_matxxr> Modify(math::sp_matxxr const& A) = 0;
+  virtual math::sp_matxxr Modify(math::sp_matxxr const& A) = 0;
 };
 
 }  // namespace ax::optim

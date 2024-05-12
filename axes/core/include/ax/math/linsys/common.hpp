@@ -57,7 +57,7 @@ struct LinsysProblem_Implicit {
 };
 
 /****************************** Solver Result ******************************/
-struct LinsysSolveResultImpl {
+struct LinsysSolveResult {
   // Basic Result
   vecxr solution_;
   bool converged_;
@@ -69,17 +69,15 @@ struct LinsysSolveResultImpl {
   real l2_err_{-1};
   real linf_err_{-1};
 
-  LinsysSolveResultImpl(vecxr solution, bool converged, idx num_iter, real l2_err, real linf_err)
+  LinsysSolveResult(vecxr solution, bool converged, idx num_iter, real l2_err, real linf_err)
       : solution_{std::move(solution)},
         converged_(converged),
         num_iter_{num_iter},
         l2_err_{l2_err},
         linf_err_{linf_err} {}
 
-  LinsysSolveResultImpl(vecxr const& solution, bool converged = true)
+  LinsysSolveResult(vecxr const& solution, bool converged = true)
       : solution_{solution}, converged_{converged} {}
 };
-
-using LinsysSolveResult = StatusOr<LinsysSolveResultImpl>;
 
 }  // namespace ax::math

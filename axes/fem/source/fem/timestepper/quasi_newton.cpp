@@ -30,7 +30,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   problem_sparse.A_.makeCompressed();
   this->mesh_->FilterMatrixFull(problem_sparse.A_);
   AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
-  AX_CHECK_OK(solver_->Analyse(problem_sparse));
+  solver_->Analyse(problem_sparse);
 }
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
@@ -58,7 +58,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep(real dt
 
     this->mesh_->FilterMatrixFull(problem_sparse.A_);
     AX_CHECK_OK(solver_->SetOptions({{"max_iter", 20}}));
-    AX_CHECK_OK(solver_->Analyse(problem_sparse));
+    solver_->Analyse(problem_sparse);
   }
 }
 
@@ -70,14 +70,12 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   if (strategy_ == LbfgsStrategy::kHard) {
     optimizer.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
       auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-      AX_CHECK_OK(approx);
-      return std::move(approx->solution_);
+      return std::move(approx.solution_);
     });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
     optimizer.SetApproxSolve([&](math::vecxr const &g) -> math::vecxr {
       auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-      AX_CHECK_OK(approx);
-      return std::move(approx->solution_);
+      return std::move(approx.solution_);
     });
   }
 

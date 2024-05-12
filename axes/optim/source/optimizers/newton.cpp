@@ -79,7 +79,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
       math::LinsysProblem_Dense prob(std::move(H), grad);
       auto solution = dense_solver_->SolveProblem(prob);
-      dir = -solution.value().solution_;
+      dir = -solution.solution_;
     } else {
       AX_TIMEIT("Eval and Solve Sparse System");
       math::sp_matxxr H = problem_.EvalSparseHessian(x);
@@ -96,7 +96,7 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
         };
       }
       auto solution = sparse_solver_->SolveProblem(prob);
-      dir = -solution.value().solution_;
+      dir = -solution.solution_;
     }
 
     real dir_dot_grad = dir.dot(grad);

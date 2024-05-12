@@ -1,13 +1,13 @@
 #include "ax/math/linsys/sparse/BiCGSTAB.hpp"
 namespace ax::math {
 
-Status SparseSolver_BiCGSTAB::Analyse(LinsysProblem_Sparse const &problem) {
+void SparseSolver_BiCGSTAB::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
-  if (solver_.info() != Eigen::Success) {
-    return utils::FailedPreconditionError("SparseSolver_BiCGSTAB: factorization failed");
-  }
-
-  AX_RETURN_OK();
+  // if (solver_.info() != Eigen::Success) {
+  //   return utils::FailedPreconditionError("SparseSolver_BiCGSTAB: factorization failed");
+  // }
+  // AX_RETURN_OK();
+  AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_BiCGSTAB: factorization failed");
 }
 
 LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0) {
@@ -20,7 +20,7 @@ LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0) 
     } else {
       x = solver_.solve(b);
     }
-    LinsysSolveResultImpl impl(x, solver_.info() == Eigen::Success);
+    LinsysSolveResult impl(x, solver_.info() == Eigen::Success);
     impl.num_iter_ = solver_.iterations();
     impl.l2_err_ = solver_.error();
     return impl;

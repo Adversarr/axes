@@ -1,17 +1,15 @@
 #include "ax/optim/spsdm/eigenvalue.hpp"
 
 #include "ax/core/echo.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ax::optim {
 
-StatusOr<math::matxxr> EigenvalueModification::Modify(math::matxxr const& A) {
+math::matxxr EigenvalueModification::Modify(math::matxxr const& A) {
   Eigen::SelfAdjointEigenSolver<math::matxxr> es;
   es.compute(A, Eigen::ComputeEigenvectors);
-  if (es.info() != Eigen::Success) {
-    return utils::FailedPreconditionError("Eigenvalue decomposition failed");
-  }
-
+  AX_THROW_IF_FALSE(es.info() == Eigen::Success, "Eigenvalue decomposition failed.");
   math::vecxr eigvals_mod = es.eigenvalues();
 
   if ((eigvals_mod.array() > min_eigval_).all()) {
@@ -27,15 +25,12 @@ StatusOr<math::matxxr> EigenvalueModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
-StatusOr<math::sp_matxxr> EigenvalueModification::Modify(math::sp_matxxr const& A) {
+math::sp_matxxr EigenvalueModification::Modify(math::sp_matxxr const& A) {
   AX_LOG_FIRST_N(WARNING, 1) << "EigenvalueModification::Modify: "
                              << "This method will convert sparse matrix to a dense matrix, and leading to a large memory usage.";
   math::matxxr A_dense = A;
   auto A_mod = Modify(A_dense);
-  if (!A_mod.ok()) {
-    return A_mod.status();
-  }
-  return A_mod->sparseView();
+  return A_mod.sparseView();
 }
 
 

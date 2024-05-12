@@ -2,14 +2,16 @@
 
 namespace ax::math {
 
-Status SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
+void SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
   solver_.compute(problem.A_);
-  if (solver_.info() != Eigen::Success) {
-    return utils::FailedPreconditionError(
-        "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
-  }
+  // if (solver_.info() != Eigen::Success) {
+  //   return utils::FailedPreconditionError(
+  //       "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
+  // }
 
-  AX_RETURN_OK();
+  // AX_RETURN_OK();
+  AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
+                    "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
 }
 
 LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const &b,
@@ -23,7 +25,7 @@ LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const 
     } else {
       x = solver_.solve(b);
     }
-    LinsysSolveResultImpl impl(x, solver_.info() == Eigen::Success);
+    LinsysSolveResult impl(x, solver_.info() == Eigen::Success);
     impl.num_iter_ = solver_.iterations();
     impl.l2_err_ = solver_.error();
     return impl;

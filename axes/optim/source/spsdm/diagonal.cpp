@@ -20,7 +20,7 @@ utils::Opt DiagonalModification::GetOptions() const {
   return opt;
 }
 
-StatusOr<math::matxxr> DiagonalModification::Modify(math::matxxr const& A) {
+math::matxxr DiagonalModification::Modify(math::matxxr const& A) {
   math::vecxr row_sum(A.rows());
   math::vecxr col_sum(A.cols());
   for (idx i = 0; i < A.rows(); ++i) {
@@ -42,7 +42,7 @@ StatusOr<math::matxxr> DiagonalModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
-StatusOr<math::sp_matxxr> DiagonalModification::Modify(math::sp_matxxr const& A) {
+math::sp_matxxr DiagonalModification::Modify(math::sp_matxxr const& A) {
   math::vecxr row_sum(A.rows());
   math::vecxr col_sum(A.cols());
   for (idx i = 0; i < A.outerSize(); ++i) {

@@ -6,6 +6,7 @@
 
 #include "ax/core/common.hpp"
 #include "ax/core/excepts.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ax::utils {
@@ -183,6 +184,30 @@ inline real extract_real(boost::json::value const& v) {
     return static_cast<real>(v.as_uint64());
   }
   AX_UNREACHABLE();
+}
+
+template <typename Enum>
+std::pair<bool, std::optional<Enum>> extract_enum(utils::Opt const& opt, const char* name) {
+  if (auto it = opt.find(name); it != opt.end()) {
+    AX_THROW_IF_FALSE(it->value().is_string(),
+                      "Expect '" + std::string(name) + "' to be a string.");
+    return {true, utils::reflect_enum<Enum>(it->value().as_string().c_str())};
+  } else {
+    return {false, std::nullopt};
+  }
+}
+
+template <typename AnyTunable>
+bool extract_tunable(utils::Opt const& opt, const char* key, AnyTunable* tun) {
+  static_assert(std::is_base_of_v<Tunable, AnyTunable>, "Only Tunable is supported");
+  if (auto it = opt.find(key); it != opt.end()) {
+    AX_THROW_IF_FALSE(it->value().is_object(),
+                      "Expect '" + std::string(key) + "' to be a json object");
+    tun->SetOptions(it->value().as_object());
+    return true;
+  } else {
+    return false;
+  }
 }
 
 #define AX_SYNC_OPT(opt, type, var) ax::utils::sync_from_opt<type>(var##_, (opt), #var)

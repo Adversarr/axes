@@ -1,11 +1,11 @@
 #include "ax/fem/timestepper.hpp"
 
 #ifdef AX_HAS_CUDA
-#include "ax/fem/elasticity_gpu.cuh"
+#  include "ax/fem/elasticity_gpu.cuh"
 #endif
 
-#include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/arap.hpp"
+#include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
@@ -14,10 +14,14 @@
 
 namespace ax::fem {
 
-template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh)
-    : mesh_(std::move(mesh)) {
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase() {
   integration_scheme_ = TimestepSchemeBase<dim>::Create(TimestepSchemeKind::kBackwardEuler);
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
+}
+
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh)
+    : TimeStepperBase() {
+  mesh_ = std::move(mesh);
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Initialize() {
@@ -39,7 +43,9 @@ template <idx dim> Status TimeStepperBase<dim>::Initialize() {
 }
 
 template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) {
-  AX_SYNC_OPT_IF(opt, real, rel_tol_grad) { AX_THROW_IF_LT(rel_tol_grad_, 1e-6, "The relative tol grad is too small"); }
+  AX_SYNC_OPT_IF(opt, real, rel_tol_grad) {
+    AX_THROW_IF_LT(rel_tol_grad_, 1e-6, "The relative tol grad is too small");
+  }
   AX_SYNC_OPT_IF(opt, real, tol_var) { AX_LOG(INFO) << "Tol Variance: " << tol_var_; }
   AX_SYNC_OPT_IF(opt, idx, max_iter) { AX_LOG(INFO) << "Max Iteration: " << max_iter_; }
   AX_SYNC_OPT(opt, bool, verbose);
@@ -62,7 +68,7 @@ template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) 
   if (auto it = opt.find("device"); it != opt.end()) {
     device = utils::extract_string(it->value());
   }
-  if (! ename.empty() || device.empty()) {
+  if (!ename.empty() || device.empty()) {
     SetupElasticity(ename.empty() ? elasticity_name_ : ename, device.empty() ? device_ : device);
   }
 
@@ -70,16 +76,16 @@ template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) 
     AX_THROW_IF_LT(youngs_, 0, "Young's modulus should be positive.");
   }
   AX_SYNC_OPT_IF(opt, real, poisson_ratio) {
-    AX_THROW_IF_FALSE(0 < poisson_ratio_ && poisson_ratio_ < 0.5, "Poisson ratio should be in (0, 0.5).");
+    AX_THROW_IF_FALSE(0 < poisson_ratio_ && poisson_ratio_ < 0.5,
+                      "Poisson ratio should be in (0, 0.5).");
     if (poisson_ratio_ > 0.49) {
-      AX_LOG_FIRST_N(WARNING, 1) << "Poisson ratio is close to 0.5, which may cause numerical instability.";
+      AX_LOG_FIRST_N(WARNING, 1)
+          << "Poisson ratio is close to 0.5, which may cause numerical instability.";
     }
   }
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
 
-  AX_SYNC_OPT_IF(opt, real, density) {
-    SetDensity(density_);
-  }
+  AX_SYNC_OPT_IF(opt, real, density) { SetDensity(density_); }
   utils::Tunable::SetOptions(opt);
 }
 
@@ -224,7 +230,7 @@ template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
 template <idx dim> void TimeStepperBase<dim>::EndTimestep() { EndTimestep(du_); }
 
 template <idx dim> void TimeStepperBase<dim>::EndTimestep(math::fieldr<dim> const& du) {
-  if (! has_time_step_begin_) {
+  if (!has_time_step_begin_) {
     throw LogicError("Timestep has not begun. Call BeginTimestep before ending one.");
   }
   velocity_back_ = integration_scheme_->NewVelocity(u_, u_back_, velocity_, velocity_back_, du);

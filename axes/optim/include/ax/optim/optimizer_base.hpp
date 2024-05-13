@@ -1,15 +1,22 @@
 #pragma once
 
 #include "ax/utils/opt.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "common.hpp"
 
 namespace ax::optim {
+
+BOOST_DEFINE_ENUM_CLASS(OptimizerKind,
+    kNewton,
+    kGradientDescent,
+    kLbfgs);
 
 class OptimizerBase : public utils::Tunable {
 public:
   static constexpr real default_tol_var = 1e-6;
   static constexpr real default_tol_grad = 1e-6;
   static constexpr idx default_max_iter = 100;
+  static UPtr<OptimizerBase> Create(OptimizerKind k);
 
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase() = default;
@@ -22,6 +29,8 @@ public:
 
   /****************************** Interfaces ******************************/
   virtual OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const = 0;
+
+  virtual OptimizerKind GetKind() const = 0;
 
   /****************************** Getter Setter ******************************/
   void SetMaxIter(idx max_iter);

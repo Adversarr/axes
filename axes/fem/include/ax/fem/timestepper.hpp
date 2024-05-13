@@ -1,5 +1,4 @@
 #pragma once
-#include "ax/core/excepts.hpp"
 #include "ax/math/common.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/utils/enum_refl.hpp"
@@ -26,7 +25,7 @@ BOOST_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase() = default;
+  TimeStepperBase();
   TimeStepperBase(SPtr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, default, default);
   virtual ~TimeStepperBase() = default;

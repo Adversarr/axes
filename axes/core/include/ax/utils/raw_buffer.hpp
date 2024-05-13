@@ -8,6 +8,6 @@ namespace ax::utils {
 
 List<char> load_istream_raw(std::istream& is);
 
-StatusOr<List<char>> load_file_raw(std::string_view file_name);
+List<char> load_file_raw(std::string_view file_name);
 
 }  // namespace ax::utils

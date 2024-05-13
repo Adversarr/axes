@@ -18,6 +18,8 @@ public:
   /****************************** Interfaces ******************************/
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
+  OptimizerKind GetKind() const override { return OptimizerKind::kNewton; }
+
   void SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const override;

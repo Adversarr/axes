@@ -99,15 +99,8 @@ int main(int argc, char** argv) {
   file = utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_obj_file));
   AX_LOG(INFO) << "Reading " << std::quoted(file);
   auto obj_result = geo::read_obj(file);
-  if (!obj_result.ok()) {
-    AX_LOG(ERROR) << "Failed to read obj file in asset folder: " << obj_result.status();
-    file = absl::GetFlag(FLAGS_obj_file);
-    AX_LOG(INFO) << "Reading " << std::quoted(file);
-    obj_result = geo::read_obj(file);
-  }
-  AX_CHECK_OK(obj_result) << "Failed to read obj file: " << file;
-  vertices = obj_result.value().vertices_;
-  indices = obj_result->indices_;
+  vertices = obj_result.vertices_;
+  indices = obj_result.indices_;
 
   AX_LOG(INFO) << "Mesh Stat: #V=" << vertices.cols() << ", #F=" << indices.cols();
 

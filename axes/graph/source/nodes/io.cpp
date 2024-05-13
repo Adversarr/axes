@@ -9,6 +9,7 @@
 #include "ax/math/io.hpp"
 #include <imgui.h>
 #include <imgui_node_editor.h>
+#include <exception>
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
@@ -36,11 +37,12 @@ public:
       return utils::FailedPreconditionError("File path is not set");
     }
 
-    auto mesh = geo::read_obj(*file);
-    if (!mesh.ok()) {
-      return mesh.status();
+    try {
+      auto mesh = geo::read_obj(*file);
+      *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh);
+    } catch (std::exception const& e) {
+      return utils::FailedPreconditionError(e.what());
     }
-    *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh.value());
 
     AX_RETURN_OK();
   }

@@ -6,7 +6,7 @@ class VdbPoissonSolver : public PoissonSolverBase {
 public:
   VdbPoissonSolver() = default;
   ~VdbPoissonSolver() = default;
-  StatusOr<RealGridPtr> operator()(RealGridPtr source) override;
+  RealGridPtr operator()(RealGridPtr source) override;
 
   virtual void SetOptions(utils::Opt const& option) final;
   virtual utils::Opt GetOptions() const final;

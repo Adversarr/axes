@@ -11,6 +11,8 @@ public:
 
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
+  OptimizerKind GetKind() const override { return OptimizerKind::kGradientDescent; }
+
   void SetLearningRate(real const& lr);
 
   void SetProximator(std::function<math::vecxr(math::vecxr const&, real)> proximator);
@@ -18,6 +20,10 @@ public:
   void SetLineSearch(UPtr<LinesearchBase> linesearch);
 
   void EnableFista(bool enable) { enable_fista_ = enable; }
+
+  void SetOptions(const utils::Opt &options) override;
+
+  utils::Opt GetOptions() const override;
 
 private:
   UPtr<LinesearchBase> linesearch_;

@@ -20,14 +20,16 @@ namespace ax::utils {
  * @return An optional containing the reflected enum value, or std::nullopt if the string
  * representation is invalid.
  */
-template <typename Enum> std::optional<Enum> reflect_enum(std::string const& name) {
-  Enum e;
-  if (boost::describe::enum_from_string<Enum, boost::describe::describe_enumerators<Enum>>(
-          name.c_str(), e)) {
+template <typename Enum> std::optional<Enum> reflect_enum(const char* name) {
+  using namespace boost::describe;
+  if (Enum e; enum_from_string<Enum, describe_enumerators<Enum>>(name, e)) {
     return e;
   } else {
     return std::nullopt;
   }
+}
+template <typename Enum> std::optional<Enum> reflect_enum(std::string const& name) {
+  return reflect_enum<Enum>(name.c_str());
 }
 
 /**
@@ -71,4 +73,3 @@ template <typename Enum, typename T> UPtr<T> reflect_create(std::string_view nam
 }
 
 }  // namespace ax::utils
-

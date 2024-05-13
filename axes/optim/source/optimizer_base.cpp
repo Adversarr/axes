@@ -1,9 +1,25 @@
 #include "ax/optim/optimizer_base.hpp"
 
 #include "ax/core/echo.hpp"
+#include "ax/optim/optimizers/gd.hpp"
+#include "ax/optim/optimizers/lbfgs.hpp"
+#include "ax/optim/optimizers/newton.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::optim {
+
+UPtr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
+  switch (k) {
+    case OptimizerKind::kNewton:
+      return std::make_unique<Newton>();
+    case OptimizerKind::kLbfgs:
+      return std::make_unique<Lbfgs>();
+    case OptimizerKind::kGradientDescent:
+      return std::make_unique<GradientDescent>();
+    default:
+      return nullptr;
+  }
+}
 
 void OptimizerBase::SetMaxIter(idx max_iter) { max_iter_ = max_iter; }
 
@@ -56,12 +72,10 @@ void OptimizerBase::SetOptions(utils::Opt const& options) {
 }
 
 utils::Opt OptimizerBase::GetOptions() const {
-  utils::Opt options{
-    {"max_iter", max_iter_},
-    {"tol_var", tol_var_},
-    {"tol_grad", tol_grad_},
-    {"verbose", idx(verbose_ ? 1 : 0)}
-  };
+  utils::Opt options{{"max_iter", max_iter_},
+                     {"tol_var", tol_var_},
+                     {"tol_grad", tol_grad_},
+                     {"verbose", idx(verbose_ ? 1 : 0)}};
   return options;
 }
 

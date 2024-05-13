@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "ax/utils/status.hpp"
+#include "ax/core/excepts.hpp"
 
 namespace ax::utils {
 
@@ -15,11 +16,9 @@ List<char> load_istream_raw(std::istream& is) {
   return buffer;
 }
 
-StatusOr<List<char>> load_file_raw(std::string_view file_name) {
+List<char> load_file_raw(std::string_view file_name) {
   std::ifstream file(file_name.data(), std::ios::binary);
-  if (!file.is_open()) {
-    return utils::NotFoundError("Failed to open file: " + std::string(file_name));
-  }
+  AX_THROW_IF_FALSE(file.is_open(), "Failed to open file: " + std::string(file_name));
   return load_istream_raw(file);
 }
 

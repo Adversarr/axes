@@ -30,8 +30,7 @@ StatusOr<Shader> Shader::CompileSource(const char* source, ShaderType type) {
 }
 
 StatusOr<Shader> Shader::CompileFile(std::string_view file_path, ShaderType type) {
-  AX_ASSIGN_OR_RETURN(buffer, utils::load_file_raw(file_path));
-
+  List<char> buffer = utils::load_file_raw(file_path);
   buffer.push_back(0);
   return Shader::CompileSource(reinterpret_cast<const char*>(buffer.data()), type);
 }

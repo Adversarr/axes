@@ -87,8 +87,7 @@ int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   file = ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_obj_file));
   auto obj_result = ax::geo::read_obj(file);
-  AX_CHECK_OK(obj_result) << "Failed to read obj file: " << file;
-  auto surface_mesh = obj_result.value();
+  auto surface_mesh = obj_result;
 
   connect<gl::UiRenderEvent, &ui_callback>();
 

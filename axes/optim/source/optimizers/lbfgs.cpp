@@ -194,6 +194,7 @@ Lbfgs::Lbfgs() {
 }
 
 void Lbfgs::SetOptions(utils::Opt const& options) {
+  OptimizerBase::SetOptions(options);
   AX_SYNC_OPT(options, idx, history_size);
   AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
     auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
@@ -201,7 +202,6 @@ void Lbfgs::SetOptions(utils::Opt const& options) {
     linesearch_ = LinesearchBase::Create(ls.value());
     utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
   }
-  OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Lbfgs::GetOptions() const {

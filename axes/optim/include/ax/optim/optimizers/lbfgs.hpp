@@ -12,6 +12,8 @@ public:
 
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
+  OptimizerKind GetKind() const override { return OptimizerKind::kLbfgs; }
+
   void SetOptions(utils::Opt const& options) override;
 
   utils::Opt GetOptions() const override;

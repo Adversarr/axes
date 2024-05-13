@@ -13,14 +13,14 @@ namespace ax::geo {
  * @return A StatusOr object containing the SurfaceMesh if the file was successfully read, or an
  * error message if there was a problem.
  */
-StatusOr<SurfaceMesh> read_obj(std::string const& path);
+SurfaceMesh read_obj(std::string const& path);
 
 struct EleFileReadResult {
   math::matxxi elements_;
   EleFileReadResult(math::matxxi elements) : elements_(std::move(elements)) {}
   AX_DECLARE_CONSTRUCTOR(EleFileReadResult, default, default);
 };
-StatusOr<EleFileReadResult> read_ele(std::string const& ele_file);
+EleFileReadResult read_ele(std::string const& ele_file);
 
 struct NodeFileReadResult {
   math::matxxr vertices_;
@@ -32,7 +32,7 @@ struct NodeFileReadResult {
   AX_DECLARE_CONSTRUCTOR(NodeFileReadResult, default, default);
 };
 
-StatusOr<NodeFileReadResult> read_node(std::string const& ele_file);
+NodeFileReadResult read_node(std::string const& ele_file);
 
 
 

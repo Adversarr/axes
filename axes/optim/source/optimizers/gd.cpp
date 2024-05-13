@@ -43,7 +43,7 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
                    << "  conv_grad: " << evalcg << std::endl
                    << "  conv_var: " << evalcv << std::endl;
     }
-    if (enable_fista_) {
+    if (iter > 1 && enable_fista_) {
       real blend = real(iter - 2) / real(iter + 1);
       x = x + blend * (x - x_old);
     }
@@ -93,3 +93,32 @@ void ax::optim::GradientDescent::SetLineSearch(UPtr<LinesearchBase> linesearch) 
 
 void ax::optim::GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
 
+void GradientDescent::SetOptions(utils::Opt const& opt) {
+  OptimizerBase::SetOptions(opt);
+  AX_SYNC_OPT_IF(opt, real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
+  AX_SYNC_OPT(opt, bool, enable_fista);
+  auto [has_linesearch, linesearch] = utils::extract_enum<LineSearchKind>(opt, "linesearch");
+  if (has_linesearch) {
+    AX_THROW_IF_NULL(linesearch,
+                     "Linesearch not found: " + std::string(opt.at("linesearch").as_string()));
+    linesearch_ = LinesearchBase::Create(*linesearch);
+    AX_THROW_IF_NULL(linesearch,
+                     "Linesearch create failed: " + std::string(opt.at("linesearch").as_string()));
+  }
+
+  if (linesearch_) {
+    utils::extract_tunable(opt, "linesearch_options", linesearch_.get());
+  }
+}
+
+utils::Opt GradientDescent::GetOptions() const {
+  auto opt = OptimizerBase::GetOptions();
+  opt["lr"] = lr_;
+  opt["enable_fista"] = enable_fista_;
+  if (linesearch_) {
+    auto name = utils::reflect_name(linesearch_->GetKind());
+    opt["linesearch"] = name.value();
+    opt["linesearch_options"] = linesearch_->GetOptions();
+  }
+  return opt;
+}

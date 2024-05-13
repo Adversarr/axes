@@ -8,10 +8,10 @@
 #include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/trimesh.hpp"
 #include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -20,15 +20,16 @@
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/math/io.hpp"
-#include "ax/utils/iota.hpp"
 #include "ax/utils/asset.hpp"
+#include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
-
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 7, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(bool, scene, 0, "id of scene, 0 for twist, 1 for bend.");
+ABSL_FLAG(std::string, optimizer, "kNewton", "Optimizer in use");
+
 int nx;
 using namespace ax;
 Entity out;
@@ -41,17 +42,16 @@ int scene;
 
 UPtr<fem::TimeStepperBase<3>> ts;
 
-
 void update_rendering() {
-  auto &mesh = get_component<gl::Mesh>(out);
-  if (mesh.indices_ .size() == 0) {
+  auto& mesh = get_component<gl::Mesh>(out);
+  if (mesh.indices_.size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
   mesh.vertices_ = ts->GetPosition();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
-  auto &lines = get_component<gl::Lines>(out);
+  auto& lines = get_component<gl::Lines>(out);
   if (lines.indices_.size() == 0) {
     lines = gl::Lines::Create(mesh);
   }
@@ -59,8 +59,7 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), 
-      fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;
@@ -74,11 +73,12 @@ void update_rendering() {
 static bool running = false;
 float dt = 1e-2;
 math::vecxr fps;
-void ui_callback(gl::UiRenderEvent ) {
+void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
+              ts->GetMesh().GetNumVertices());
   if (ImGui::Button("Step") || running) {
     const auto& vert = ts->GetMesh().GetVertices();
     // if (scene == SCENE_TWIST) {
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
   ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
   ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
-  for (auto i: utils::iota(input_mesh.vertices_.cols())) {
+  for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9) {
       // Mark as dirichlet bc.
@@ -143,9 +143,21 @@ int main(int argc, char** argv) {
     }
   }
 
+  ts->SetOptions({
+      {"elasticity", "stable_neohookean"},
+      {"device", "cpu"},
+      {"youngs", 1e7},
+      {"poisson", 0.33},
+      {"optimizer", absl::GetFlag(FLAGS_optimizer)},
+      {"optimizer_options", {
+        {"linesearch", "kBacktracking"},
+        // {"enable_fista", true},
+        // {"verbose", true},
+      }}});
+
   AX_CHECK_OK(ts->Initialize());
   ts->SetExternalAccelerationUniform(math::vec3r::UnitY() * -9.8);
-  ts->SetupElasticity("stable_neohookean", "gpu");
+  std::cout << ts->GetOptions() << std::endl;
   ts->SetDensity(1e3);
   ts->BeginSimulation();
   out = create_entity();

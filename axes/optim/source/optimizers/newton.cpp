@@ -141,6 +141,7 @@ Newton::Newton() {
 }
 
 void Newton::SetOptions(utils::Opt const& options) {
+  OptimizerBase::SetOptions(options);
   AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
     auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
     AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
@@ -161,7 +162,6 @@ void Newton::SetOptions(utils::Opt const& options) {
     sparse_solver_ = math::SparseSolverBase::Create(ss.value());
     utils::sync_from_opt(*sparse_solver_, options, "sparse_solver_opt");
   }
-  OptimizerBase::SetOptions(options);
 }
 
 utils::Opt Newton::GetOptions() const {

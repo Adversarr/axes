@@ -78,8 +78,7 @@ static void ui_callback(gl::UiRenderEvent const&) {
 int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   lame = fem::elasticity::compute_lame(1e4, 0.45);
-  input_mesh
-      = ax::geo::read_obj(ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_input))).value();
+  input_mesh = ax::geo::read_obj(ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_input)));
   if (absl::GetFlag(FLAGS_flip_yz)) {
     auto z = input_mesh.vertices_.row(2).eval();
     input_mesh.vertices_.row(2) = input_mesh.vertices_.row(1);

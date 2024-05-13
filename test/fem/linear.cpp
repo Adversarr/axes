@@ -14,7 +14,7 @@ using namespace ax::fem;
 using namespace ax::math;
 
 TEST_CASE("mass2d") {
-  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
+  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj"));
   auto mesh = std::make_unique<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   // auto mesh = make_square(3);
@@ -25,7 +25,7 @@ TEST_CASE("mass2d") {
 }
 
 TEST_CASE("stress") {
-  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
+  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj"));
   auto mesh = std::make_shared<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   auto elastic = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);
@@ -42,7 +42,7 @@ TEST_CASE("stress") {
 }
 
 TEST_CASE("Hessian") {
-  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj")).value();
+  auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj"));
   auto mesh = std::make_shared<fem::TriMesh<2>>();
   AX_CHECK_OK(mesh->SetMesh(triangle, vert.topRows<2>()));
   auto stress = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);

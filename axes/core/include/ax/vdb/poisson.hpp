@@ -11,7 +11,7 @@ class PoissonSolverBase : public utils::Tunable {
 public:
   using BcFunc = std::function<void(Coord const&, Coord const&, real&, real&)>;
 
-  virtual StatusOr<RealGridPtr> operator()(RealGridPtr source) = 0;
+  virtual RealGridPtr operator()(RealGridPtr source) = 0;
 
   virtual ~PoissonSolverBase() = default;
 

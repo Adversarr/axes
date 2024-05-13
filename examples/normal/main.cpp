@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
   ax::gl::init(argc, argv);
   auto file = ax::utils::get_asset("/mesh/obj/" + absl::GetFlag(FLAGS_obj_file));
 
-  auto [vertices, indices] = geo::read_obj(file).value();
+  auto [vertices, indices] = geo::read_obj(file);
 
   {  // Setup Original
     auto original = create_entity();

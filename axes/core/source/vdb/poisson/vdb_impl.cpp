@@ -4,7 +4,7 @@
 
 namespace ax::vdb {
 
-StatusOr<RealGridPtr> VdbPoissonSolver::operator()(RealGridPtr source) {
+RealGridPtr VdbPoissonSolver::operator()(RealGridPtr source) {
   openvdb::math::pcg::State state;
   state.iterations = max_iterations_;
   state.relativeError = rel_error_;

@@ -16,11 +16,11 @@ ax::vdb::RealGridPtr solve_poisson(ax::vdb::RealGridPtr source) {
 
   auto solver = vdb::PoissonSolverBase::Create(ax::vdb::PoissonSolverKind::kVdb);
   auto solution = (*solver)(new_source);
-  auto solution_tree = solution.value()->treePtr();
+  auto solution_tree = solution->treePtr();
 
   AX_LOG(INFO) << "Solution tree: active=" << solution_tree->activeVoxelCount();
   AX_LOG(INFO) << "Input Tree: active=" << source->tree().activeVoxelCount();
   AX_LOG(INFO) << "bbox size=" << bbox_source.extents().x() * bbox_source.extents().y() * bbox_source.extents().z();
 
-  return solution.value();
+  return solution;
 }

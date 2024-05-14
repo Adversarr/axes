@@ -33,11 +33,6 @@ using OverflowError = std::overflow_error;
 using UnderflowError = std::underflow_error;
 using DomainError = std::domain_error;
 
-class FileNotFoundError : public std::runtime_error {
-public:
-  using std::runtime_error::runtime_error;
-};
-
 }  // namespace ax
 
 #ifdef AX_PLATFORM_WINDOWS

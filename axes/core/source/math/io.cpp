@@ -295,9 +295,10 @@ struct Header {
 
 math::matxxr read_npy_v10_real(std::string path) {
   std::ifstream in(path, std::ios::binary);
-  if (!in.is_open()) {
-    throw FileNotFoundError(path);
-  }
+  // if (!in.is_open()) {
+  //   throw FileNotFoundError(path);
+  // }
+  AX_THROW_IF_FALSE(in, "Failed to open the file: " + path);
 
   char magic[6];
   in.read(magic, 6);
@@ -385,9 +386,10 @@ math::matxxr read_npy_v10_real(std::string path) {
 
 math::matxxi read_npy_v10_idx(std::string path) {
   std::ifstream in(path, std::ios::binary);
-  if (!in.is_open()) {
-    throw FileNotFoundError(path);
-  }
+  // if (!in.is_open()) {
+  //   throw FileNotFoundError(path);
+  // }
+  AX_THROW_IF_FALSE(in, "Failed to open the file: " + path);
 
   char magic[6];
   in.read(magic, 6);
@@ -514,9 +516,10 @@ Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
 
 sp_matxxr read_sparse_matrix(std::string path) {
   std::ifstream in(path);
-  if (!in.is_open()) {
-    throw FileNotFoundError(path);
-  }
+  // if (!in.is_open()) {
+  //   throw FileNotFoundError(path);
+  // }
+  AX_THROW_IF_FALSE(in, "Failed to open the file: " + path);
   char line[1024];
   in.getline(line, 1024);
   if (std::strncmp(line, "%%MatrixMarket matrix coordinate real general", 46) != 0) {

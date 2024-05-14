@@ -311,8 +311,6 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
     return false;
   }
 
-  auto f1 = edge->face_, f2 = edge->pair_->face_;
-
   /**
    *    c
    *   /  \
@@ -339,7 +337,6 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
 
 void HalfedgeMesh::FlipEdge(HalfedgeEdge* edge) {
   AX_DCHECK(CheckFlip(edge));
-  auto [a, b] = edge->HeadAndTail();
   auto c = edge->prev_->vertex_;
   auto d = edge->pair_->prev_->vertex_;
   // Remove the ab, establish cd.

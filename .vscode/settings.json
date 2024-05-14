@@ -1,0 +1,7 @@
+{
+    "cmake.preferredGenerators": [
+        "Ninja",
+        "Unix Makefiles",
+        "Visual Studio 17 2022"
+    ]
+}

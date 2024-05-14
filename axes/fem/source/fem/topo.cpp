@@ -18,7 +18,6 @@ std::pair<List<idx>, List<idx>> optimize_topology(math::fieldi<dim + 1> const& t
   typedef graph_traits<Graph>::vertex_descriptor Vertex;
   typedef graph_traits<Graph>::vertices_size_type size_type;
 
-  typedef std::pair<std::size_t, std::size_t> Pair;
   // Perform Reverse Cuthill-McKee Ordering Algorithm
   // to optimize the topology of the mesh.
 

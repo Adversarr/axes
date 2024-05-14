@@ -1,6 +1,11 @@
 #include "ax/fem/timestepper/naive_optim.hpp"
 
+#include <string>
+
+#include "ax/core/excepts.hpp"
+#include "ax/optim/optimizer_base.hpp"
 #include "ax/optim/optimizers/newton.hpp"
+#include "ax/utils/opt.hpp"
 #undef ERROR
 
 namespace ax::fem {
@@ -15,6 +20,7 @@ template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(SPtr<TriM
 }
 
 template <idx dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
+  AX_THROW_IF_NULL(optimizer_, "Optimizer is not set.");
   optimizer_->SetTolVar(this->tol_var_);
   optimizer_->SetTolGrad(this->rel_tol_grad_);
   optimizer_->SetMaxIter(this->max_iter_);
@@ -38,17 +44,25 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
 
 template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Opt& opt) {
   TimeStepperBase<dim>::SetOptions(opt);
-  if (auto it = opt.find("optimizer"); it != opt.end()) {
-    auto const& o = it->value();
-    if (!o.is_string()) {
-      throw RuntimeError("Expect 'optimizer' to be a string.");
-    }
-    auto opt_kind = utils::reflect_enum<optim::OptimizerKind>(o.as_string().c_str());
-    if (!opt_kind) {
-      throw RuntimeError("Failed to reflect optimizer: " + std::string(o.as_string()));
-    }
-    optimizer_ = optim::OptimizerBase::Create(opt_kind.value());
-    AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: " + std::string(o.as_string()));
+  // if (auto it = opt.find("optimizer"); it != opt.end()) {
+  //   auto const& o = it->value();
+  //   if (!o.is_string()) {
+  //     throw RuntimeError("Expect 'optimizer' to be a string.");
+  //   }
+  //   auto opt_kind = utils::reflect_enum<optim::OptimizerKind>(o.as_string().c_str());
+  //   if (!opt_kind) {
+  //     throw RuntimeError("Failed to reflect optimizer: " + std::string(o.as_string()));
+  //   }
+  //   optimizer_ = optim::OptimizerBase::Create(opt_kind.value());
+  //   AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: " + std::string(o.as_string()));
+  // }
+  auto [has_opt, optimizer] = utils::extract_enum<optim::OptimizerKind>(opt, "optimizer");
+  if (has_opt) {
+    AX_THROW_IF_NULL(optimizer, "Failed to reflect optimizer: "
+                                + std::string(utils::extract_string(opt.at("optimizer"))));
+    optimizer_ = optim::OptimizerBase::Create(optimizer.value());
+    AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: "
+                                 + std::string(utils::extract_string(opt.at("optimizer"))));
   }
   if (optimizer_) {
     utils::extract_tunable(opt, "optimizer_options", optimizer_.get());

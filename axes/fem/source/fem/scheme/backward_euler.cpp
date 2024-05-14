@@ -17,16 +17,16 @@ template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::ComposeG
 }
 
 template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::Precomputed(
-    math::sp_matxxr const& M, math::fieldr<dim> const& u_current, math::fieldr<dim> const& u_old,
-    math::fieldr<dim> const& v_current, math::fieldr<dim> const& v_old,
+    math::sp_matxxr const& /* M */, math::fieldr<dim> const& /* u_current */, math::fieldr<dim> const& /* u_old */,
+    math::fieldr<dim> const& v_current, math::fieldr<dim> const& /* v_old */,
     math::fieldr<dim> const& ext_accel) const {
   real const dt = this->dt_;
   return dt * v_current + dt * dt * ext_accel;
 }
 
 template <idx dim> math::fieldr<dim> TimestepScheme_BackwardEuler<dim>::NewVelocity(
-    math::fieldr<dim> const& u_current, math::fieldr<dim> const& u_old,
-    math::fieldr<dim> const& v_current, math::fieldr<dim> const& v_old,
+    math::fieldr<dim> const& /* u_current */, math::fieldr<dim> const& /* u_old */,
+    math::fieldr<dim> const& /* v_current */, math::fieldr<dim> const& /* v_old */,
     math::fieldr<dim> const& du) const {
   return du / this->dt_;
 }

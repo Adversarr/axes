@@ -50,11 +50,11 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& 
   idx iter = 0;
   math::vecxr g;
   math::vecxr x;
-  real f;
+  real f = f0;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;
     g = prob.EvalGrad(x);
-    real const f = prob.EvalEnergy(x);
+    f = prob.EvalEnergy(x);
     if (examine_arjimo_condition(f, f0, expected_descent, required_descent_rate_, alpha)
         && examine_curvature_condition(dir, g, expected_descent, required_curvature_rate_)
         && (!strong_wolfe_

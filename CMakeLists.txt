@@ -21,8 +21,6 @@ endif()
 ##############################################################################################
 # Options for axes.
 ##############################################################################################
-option(AX_INSTALL_SIGNAL_HANDLER "Enable Signal Handler from absl" ON)
-option(AX_DEBUG_INTERNAL "Enable detailed debug asserts for internal implementation" ON)
 option(AX_ENABLE_TEST "Enable test." ON)
 option(AX_BUILD_SHARED "Build shared library" OFF)
 option(AX_ENABLE_TIME_TRACE "Enable time trace." OFF)
@@ -59,7 +57,11 @@ else()
   if(MSVC)
     ax_add_cxx_compiler_flag("/W4")
   else()
-    ax_add_cxx_compiler_flag("-Wall -Wextra -Wno-deprecated-declarations -Wno-enum-compare")
+    # ax_add_cxx_compiler_flag("-Wall -Wextra -Wno-deprecated-declarations -Wno-enum-compare")
+    ax_add_cxx_compiler_flag("-Wall")
+    ax_add_cxx_compiler_flag("-Wno-deprecated-declarations")
+    ax_add_cxx_compiler_flag("-Wno-enum-compare")
+    ax_add_cxx_compiler_flag("-Wextra")
   endif()
 endif()
 # <=== End: Took from ZENO.
@@ -149,8 +151,8 @@ foreach(SDK_BIN_FILE ${SDK_BIN_FILES})
   # If not exist, do the copy
   set(SDK_BIN_PATH "${AX_DLL_DIR}/${SDK_BIN_FILE}")
   if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${SDK_BIN_FILE})
-    message(STATUS "==> ${SDK_BIN_FILE} does not exsit, copying...")
-    file(COPY ${SDK_BIN_PATH} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    message(STATUS "==> ${SDK_BIN_FILE} does not exsit, copying... ${SDK_BIN_PATH}->${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${SDK_BIN_FILE}")
+    file(COPY ${SDK_BIN_PATH} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} FOLLOW_SYMLINK_CHAIN)
   endif()
 endforeach()
 

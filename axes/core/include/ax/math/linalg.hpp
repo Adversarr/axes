@@ -125,8 +125,6 @@ template<typename A, typename EVec, typename EVal>
 AX_HOST_DEVICE AX_FORCE_INLINE 
 void eig(MBcr<A> a, MBr<EVec> e_vector, MBr<EVal> e_value) {
   static_assert(A::RowsAtCompileTime == A::ColsAtCompileTime, "eig requires square matrix");
-  static_assert(EVal::RowsAtCompileTime == A::RowsAtCompileTime, "Eigen Value row != input matrix row");
-  static_assert(EVec::RowsAtCompileTime == A::RowsAtCompileTime, "Eigen vector row != input matrix row");
   static_assert(EVec::ColsAtCompileTime == EVec::ColsAtCompileTime, "Eigen vector matrix row != col");
   Eigen::SelfAdjointEigenSolver<A> es(a);
   e_vector = es.eigenvectors();

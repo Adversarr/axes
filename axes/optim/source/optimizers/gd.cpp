@@ -9,7 +9,6 @@ using namespace ax::optim;
 
 OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const& x0) const {
   math::vecxr x = x0;
-  idx n_dof = x.size();
   // if (!problem.HasGrad()) {
   //   return utils::FailedPreconditionError("Gradient function not set");
   // } else if (!problem.HasEnergy()) {

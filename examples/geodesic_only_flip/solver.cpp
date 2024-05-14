@@ -273,4 +273,5 @@ Path make_shortest_geodesic(geo::SurfaceMesh mesh, Path p0) {
       edge_length_cache[edge] = (mesh.vertices_.col(i) - mesh.vertices_.col(j)).norm();
     }
   }
+  return sol;
 }

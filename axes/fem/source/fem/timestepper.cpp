@@ -185,7 +185,7 @@ template <idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetInertiaPosition(re
   return mesh_->GetVertices() + dt * velocity_ + dt * dt * ext_accel_;
 }
 
-template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real dt) {
+template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real ) {
   has_time_step_begin_ = false;
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
   AX_THROW_IF_NULLPTR(mesh_);
@@ -300,14 +300,14 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
       .SetSparseHessian([this](math::vecxr const& du) -> math::sp_matxxr {
         return Hessian(du.reshaped(dim, mesh_->GetNumVertices()));
       })
-      .SetConvergeGrad([this](const math::vecxr& du, const math::vecxr& grad) -> real {
+      .SetConvergeGrad([this](const math::vecxr& , const math::vecxr& grad) -> real {
         return ResidualNorm(grad.reshaped(dim, this->mesh_->GetNumVertices())) / abs_tol_grad_;
       })
       .SetConvergeVar([this](const math::vecxr& du_back, const math::vecxr& du) -> real {
         return ResidualNorm(du_back - du);
       });
   if (verbose_) {
-    problem.SetVerbose([this](idx i, const math::vecxr& x, const real energy) {
+    problem.SetVerbose([](idx i, const math::vecxr& x, const real energy) {
       AX_LOG(INFO) << "I-th: " << i << " energy: " << energy;
     });
   }

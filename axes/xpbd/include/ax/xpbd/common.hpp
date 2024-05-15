@@ -7,20 +7,84 @@
 #include "ax/core/common.hpp"
 #include "ax/core/config.hpp"
 #include "ax/math/common.hpp"
-namespace ax::xpbd {
+#include "ax/utils/opt.hpp"
 
-template <idx dim> class ConstraintBase {
-public:
+namespace ax::xpbd {
+template <idx dim> class GlobalServer;
+
+BOOST_DEFINE_ENUM(ConstraintKind, 
+  kInertia,
+  kSpring,    // the most common elasticity term.
+  kCollision,
+  kHard);
+
+template <idx dim> struct ConstraintSolution {
+  math::fieldr<dim> weighted_position_;
+  math::field1r weights_;
+
+  ConstraintSolution(idx n_vert):
+    weighted_position_(dim, n_vert),
+    weights_(n_vert) {
+    weighted_position_.setZero();
+    weights_.setZero();
+  }
 };
 
-template <idx dim> class SolverBase {
+
+/**
+ * @brief Constraints in Consensus ADMM.
+ * x_i [k+1] := argmin_(x_i) ( f_i(x_i) + y_i[k].T xi + (ρ/2)‖xi − z˜[k] i ‖2 2 ) 
+ * z˜i [k+1] := argmin_(z)   ( ∑ ( −y_i[k].T i z˜i + (ρ/2)‖xk+1 i − z˜i‖2 2 ))
+ * y_i [k+1] := y_i[k] + ρ(x_i[k+1] − z_i[k+1])
+ * 
+ * @tparam dim 
+ */
+template <idx dim> class ConstraintBase : utils::Tunable {
 public:
+  static UPtr<ConstraintBase<dim>> Create(ConstraintKind kind);
+  virtual ConstraintKind GetKind() const = 0;
+  virtual ConstraintSolution<dim> SolveConsensus() = 0;
+  virtual void UpdateDuality() = 0;
+
+  void UpdatePositionConsensus();
+
+  virtual ~ConstraintBase() = default;
+
+  virtual void OnAttach() const;
+  virtual void OnDetach() const;
+
+  virtual void BeginStep() = 0;
+  virtual void EndStep() = 0;
+
+  idx GetNumVerticesPerConstraint() const { return constrained_vertices_ids_.rows(); }
+  idx GetNumConstrainedVertices() const { return constrained_vertices_ids_.cols(); }
+  math::matxxi const& GetConstraintMapping() const { return constraint_mapping_; }
+  math::field1i const& GetConstrainedVerticesIds() const { return constrained_vertices_ids_; }
+
+protected:
+  math::field1i constrained_vertices_ids_;
+  math::fieldr<dim> constrained_vertices_position_;
+
+  // rows=#v per constraint, 
+  // we always assume, to compute the dual variable, always [1] + [2] + ... + [n-1] - [n]
+  // if rows=1, then we assume the dual is [1], just the identity of the only vertex
+  math::matxxi constraint_mapping_;
+
+  real rho_{1.0};
+};
+
+
+template <idx dim> class SolverBase : utils::Tunable {
+public:
+  void Apply();
+
+private:
+  idx max_iter_;
 };
 
 template <idx dim> class GlobalServer {
 public:
   // We only care about 1st order euler.
-  math::field1i identifiers_;
   math::fieldr<dim> vertices_;
   math::fieldr<dim> velocities_;
   math::fieldr<dim> ext_forces_;
@@ -29,5 +93,8 @@ public:
   List<UPtr<ConstraintBase<dim>>> constraints_;
   UPtr<SolverBase<dim>> solver_;
 };
+
+template <idx dim>
+GlobalServer<dim> & ensure_server();
 
 }  // namespace ax::xpbd

@@ -3,7 +3,7 @@
 #include "ax/utils/iota.hpp"
 namespace ax::xpbd {
 
-template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveConsensus() {
+template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveDistributed() {
   // M/2 ||x_i - Y||^2 + y_i.T x + rho/2 ||x_i - z_i^k||^2
   // Gradient = M(x_i - Y) + rho (x_i - z_i^k) + y_i.T
   // let ∂E = 0, and we got x_i =  (M Y + rho z_i^k - y_i.T) / (M+rho)
@@ -12,14 +12,23 @@ template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveConsens
   result.weights_.setOnes();
   const real rho = this->rho_;
   const auto& vert = this->constrained_vertices_position_;
+  // TODO: Solve Dual.
+
   for (idx i : utils::iota(nV)) {
     real const mi = vertex_mass_[i];
     auto const& zi = vert.col(i);
     auto const& yi = gap_.col(i);
     auto const& Y = inertia_position_.col(i);
-    result.weighted_position_.col(i) = (mi * Y + rho * zi - yi) / (mi + rho);
+    math::vecr<dim> X = (mi * Y + rho * zi - yi) / (mi + rho);
+    result.weighted_position_.col(i) = X;
+    dual_.col(i) = X;
   }
   return result;
+}
+
+template <idx dim> void Constraint_Inertia<dim>::UpdateDuality() {
+  const real rho = this->rho_;
+  gap_.noalias() += rho * (dual_ - this->constrained_vertices_position_);
 }
 
 template <idx dim> void Constraint_Inertia<dim>::BeginStep() {

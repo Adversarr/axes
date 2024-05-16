@@ -8,7 +8,7 @@ class Constraint_Inertia final : public ConstraintBase<dim> {
 public:
   ConstraintKind GetKind() const override { return ConstraintKind::kInertia; }
 
-  ConstraintSolution<dim> SolveConsensus() override;
+  ConstraintSolution<dim> SolveDistributed() override;
   void BeginStep() override;
   void UpdateDuality() override;
   void EndStep() override;

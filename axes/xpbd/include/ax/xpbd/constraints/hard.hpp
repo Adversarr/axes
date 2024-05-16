@@ -3,19 +3,15 @@
 
 namespace ax::xpbd {
 
-template<idx dim>
-class Constraint_Hard final : public ConstraintBase<dim> {
+template <idx dim> class Constraint_Hard final : public ConstraintBase<dim> {
 public:
   ConstraintKind GetKind() const override { return ConstraintKind::kHard; }
 
-  ConstraintSolution<dim> SolveConsensus() override;
-
-  void UpdateDuality() override;
-
   void BeginStep() override;
-
+  void UpdateDuality() override;
   void EndStep() override;
- 
+  ConstraintSolution<dim> SolveDistributed() override;
+
   // x_i: For hard constraint, just the target position because
   //      f_i is the indicator fn.
   math::fieldr<dim> dual_;
@@ -23,4 +19,4 @@ public:
   math::fieldr<dim> gap_;
 };
 
-}
+}  // namespace ax::xpbd

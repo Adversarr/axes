@@ -2,7 +2,7 @@
 
 namespace ax::xpbd {
 
-template <idx dim> ConstraintSolution<dim> Constraint_Hard<dim>::SolveConsensus() {
+template <idx dim> ConstraintSolution<dim> Constraint_Hard<dim>::SolveDistributed() {
   idx n_v = this->GetNumConstrainedVertices();
   ConstraintSolution<dim> result(n_v);
   result.weights_.setOnes();

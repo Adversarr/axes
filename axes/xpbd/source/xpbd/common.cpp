@@ -20,6 +20,13 @@ template <idx dim> UPtr<ConstraintBase<dim>> ConstraintBase<dim>::Create(Constra
   }
 }
 
+template <idx dim> void ConsensusAdmmSolver<dim>::BeginSimulation() {
+  auto &g = ensure_server<dim>();
+  for (auto& c : g.constraints_) {
+    c->OnAttach();
+  }
+}
+
 template <idx dim> void ConstraintBase<dim>::UpdatePositionConsensus() {
   idx n_v = this->GetNumConstrainedVertices();
   auto const& cmap = this->constraint_mapping_;

@@ -52,6 +52,8 @@ template <idx dim> void ConstraintBase<dim>::UpdatePositionConsensus() {
   }
 }
 
+template <idx dim> void ConstraintBase<dim>::UpdateRhoConsensus(real) {}
+
 template <> GlobalServer<2>& ensure_server<2>() { return ax::ensure_resource<GlobalServer<2>>(); }
 
 template <> GlobalServer<3>& ensure_server<3>() { return ax::ensure_resource<GlobalServer<3>>(); }

@@ -1,5 +1,6 @@
 #include "ax/xpbd/constraints/spring.hpp"
 
+#include "ax/core/config.hpp"
 #include "ax/math/linalg.hpp"
 #include "ax/utils/iota.hpp"
 namespace ax::xpbd {
@@ -49,13 +50,12 @@ template <idx dim> math::vecr<dim * 2> relax(const math::vecr<dim * 2>& y,
 template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistributed() {
   idx nV = this->GetNumConstrainedVertices();
   ConstraintSolution<dim> solution(nV);
-  dual_old_ = dual_;
-
   // Compute the relaxed solution:
   const auto& vert = this->constrained_vertices_position_;
   idx nC = this->GetNumConstraints();
 
   const auto& rho = this->rho_;
+  real const rg2 = this->rho_global_ * this->rho_global_;
   for (idx i = 0; i < nC; ++i) {
     auto const& ij = this->constraint_mapping_.col(i);
     idx vi = ij.x(), vj = ij.y();
@@ -67,7 +67,9 @@ template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistribu
     real k = spring_stiffness_[i];
     real L = spring_length_[i];
     math::vecr<dim * 2> relaxed = relax<dim>(y, z, rho[i], k, L);
+    math::vecr<dim * 2> old = dual_.col(i);
     dual_.col(i) = relaxed;
+    solution.sqr_dual_residual_ += rg2 * math::norm2(old - relaxed);  // TODO: weighted by rho
     solution.weighted_position_.col(vi) += (relaxed.template head<dim>() + y.template head<dim>()) * rho[i];
     solution.weighted_position_.col(vj) += (relaxed.template tail<dim>() + y.template tail<dim>()) * rho[i];
     solution.weights_[vi] += rho[i];
@@ -90,10 +92,11 @@ template <idx dim> void Constraint_Spring<dim>::BeginStep() {
   }
 
   this->rho_ = spring_stiffness_;
+  this->rho_global_ = 1;
   gap_.setZero(dim * 2, nC);
 }
 
-template <idx dim> void Constraint_Spring<dim>::UpdateDuality() {
+template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
   idx nC = this->GetNumConstraints();
   math::fieldr<dim * 2> prim_res = dual_;
   auto const& g = ensure_server<dim>();
@@ -111,7 +114,7 @@ template <idx dim> void Constraint_Spring<dim>::UpdateDuality() {
   // std::cout << "R_prim: " << prim_res.norm() << std::endl;
   // std::cout << "R_dual: " << (dual_ - dual_old_).norm() << std::endl;
   gap_ += prim_res;
-
+  return math::norm2(prim_res);
   // update rho: TODO: Not work.
   // idx nV = this->GetNumConstraints();
   // auto& rho = this->rho_;
@@ -131,6 +134,12 @@ template <idx dim> void Constraint_Spring<dim>::UpdateDuality() {
   //     AX_LOG(INFO) << "Shrink: " << i << " ==> " << prim_residual << ":" << dual_residual;
   //   }
   // }
+}
+
+template <idx dim> void Constraint_Spring<dim>::UpdateRhoConsensus(real scale) {
+  this->rho_ *= scale;
+  this->rho_global_ *= scale;
+  gap_ /= scale;
 }
 
 template <idx dim> void Constraint_Spring<dim>::EndStep() {}

@@ -13,14 +13,15 @@ template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveDistrib
   ConstraintSolution<dim> result(nV);
   const auto& rho = this->rho_;
   const auto& vert = this->constrained_vertices_position_;
-  real dt = ensure_server<dim>().dt_;
-  dual_old_ = dual_;
+  real dt = ensure_server<dim>().dt_, rg2 = this->rho_global_ * this->rho_global_;
   for (idx i : utils::iota(nV)) {
     real const mi = vertex_mass_[i] / (dt * dt);
     auto const& zi = vert.col(i);
     auto const& yi = gap_.col(i);
     auto const& Y = inertia_position_.col(i);
+    math::vecr<dim> old = dual_.col(i);
     dual_.col(i) = (mi * Y + rho[i] * (zi - yi)) / (mi + rho[i]);
+    result.sqr_dual_residual_ += rg2 * math::norm2(old - dual_.col(i)); // TODO: weighted by rho
   }
   
   result.weights_ = rho;
@@ -32,10 +33,10 @@ template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveDistrib
   return result;
 }
 
-template <idx dim> void Constraint_Inertia<dim>::UpdateDuality() {
+template <idx dim> real Constraint_Inertia<dim>::UpdateDuality() {
   math::fieldr<dim> prim_res = dual_ - this->constrained_vertices_position_;
   gap_.noalias() += prim_res;
-
+  return prim_res.squaredNorm();
   // update rho: TODO: Not work.
   // idx nV = this->GetNumConstrainedVertices();
   // auto& rho = this->rho_;
@@ -55,6 +56,12 @@ template <idx dim> void Constraint_Inertia<dim>::UpdateDuality() {
   // }
 }
 
+template<idx dim> void Constraint_Inertia<dim>::UpdateRhoConsensus(real scale) {
+  this->rho_ *= scale;
+  this->gap_ /= scale;
+  this->rho_global_ *= scale;
+}
+
 template <idx dim> void Constraint_Inertia<dim>::BeginStep() {
   auto& g = ensure_server<dim>();
   idx nV = g.vertices_.cols();
@@ -66,10 +73,11 @@ template <idx dim> void Constraint_Inertia<dim>::BeginStep() {
   this->UpdatePositionConsensus();
 
   vertex_mass_ = g.mass_;
-  dual_.setZero(dim, nV);
+  dual_ = g.vertices_;
   gap_.setZero(dim, nV);
   real const dt = g.dt_;
   this->rho_ = g.mass_ / (dt * dt);
+  this->rho_global_ = 1;
   inertia_position_ = g.vertices_;
 }
 

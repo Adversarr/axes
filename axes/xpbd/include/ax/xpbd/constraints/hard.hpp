@@ -8,7 +8,7 @@ public:
   ConstraintKind GetKind() const override { return ConstraintKind::kHard; }
 
   void BeginStep() override;
-  void UpdateDuality() override;
+  real UpdateDuality() override;
   void EndStep() override;
   ConstraintSolution<dim> SolveDistributed() override;
 

@@ -1,4 +1,5 @@
 #include "ax/xpbd/constraints/hard.hpp"
+#include "ax/math/linalg.hpp"
 
 namespace ax::xpbd {
 // f_i (x) = I(x)
@@ -12,12 +13,15 @@ template <idx dim> ConstraintSolution<dim> Constraint_Hard<dim>::SolveDistribute
   for (idx i = 0; i < n_v; ++i) {
     result.weighted_position_.col(i) = (dual_.col(i) + gap_.col(i)) * this->rho_(i);
   }
+  result.sqr_dual_residual_ = 0;
   return result;
 }
 
-template <idx dim> void Constraint_Hard<dim>::UpdateDuality() {
+template <idx dim> real Constraint_Hard<dim>::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
+  auto const prim_res = dual_ - fetch_from_global;
   gap_ += dual_ - fetch_from_global;
+  return math::norm2(prim_res);
 }
 
 template <idx dim> void Constraint_Hard<dim>::BeginStep() {

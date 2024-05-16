@@ -20,10 +20,12 @@ BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
 template <idx dim> struct ConstraintSolution {
   math::fieldr<dim> weighted_position_;
   math::field1r weights_;
+  real sqr_dual_residual_;
 
   ConstraintSolution(idx n_vert) : weighted_position_(dim, n_vert), weights_(1, n_vert) {
     weighted_position_.setZero();
     weights_.setZero();
+    sqr_dual_residual_ = 0;
   }
 };
 
@@ -45,7 +47,7 @@ public:
 
   // Update dual variable
   virtual ConstraintSolution<dim> SolveDistributed() = 0;
-  virtual void UpdateDuality() = 0;
+  virtual real UpdateDuality() = 0;
 
   void UpdatePositionConsensus();
 
@@ -53,6 +55,8 @@ public:
 
   virtual void OnAttach() const;
   virtual void OnDetach() const;
+
+  virtual void UpdateRhoConsensus(real scale);
 
   virtual void BeginStep() = 0;
   virtual void EndStep() = 0;
@@ -72,11 +76,8 @@ protected:
   // if rows=1, then we assume the dual is [1], just the identity of the only vertex
   math::matxxi constraint_mapping_;  ///< Local constraint map, each index is local.
   math::vecxr rho_;                  ///< Local weighting.
-  real primal_dual_threshold_{10};  ///< Threshold for primal-dual convergence.
+  real rho_global_;                  ///< Global weighting.
   real primal_tolerance_{1e-7};      ///< Tolerance for primal
-  real dual_primal_threshold_{10};  ///< Threshold for dual-primal convergence.
-  real primal_dual_ratio_{1.1};      ///< Ratio for primal-dual, rho *= ratio.
-  real dual_primal_ratio_{1.1};      ///< Ratio for dual-primal, rho /= ratio.
 };
 
 template <idx dim> class ConsensusAdmmSolver : utils::Tunable {
@@ -106,6 +107,12 @@ public:
 
   // High level meta.
   real dt_;
+
+
+  real primal_dual_threshold_{10};  ///< Threshold for primal-dual convergence.
+  real dual_primal_threshold_{10};  ///< Threshold for dual-primal convergence.
+  real primal_dual_ratio_{1.5};     ///< Ratio for primal-dual, rho *= ratio.
+  real dual_primal_ratio_{1.5};     ///< Ratio for dual-primal, rho /= ratio.
 
   // Constraints.
   List<UPtr<ConstraintBase<dim>>> constraints_;

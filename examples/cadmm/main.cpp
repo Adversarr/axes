@@ -1,4 +1,5 @@
 #include <imgui.h>
+#include <cinttypes>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -6,6 +7,7 @@
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/utils.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
@@ -51,6 +53,7 @@ void step() {
   // initial guess is inertia position:
   g.vertices_.noalias() = X + g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
   for (auto& c : g.constraints_) {
+    c->UpdateRhoConsensus(g.dt_ * g.dt_);
     c->BeginStep();
   }
 
@@ -58,6 +61,8 @@ void step() {
   for (idx i = 0; i < n_iter; ++i) {
     g.vertices_.setZero();
     w.setZero(1, X.cols());
+    real sqr_dual_residual = 0;
+    real sqr_primal_residual = 0;
     for (auto& c : g.constraints_) {
       auto R = c->SolveDistributed();
       // x_i step:
@@ -66,18 +71,39 @@ void step() {
         g.vertices_.col(iV) += R.weighted_position_.col(I);
         w(iV) += R.weights_[I];
       }
+      sqr_dual_residual += R.sqr_dual_residual_;
+
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " "
+                   << R.sqr_dual_residual_;
     }
 
     // z_i step:
     for (idx iV = 0; iV < X.cols(); ++iV) {
       g.vertices_.col(iV) /= w(iV);
     }
-    // std::cout << "X: " << g.vertices_ << std::endl;
 
     // y_i step:
     for (auto& c : g.constraints_) {
       c->UpdatePositionConsensus();
-      c->UpdateDuality();
+      real sqr_primal_residual_c = c->UpdateDuality();
+      sqr_primal_residual += sqr_primal_residual_c;
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " "
+                   << sqr_primal_residual_c;
+    }
+
+    real scale = 1.0;
+    real dual_residual = std::sqrt(sqr_dual_residual);
+    real primal_residual = std::sqrt(sqr_primal_residual);
+    if (primal_residual > dual_residual * g.primal_dual_threshold_) {
+      scale = g.primal_dual_ratio_;
+    } else if (dual_residual > primal_residual * g.dual_primal_threshold_) {
+      scale = 1.0 / g.dual_primal_ratio_;
+    }
+    if (scale != 1.0) {
+      for (auto& c : g.constraints_) {
+        c->UpdateRhoConsensus(scale);
+      }
+      AX_LOG(ERROR) << i << "===> Updating rho: " << scale << " " << primal_residual << " " << dual_residual;
     }
   }
 

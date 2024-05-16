@@ -13,8 +13,10 @@ public:
 
   ConstraintSolution<dim> SolveDistributed() override;
   void BeginStep() override;
-  void UpdateDuality() override;
+  real UpdateDuality() override;
   void EndStep() override;
+  void UpdateRhoConsensus(real scale) override;
+
 
   math::field1r spring_stiffness_;
   math::field1r spring_length_;

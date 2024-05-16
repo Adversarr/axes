@@ -9,6 +9,7 @@ public:
   ConstraintKind GetKind() const override { return ConstraintKind::kInertia; }
 
   ConstraintSolution<dim> SolveDistributed() override;
+
   void BeginStep() override;
   void UpdateDuality() override;
   void EndStep() override;
@@ -17,9 +18,9 @@ public:
   math::field1r vertex_mass_;
 
   // x_i: For Inertia constraint, f_i(x_i) = ||x - x_inertia||
-  math::fieldr<dim> dual_;
+  math::fieldr<dim> dual_, dual_old_;
   // y_i
-  std::vector<math::matr<dim, dim+1>> gap_;
+  math::fieldr<dim> gap_;
 };
 
 }

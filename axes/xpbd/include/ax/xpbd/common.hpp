@@ -14,13 +14,14 @@ template <idx dim> class GlobalServer;
 
 BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
                   kSpring,  // the most common elasticity term.
+                  kTetra,   // FEM-like energy.
                   kCollision, kHard);
 
 template <idx dim> struct ConstraintSolution {
   math::fieldr<dim> weighted_position_;
   math::field1r weights_;
 
-  ConstraintSolution(idx n_vert) : weighted_position_(dim, n_vert), weights_(n_vert) {
+  ConstraintSolution(idx n_vert) : weighted_position_(dim, n_vert), weights_(1, n_vert) {
     weighted_position_.setZero();
     weights_.setZero();
   }
@@ -29,11 +30,11 @@ template <idx dim> struct ConstraintSolution {
 /**
  * @brief Constraints in Consensus ADMM.
  * Solve Distributed:
- * --> x_i [k+1] := argmin_(x_i) ( f_i(x_i) + y_i[k].T xi + (ρ/2)‖xi − z˜[k] i ‖2 2 )
+ * --> x_i [k+1] := argmin_(x_i) ( f_i(x_i) + (ρ/2)‖ xi − z˜[k] i + y_i[k] ‖2 2 )
  * Update Consensus:
- * --> z˜i [k+1] := argmin_(z)   ( ∑ ( −y_i[k].T i z˜i + (ρ/2)‖xk+1 i − z˜i‖2 2 ))
+ * --> z˜i [k+1] := argmin_(z)   ( ∑ ( (ρ/2)‖xk+1 i + yi − z˜i‖2 2 ))
  * Update Duality step:
- * --> y_i [k+1] := y_i[k] + ρ(x_i[k+1] − z_i[k+1])
+ * --> y_i [k+1] := y_i[k] + x_i[k+1] − z_i[k+1]
  *
  * @tparam dim
  */
@@ -69,9 +70,13 @@ protected:
   // rows=#v per constraint,
   // we always assume, to compute the dual variable, always [1] + [2] + ... + [n-1] - [n]
   // if rows=1, then we assume the dual is [1], just the identity of the only vertex
-  math::matxxi constraint_mapping_;
-
-  real rho_{1.0};
+  math::matxxi constraint_mapping_;  ///< Local constraint map, each index is local.
+  math::vecxr rho_;                  ///< Local weighting.
+  real primal_dual_threshold_{10};  ///< Threshold for primal-dual convergence.
+  real primal_tolerance_{1e-7};      ///< Tolerance for primal
+  real dual_primal_threshold_{10};  ///< Threshold for dual-primal convergence.
+  real primal_dual_ratio_{1.1};      ///< Ratio for primal-dual, rho *= ratio.
+  real dual_primal_ratio_{1.1};      ///< Ratio for dual-primal, rho /= ratio.
 };
 
 template <idx dim> class ConsensusAdmmSolver : utils::Tunable {
@@ -87,14 +92,20 @@ private:
   real rho_;
 };
 
-template <idx dim> class GlobalServer {
+template <idx dim> class GlobalServer : utils::Tunable {
 public:
+  GlobalServer() = default;
+  GlobalServer(GlobalServer&&) = default;
+
   // We only care about 1st order euler.
+  math::fieldr<dim> last_vertices_;
   math::fieldr<dim> vertices_;
   math::fieldr<dim> velocities_;
-  math::fieldr<dim> ext_forces_;
+  math::fieldr<dim> ext_accel_;
+  math::field1r mass_;
 
-  math::fieldr<dim> inertia_positions_;
+  // High level meta.
+  real dt_;
 
   // Constraints.
   List<UPtr<ConstraintBase<dim>>> constraints_;

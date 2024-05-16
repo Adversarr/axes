@@ -21,6 +21,7 @@ public:
 
   // x_i
   math::fieldr<dim * 2> dual_;
+  math::fieldr<dim * 2> dual_old_;
 
   // y_i
   math::fieldr<dim * 2> gap_;

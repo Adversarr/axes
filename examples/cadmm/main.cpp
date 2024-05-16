@@ -49,7 +49,7 @@ void step() {
   g.last_vertices_.swap(g.vertices_);
 
   // initial guess is inertia position:
-  g.vertices_.noalias() = X +  g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
+  g.vertices_.noalias() = X + g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
   for (auto& c : g.constraints_) {
     c->BeginStep();
   }
@@ -63,23 +63,14 @@ void step() {
       // x_i step:
       for (auto I : utils::iota(R.weights_.size())) {
         idx iV = c->GetConstrainedVerticesIds()[I];
-        if (!isfinite(R.weights_[I])) {
-          g.vertices_.col(iV) = R.weighted_position_.col(I);
-          w(iV) = math::inf<real>;
-        } else if (!isfinite(w(iV))) {
-          continue;
-        } else {
-          g.vertices_.col(iV) += R.weighted_position_.col(I);
-          w(iV) += R.weights_[I];
-        }
+        g.vertices_.col(iV) += R.weighted_position_.col(I);
+        w(iV) += R.weights_[I];
       }
     }
 
     // z_i step:
     for (idx iV = 0; iV < X.cols(); ++iV) {
-      if (isfinite(w(iV))) {
-        g.vertices_.col(iV) /= w(iV);
-      }
+      g.vertices_.col(iV) /= w(iV);
     }
     // std::cout << "X: " << g.vertices_ << std::endl;
 

@@ -27,7 +27,6 @@ namespace ax::xpbd {
 // What about Apply [I; I] to it:
 // rho (x1 + x2) = rho (z1 + z2) - rho (y1 + y2)
 // => x1 + x2 = z1 + z2 - y1 - y2
-// Apply D again:
 
 template <idx dim> math::vecr<dim * 2> relax(const math::vecr<dim * 2>& y,
                                              const math::vecr<dim * 2>& z, real rho, real k,
@@ -109,7 +108,8 @@ template <idx dim> void Constraint_Spring<dim>::UpdateDuality() {
     prim_res.col(i).template tail<dim>() -= xj;
   }
 
-  // std::cout << prim_res << std::endl;
+  // std::cout << "R_prim: " << prim_res.norm() << std::endl;
+  // std::cout << "R_dual: " << (dual_ - dual_old_).norm() << std::endl;
   gap_ += prim_res;
 
   // update rho: TODO: Not work.

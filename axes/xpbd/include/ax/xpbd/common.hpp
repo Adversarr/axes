@@ -15,7 +15,9 @@ template <idx dim> class GlobalServer;
 BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
                   kSpring,  // the most common elasticity term.
                   kTetra,   // FEM-like energy.
-                  kCollision, kHard);
+                  kCollision,
+                  kStaticCollider,
+                  kHard);
 
 template <idx dim> struct ConstraintSolution {
   math::fieldr<dim> weighted_position_;
@@ -49,7 +51,7 @@ public:
   virtual ConstraintSolution<dim> SolveDistributed() = 0;
   virtual real UpdateDuality() = 0;
 
-  void UpdatePositionConsensus();
+  virtual void UpdatePositionConsensus();
 
   virtual ~ConstraintBase() = default;
 

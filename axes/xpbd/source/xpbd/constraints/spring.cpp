@@ -111,29 +111,8 @@ template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
     prim_res.col(i).template tail<dim>() -= xj;
   }
 
-  // std::cout << "R_prim: " << prim_res.norm() << std::endl;
-  // std::cout << "R_dual: " << (dual_ - dual_old_).norm() << std::endl;
   gap_ += prim_res;
   return math::norm2(prim_res);
-  // update rho: TODO: Not work.
-  // idx nV = this->GetNumConstraints();
-  // auto& rho = this->rho_;
-  // real pdt = this->primal_dual_threshold_, dpt = this->dual_primal_threshold_,
-  //      pdr = this->primal_dual_ratio_, dpr = this->dual_primal_ratio_;
-  // for (idx i: utils::iota(nV)) {
-  //   // change of dual
-  //   real prim_residual = math::norm(prim_res.col(i));
-  //   real dual_residual = rho[i] * math::norm(dual_.col(i) - dual_old_.col(i));
-  //   if (prim_residual / dual_residual > pdt) {
-  //     rho[i] *= pdr;
-  //     gap_.col(i) /= pdr;
-  //     AX_LOG(INFO) << "Enlarge: " << i << " ==> " << prim_residual << ":" << dual_residual;
-  //   } else if (dual_residual / prim_residual > dpt) {
-  //     rho[i] /= dpr;
-  //     gap_.col(i) *= dpr;
-  //     AX_LOG(INFO) << "Shrink: " << i << " ==> " << prim_residual << ":" << dual_residual;
-  //   }
-  // }
 }
 
 template <idx dim> void Constraint_Spring<dim>::UpdateRhoConsensus(real scale) {

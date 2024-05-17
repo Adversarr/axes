@@ -73,7 +73,7 @@ void step() {
       }
       sqr_dual_residual += R.sqr_dual_residual_;
 
-      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " "
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " R_dual^2="
                    << R.sqr_dual_residual_;
     }
 
@@ -87,7 +87,7 @@ void step() {
       c->UpdatePositionConsensus();
       real sqr_primal_residual_c = c->UpdateDuality();
       sqr_primal_residual += sqr_primal_residual_c;
-      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " "
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " R_prim^2="
                    << sqr_primal_residual_c;
     }
 
@@ -103,8 +103,8 @@ void step() {
       for (auto& c : g.constraints_) {
         c->UpdateRhoConsensus(scale);
       }
-      AX_LOG(ERROR) << i << "===> Updating rho: " << scale << " " << primal_residual << " " << dual_residual;
     }
+    AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " " << dual_residual;
   }
 
   for (auto& c : g.constraints_) {
@@ -159,9 +159,15 @@ int main(int argc, char** argv) {
         cnt++;
       }
       if (i < ndiv - 1 && j < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j + 1);
-        initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j + 1)).norm();
-        cnt++;
+        if ((i + j) % 2 == 0) {
+          springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j + 1);
+          initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j + 1)).norm();
+          cnt++;
+        } else {
+          springs.col(cnt) = math::vec2i((i + 1) * ndiv + j, i * ndiv + j + 1);
+          initial[cnt] = (vertices.col((i + 1) * ndiv + j) - vertices.col(i * ndiv + j + 1)).norm();
+          cnt++;
+        }
       }
     }
   }

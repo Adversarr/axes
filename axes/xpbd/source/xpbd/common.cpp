@@ -1,10 +1,13 @@
 #include "ax/xpbd/common.hpp"
+
 #include <memory>
 
 #include "ax/core/entt.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/xpbd/constraints/ball_collider.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
+#include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
 
@@ -23,9 +26,12 @@ template <idx dim> UPtr<ConstraintBase<dim>> ConstraintBase<dim>::Create(Constra
       return std::make_unique<Constraint_Spring<dim>>();
     case ConstraintKind::kTetra:
       return std::make_unique<Constraint_Tetra<dim>>();
-    // case ConstraintKind::kCollision: return std::make_unique<CollisionConstraint<dim>>();
+    case ConstraintKind::kPlaneCollider:
+      return std::make_unique<Constraint_PlaneCollider<dim>>();
     case ConstraintKind::kHard:
       return std::make_unique<Constraint_Hard<dim>>();
+    case ConstraintKind::kBallCollider:
+      return std::make_unique<Constraint_BallCollider<dim>>();
     default:
       return nullptr;
   }

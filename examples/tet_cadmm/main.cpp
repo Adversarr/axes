@@ -1,4 +1,7 @@
 #include <imgui.h>
+#include <vector_types.h>
+#include <chrono>
+#include <ratio>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -6,10 +9,12 @@
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/utils.hpp"
+#include "ax/math/common.hpp"
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
+#include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
 
 using namespace ax;
@@ -18,6 +23,10 @@ Entity ent;
 ABSL_FLAG(int, nx, 2, "cloth resolution");
 bool has_adaptive_rho = false;
 
+math::vec3r ball_center{0, -1, 0};
+real ball_radius = 0.5;
+real ground_z = -1;
+xpbd::Constraint_PlaneCollider<3>* sc;
 void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server<3>();
@@ -125,9 +134,15 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::Checkbox("Running", &running);
   ImGui::InputInt("Iterations", &n_iter);
   if (ImGui::Button("Run Once") || running) {
+    auto begin_time = std::chrono::high_resolution_clock::now();
     step();
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - begin_time);
+    std::cout << "Elapsed time: " << elapsed.count() << " ms" << std::endl;
     update_rendering();
   }
+
+  ImGui::InputDouble("ground value", &sc->offset_);
   ImGui::End();
 }
 
@@ -147,19 +162,21 @@ int main(int argc, char** argv) {
   g.ext_accel_.row(1).setConstant(-9.8);
   g.mass_.setConstant(1, vertices.cols(), 1.0);
   math::field1r stiff;
-  stiff.setConstant(1, cube.indices_.size(), 1e3);
+  stiff.setConstant(1, cube.indices_.size(), 3e4);
   sp->SetTetrahedrons(cube.indices_, stiff);
 
   g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kInertia));
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kHard));
-  auto* hard = reinterpret_cast<xpbd::Constraint_Hard<3>*>(g.constraints_.back().get());
-  math::field1i indices_hard(1, 3);
-  indices_hard(0, 0) = 0;
-  indices_hard(0, 1) = ndiv - 1;
-  indices_hard(0, 2) = ndiv - 2;
-  hard->SetHard(indices_hard);
+  // g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kHard));
+  // auto* hard = reinterpret_cast<xpbd::Constraint_Hard<3>*>(g.constraints_.back().get());
+  // math::field1i indices_hard(1, 2);
+  // indices_hard(0, 0) = 0;
+  // indices_hard(0, 1) = ndiv - 1;
+  // hard->SetHard(indices_hard);
 
+  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kPlaneCollider));
+  sc = reinterpret_cast<xpbd::Constraint_PlaneCollider<3>*>(g.constraints_.back().get());
   g.dt_ = 1e-2;
+  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kBallCollider));
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

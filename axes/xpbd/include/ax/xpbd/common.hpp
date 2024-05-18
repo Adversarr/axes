@@ -16,7 +16,8 @@ BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
                   kSpring,  // the most common elasticity term.
                   kTetra,   // FEM-like energy.
                   kCollision,
-                  kStaticCollider,
+                  kPlaneCollider,
+                  kBallCollider,
                   kHard);
 
 template <idx dim> struct ConstraintSolution {
@@ -99,6 +100,7 @@ template <idx dim> class GlobalServer : utils::Tunable {
 public:
   GlobalServer() = default;
   GlobalServer(GlobalServer&&) = default;
+  ~GlobalServer() = default;
 
   // We only care about 1st order euler.
   math::fieldr<dim> last_vertices_;

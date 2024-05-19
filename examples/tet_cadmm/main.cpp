@@ -26,10 +26,10 @@ bool has_adaptive_rho = false;
 math::vec3r ball_center{0, -1, 0};
 real ball_radius = 0.5;
 real ground_z = -1;
-xpbd::Constraint_PlaneCollider<3>* sc;
+xpbd::Constraint_PlaneCollider* sc;
 void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
-  auto& g = xpbd::ensure_server<3>();
+  auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
   List<std::pair<idx, idx>> edges;
   for (auto const& c : g.constraints_) {
@@ -57,7 +57,7 @@ void update_rendering() {
 int n_iter = 2;
 
 void step() {
-  auto& g = xpbd::ensure_server<3>();
+  auto& g = xpbd::ensure_server();
   math::field3r const X = g.vertices_;
   g.last_vertices_.swap(g.vertices_);
 
@@ -151,9 +151,9 @@ int main(int argc, char** argv) {
   gl::init(argc, argv);
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
-  auto& g = xpbd::ensure_server<3>();
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kTetra));
-  auto* sp = reinterpret_cast<xpbd::Constraint_Tetra<3>*>(g.constraints_.back().get());
+  auto& g = xpbd::ensure_server();
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
+  auto* sp = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
   int ndiv = absl::GetFlag(FLAGS_nx);
   auto cube = geo::tet_cube(0.5, ndiv, ndiv, ndiv);
   auto const& vertices = cube.vertices_;
@@ -166,18 +166,18 @@ int main(int argc, char** argv) {
   stiff.setConstant(1, cube.indices_.size(), 3e4);
   sp->SetTetrahedrons(cube.indices_, stiff);
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kInertia));
-  // g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kHard));
-  // auto* hard = reinterpret_cast<xpbd::Constraint_Hard<3>*>(g.constraints_.back().get());
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
+  // auto* hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
   // math::field1i indices_hard(1, 2);
   // indices_hard(0, 0) = 0;
   // indices_hard(0, 1) = ndiv - 1;
   // hard->SetHard(indices_hard);
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kPlaneCollider));
-  sc = reinterpret_cast<xpbd::Constraint_PlaneCollider<3>*>(g.constraints_.back().get());
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  sc = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   g.dt_ = 1e-2;
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kBallCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kBallCollider));
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

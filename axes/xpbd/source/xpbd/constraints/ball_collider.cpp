@@ -12,9 +12,8 @@ template <typename T> void resize_and_copyback(T& v, idx r, idx c) {
   v.topLeftCorner(old.rows(), old.cols()) = old;
 }
 
-template <idx dim> math::vecr<dim> relax_ipc(real rho, real& k, real eps, math::vecr<dim> const& u,
-                                             math::vecr<dim> const& z,
-                                             math::vecr<dim> const& center, real radius) {
+static math::vec3r relax_ipc(real rho, real& k, real eps, math::vec3r const& u,
+                             math::vec3r const& z, math::vec3r const& center, real radius) {
   // Very similar to spring, let L = radius + eps.
   // The spring energy:
   //   f(x) = 1/2 k (|| x - c || - L)^2
@@ -32,7 +31,7 @@ template <idx dim> math::vecr<dim> relax_ipc(real rho, real& k, real eps, math::
   //   (k + rho) radius <= (k (radius + eps) + rho |z - u - c|)
   //   k eps >= rho (|z - u - c| - radius)
 
-  math::vecr<dim> zuc = z - u - center;
+  math::vec3r zuc = z - u - center;
   real zuc_norm = zuc.norm();
   if (k * eps < rho * (zuc_norm - radius)) {
     k = 4 * rho * (zuc_norm - radius) / eps;
@@ -41,16 +40,16 @@ template <idx dim> math::vecr<dim> relax_ipc(real rho, real& k, real eps, math::
   return center + alpha * zuc.normalized();
 }
 
-template <idx dim> ConstraintSolution<dim> Constraint_BallCollider<dim>::SolveDistributed() {
+ConstraintSolution Constraint_BallCollider::SolveDistributed() {
   // For each collition, project to the closest point on the surface.
   idx const nC = this->GetNumConstraints();
-  ConstraintSolution<dim> sol(nC);
+  ConstraintSolution sol(nC);
 
   for (auto i : utils::iota(nC)) {
     real rho = this->rho_[i];
     real& k = stiffness_[i];
-    math::vecr<dim> const& z = this->constrained_vertices_position_[i];
-    dual_[i] = relax_ipc<dim>(rho, k, tol_, gap_[i], z, center_, radius_);
+    math::vec3r const& z = this->constrained_vertices_position_[i];
+    dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, center_, radius_);
     // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
     // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
     sol.weighted_position_.col(i) += rho * (gap_[i] + dual_[i]);
@@ -62,7 +61,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_BallCollider<dim>::SolveDi
   return sol;
 }
 
-template <idx dim> void Constraint_BallCollider<dim>::BeginStep() {
+void Constraint_BallCollider::BeginStep() {
   gap_.clear();
   dual_.clear();
   collidings_.clear();
@@ -74,11 +73,11 @@ template <idx dim> void Constraint_BallCollider<dim>::BeginStep() {
   iteration_ = 0;
 }
 
-template <idx dim> real Constraint_BallCollider<dim>::UpdateDuality() {
+real Constraint_BallCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
   real sqr_prim_res = 0;
   for (auto i : utils::iota(this->GetNumConstraints())) {
-    math::vecr<dim> du = dual_[i] - fetch_from_global[i];
+    math::vec3r du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
     // std::cout << "gap[" << i << "] = " << gap_[i].transpose() << std::endl;
     sqr_prim_res += math::norm2(du);
@@ -86,22 +85,22 @@ template <idx dim> real Constraint_BallCollider<dim>::UpdateDuality() {
   return sqr_prim_res;
 }
 
-template <idx dim> void Constraint_BallCollider<dim>::EndStep() {}
+void Constraint_BallCollider::EndStep() {}
 
-template <idx dim> void Constraint_BallCollider<dim>::UpdateRhoConsensus(real scale) {
+void Constraint_BallCollider::UpdateRhoConsensus(real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
 }
 
-template <idx dim> void Constraint_BallCollider<dim>::UpdatePositionConsensus() {
+void Constraint_BallCollider::UpdatePositionConsensus() {
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
-  auto const& g = ensure_server<dim>();
+  auto const& g = ensure_server();
   std::vector<idx> new_vertices;
   for (idx i : utils::iota(g.vertices_.cols())) {
-    math::vecr<dim> const x = g.vertices_.col(i);
+    math::vec3r const x = g.vertices_.col(i);
     if (math::norm(x - center_) < radius_ + tol_) {
       if (collidings_.find(i) == collidings_.end()) {
         collidings_.insert(i);
@@ -117,7 +116,7 @@ template <idx dim> void Constraint_BallCollider<dim>::UpdatePositionConsensus() 
       this->constraint_mapping_.emplace_back(iV);
       this->constrained_vertices_position_.push_back(g.vertices_.col(iV));
       dual_.push_back(g.vertices_.col(iV));
-      gap_.push_back(math::vecr<dim>::Zero());
+      gap_.push_back(math::vec3r::Zero());
       stiffness_.push_back(initial_rho_);
       this->rho_.push_back(initial_rho_);
     }
@@ -129,8 +128,5 @@ template <idx dim> void Constraint_BallCollider<dim>::UpdatePositionConsensus() 
     local[i] = g.vertices_.col(iV);
   }
 }
-
-template class Constraint_BallCollider<2>;
-template class Constraint_BallCollider<3>;
 
 }  // namespace ax::xpbd

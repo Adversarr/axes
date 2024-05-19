@@ -68,15 +68,15 @@ template <idx dim> inline void relax_R(math::matr<dim, dim + 1> const& cur,
   R = svdr.U_ * svdr.V_.transpose();
 }
 
-template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistributed() {
+ConstraintSolution Constraint_Tetra::SolveDistributed() {
   idx const nV = this->GetNumConstrainedVertices();
   idx const nC = this->GetNumConstraints();
-  ConstraintSolution<dim> solution(nV);
-  std::vector<math::matr<dim, dim + 1>> consensus;
+  ConstraintSolution solution(nV);
+  std::vector<math::matr<3, 4>> consensus;
   consensus.resize(nC);
   for (auto i : utils::iota(nC)) {
     auto const ij = this->constraint_mapping_[i];
-    for (auto j : utils::iota(dim + 1)) {
+    for (auto j : utils::iota(4)) {
       consensus[i].col(j) = this->constrained_vertices_position_[ij[j]];
     }
   }
@@ -93,8 +93,8 @@ template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistribut
     real k = stiffness_[i];
     real sqr_res_i;
     for (idx iter = 0; iter < substeps_; ++iter) {
-      relax_R<dim>(cur, y, R);
-      sqr_res_i = relax_dual<dim>(cur, y, R, z, u, rho, k);
+      relax_R<3>(cur, y, R);
+      sqr_res_i = relax_dual<3>(cur, y, R, z, u, rho, k);
     }
     sqr_res += sqr_res_i;
   }
@@ -104,7 +104,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistribut
     auto const& dual = dual_[i];
     auto const& gap = gap_[i];
     real rho = this->rho_[i];
-    for (auto j : utils::iota(dim + 1)) {
+    for (auto j : utils::iota(4)) {
       idx vi = ij[j];
       solution.weighted_position_.col(vi) += (dual.col(j) + gap.col(j)) * rho;
       solution.weights_[vi] += rho;
@@ -115,13 +115,13 @@ template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistribut
   return solution;
 }
 
-template <idx dim> void Constraint_Tetra<dim>::BeginStep() {
+void Constraint_Tetra::BeginStep() {
   idx nC = this->GetNumConstraints();
   this->UpdatePositionConsensus();
   dual_.resize(nC);
   for (idx i = 0; i < nC; ++i) {
     auto const ij = this->constraint_mapping_[i];
-    for (idx j = 0; j <= dim; ++j) {
+    for (idx j = 0; j <= 3; ++j) {
       dual_[i].col(j) = this->constrained_vertices_position_[ij[j]];
     }
   }
@@ -136,18 +136,18 @@ template <idx dim> void Constraint_Tetra<dim>::BeginStep() {
   }
 }
 
-template <idx dim> real Constraint_Tetra<dim>::UpdateDuality() {
+real Constraint_Tetra::UpdateDuality() {
   idx nC = this->GetNumConstraints();
-  auto const& g = ensure_server<dim>();
+  auto const& g = ensure_server();
   real sqr_prim_res = 0;
   for (idx i = 0; i < nC; ++i) {
     auto const ij = this->constraint_mapping_[i];
     auto const& local = dual_[i];
     auto& gap = gap_[i];
-    for (idx j = 0; j <= dim; ++j) {
+    for (idx j = 0; j <= 3; ++j) {
       idx vi = ij[j];
       auto const& zi = g.vertices_.col(vi);
-      math::vecr<dim> primal_residual = local.col(j) - zi;
+      math::vec3r primal_residual = local.col(j) - zi;
       gap.col(j) += primal_residual;
       sqr_prim_res += math::norm2(primal_residual);
     }
@@ -155,9 +155,9 @@ template <idx dim> real Constraint_Tetra<dim>::UpdateDuality() {
   return sqr_prim_res;
 }
 
-template <idx dim> void Constraint_Tetra<dim>::EndStep() {}
+void Constraint_Tetra::EndStep() {}
 
-template <idx dim> void Constraint_Tetra<dim>::UpdateRhoConsensus(real scale) {
+void Constraint_Tetra::UpdateRhoConsensus(real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
@@ -166,14 +166,13 @@ template <idx dim> void Constraint_Tetra<dim>::UpdateRhoConsensus(real scale) {
   }
 }
 
-template <idx dim>
-void Constraint_Tetra<dim>::SetTetrahedrons(math::fieldi<dim + 1> const& tetrahedrons,
-                                            math::field1r const& stiff) {
+void Constraint_Tetra::SetTetrahedrons(math::fieldi<4> const& tetrahedrons,
+                                       math::field1r const& stiff) {
   idx const nC = tetrahedrons.cols();
   std::set<idx> associated;
   for (auto i : utils::iota(nC)) {
     auto const& ij = tetrahedrons.col(i);
-    for (auto j : utils::iota(dim + 1)) {
+    for (auto j : utils::iota(4)) {
       associated.insert(ij(j));
     }
   }
@@ -191,7 +190,7 @@ void Constraint_Tetra<dim>::SetTetrahedrons(math::fieldi<dim + 1> const& tetrahe
   for (auto i : utils::iota(nC)) {
     auto const& ij = tetrahedrons.col(i);
     this->constraint_mapping_.emplace_back(ij);
-    for (auto j : utils::iota(dim + 1)) {
+    for (auto j : utils::iota(4)) {
       idx l = global_to_local[ij(j)];
       this->constraint_mapping_[i][j] = l;
     }
@@ -206,14 +205,11 @@ void Constraint_Tetra<dim>::SetTetrahedrons(math::fieldi<dim + 1> const& tetrahe
   for (idx i : utils::iota(nC)) {
     auto const& ij = this->constraint_mapping_[i];
     auto& x0 = x0_[i];
-    for (idx j : utils::iota(dim + 1)) {
+    for (idx j : utils::iota(4)) {
       x0.col(j) = local[ij[j]];
     }
-    center_<dim>(x0);
+    center_<3>(x0);
   }
 }
-
-template class Constraint_Tetra<2>;
-template class Constraint_Tetra<3>;
 
 }  // namespace ax::xpbd

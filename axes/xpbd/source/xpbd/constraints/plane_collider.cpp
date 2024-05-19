@@ -6,15 +6,8 @@
 
 namespace ax::xpbd {
 
-template <typename T> void resize_and_copyback(T& v, idx r, idx c) {
-  T old = v;
-  v.resize(r, c);
-  v.topLeftCorner(old.rows(), old.cols()) = old;
-}
-
-template <idx dim> math::vecr<dim> relax_ipc(real rho, real& k, real eps, math::vecr<dim> const& u,
-                                             math::vecr<dim> const& z,
-                                             math::vecr<dim> const& normal, real offset) {
+static math::vec3r relax_ipc(real rho, real& k, real eps, math::vec3r const& u,
+                             math::vec3r const& z, math::vec3r const& normal, real offset) {
   //    E(x) = k/2 (n dot x - offset - eps)^2 + rho/2 || x - z + u ||^2
   //    D E(x) = k (n dot x - offset - eps) n + rho (x - z + u) == 0
   // Let x = alpha n + z - u, and let n dot (z - u) = beta:
@@ -36,16 +29,16 @@ template <idx dim> math::vecr<dim> relax_ipc(real rho, real& k, real eps, math::
   return alpha * normal + z - u;
 }
 
-template <idx dim> ConstraintSolution<dim> Constraint_PlaneCollider<dim>::SolveDistributed() {
+ConstraintSolution Constraint_PlaneCollider::SolveDistributed() {
   // For each collition, project to the closest point on the surface.
   idx const nC = this->GetNumConstraints();
-  ConstraintSolution<dim> sol(nC);
+  ConstraintSolution sol(nC);
 
   for (auto i : utils::iota(nC)) {
     real rho = this->rho_[i];
     real& k = stiffness_[i];
-    math::vecr<dim> const& z = this->constrained_vertices_position_[i];
-    dual_[i] = relax_ipc<dim>(rho, k, tol_, gap_[i], z, normal_, offset_);
+    math::vec3r const& z = this->constrained_vertices_position_[i];
+    dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, normal_, offset_);
     // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
     // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
     sol.weighted_position_.col(i) += rho * (gap_[i] + dual_[i]);
@@ -57,7 +50,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_PlaneCollider<dim>::SolveD
   return sol;
 }
 
-template <idx dim> void Constraint_PlaneCollider<dim>::BeginStep() {
+void Constraint_PlaneCollider::BeginStep() {
   gap_.clear();
   dual_.clear();
   collidings_.clear();
@@ -69,11 +62,11 @@ template <idx dim> void Constraint_PlaneCollider<dim>::BeginStep() {
   iteration_ = 0;
 }
 
-template <idx dim> real Constraint_PlaneCollider<dim>::UpdateDuality() {
+real Constraint_PlaneCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
   real sqr_prim_res = 0;
   for (auto i : utils::iota(this->GetNumConstraints())) {
-    math::vecr<dim> du = dual_[i] - fetch_from_global[i];
+    math::vec3r du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
     // std::cout << "gap[" << i << "] = " << gap_[i].transpose() << std::endl;
     sqr_prim_res += math::norm2(du);
@@ -81,21 +74,21 @@ template <idx dim> real Constraint_PlaneCollider<dim>::UpdateDuality() {
   return sqr_prim_res;
 }
 
-template <idx dim> void Constraint_PlaneCollider<dim>::EndStep() {}
+void Constraint_PlaneCollider::EndStep() {}
 
-template <idx dim> void Constraint_PlaneCollider<dim>::UpdateRhoConsensus(real scale) {
+void Constraint_PlaneCollider::UpdateRhoConsensus(real scale) {
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
 }
 
-template <idx dim> void Constraint_PlaneCollider<dim>::UpdatePositionConsensus() {
+void Constraint_PlaneCollider::UpdatePositionConsensus() {
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
-  auto const& g = ensure_server<dim>();
+  auto const& g = ensure_server();
   std::vector<idx> new_vertices;
   for (idx i : utils::iota(g.vertices_.cols())) {
-    math::vecr<dim> const x = g.vertices_.col(i);
+    math::vec3r const x = g.vertices_.col(i);
     if (normal_.dot(x) < offset_ + tol_) {
       if (collidings_.find(i) == collidings_.end()) {
         collidings_.insert(i);
@@ -110,7 +103,7 @@ template <idx dim> void Constraint_PlaneCollider<dim>::UpdatePositionConsensus()
       this->constraint_mapping_.emplace_back(iV);
       this->constrained_vertices_position_.push_back(g.vertices_.col(iV));
       dual_.push_back(g.vertices_.col(iV));
-      gap_.push_back(math::vecr<dim>::Zero());
+      gap_.push_back(math::vec3r::Zero());
       stiffness_.push_back(initial_rho_);
       this->rho_.push_back(initial_rho_);
     }
@@ -122,8 +115,5 @@ template <idx dim> void Constraint_PlaneCollider<dim>::UpdatePositionConsensus()
     local[i] = g.vertices_.col(iV);
   }
 }
-
-template class Constraint_PlaneCollider<2>;
-template class Constraint_PlaneCollider<3>;
 
 }  // namespace ax::xpbd

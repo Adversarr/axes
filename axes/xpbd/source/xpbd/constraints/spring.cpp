@@ -29,27 +29,26 @@ namespace ax::xpbd {
 // rho (x1 + x2) = rho (z1 + z2) - rho (y1 + y2)
 // => x1 + x2 = z1 + z2 - y1 - y2
 
-template <idx dim> math::vecr<dim * 2> relax(const math::vecr<dim * 2>& y,
-                                             const math::vecr<dim * 2>& z, real rho, real k,
-                                             real L) {
-  math::vecr<dim * 2> rho_z_minus_y = rho * (z - y);
-  math::vecr<dim> dRhs = rho_z_minus_y.template head<dim>() - rho_z_minus_y.template tail<dim>();
+math::vecr<6> relax(const math::vecr<6>& y, const math::vecr<6>& z, real rho, real k, real L) {
+  math::vecr<6> rho_z_minus_y = rho * (z - y);
+  math::vecr<3> dRhs = rho_z_minus_y.template head<3>() - rho_z_minus_y.template tail<3>();
   real dx_norm = (2 * k * L + math::norm(dRhs)) / (2 * k + rho);
 
   // x1 - x2:
-  math::vecr<dim> dx = dRhs.normalized() * dx_norm;
+  math::vecr<3> dx = dRhs.normalized() * dx_norm;
   // x1 + x2:
-  math::vecr<dim> x_center = 0.5 * (z.template head<dim>() + z.template tail<dim>()
-                                    - y.template head<dim>() - y.template tail<dim>());
-  math::vecr<dim * 2> x1x2;
-  x1x2.template head<dim>() = x_center + dx * 0.5;
-  x1x2.template tail<dim>() = x_center - dx * 0.5;
+  math::vecr<3> x_center = 0.5
+                           * (z.template head<3>() + z.template tail<3>() - y.template head<3>()
+                              - y.template tail<3>());
+  math::vecr<6> x1x2;
+  x1x2.template head<3>() = x_center + dx * 0.5;
+  x1x2.template tail<3>() = x_center - dx * 0.5;
   return x1x2;
 }
 
-template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistributed() {
+ConstraintSolution Constraint_Spring::SolveDistributed() {
   idx nV = this->GetNumConstrainedVertices();
-  ConstraintSolution<dim> solution(nV);
+  ConstraintSolution solution(nV);
   // Compute the relaxed solution:
   const auto& vert = this->constrained_vertices_position_;
   idx nC = this->GetNumConstraints();
@@ -60,18 +59,20 @@ template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistribu
     auto const& ij = this->constraint_mapping_[i];
     idx vi = ij[0], vj = ij[1];
 
-    math::vecr<dim * 2> z;
-    z.template head<dim>() = vert[vi];
-    z.template tail<dim>() = vert[vj];
-    math::vecr<dim * 2> y = gap_.col(i);
+    math::vecr<6> z;
+    z.template head<3>() = vert[vi];
+    z.template tail<3>() = vert[vj];
+    math::vecr<6> y = gap_.col(i);
     real k = spring_stiffness_[i];
     real L = spring_length_[i];
-    math::vecr<dim * 2> relaxed = relax<dim>(y, z, rho[i], k, L);
-    math::vecr<dim * 2> old = dual_.col(i);
+    math::vecr<6> relaxed = relax(y, z, rho[i], k, L);
+    math::vecr<6> old = dual_.col(i);
     dual_.col(i) = relaxed;
     solution.sqr_dual_residual_ += rg2 * math::norm2(old - relaxed);  // TODO: weighted by rho
-    solution.weighted_position_.col(vi) += (relaxed.template head<dim>() + y.template head<dim>()) * rho[i];
-    solution.weighted_position_.col(vj) += (relaxed.template tail<dim>() + y.template tail<dim>()) * rho[i];
+    solution.weighted_position_.col(vi)
+        += (relaxed.template head<3>() + y.template head<3>()) * rho[i];
+    solution.weighted_position_.col(vj)
+        += (relaxed.template tail<3>() + y.template tail<3>()) * rho[i];
     solution.weights_[vi] += rho[i];
     solution.weights_[vj] += rho[i];
   }
@@ -79,16 +80,16 @@ template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistribu
   return solution;
 }
 
-template <idx dim> void Constraint_Spring<dim>::BeginStep() {
+void Constraint_Spring::BeginStep() {
   idx nC = this->GetNumConstraints();
-  auto const& g = ensure_server<dim>();
+  auto const& g = ensure_server();
   this->UpdatePositionConsensus();
-  dual_.resize(dim * 2, nC);
+  dual_.resize(3 * 2, nC);
   for (idx i = 0; i < nC; ++i) {
     auto const& ij = this->constraint_mapping_[i];
     idx vi = ij.at(0), vj = ij.at(1);
-    dual_.col(i).template head<dim>() = g.vertices_.col(vi);
-    dual_.col(i).template tail<dim>() = g.vertices_.col(vj);
+    dual_.col(i).template head<3>() = g.vertices_.col(vi);
+    dual_.col(i).template tail<3>() = g.vertices_.col(vj);
   }
 
   // this->rho_ = spring_stiffness_;
@@ -97,13 +98,13 @@ template <idx dim> void Constraint_Spring<dim>::BeginStep() {
     this->rho_[i] = spring_stiffness_[i];
   }
   this->rho_global_ = 1;
-  gap_.setZero(dim * 2, nC);
+  gap_.setZero(3 * 2, nC);
 }
 
-template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
+real Constraint_Spring::UpdateDuality() {
   idx nC = this->GetNumConstraints();
-  math::fieldr<dim * 2> prim_res = dual_;
-  auto const& g = ensure_server<dim>();
+  math::fieldr<3 * 2> prim_res = dual_;
+  auto const& g = ensure_server();
 
   for (idx i = 0; i < nC; ++i) {
     auto const& ij = this->constraint_mapping_[i];
@@ -111,31 +112,29 @@ template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
     idx vi = this->constrained_vertices_ids_[vi_local], vj = this->constrained_vertices_ids_[vj_local];
     auto const& xi = g.vertices_.col(vi);
     auto const& xj = g.vertices_.col(vj);
-    prim_res.col(i).template head<dim>() -= xi;
-    prim_res.col(i).template tail<dim>() -= xj;
+    prim_res.col(i).template head<3>() -= xi;
+    prim_res.col(i).template tail<3>() -= xj;
   }
 
   gap_ += prim_res;
   return math::norm2(prim_res);
 }
 
-template <idx dim> void Constraint_Spring<dim>::UpdateRhoConsensus(real scale) {
+void Constraint_Spring::UpdateRhoConsensus(real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   gap_ /= scale;
 }
+void Constraint_Spring::EndStep() {}
 
-template <idx dim> void Constraint_Spring<dim>::EndStep() {}
-
-template <idx dim> void Constraint_Spring<dim>::SetSprings(math::field2i const& indices,
-                                                           math::field1r const& stiffness) {
+void Constraint_Spring::SetSprings(math::field2i const& indices, math::field1r const& stiffness) {
   this->constraint_mapping_ = indices;
   spring_stiffness_ = stiffness;
   spring_length_.resize(stiffness.size());
   std::set<idx> unique_vertices;
 
-  auto const& g = ensure_server<dim>();
+  auto const& g = ensure_server();
   for (idx i = 0; i < stiffness.size(); ++i) {
     auto const& ij = indices.col(i);
     spring_length_[i] = math::norm(g.vertices_.col(ij.x()) - g.vertices_.col(ij.y()));
@@ -161,8 +160,5 @@ template <idx dim> void Constraint_Spring<dim>::SetSprings(math::field2i const& 
     this->constraint_mapping_[i].at(1) = vj;
   }
 }
-
-template class Constraint_Spring<2>;
-template class Constraint_Spring<3>;
 
 }  // namespace ax::xpbd

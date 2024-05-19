@@ -3,7 +3,7 @@
 #include "ax/xpbd/common.hpp"
 
 namespace ax::xpbd {
-template <idx dim> class Constraint_Spring final : public ConstraintBase<dim> {
+class Constraint_Spring final : public ConstraintBase {
 public:
   Constraint_Spring() = default;
 
@@ -11,7 +11,7 @@ public:
 
   ConstraintKind GetKind() const override { return ConstraintKind::kSpring; }
 
-  ConstraintSolution<dim> SolveDistributed() override;
+  ConstraintSolution SolveDistributed() override;
   void BeginStep() override;
   real UpdateDuality() override;
   void EndStep() override;
@@ -22,10 +22,7 @@ public:
   math::field1r spring_length_;
 
   // x_i
-  math::fieldr<dim * 2> dual_;
-  math::fieldr<dim * 2> dual_old_;
-
-  // y_i
-  math::fieldr<dim * 2> gap_;
+  math::fieldr<6> dual_;
+  math::fieldr<6> gap_;
 };
 }  // namespace ax::xpbd

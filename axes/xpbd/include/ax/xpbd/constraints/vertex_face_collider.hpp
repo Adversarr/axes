@@ -17,10 +17,7 @@ public:
   void UpdateRhoConsensus(real scale) override;
   void UpdatePositionConsensus() override;
 
-  math::vecr<dim> center_ = -math::vecr<dim>::UnitY();
-  real radius_ = 0.9;
   real tol_ = 1e-3;
-
   List<math::vecr<dim>> dual_;
   List<math::vecr<dim>> gap_;
   List<real> stiffness_;

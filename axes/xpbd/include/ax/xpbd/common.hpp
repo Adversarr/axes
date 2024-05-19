@@ -8,6 +8,7 @@
 #include "ax/core/config.hpp"
 #include "ax/math/common.hpp"
 #include "ax/utils/opt.hpp"
+#include "ax/xpbd/constraint_map.hpp"
 
 namespace ax::xpbd {
 template <idx dim> class GlobalServer;
@@ -18,6 +19,7 @@ BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
                   kCollision,
                   kPlaneCollider,
                   kBallCollider,
+                  kVertexFaceCollider,
                   kHard);
 
 template <idx dim> struct ConstraintSolution {
@@ -62,23 +64,22 @@ public:
   virtual void UpdateRhoConsensus(real scale);
 
   virtual void BeginStep() = 0;
-  virtual void EndStep() = 0;
+  virtual void EndStep();
 
-  idx GetNumVerticesPerConstraint() const { return constrained_vertices_ids_.rows(); }
-  idx GetNumConstrainedVertices() const { return constrained_vertices_ids_.cols(); }
-  idx GetNumConstraints() const { return constraint_mapping_.cols(); }
-  math::matxxi const& GetConstraintMapping() const { return constraint_mapping_; }
-  math::field1i const& GetConstrainedVerticesIds() const { return constrained_vertices_ids_; }
+  idx GetNumConstrainedVertices() const { return constrained_vertices_ids_.size(); }
+  idx GetNumConstraints() const { return constraint_mapping_.Entries().size(); }
+  ConstraintMap const& GetConstraintMapping() const { return constraint_mapping_; }
+  List<idx> const& GetConstrainedVerticesIds() const { return constrained_vertices_ids_; }
 
 protected:
-  math::field1i constrained_vertices_ids_;
-  math::fieldr<dim> constrained_vertices_position_;
+  List<idx> constrained_vertices_ids_;
+  List<math::vecr<dim>> constrained_vertices_position_;
 
   // rows=#v per constraint,
   // we always assume, to compute the dual variable, always [1] + [2] + ... + [n-1] - [n]
   // if rows=1, then we assume the dual is [1], just the identity of the only vertex
-  math::matxxi constraint_mapping_;  ///< Local constraint map, each index is local.
-  math::vecxr rho_;                  ///< Local weighting.
+  ConstraintMap constraint_mapping_;  ///< Local constraint map, each index is local.
+  List<real> rho_;                  ///< Local weighting.
   real rho_global_;                  ///< Global weighting.
   real primal_tolerance_{1e-7};      ///< Tolerance for primal
 };

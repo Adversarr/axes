@@ -75,9 +75,9 @@ template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistribut
   std::vector<math::matr<dim, dim + 1>> consensus;
   consensus.resize(nC);
   for (auto i : utils::iota(nC)) {
-    auto const& ij = this->constraint_mapping_.col(i);
+    auto const ij = this->constraint_mapping_[i];
     for (auto j : utils::iota(dim + 1)) {
-      consensus[i].col(j) = this->constrained_vertices_position_.col(ij[j]);
+      consensus[i].col(j) = this->constrained_vertices_position_[ij[j]];
     }
   }
 
@@ -100,7 +100,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_Tetra<dim>::SolveDistribut
   }
 
   for (idx i : utils::iota(nC)) {
-    auto const& ij = this->constraint_mapping_.col(i);
+    auto const& ij = this->constraint_mapping_[i];
     auto const& dual = dual_[i];
     auto const& gap = gap_[i];
     real rho = this->rho_[i];
@@ -120,12 +120,15 @@ template <idx dim> void Constraint_Tetra<dim>::BeginStep() {
   this->UpdatePositionConsensus();
   dual_.resize(nC);
   for (idx i = 0; i < nC; ++i) {
-    auto const& ij = this->constraint_mapping_.col(i);
+    auto const ij = this->constraint_mapping_[i];
     for (idx j = 0; j <= dim; ++j) {
-      dual_[i].col(j) = this->constrained_vertices_position_.col(ij[j]);
+      dual_[i].col(j) = this->constrained_vertices_position_[ij[j]];
     }
   }
-  this->rho_ = stiffness_;
+  // this->rho_ = stiffness_;
+  for (idx i = 0; i < nC; ++i) {
+    this->rho_[i] = stiffness_[i];
+  }
   this->rho_global_ = 1;
   gap_.resize(nC);
   for (auto& g : gap_) {
@@ -138,7 +141,7 @@ template <idx dim> real Constraint_Tetra<dim>::UpdateDuality() {
   auto const& g = ensure_server<dim>();
   real sqr_prim_res = 0;
   for (idx i = 0; i < nC; ++i) {
-    auto const& ij = this->constraint_mapping_.col(i);
+    auto const ij = this->constraint_mapping_[i];
     auto const& local = dual_[i];
     auto& gap = gap_[i];
     for (idx j = 0; j <= dim; ++j) {
@@ -155,7 +158,8 @@ template <idx dim> real Constraint_Tetra<dim>::UpdateDuality() {
 template <idx dim> void Constraint_Tetra<dim>::EndStep() {}
 
 template <idx dim> void Constraint_Tetra<dim>::UpdateRhoConsensus(real scale) {
-  this->rho_ *= scale;
+  // this->rho_ *= scale;
+  for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) {
     g /= scale;
@@ -182,27 +186,28 @@ void Constraint_Tetra<dim>::SetTetrahedrons(math::fieldi<dim + 1> const& tetrahe
     l++;
   }
 
-  this->constraint_mapping_.resize(dim + 1, nC);
-  this->constrained_vertices_position_.resize(dim, associated.size());
-  this->rho_.resize(nC);
+  // this->constraint_mapping_.resize(dim + 1, nC);
+  // this->constrained_vertices_position_.resize(dim, associated.size());
   for (auto i : utils::iota(nC)) {
     auto const& ij = tetrahedrons.col(i);
+    this->constraint_mapping_.emplace_back(ij);
     for (auto j : utils::iota(dim + 1)) {
-      this->constraint_mapping_(j, i) = global_to_local.at(ij(j));
+      idx l = global_to_local[ij(j)];
+      this->constraint_mapping_[i][j] = l;
     }
+    this->rho_.push_back(stiff[i]);
   }
   stiffness_ = stiff;
-  this->rho_ = stiff;
 
   this->UpdatePositionConsensus();
   x0_.resize(nC);
   rotation_.resize(nC);
+  auto const& local = this->constrained_vertices_position_;
   for (idx i : utils::iota(nC)) {
-    auto const& ij = this->constraint_mapping_.col(i);
-    auto const& local = this->constrained_vertices_position_;
+    auto const& ij = this->constraint_mapping_[i];
     auto& x0 = x0_[i];
     for (idx j : utils::iota(dim + 1)) {
-      x0.col(j) = local.col(ij[j]);
+      x0.col(j) = local[ij[j]];
     }
     center_<dim>(x0);
   }

@@ -53,14 +53,16 @@ template <idx dim> void ConsensusAdmmSolver<dim>::BeginSimulation() {
 template <idx dim> void ConstraintBase<dim>::UpdatePositionConsensus() {
   idx n_v = this->GetNumConstrainedVertices();
   auto const& cmap = this->constrained_vertices_ids_;
-  math::fieldr<dim>& local = constrained_vertices_position_;
-  local.resize(dim, n_v);
+  auto& local = constrained_vertices_position_;
+  local.resize(n_v);
   auto const& g = ensure_server<dim>();
   for (idx i : utils::iota(n_v)) {
     idx iV = cmap[i];
-    local.col(i) = g.vertices_.col(iV);
+    local[i] = g.vertices_.col(iV);
   }
 }
+
+template<idx dim> void ConstraintBase<dim>::EndStep() {}
 
 template <idx dim> void ConstraintBase<dim>::UpdateRhoConsensus(real) {}
 

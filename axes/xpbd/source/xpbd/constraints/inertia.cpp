@@ -16,7 +16,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveDistrib
   real dt = ensure_server<dim>().dt_, rg2 = this->rho_global_ * this->rho_global_;
   for (idx i : utils::iota(nV)) {
     real const mi = vertex_mass_[i] / (dt * dt);
-    auto const& zi = vert.col(i);
+    auto const& zi = vert[i];
     auto const& yi = gap_.col(i);
     auto const& Y = inertia_position_.col(i);
     math::vecr<dim> old = dual_.col(i);
@@ -24,40 +24,28 @@ template <idx dim> ConstraintSolution<dim> Constraint_Inertia<dim>::SolveDistrib
     result.sqr_dual_residual_ += rg2 * math::norm2(old - dual_.col(i)); // TODO: weighted by rho
   }
   
-  result.weights_ = rho;
   for (idx i: utils::iota(nV)) {
     auto const& yi = gap_.col(i);
     auto const& X = dual_.col(i);
     result.weighted_position_.col(i) = (X + yi) * rho[i];
+    result.weights_[i] = rho[i];
   }
   return result;
 }
 
 template <idx dim> real Constraint_Inertia<dim>::UpdateDuality() {
-  math::fieldr<dim> prim_res = dual_ - this->constrained_vertices_position_;
-  gap_.noalias() += prim_res;
-  return prim_res.squaredNorm();
-  // update rho: TODO: Not work.
-  // idx nV = this->GetNumConstrainedVertices();
-  // auto& rho = this->rho_;
-  // real pdt = this->primal_dual_threshold_, dpt = this->dual_primal_threshold_,
-  //      pdr = this->primal_dual_ratio_, dpr = this->dual_primal_ratio_;
-  // for (idx i: utils::iota(nV)) {
-  //   // change of dual
-  //   real dual_residual = rho[i] * math::norm(dual_.col(i) - dual_old_.col(i));
-  //   real prim_residual = math::norm(prim_res.col(i));
-  //   if (prim_residual / dual_residual > pdt) {
-  //     rho[i] *= pdr;
-  //     gap_.col(i) /= pdr;
-  //   } else if (dual_residual / prim_residual > dpt) {
-  //     rho[i] /= dpr;
-  //     gap_.col(i) *= dpr;
-  //   }
-  // }
+  real prim_res = 0;
+  for (idx i: utils::iota(this->GetNumConstrainedVertices())) {
+    math::vecr<dim> residual = dual_.col(i) - this->constrained_vertices_position_[i];
+    gap_.col(i) += residual;
+    prim_res += residual.squaredNorm();
+  }
+  return prim_res;
 }
 
 template<idx dim> void Constraint_Inertia<dim>::UpdateRhoConsensus(real scale) {
-  this->rho_ *= scale;
+  // this->rho_ *= scale;
+  for (auto& r : this->rho_) r *= scale;
   this->gap_ /= scale;
   this->rho_global_ *= scale;
 }
@@ -65,18 +53,19 @@ template<idx dim> void Constraint_Inertia<dim>::UpdateRhoConsensus(real scale) {
 template <idx dim> void Constraint_Inertia<dim>::BeginStep() {
   auto& g = ensure_server<dim>();
   idx nV = g.vertices_.cols();
-  this->constrained_vertices_ids_.resize(1, nV);
+  real const dt = g.dt_;
+
+  this->constrained_vertices_ids_.resize(nV);
+  this->rho_.resize(nV);
   for (idx i : utils::iota(nV)) {
-    this->constrained_vertices_ids_(0, i) = i;
+    this->rho_[i] = g.mass_[i] / (dt * dt);
+    this->constrained_vertices_ids_[i] = i;
   }
-  this->constraint_mapping_ = this->constrained_vertices_ids_;
   this->UpdatePositionConsensus();
 
   vertex_mass_ = g.mass_;
   dual_ = g.vertices_;
   gap_.setZero(dim, nV);
-  real const dt = g.dt_;
-  this->rho_ = g.mass_ / (dt * dt);
   this->rho_global_ = 1;
   inertia_position_ = g.vertices_;
 }

@@ -57,12 +57,12 @@ template <idx dim> ConstraintSolution<dim> Constraint_Spring<dim>::SolveDistribu
   const auto& rho = this->rho_;
   real const rg2 = this->rho_global_ * this->rho_global_;
   for (idx i = 0; i < nC; ++i) {
-    auto const& ij = this->constraint_mapping_.col(i);
-    idx vi = ij.x(), vj = ij.y();
+    auto const& ij = this->constraint_mapping_[i];
+    idx vi = ij[0], vj = ij[1];
 
     math::vecr<dim * 2> z;
-    z.template head<dim>() = vert.col(vi);
-    z.template tail<dim>() = vert.col(vj);
+    z.template head<dim>() = vert[vi];
+    z.template tail<dim>() = vert[vj];
     math::vecr<dim * 2> y = gap_.col(i);
     real k = spring_stiffness_[i];
     real L = spring_length_[i];
@@ -85,13 +85,17 @@ template <idx dim> void Constraint_Spring<dim>::BeginStep() {
   this->UpdatePositionConsensus();
   dual_.resize(dim * 2, nC);
   for (idx i = 0; i < nC; ++i) {
-    auto const& ij = this->constraint_mapping_.col(i);
-    idx vi = ij.x(), vj = ij.y();
+    auto const& ij = this->constraint_mapping_[i];
+    idx vi = ij.at(0), vj = ij.at(1);
     dual_.col(i).template head<dim>() = g.vertices_.col(vi);
     dual_.col(i).template tail<dim>() = g.vertices_.col(vj);
   }
 
-  this->rho_ = spring_stiffness_;
+  // this->rho_ = spring_stiffness_;
+  this->rho_.resize(nC);
+  for (idx i = 0; i < nC; ++i) {
+    this->rho_[i] = spring_stiffness_[i];
+  }
   this->rho_global_ = 1;
   gap_.setZero(dim * 2, nC);
 }
@@ -102,8 +106,8 @@ template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
   auto const& g = ensure_server<dim>();
 
   for (idx i = 0; i < nC; ++i) {
-    auto const& ij = this->constraint_mapping_.col(i);
-    idx vi_local = ij.x(), vj_local = ij.y();
+    auto const& ij = this->constraint_mapping_[i];
+    idx vi_local = ij.at(0), vj_local = ij.at(1);
     idx vi = this->constrained_vertices_ids_[vi_local], vj = this->constrained_vertices_ids_[vj_local];
     auto const& xi = g.vertices_.col(vi);
     auto const& xj = g.vertices_.col(vj);
@@ -116,7 +120,8 @@ template <idx dim> real Constraint_Spring<dim>::UpdateDuality() {
 }
 
 template <idx dim> void Constraint_Spring<dim>::UpdateRhoConsensus(real scale) {
-  this->rho_ *= scale;
+  // this->rho_ *= scale;
+  for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   gap_ /= scale;
 }
@@ -128,7 +133,7 @@ template <idx dim> void Constraint_Spring<dim>::SetSprings(math::field2i const& 
   this->constraint_mapping_ = indices;
   spring_stiffness_ = stiffness;
   spring_length_.resize(stiffness.size());
-  std::set<idx> unique_vertices; // BUG: assume every vertex in scene has this constraint.
+  std::set<idx> unique_vertices;
 
   auto const& g = ensure_server<dim>();
   for (idx i = 0; i < stiffness.size(); ++i) {
@@ -140,11 +145,11 @@ template <idx dim> void Constraint_Spring<dim>::SetSprings(math::field2i const& 
     unique_vertices.insert(ij.y());
   }
 
-  this->constrained_vertices_ids_.resize(1, unique_vertices.size());
+  this->constrained_vertices_ids_.resize(unique_vertices.size());
   idx i = 0;
   std::map<idx, idx> inverse_map_;
   for (auto v : unique_vertices) {
-    this->constrained_vertices_ids_(0, i) = v;
+    this->constrained_vertices_ids_[i] = v;
     inverse_map_[v] = i;
     i++;
   }
@@ -152,7 +157,8 @@ template <idx dim> void Constraint_Spring<dim>::SetSprings(math::field2i const& 
   for (idx i = 0; i < stiffness.size(); ++i) {
     auto const& ij = indices.col(i);
     idx vi = inverse_map_[ij.x()], vj = inverse_map_[ij.y()];
-    this->constraint_mapping_.col(i) = math::vec2i{vi, vj};
+    this->constraint_mapping_[i].at(0) = vi;
+    this->constraint_mapping_[i].at(1) = vj;
   }
 }
 

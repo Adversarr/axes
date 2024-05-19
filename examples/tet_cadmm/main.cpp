@@ -34,12 +34,13 @@ void update_rendering() {
   List<std::pair<idx, idx>> edges;
   for (auto const& c : g.constraints_) {
     idx nC = c->GetNumConstraints();
+    auto &ids = c->GetConstrainedVerticesIds();
     edges.reserve(edges.size() + nC);
     for (idx i = 0; i < nC; ++i) {
-      auto const& ij = c->GetConstraintMapping().col(i);
-      for (idx j = 1; j < ij.rows(); ++j) {
+      auto const& ij = c->GetConstraintMapping()[i];
+      for (idx j = 1; j < ij.size(); ++j) {
         for (idx k = 0; k < j; ++k) {
-          edges.push_back({ij(k), ij(j)});
+          edges.push_back({ids[ij[k]], ids[ij[j]]});
         }
       }
     }

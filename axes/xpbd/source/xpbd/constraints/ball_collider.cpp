@@ -49,7 +49,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_BallCollider<dim>::SolveDi
   for (auto i : utils::iota(nC)) {
     real rho = this->rho_[i];
     real& k = stiffness_[i];
-    math::vecr<dim> const& z = this->constrained_vertices_position_.col(i);
+    math::vecr<dim> const& z = this->constrained_vertices_position_[i];
     dual_[i] = relax_ipc<dim>(rho, k, tol_, gap_[i], z, center_, radius_);
     // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
     // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
@@ -58,7 +58,7 @@ template <idx dim> ConstraintSolution<dim> Constraint_BallCollider<dim>::SolveDi
   }
 
   iteration_ += 1;
-  this->rho_ *= 1.1;
+  for (real& v: this->rho_) v *= 1.1;
   return sol;
 }
 
@@ -66,10 +66,10 @@ template <idx dim> void Constraint_BallCollider<dim>::BeginStep() {
   gap_.clear();
   dual_.clear();
   collidings_.clear();
-  this->constrained_vertices_ids_.resize(1, 0);
-  this->constraint_mapping_.resize(1, 0);
-  this->constrained_vertices_position_.resize(dim, 0);
-  this->rho_.resize(0, 1);
+  this->constrained_vertices_ids_.clear();
+  this->constraint_mapping_.clear();
+  this->constrained_vertices_position_.clear();
+  this->rho_.clear();
   this->rho_global_ = 1;
   iteration_ = 0;
 }
@@ -78,7 +78,7 @@ template <idx dim> real Constraint_BallCollider<dim>::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
   real sqr_prim_res = 0;
   for (auto i : utils::iota(this->GetNumConstraints())) {
-    math::vecr<dim> du = dual_[i] - fetch_from_global.col(i);
+    math::vecr<dim> du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
     // std::cout << "gap[" << i << "] = " << gap_[i].transpose() << std::endl;
     sqr_prim_res += math::norm2(du);
@@ -89,16 +89,15 @@ template <idx dim> real Constraint_BallCollider<dim>::UpdateDuality() {
 template <idx dim> void Constraint_BallCollider<dim>::EndStep() {}
 
 template <idx dim> void Constraint_BallCollider<dim>::UpdateRhoConsensus(real scale) {
-  this->rho_ *= scale;
+  // this->rho_ *= scale;
+  for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
 }
 
 template <idx dim> void Constraint_BallCollider<dim>::UpdatePositionConsensus() {
-  idx n_v = this->GetNumConstrainedVertices();
   auto const& cmap = this->constrained_vertices_ids_;
-  math::fieldr<dim>& local = this->constrained_vertices_position_;
-  local.resize(dim, n_v);
+  auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server<dim>();
   std::vector<idx> new_vertices;
   for (idx i : utils::iota(g.vertices_.cols())) {
@@ -108,41 +107,26 @@ template <idx dim> void Constraint_BallCollider<dim>::UpdatePositionConsensus() 
         collidings_.insert(i);
         new_vertices.push_back(i);
       }
-      // std::cout << "Collision detected at vertex " << i << std::endl;
     }
   }
 
   if (new_vertices.size() > 0) {
-    // this->rho_.resize(n_v + new_vertices.size());
-    dual_.resize(dual_.size() + new_vertices.size());
-    gap_.resize(gap_.size() + new_vertices.size());
-    stiffness_.resize(stiffness_.size() + new_vertices.size());
-    // this->constrained_vertices_position_.resize(dim, n_v + new_vertices.size());
-    // this->constraint_mapping_.resize(1, n_v + new_vertices.size());
-    // this->constrained_vertices_ids_.resize(n_v + new_vertices.size());
-    resize_and_copyback(this->rho_, n_v + new_vertices.size(), 1);
-    // resize_and_copyback(dual_, dim, n_v + new_vertices.size());
-    // resize_and_copyback(gap_, dim, n_v + new_vertices.size());
-    resize_and_copyback(this->constrained_vertices_position_, dim, n_v + new_vertices.size());
-    resize_and_copyback(this->constraint_mapping_, 1, n_v + new_vertices.size());
-    resize_and_copyback(this->constrained_vertices_ids_, 1, n_v + new_vertices.size());
     for (idx i : utils::iota(new_vertices.size())) {
       idx iV = new_vertices[i];
-      this->constrained_vertices_ids_[n_v + i] = iV;
-      this->constraint_mapping_(0, n_v + i) = iV;
-      this->constrained_vertices_position_.col(n_v + i) = g.vertices_.col(iV);
-      dual_[n_v + i] = g.vertices_.col(iV);
-      gap_[n_v + i].setZero();
-      stiffness_[n_v + i] = 1e7;
+      this->constrained_vertices_ids_.push_back(iV);
+      this->constraint_mapping_.emplace_back(iV);
+      this->constrained_vertices_position_.push_back(g.vertices_.col(iV));
+      dual_.push_back(g.vertices_.col(iV));
+      gap_.push_back(math::vecr<dim>::Zero());
+      stiffness_.push_back(initial_rho_);
+      this->rho_.push_back(initial_rho_);
     }
-
-    this->rho_.resize(n_v + new_vertices.size());
-    this->rho_.setConstant(initial_rho_ * this->rho_global_);
   }
 
+  idx n_v = this->GetNumConstrainedVertices();
   for (idx i : utils::iota(n_v)) {
     idx iV = cmap[i];
-    local.col(i) = g.vertices_.col(iV);
+    local[i] = g.vertices_.col(iV);
   }
 }
 

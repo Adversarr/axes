@@ -26,11 +26,14 @@ void update_rendering() {
   List<std::pair<idx, idx>> edges;
   for (auto const& c : g.constraints_) {
     idx nC = c->GetNumConstraints();
+    auto &ids = c->GetConstrainedVerticesIds();
     edges.reserve(edges.size() + nC);
     for (idx i = 0; i < nC; ++i) {
-      auto const& ij = c->GetConstraintMapping().col(i);
-      for (idx j = 1; j < ij.rows(); ++j) {
-        edges.push_back({ij(j - 1), ij(j)});
+      auto const& ij = c->GetConstraintMapping()[i];
+      for (idx j = 1; j < ij.size(); ++j) {
+        for (idx k = 0; k < j; ++k) {
+          edges.push_back({ids[ij[k]], ids[ij[j]]});
+        }
       }
     }
   }
@@ -42,6 +45,7 @@ void update_rendering() {
   lines.colors_.setOnes(4, edges.size());
   lines.flush_ = true;
 }
+
 
 int n_iter = 2;
 

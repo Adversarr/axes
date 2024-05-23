@@ -76,7 +76,9 @@ template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE
 }
 
 /****************************** determinant ******************************/
-template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar det(MBcr<A> a) { return a.determinant(); }
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar det(MBcr<A> a) {
+  return a.determinant();
+}
 
 /****************************** inverse and solve ******************************/
 // TODO: Add invertible test function.
@@ -112,23 +114,56 @@ AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar angle(MBcr<A> a, MBcr<B> b) {
 }
 
 /****************************** eig ******************************/
-template<typename A>
-AX_HOST_DEVICE AX_FORCE_INLINE 
-std::pair<math::mat<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>, 
-          math::vec<typename A::Scalar, A::RowsAtCompileTime>> eig(MBcr<A> a) {
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE
+    std::pair<math::mat<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>,
+              math::vec<typename A::Scalar, A::RowsAtCompileTime>>
+    eig(MBcr<A> a) {
   static_assert(A::RowsAtCompileTime == A::ColsAtCompileTime, "eig requires square matrix");
   Eigen::SelfAdjointEigenSolver<A> es(a);
   return std::make_pair(es.eigenvectors(), es.eigenvalues());
 }
 
-template<typename A, typename EVec, typename EVal>
-AX_HOST_DEVICE AX_FORCE_INLINE 
-void eig(MBcr<A> a, MBr<EVec> e_vector, MBr<EVal> e_value) {
+template <typename A, typename EVec, typename EVal>
+AX_HOST_DEVICE AX_FORCE_INLINE void eig(MBcr<A> a, MBr<EVec> e_vector, MBr<EVal> e_value) {
   static_assert(A::RowsAtCompileTime == A::ColsAtCompileTime, "eig requires square matrix");
-  static_assert(EVec::ColsAtCompileTime == EVec::ColsAtCompileTime, "Eigen vector matrix row != col");
+  static_assert(EVec::ColsAtCompileTime == EVec::ColsAtCompileTime,
+                "Eigen vector matrix row != col");
   Eigen::SelfAdjointEigenSolver<A> es(a);
   e_vector = es.eigenvectors();
   e_value = es.eigenvalues();
+}
+
+/****************************** barycentric ******************************/
+AX_HOST_DEVICE AX_FORCE_INLINE math::vec2r barycentric(math::vec2r const& p, math::vec2r const& a,
+                                                       math::vec2r const& b) {
+  math::vec2r v0 = b - a, v1 = p - a;
+  real d00 = math::dot(v0, v0);
+  real d01 = math::dot(v0, v1);
+  real denom = d00;
+  real v = d01 / denom;
+  real u = 1.0 - v;
+  return math::vec2r(u, v);
+}
+
+AX_HOST_DEVICE AX_FORCE_INLINE math::vec3r barycentric(math::vec3r const& p, math::vec3r const& a,
+                                                       math::vec3r const& b, math::vec3r const& c) {
+  math::vec3r v0 = b - a, v1 = c - a, v2 = p - a;
+  real d00 = math::dot(v0, v0);
+  real d01 = math::dot(v0, v1);
+  real d11 = math::dot(v1, v1);
+  real d20 = math::dot(v2, v0);
+  real d21 = math::dot(v2, v1);
+  real denom = d00 * d11 - d01 * d01;
+  real v = (d11 * d20 - d01 * d21) / denom;
+  real w = (d00 * d21 - d01 * d20) / denom;
+  real u = 1.0 - v - w;
+  return math::vec3r(u, v, w);
+}
+
+/****************************** lerp ******************************/
+template <typename A, typename B, typename Scalar>
+AX_HOST_DEVICE AX_FORCE_INLINE auto lerp(MBcr<A> a, MBcr<B> b, Scalar t) {
+  return a + t * (b - a);
 }
 
 }  // namespace ax::math

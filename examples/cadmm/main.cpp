@@ -1,4 +1,5 @@
 #include <imgui.h>
+
 #include <cinttypes>
 
 #include "ax/core/entt.hpp"
@@ -6,6 +7,7 @@
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
+#include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
@@ -21,12 +23,12 @@ ABSL_FLAG(int, nx, 4, "cloth resolution");
 
 void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
-  auto& g = xpbd::ensure_server<3>();
+  auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
   List<std::pair<idx, idx>> edges;
   for (auto const& c : g.constraints_) {
     idx nC = c->GetNumConstraints();
-    auto &ids = c->GetConstrainedVerticesIds();
+    auto& ids = c->GetConstrainedVerticesIds();
     edges.reserve(edges.size() + nC);
     for (idx i = 0; i < nC; ++i) {
       auto const& ij = c->GetConstraintMapping()[i];
@@ -44,13 +46,27 @@ void update_rendering() {
   }
   lines.colors_.setOnes(4, edges.size());
   lines.flush_ = true;
-}
 
+  auto& particles = add_or_replace_component<gl::Mesh>(ent);
+  auto ball = geo::sphere(0.03, 5, 5);
+  particles.vertices_ = ball.vertices_;
+  particles.indices_ = ball.indices_;
+  particles.colors_.setOnes(4, ball.vertices_.cols());
+  particles.instance_offset_ = g.vertices_;
+  particles.flush_ = true;
+
+  // quiver
+  auto& quivers = add_or_replace_component<gl::Quiver>(ent);
+  quivers.positions_ = g.vertices_;
+  quivers.directions_ = g.velocities_;
+  quivers.flush_ = true;
+  quivers.colors_.setConstant(4, quivers.positions_.cols(), 0.7);
+}
 
 int n_iter = 2;
 
 void step() {
-  auto& g = xpbd::ensure_server<3>();
+  auto& g = xpbd::ensure_server();
   math::field3r const X = g.vertices_;
   g.last_vertices_.swap(g.vertices_);
 
@@ -63,6 +79,7 @@ void step() {
 
   math::field1r w(1, X.cols());
   for (idx i = 0; i < n_iter; ++i) {
+    g.last_vertices_ = g.vertices_;
     g.vertices_.setZero();
     w.setZero(1, X.cols());
     real sqr_dual_residual = 0;
@@ -77,8 +94,8 @@ void step() {
       }
       sqr_dual_residual += R.sqr_dual_residual_;
 
-      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " R_dual^2="
-                   << R.sqr_dual_residual_;
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown")
+                   << " R_dual^2=" << R.sqr_dual_residual_;
     }
 
     // z_i step:
@@ -91,8 +108,8 @@ void step() {
       c->UpdatePositionConsensus();
       real sqr_primal_residual_c = c->UpdateDuality();
       sqr_primal_residual += sqr_primal_residual_c;
-      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown") << " R_prim^2="
-                   << sqr_primal_residual_c;
+      AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown")
+                   << " R_prim^2=" << sqr_primal_residual_c;
     }
 
     real scale = 1.0;
@@ -108,7 +125,8 @@ void step() {
         c->UpdateRhoConsensus(scale);
       }
     }
-    AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " " << dual_residual;
+    AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
+                    << dual_residual;
   }
 
   for (auto& c : g.constraints_) {
@@ -135,63 +153,37 @@ int main(int argc, char** argv) {
   gl::init(argc, argv);
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
-  auto& g = xpbd::ensure_server<3>();
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kSpring));
-  auto* sp = reinterpret_cast<xpbd::Constraint_Spring<3>*>(g.constraints_.back().get());
-  int ndiv = absl::GetFlag(FLAGS_nx);
-  auto springs = math::field2i(2, ndiv * (ndiv - 1) * 2 + (ndiv - 1) * (ndiv - 1));
-  auto vertices = math::field3r(3, ndiv * ndiv);
-  auto initial = math::field1r(1, springs.cols());
-  idx cnt = 0;
-  for (idx i = 0; i < ndiv; i++) {
-    for (idx j = 0; j < ndiv; j++) {
-      vertices.col(cnt) = math::vec3r(i, 0, j) / (ndiv - 1);
-      cnt++;
-    }
-  }
-  cnt = 0;
-  for (idx i = 0; i < ndiv; i++) {
-    for (idx j = 0; j < ndiv; j++) {
-      if (i < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j);
-        initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j)).norm();
-        cnt++;
-      }
-      if (j < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, i * ndiv + j + 1);
-        initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col(i * ndiv + j + 1)).norm();
-        cnt++;
-      }
-      if (i < ndiv - 1 && j < ndiv - 1) {
-        if ((i + j) % 2 == 0) {
-          springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j + 1);
-          initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j + 1)).norm();
-          cnt++;
-        } else {
-          springs.col(cnt) = math::vec2i((i + 1) * ndiv + j, i * ndiv + j + 1);
-          initial[cnt] = (vertices.col((i + 1) * ndiv + j) - vertices.col(i * ndiv + j + 1)).norm();
-          cnt++;
-        }
-      }
-    }
-  }
-  g.vertices_ = vertices;
-  sp->SetSprings(springs, math::field1r::Constant(1, springs.cols(), 1e4));
+  auto& g = xpbd::ensure_server();
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
+  auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
 
-  g.velocities_.setZero(3, vertices.cols());
+  g.vertices_.setZero(3, 4);
+  g.vertices_.col(0).setUnit(0);
+  g.vertices_.col(1).setUnit(1);
+  g.vertices_.col(2).setUnit(2);
+  g.velocities_.setZero(3, g.vertices_.cols());
   g.ext_accel_ = g.velocities_;
-  g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, vertices.cols(), 1.0);
+  g.velocities_.col(3) = 0.3 * math::vec3r::Ones();
+  g.mass_.setConstant(1, g.vertices_.cols(), 1.0);
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kInertia));
-  g.constraints_.emplace_back(xpbd::ConstraintBase<3>::Create(xpbd::ConstraintKind::kHard));
-  auto* hard = reinterpret_cast<xpbd::Constraint_Hard<3>*>(g.constraints_.back().get());
-  math::field1i indices_hard(1, 2);
-  indices_hard(0, 0) = 0;
-  indices_hard(0, 1) = ndiv - 1;
-  hard->SetHard(indices_hard);
+  math::field2i edges(2, 3);
+  edges << 0, 1, 2, 1, 2, 0;
+  sp->SetSprings(edges, math::field1r::Constant(1, 3, 1e5));
 
-  g.dt_ = 1e-2;
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+  g.dt_ = 5e-3;
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
+  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
+  math::field1i hard_indices(1, 1);
+  hard_indices << 0;
+  hard->SetHard(hard_indices);
+
+  g.faces_.emplace_back(0, 1, 2);
+
+
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

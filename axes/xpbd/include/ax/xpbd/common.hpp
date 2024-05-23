@@ -6,13 +6,14 @@
 #pragma once
 #include "ax/core/common.hpp"
 #include "ax/core/config.hpp"
+#include "ax/geometry/hittables.hpp"
 #include "ax/math/common.hpp"
 #include "ax/utils/opt.hpp"
 #include "ax/xpbd/constraint_map.hpp"
 
 namespace ax::xpbd {
 
-BOOST_DEFINE_ENUM(ConstraintKind, kInertia,
+BOOST_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
                   kSpring,  // the most common elasticity term.
                   kTetra,   // FEM-like energy.
                   kCollision,
@@ -96,8 +97,10 @@ public:
   math::field3r ext_accel_;
   math::field1r mass_;
 
+  // For Collision Detectors.
   List<math::vec3i> faces_;
   List<math::vec2i> edges_;
+  geo::BroadPhaseResult potential_collisions_;
 
   // High level meta.
   real dt_;

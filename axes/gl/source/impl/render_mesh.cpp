@@ -144,7 +144,6 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   if (mesh.instance_offset_.cols() > 0) {
-    AX_CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
     instances_.reserve(mesh.instance_offset_.size());
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
@@ -152,8 +151,12 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
       auto color_offset = mesh.instance_color_.col(i);
       instance.position_offset_
           = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
-      instance.color_offset_
-          = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      if (i < mesh.instance_color_.cols()) {
+        instance.color_offset_
+            = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      } else {
+        instance.color_offset_ = glm::vec4(0, 0, 0, 0);
+      }
       instances_.push_back(instance);
     }
   }

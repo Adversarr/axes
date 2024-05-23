@@ -10,6 +10,7 @@
 #include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
+#include "ax/xpbd/constraints/vertex_face_collider.hpp"
 
 namespace ax::xpbd {
 
@@ -31,6 +32,8 @@ UPtr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
       return std::make_unique<Constraint_Hard>();
     case ConstraintKind::kBallCollider:
       return std::make_unique<Constraint_BallCollider>();
+    case ConstraintKind::kVertexFaceCollider:
+      return std::make_unique<Constraint_VertexFaceCollider>();
     default:
       return nullptr;
   }

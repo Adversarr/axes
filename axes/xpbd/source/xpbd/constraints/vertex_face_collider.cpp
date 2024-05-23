@@ -5,14 +5,17 @@
 #include "ax/utils/iota.hpp"
 
 namespace ax::xpbd {
+using namespace geo;
 
 void Constraint_VertexFaceCollider::BeginStep() {
   gap_.clear();
   dual_.clear();
   collidings_.clear();
+  colliding_vertices_.clear();
+  origin_.clear();
   this->constrained_vertices_ids_.clear();
-  this->constraint_mapping_.clear();
   this->constrained_vertices_position_.clear();
+  this->constraint_mapping_.clear();
   this->rho_.clear();
   this->rho_global_ = 1;
   iteration_ = 0;
@@ -20,13 +23,102 @@ void Constraint_VertexFaceCollider::BeginStep() {
   this->UpdatePositionConsensus();
 }
 
+using m34 = math::matr<3, 4>;
+using m4 = math::matr<4, 4>;
+
+bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, real tol) {
+  // k/2(|| Dx || - d)^2 + rho/2 ||x-z+u||^2
+  // first, test if there is a collision currently.
+  // if there is, then we need to solve the problem.
+  m4 expect;
+  m34 const zu = z - u;
+  expect.topRows<3>() = z - u;
+  expect.bottomRows<1>().setOnes();
+
+  m4 origin;
+  origin.topRows<3>() = o;
+  origin.bottomRows<1>().setOnes();
+  real det_expect = expect.determinant(), det_origin = origin.determinant();
+  std::cout << "det_expect: " << det_expect << " det_origin: " << det_origin << std::endl;
+  if (det_expect * det_origin > 0) {
+    x = zu;
+    return false;
+  }
+  // there exist the collision.
+  // step 1: find the seperating plane.
+  math::vec3r normal = math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1)));
+  math::vec3r center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
+  real c = math::dot(normal, center);
+  real e = math::dot(normal, zu.col(0)) - c;
+  if (e > 0) {
+    normal = -normal;
+    c = -c;
+    e = -e;
+  }
+
+  // project to the plane.
+  auto proj = [&](math::vec3r const& p) -> math::vec3r {
+    return p - math::dot(normal, p - center) * normal;
+  };
+  for (idx i = 0; i < 4; ++i) {
+    x.col(i) = proj(zu.col(i));
+  }
+
+  // step 2: solve vertex.
+  real l = (k * tol + rho * e) / (k + rho);
+  if (l < 0) {
+    // We need to enforce the constraint strictly, l >= 0.
+    // (k t + r e) > 0 => k >= -r e / t
+    k = -4 * (rho * e / tol);
+    l = (k * tol + rho * e) / (k + rho);
+  }
+
+  x.col(0) += l * normal;
+  x.col(1) -= l * normal / 3;
+  x.col(2) -= l * normal / 3;
+  x.col(3) -= l * normal / 3;
+  return true;
+}
+
+ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
+  idx const nC = GetNumConstraints();
+  idx const nV = GetNumConstrainedVertices();
+
+  ConstraintSolution sol(nV);
+  for (auto i : utils::iota(nC)) {
+    auto C = constraint_mapping_[i];
+    auto& z = dual_[i];
+    auto const& u = gap_[i];
+    real& k = stiffness_[i];
+    real& rho = rho_[i];
+    math::matr<3, 4> x;
+    for (idx i = 0; i < 4; ++i) x.col(i) = this->constrained_vertices_position_[C[i]];
+    bool has_collide = relax(x, u, origin_[i], z, rho_[i], k, tol_);
+    rho = k;
+    if (has_collide) {
+      std::cout << "Still collide, " << iteration_ << " " << i << std::endl;
+    }
+
+    for (idx i = 0; i < 4; ++i) {
+      sol.weighted_position_.col(C[i]) += (z.col(i) + u.col(i)) * rho;
+      sol.weights_[C[i]] += rho;
+    }
+  }
+
+  iteration_ += 1;
+  return sol;
+}
+
 real Constraint_VertexFaceCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
   real sqr_prim_res = 0;
   for (auto i : utils::iota(this->GetNumConstraints())) {
-    math::vec3r du = dual_[i] - fetch_from_global[i];
+    auto cons = constraint_mapping_[i];
+    auto const& d = dual_[i];
+    math::matr<3, 4> z, du;
+    for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
+    du = d - z;
     gap_[i] += du;
-    sqr_prim_res += math::norm2(du);
   }
   return sqr_prim_res;
 }
@@ -55,14 +147,18 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   // Current implementation is brute force.
   for (idx i : utils::iota(g.vertices_.cols())) {
     for (auto [j, f] : utils::enumerate(g.faces_)) {
-      math::vec3r const x = g.vertices_.col(i);
-      auto info = geo::detect_vertex_face(
-          geo::Vertex(i, x),
-          geo::Face(j, g.vertices_.col(f.x()), g.vertices_.col(f.y()), g.vertices_.col(f.z())),
-          tol_);
+      auto const& x = g.vertices_.col(i);
+      auto const& fx = g.vertices_.col(f.x());
+      auto const& fy = g.vertices_.col(f.y());
+      auto const& fz = g.vertices_.col(f.z());
+
+      if (i == f.x() || i == f.y() || i == f.z()) continue;
+
+      auto info = detect_vertex_face(CollidableVertex(i, Vertex3{x}),
+                                     CollidableTriangle(j, Triangle3{fx, fy, fz}), 0.01);
 
       if (info) {
-        // has collide.
+        // has new collide.
         if (collidings_.insert(info).second) {
           new_collisions.push_back(info);
           put_vert(i);
@@ -78,26 +174,19 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
       this->constrained_vertices_position_.push_back(g.vertices_.col(v));
     }
 
-    for (auto const& c: new_collisions) {
+    for (auto const& c : new_collisions) {
       auto f = g.faces_[c.vf_face_];
       this->constraint_mapping_.emplace_back(c.vf_vertex_, f.x(), f.y(), f.z());
       auto& di = dual_.emplace_back();
-      di.col(0) = g.vertices_.col(c.vf_vertex_);
+      di.col(0) = g.last_vertices_.col(c.vf_vertex_);
       for (auto [i, v] : utils::enumerate(f)) {
-        di.col(i + 1) = g.vertices_.col(v);
+        di.col(i + 1) = g.last_vertices_.col(v);
       }
 
-      gap_.push_back(math::vec3r::Zero());
+      origin_.emplace_back(di);
+      gap_.emplace_back().setZero();
       stiffness_.push_back(initial_rho_);
-      this->rho_.push_back(initial_rho_);
-      auto& plane = seperating_plane_.emplace_back();
-      plane.head<3>() = math::normalized(math::cross(di.col(2) - di.col(1), di.col(3) - di.col(1)));
-      plane(3) = math::dot(plane.head<3>(), di.col(1));
-      if (math::dot(plane.head<3>(), di.col(0)) < plane(3)) {
-        plane(3) -= tol_;
-      } else {
-        plane(3) += tol_;
-      }
+      rho_.push_back(initial_rho_);
     }
   }
 

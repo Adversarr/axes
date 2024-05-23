@@ -16,12 +16,13 @@ public:
   void UpdateRhoConsensus(real scale) override;
   void UpdatePositionConsensus() override;
 
-  real tol_ = 1e-3;
+  real tol_ = 1e-2;
   List<math::matr<3, 4>> dual_;
   List<math::matr<3, 4>> gap_;
   List<math::matr<3, 4>> origin_;
   List<real> stiffness_;
   std::set<std::pair<idx, idx>> collidings_;
+  std::map<idx, idx> global_to_local_;
   std::set<idx> colliding_vertices_;
   real initial_rho_ = 1e6;
   idx iteration_ = 0;

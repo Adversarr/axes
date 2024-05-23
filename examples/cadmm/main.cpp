@@ -44,7 +44,7 @@ void update_rendering() {
   for (idx i = 0; i < edges.size(); ++i) {
     lines.indices_.col(i) = math::vec2i{edges[i].first, edges[i].second};
   }
-  lines.colors_.setOnes(4, edges.size());
+  lines.colors_.setOnes(4, g.vertices_.size());
   lines.flush_ = true;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
@@ -67,21 +67,20 @@ int n_iter = 2;
 
 void step() {
   auto& g = xpbd::ensure_server();
-  math::field3r const X = g.vertices_;
+  idx const nV = g.vertices_.cols();
   g.last_vertices_.swap(g.vertices_);
 
   // initial guess is inertia position:
-  g.vertices_.noalias() = X + g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
+  g.vertices_.noalias() = g.last_vertices_ + g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
   for (auto& c : g.constraints_) {
     c->UpdateRhoConsensus(g.dt_ * g.dt_);
     c->BeginStep();
   }
 
-  math::field1r w(1, X.cols());
+  math::field1r w(1, nV);
   for (idx i = 0; i < n_iter; ++i) {
-    g.last_vertices_ = g.vertices_;
     g.vertices_.setZero();
-    w.setZero(1, X.cols());
+    w.setZero(1, nV);
     real sqr_dual_residual = 0;
     real sqr_primal_residual = 0;
     for (auto& c : g.constraints_) {
@@ -99,7 +98,7 @@ void step() {
     }
 
     // z_i step:
-    for (idx iV = 0; iV < X.cols(); ++iV) {
+    for (idx iV = 0; iV < nV; ++iV) {
       g.vertices_.col(iV) /= w(iV);
     }
 
@@ -133,7 +132,8 @@ void step() {
     c->EndStep();
   }
 
-  g.velocities_ = (g.vertices_ - X) / 0.01;
+  g.velocities_ = (g.vertices_ - g.last_vertices_) / g.dt_;
+  std::cout << g.velocities_.rowwise().sum() << std::endl;
 }
 
 void ui_callback(gl::UiRenderEvent const&) {
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
   g.vertices_.col(2).setUnit(2);
   g.velocities_.setZero(3, g.vertices_.cols());
   g.ext_accel_ = g.velocities_;
-  g.velocities_.col(3) = 0.3 * math::vec3r::Ones();
+  g.velocities_.col(3) = math::vec3r::Ones();
   g.mass_.setConstant(1, g.vertices_.cols(), 1.0);
 
   math::field2i edges(2, 3);
@@ -171,18 +171,17 @@ int main(int argc, char** argv) {
   sp->SetSprings(edges, math::field1r::Constant(1, 3, 1e5));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  g.dt_ = 5e-3;
+  g.dt_ = 3e-3;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  math::field1i hard_indices(1, 1);
-  hard_indices << 0;
-  hard->SetHard(hard_indices);
+  // auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
+  // math::field1i hard_indices(1, 1);
+  // hard_indices << 0;
+  // hard->SetHard(hard_indices);
 
   g.faces_.emplace_back(0, 1, 2);
-
 
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());

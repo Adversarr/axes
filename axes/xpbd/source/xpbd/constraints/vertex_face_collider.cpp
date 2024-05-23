@@ -13,6 +13,7 @@ void Constraint_VertexFaceCollider::BeginStep() {
   collidings_.clear();
   colliding_vertices_.clear();
   origin_.clear();
+  global_to_local_.clear();
   this->constrained_vertices_ids_.clear();
   this->constrained_vertices_position_.clear();
   this->constraint_mapping_.clear();
@@ -30,17 +31,12 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
   // k/2(|| Dx || - d)^2 + rho/2 ||x-z+u||^2
   // first, test if there is a collision currently.
   // if there is, then we need to solve the problem.
-  m4 expect;
   m34 const zu = z - u;
-  expect.topRows<3>() = z - u;
-  expect.bottomRows<1>().setOnes();
-
-  m4 origin;
-  origin.topRows<3>() = o;
-  origin.bottomRows<1>().setOnes();
-  real det_expect = expect.determinant(), det_origin = origin.determinant();
-  std::cout << "det_expect: " << det_expect << " det_origin: " << det_origin << std::endl;
-  if (det_expect * det_origin > 0) {
+  real signed_dist_original = math::dot(o.col(0) - o.col(1), math::normalized(math::cross(o.col(2) - o.col(1), o.col(3) - o.col(1))));
+  real signed_dist_expect = math::dot(zu.col(0)-zu.col(1), math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1))));
+  real distance = signed_dist_original > 0 ? signed_dist_expect : -signed_dist_expect;
+  std::cout << "det_expect: " << signed_dist_expect << " det_origin: " << signed_dist_original << std::endl;
+  if (distance > tol) {
     x = zu;
     return false;
   }
@@ -50,7 +46,7 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
   math::vec3r center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
   real c = math::dot(normal, center);
   real e = math::dot(normal, zu.col(0)) - c;
-  if (e > 0) {
+  if (e < 0) {
     normal = -normal;
     c = -c;
     e = -e;
@@ -65,18 +61,18 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
   }
 
   // step 2: solve vertex.
-  real l = (k * tol + rho * e) / (k + rho);
+  real l = (k * -tol + rho * e) / (k + rho);
   if (l < 0) {
     // We need to enforce the constraint strictly, l >= 0.
-    // (k t + r e) > 0 => k >= -r e / t
-    k = -4 * (rho * e / tol);
-    l = (k * tol + rho * e) / (k + rho);
+    // (k * (-t) + r e) > 0 => k >= r e / t
+    k = 4 * (rho * e / tol);
+    l = (k * -tol + rho * e) / (k + rho);
   }
 
-  x.col(0) += l * normal;
-  x.col(1) -= l * normal / 3;
-  x.col(2) -= l * normal / 3;
-  x.col(3) -= l * normal / 3;
+  x.col(0) -= l * normal;
+  x.col(1) += l * normal / 3;
+  x.col(2) += l * normal / 3;
+  x.col(3) += l * normal / 3;
   return true;
 }
 
@@ -118,7 +114,7 @@ real Constraint_VertexFaceCollider::UpdateDuality() {
     math::matr<3, 4> z, du;
     for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
     du = d - z;
-    gap_[i] += du;
+    // gap_[i] += du;
   }
   return sqr_prim_res;
 }
@@ -147,15 +143,23 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   // Current implementation is brute force.
   for (idx i : utils::iota(g.vertices_.cols())) {
     for (auto [j, f] : utils::enumerate(g.faces_)) {
-      auto const& x = g.vertices_.col(i);
-      auto const& fx = g.vertices_.col(f.x());
-      auto const& fy = g.vertices_.col(f.y());
-      auto const& fz = g.vertices_.col(f.z());
+      auto const& x0 = g.last_vertices_.col(i);
+      auto const& fx0 = g.last_vertices_.col(f.x());
+      auto const& fy0 = g.last_vertices_.col(f.y());
+      auto const& fz0 = g.last_vertices_.col(f.z());
+      auto const& x1 = g.vertices_.col(i);
+      auto const& fx1 = g.vertices_.col(f.x());
+      auto const& fy1 = g.vertices_.col(f.y());
+      auto const& fz1 = g.vertices_.col(f.z());
 
       if (i == f.x() || i == f.y() || i == f.z()) continue;
 
-      auto info = detect_vertex_face(CollidableVertex(i, Vertex3{x}),
-                                     CollidableTriangle(j, Triangle3{fx, fy, fz}), 0.01);
+      // auto info = detect_vertex_face(CollidableVertex(i, Vertex3{x}),
+      //                                CollidableTriangle(j, Triangle3{fx, fy, fz}), 2 * tol_);
+      auto info
+          = detect_vertex_face(CollidableVertex(i, Vertex3{x0}), CollidableVertex(i, Vertex3{x1}),
+                               CollidableTriangle(j, Triangle3{fx0, fy0, fz0}),
+                               CollidableTriangle(j, Triangle3{fx1, fy1, fz1}), 2 * tol_);
 
       if (info) {
         // has new collide.
@@ -171,20 +175,27 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   if (new_collisions.size() > 0) {
     for (auto v : new_colliding_vertices) {
       this->constrained_vertices_ids_.push_back(v);
+      global_to_local_[v] = GetNumConstrainedVertices() - 1;
       this->constrained_vertices_position_.push_back(g.vertices_.col(v));
     }
 
     for (auto const& c : new_collisions) {
       auto f = g.faces_[c.vf_face_];
-      this->constraint_mapping_.emplace_back(c.vf_vertex_, f.x(), f.y(), f.z());
+      this->constraint_mapping_.emplace_back(global_to_local_[c.vf_vertex_],
+                                             global_to_local_[f.x()],
+                                             global_to_local_[f.y()],
+                                             global_to_local_[f.z()]);
       auto& di = dual_.emplace_back();
+      auto& actual = gap_.emplace_back();
       di.col(0) = g.last_vertices_.col(c.vf_vertex_);
+      actual.col(0) = g.vertices_.col(c.vf_vertex_) - g.last_vertices_.col(c.vf_vertex_);
       for (auto [i, v] : utils::enumerate(f)) {
         di.col(i + 1) = g.last_vertices_.col(v);
+        actual.col(i + 1) = g.vertices_.col(v) - g.last_vertices_.col(v);
       }
 
       origin_.emplace_back(di);
-      gap_.emplace_back().setZero();
+
       stiffness_.push_back(initial_rho_);
       rho_.push_back(initial_rho_);
     }

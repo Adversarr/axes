@@ -29,67 +29,46 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(CollidableVertex
                                                                 CollidableTriangle const& b0,
                                                                 CollidableTriangle const& b1,
                                                                 real tol) {
-  math::vec3r x10 = b0->B() - b0->A();
-  math::vec3r x20 = b0->C() - b0->A();
-  math::vec3r v_relative_start = a0->Position() - b0->A();
-  math::vec3r y10 = b1->B() - b1->A();
-  math::vec3r y20 = b1->C() - b1->A();
-  math::vec3r v_relative_end = a1->Position() - b1->A();
-
-  auto a11 = x10.x();
-  auto a12 = x10.y();
-  auto a13 = x10.z();
-  auto b11 = x20.x();
-  auto b12 = x20.y();
-  auto b13 = x20.z();
-  auto c11 = v_relative_start.x();
-  auto c12 = v_relative_start.y();
-  auto c13 = v_relative_start.z();
-  auto a21 = y10.x();
-  auto a22 = y10.y();
-  auto a23 = y10.z();
-  auto b21 = y20.x();
-  auto b22 = y20.y();
-  auto b23 = y20.z();
-  auto c21 = v_relative_end.x();
-  auto c22 = v_relative_end.y();
-  auto c23 = v_relative_end.z();
-
-  real k1 = a22 * b23 * c21 - a21 * b23 * c22 + a23 * (-(b22 * c21) + b21 * c22) - a22 * b21 * c23
-            + a21 * b22 * c23;
-  real k2 = a22 * b23 * c11 + b23 * (-(a21 * c12) + a12 * c21 - a11 * c22 + 3 * a21 * c22)
-            + a23 * (-(b12 * c21) + b22 * (-c11 + 3 * c21) + b21 * (c12 - 3 * c22) + b11 * c22)
-            + b22 * (-(a13 * c21) + a21 * (c13 - 3 * c23) + a11 * c23)
-            + b21 * (a13 * c22 - a12 * c23) + a21 * (-(b13 * c22) + b12 * c23)
-            + a22 * (b13 * c21 - 3 * b23 * c21 - b11 * c23 + b21 * (-c13 + 3 * c23));
-
-  real k3 = ((-a13) * b22 + a22 * (b13 - 2 * b23) + a12 * b23) * c11
-            + b23 * ((-a11 + 2 * a21) * c12 + 2 * a11 * c22 - 3 * a21 * c22)
-            + b13 * ((-a21) * c12 + a12 * c21 - a11 * c22 + 2 * a21 * c22)
-            + a13 * (b21 * c12 + 2 * b22 * c21 + b11 * c22 - 2 * b21 * c22)
-            + a23
-                  * (2 * b22 * c11 - 2 * b21 * c12 - 3 * b22 * c21 + b12 * (-c11 + 2 * c21)
-                     + b11 * (c12 - 2 * c22) + 3 * b21 * c22)
-            + b12 * ((-a13) * c21 + a21 * (c13 - 2 * c23) + a11 * c23)
-            + a22
-                  * (-2 * b13 * c21 + 3 * b23 * c21 + b21 * (2 * c13 - 3 * c23)
-                     + b11 * (-c13 + 2 * c23))
-            + a12 * (-2 * b23 * c21 - b11 * c23 + b21 * (-c13 + 2 * c23))
-            + b22 * (a11 * (c13 - 2 * c23) + a21 * (-2 * c13 + 3 * c23));
-  real k4 = (-(a22 * b13) - a23 * b22 + a12 * (b13 - b23) + a22 * b23) * c11
-            + b13 * ((-a11 + a21) * c12 + a22 * c21 + a11 * c22 - a21 * c22)
-            + b23 * ((a11 - a21) * c12 - a11 * c22 + a21 * c22)
-            + a13
-                  * (b22 * c11 - b21 * c12 - b22 * c21 + b12 * (-c11 + c21) + b11 * (c12 - c22)
-                     + b21 * c22)
-            + a23 * (b21 * c12 + b22 * c21 - b21 * c22 + b11 * (-c12 + c22))
-            + b22 * (a21 * (c13 - c23) + a11 * (-c13 + c23))
-            + b12 * (a23 * c11 - a23 * c21 + a11 * (c13 - c23) + a21 * (-c13 + c23))
-            + a12 * (-(b13 * c21) + b23 * c21 + b21 * (c13 - c23) + b11 * (-c13 + c23))
-            + a22 * (-(b23 * c21) + b11 * (c13 - c23) + b21 * (-c13 + c23));
-
-  auto toi = math::solve_cubic(k4, k3, k2, k1, 0, 1, tol, 32);
+  if (auto info = detect_vertex_face(a0, b0, tol, 0)) {
+    return info;
+  } else if (auto info = detect_vertex_face(a1, b1, tol, 1)) {
+    return info;
+  }
+  math::vec3r const abc = b0->A() - a0->Position();
+  math::vec3r const ABC = b1->A() - a1->Position();
+  math::vec3r const def = b0->B() - a0->Position();
+  math::vec3r const DEF = b1->B() - a1->Position();
+  math::vec3r const ghi = b0->C() - a0->Position();
+  math::vec3r const GHI = b1->C() - a1->Position();
+  real const a = abc[0], b = abc[1], c = abc[2], A = ABC[0], B = ABC[1], C = ABC[2];
+  real const d = def[0], e = def[1], f = def[2], D = DEF[0], E = DEF[1], F = DEF[2];
+  real const g = ghi[0], h = ghi[1], i = ghi[2], G = GHI[0], H = GHI[1], I = GHI[2];
+  real const k4
+      = (A * E * I - A * E * i - A * F * H + A * F * h + A * H * f - A * I * e + A * e * i
+         - A * f * h - B * D * I + B * D * i + B * F * G - B * F * g - B * G * f + B * I * d
+         - B * d * i + B * f * g + C * D * H - C * D * h - C * E * G + C * E * g + C * G * e
+         - C * H * d + C * d * h - C * e * g - D * H * c + D * I * b - D * b * i + D * c * h
+         + E * G * c - E * I * a + E * a * i - E * c * g - F * G * b + F * H * a - F * a * h
+         + F * b * g + G * b * f - G * c * e - H * a * f + H * c * d + I * a * e - I * b * d
+         - a * e * i + a * f * h + b * d * i - b * f * g - c * d * h + c * e * g);
+  real const k3
+      = (A * E * i - A * F * h - A * H * f + A * I * e - 2 * A * e * i + 2 * A * f * h - B * D * i
+         + B * F * g + B * G * f - B * I * d + 2 * B * d * i - 2 * B * f * g + C * D * h - C * E * g
+         - C * G * e + C * H * d - 2 * C * d * h + 2 * C * e * g + D * H * c - D * I * b
+         + 2 * D * b * i - 2 * D * c * h - E * G * c + E * I * a - 2 * E * a * i + 2 * E * c * g
+         + F * G * b - F * H * a + 2 * F * a * h - 2 * F * b * g - 2 * G * b * f + 2 * G * c * e
+         + 2 * H * a * f - 2 * H * c * d - 2 * I * a * e + 2 * I * b * d + 3 * a * e * i
+         - 3 * a * f * h - 3 * b * d * i + 3 * b * f * g + 3 * c * d * h - 3 * c * e * g);
+  real const k2 = (A * e * i - A * f * h - B * d * i + B * f * g + C * d * h - C * e * g - D * b * i
+                   + D * c * h + E * a * i - E * c * g - F * a * h + F * b * g + G * b * f
+                   - G * c * e - H * a * f + H * c * d + I * a * e - I * b * d - 3 * a * e * i
+                   + 3 * a * f * h + 3 * b * d * i - 3 * b * f * g - 3 * c * d * h + 3 * c * e * g);
+  real const k1 = a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
+  auto toi = math::solve_cubic(k4, k3, k2, k1, 0, 1, tol * tol, 32);
+  std::cout << "k4: " << k4 << " k3: " << k3 << " k2: " << k2 << " k1: " << k1 << std::endl;
+  std::cout << toi.degree_ << " " << toi.root_[0] << " " << toi.root_[1] << " " << toi.root_[2] << std::endl;
   for (idx i = 0; i < 3; ++i) {
+    std::cout << toi.root_[i] << " " << toi.valid_[i] << std::endl;
     if (!toi.valid_[i]) continue;
     real t = toi.root_[i];
     Vertex3 a{math::lerp(a0->Position(), a1->Position(), t)};

@@ -148,10 +148,10 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);
-      auto color_offset = mesh.instance_color_.col(i);
       instance.position_offset_
           = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
       if (i < mesh.instance_color_.cols()) {
+        auto color_offset = mesh.instance_color_.col(i);
         instance.color_offset_
             = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
       } else {

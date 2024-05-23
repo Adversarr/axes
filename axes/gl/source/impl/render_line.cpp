@@ -99,7 +99,7 @@ LineRenderer::~LineRenderer() {
 LineRenderData::LineRenderData(const Lines& lines) {
   use_global_model_ = lines.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
-  vertices_.reserve(lines.vertices_.size());
+  vertices_.reserve(lines.vertices_.cols());
   for (idx i = 0; i < lines.vertices_.cols(); i++) {
     LineRenderVertexData vertex;
     auto position = lines.vertices_.col(i);
@@ -110,7 +110,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
     vertices_.push_back(vertex);
   }
 
-  indices_.reserve(lines.indices_.size());
+  indices_.reserve(lines.indices_.cols());
   for (idx i = 0; i < lines.indices_.cols(); i++) {
     auto index = lines.indices_.col(i);
     indices_.push_back(math::cast<ui32>(index.x()));

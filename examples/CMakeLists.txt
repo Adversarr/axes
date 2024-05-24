@@ -20,6 +20,7 @@ axes_add_example(cubic_solver "axes_core")
 axes_add_example(springs "axes_graph")
 axes_add_example(cadmm "axes_gl;axes_xpbd")
 axes_add_example(tet_cadmm "axes_gl;axes_xpbd")
+axes_add_example(admm_sph "axes_gl;axes_xpbd")
 axes_add_example(graph "axes_graph")
 
 # Homework for DGP

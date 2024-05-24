@@ -9,6 +9,8 @@
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/math/common.hpp"
+#include "ax/math/io.hpp"
+#include "ax/utils/asset.hpp"
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
@@ -138,7 +140,7 @@ void ui_callback(gl::UiRenderEvent const&) {
     step();
     auto end_time = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - begin_time);
-    std::cout << "Elapsed time: " << elapsed.count() << " ms" << std::endl;
+    std::cout << "Elapsed time: " << elapsed.count() / 1000.0 << " ms" << std::endl;
     update_rendering();
   }
 
@@ -154,25 +156,23 @@ int main(int argc, char** argv) {
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
   auto* sp = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
   int ndiv = absl::GetFlag(FLAGS_nx);
-  auto cube = geo::tet_cube(0.5, ndiv, ndiv, ndiv);
+  // auto cube = geo::tet_cube(0.5, ndiv, ndiv, ndiv);
+  auto cube = geo::TetraMesh();
+  cube.vertices_ = math::read_npy_v10_real(utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy")).transpose();
+  cube.indices_ = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/beam_mid_res_elements.npy")).transpose();
   auto const& vertices = cube.vertices_;
   g.vertices_ = vertices;
+  g.vertices_.row(1).array() += 1;
   g.velocities_.setZero(3, vertices.cols());
   g.ext_accel_ = g.velocities_;
   g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, vertices.cols(), 1.0);
+  g.mass_.setConstant(1, vertices.cols(), 1e-3);
   math::field1r stiff;
-  stiff.setConstant(1, cube.indices_.size(), 3e4);
+  stiff.setConstant(1, cube.indices_.size(), 3e5);
   sp->SetTetrahedrons(cube.indices_, stiff);
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  // auto* hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  // math::field1i indices_hard(1, 2);
-  // indices_hard(0, 0) = 0;
-  // indices_hard(0, 1) = ndiv - 1;
-  // hard->SetHard(indices_hard);
-
+ 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   sc = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   g.dt_ = 1e-2;

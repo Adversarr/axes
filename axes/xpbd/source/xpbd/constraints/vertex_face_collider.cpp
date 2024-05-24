@@ -8,6 +8,8 @@ namespace ax::xpbd {
 using namespace geo;
 
 void Constraint_VertexFaceCollider::BeginStep() {
+  auto &g = ensure_server();
+  initial_rho_ = 0.1 / (tol_ * tol_);
   gap_.clear();
   dual_.clear();
   collidings_.clear();
@@ -91,23 +93,21 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
   ConstraintSolution sol(nV);
   for (auto i : utils::iota(nC)) {
     auto C = constraint_mapping_[i];
-    auto& z = dual_[i];
+    m34 dual_old = dual_[i];
+    auto& x = dual_[i];
     auto & u = gap_[i];
     real& k = stiffness_[i];
-    real const k_old = k;
     real& rho = rho_[i];
-    math::matr<3, 4> x;
-    for (idx i = 0; i < 4; ++i) x.col(i) = this->constrained_vertices_position_[C[i]];
-    bool has_collide = relax(x, u, origin_[i], z, rho_[i], k, tol_);
-    if (has_collide) {
-      rho *= ratio_ * k / k_old;
-      u /= ratio_ * k / k_old;
-    }
-    std::cout << "iter: " << iteration_ << "k: " << k << "rho: " << rho << std::endl;
+    m34 z;
+    for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
+    relax(z, u, origin_[i], x, rho_[i], k, tol_);
+    rho *= ratio_;
+    u /= ratio_;
     for (idx i = 0; i < 4; ++i) {
-      sol.weighted_position_.col(C[i]) += (z.col(i) + u.col(i)) * rho;
+      sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
       sol.weights_[C[i]] += rho;
     }
+    sol.sqr_dual_residual_ += (x - dual_old).squaredNorm();
   }
 
   iteration_ += 1;
@@ -124,6 +124,7 @@ real Constraint_VertexFaceCollider::UpdateDuality() {
     for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
     du = d - z;
     gap_[i] += du;
+    sqr_prim_res += du.squaredNorm();
   }
   return sqr_prim_res;
 }

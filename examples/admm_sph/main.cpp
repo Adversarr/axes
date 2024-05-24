@@ -110,6 +110,22 @@ void step() {
       AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown")
                    << " R_prim^2=" << sqr_primal_residual_c;
     }
+
+    // real scale = 1.0;
+    // real dual_residual = std::sqrt(sqr_dual_residual);
+    // real primal_residual = std::sqrt(sqr_primal_residual);
+    // if (primal_residual > dual_residual * g.primal_dual_threshold_) {
+    //   scale = g.primal_dual_ratio_;
+    // } else if (dual_residual > primal_residual * g.dual_primal_threshold_) {
+    //   scale = 1.0 / g.dual_primal_ratio_;
+    // }
+    // if (scale != 1.0) {
+    //   for (auto& c : g.constraints_) {
+    //     c->UpdateRhoConsensus(scale);
+    //   }
+    // }
+    // AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
+    //                 << dual_residual;
   }
 
   for (auto& c : g.constraints_) {
@@ -127,12 +143,7 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::Checkbox("Running", &running);
   ImGui::InputInt("Iterations", &n_iter);
   if (ImGui::Button("Run Once") || running) {
-    
-    auto begin_time = std::chrono::high_resolution_clock::now();
     step();
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - begin_time);
-    std::cout << "Elapsed time: " << elapsed.count() / 1000.0 << " ms" << std::endl;
     update_rendering();
   }
   ImGui::End();
@@ -150,7 +161,7 @@ int main(int argc, char** argv) {
 
   plane.vertices_.row(2) = plane.vertices_.row(1);
   plane.vertices_.row(1).setZero();
-  idx nB = nx * nx;
+  idx nB = nx * 3;
   idx nV = plane.vertices_.cols() + nB;
 
   g.vertices_.setZero(3, nV);
@@ -158,18 +169,18 @@ int main(int argc, char** argv) {
   // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
   g.vertices_.rightCols(nB).setRandom();
   g.vertices_.rightCols(nB) *= 0.3;
-  g.vertices_.rightCols(nB).row(1).setConstant(3);
+  g.vertices_.rightCols(nB).row(1).setConstant(1);
 
   g.velocities_.setZero(3, g.vertices_.cols());
   g.ext_accel_ = g.velocities_;
   g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, g.vertices_.cols(), 1e-2);
+  g.mass_.setConstant(1, g.vertices_.cols(), 0.1);
 
   math::field2i edges = geo::get_edges(plane.indices_);
-  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e4));
+  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e3));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  g.dt_ = 1e-2;
+  g.dt_ = 3e-3;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 

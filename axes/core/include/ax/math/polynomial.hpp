@@ -62,6 +62,7 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
     info.valid_[0] = i1.valid_[0];
     info.root_[0] = i1.root_[0];
     info.degree_ = i1.degree_;
+    return info;
   }
 
   info.degree_ = 2;

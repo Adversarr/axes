@@ -111,21 +111,21 @@ void step() {
                    << " R_prim^2=" << sqr_primal_residual_c;
     }
 
-    real scale = 1.0;
-    real dual_residual = std::sqrt(sqr_dual_residual);
-    real primal_residual = std::sqrt(sqr_primal_residual);
-    if (primal_residual > dual_residual * g.primal_dual_threshold_) {
-      scale = g.primal_dual_ratio_;
-    } else if (dual_residual > primal_residual * g.dual_primal_threshold_) {
-      scale = 1.0 / g.dual_primal_ratio_;
-    }
-    if (scale != 1.0) {
-      for (auto& c : g.constraints_) {
-        c->UpdateRhoConsensus(scale);
-      }
-    }
-    AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
-                    << dual_residual;
+    // real scale = 1.0;
+    // real dual_residual = std::sqrt(sqr_dual_residual);
+    // real primal_residual = std::sqrt(sqr_primal_residual);
+    // if (primal_residual > dual_residual * g.primal_dual_threshold_) {
+    //   scale = g.primal_dual_ratio_;
+    // } else if (dual_residual > primal_residual * g.dual_primal_threshold_) {
+    //   scale = 1.0 / g.dual_primal_ratio_;
+    // }
+    // if (scale != 1.0) {
+    //   for (auto& c : g.constraints_) {
+    //     c->UpdateRhoConsensus(scale);
+    //   }
+    // }
+    // AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
+    //                 << dual_residual;
   }
 
   for (auto& c : g.constraints_) {
@@ -133,7 +133,7 @@ void step() {
   }
 
   g.velocities_ = (g.vertices_ - g.last_vertices_) / g.dt_;
-  std::cout << g.velocities_.rowwise().sum() << std::endl;
+  // std::cout << g.velocities_.rowwise().sum() << std::endl;
 }
 
 void ui_callback(gl::UiRenderEvent const&) {
@@ -156,19 +156,28 @@ int main(int argc, char** argv) {
   auto& g = xpbd::ensure_server();
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
+  idx nx = absl::GetFlag(FLAGS_nx);
+  auto plane = geo::plane(0.5, 0.5, nx, nx);
 
-  g.vertices_.setZero(3, 4);
-  g.vertices_.col(0).setUnit(0);
-  g.vertices_.col(1).setUnit(1);
-  g.vertices_.col(2).setUnit(2);
+  plane.vertices_.row(2) = plane.vertices_.row(1);
+  plane.vertices_.row(1).setZero();
+  idx nB = nx * 3;
+  idx nV = plane.vertices_.cols() + nB;
+
+  g.vertices_.setZero(3, nV);
+  g.vertices_.block(0, 0, 3, plane.vertices_.cols()) = plane.vertices_;
+  // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
+  g.vertices_.rightCols(nB).setRandom();
+  g.vertices_.rightCols(nB) *= 0.3;
+  g.vertices_.rightCols(nB).row(1).setConstant(1);
+
   g.velocities_.setZero(3, g.vertices_.cols());
   g.ext_accel_ = g.velocities_;
-  g.velocities_.col(3) = math::vec3r::Ones();
-  g.mass_.setConstant(1, g.vertices_.cols(), 1.0);
+  g.ext_accel_.row(1).setConstant(-9.8);
+  g.mass_.setConstant(1, g.vertices_.cols(), 0.1);
 
-  math::field2i edges(2, 3);
-  edges << 0, 1, 2, 1, 2, 0;
-  sp->SetSprings(edges, math::field1r::Constant(1, 3, 1e5));
+  math::field2i edges = geo::get_edges(plane.indices_);
+  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e3));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
   g.dt_ = 3e-3;
@@ -176,12 +185,15 @@ int main(int argc, char** argv) {
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  // auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  // math::field1i hard_indices(1, 1);
-  // hard_indices << 0;
-  // hard->SetHard(hard_indices);
+  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
+  math::field1i hard_indices = math::field1i::Zero(1, 4);
+  idx cnt = 0;
+  hard_indices << 0, nx, nx * (nx + 1), nx * nx + 2 * nx;
+  hard->SetHard(hard_indices);
 
-  g.faces_.emplace_back(0, 1, 2);
+  for (auto const& t: math::each(plane.indices_)) {
+    g.faces_.push_back(t);
+  }
 
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());

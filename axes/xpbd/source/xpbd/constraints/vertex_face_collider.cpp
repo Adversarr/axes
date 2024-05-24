@@ -32,14 +32,6 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
   // first, test if there is a collision currently.
   // if there is, then we need to solve the problem.
   m34 const zu = z - u;
-  real signed_dist_original = math::dot(o.col(0) - o.col(1), math::normalized(math::cross(o.col(2) - o.col(1), o.col(3) - o.col(1))));
-  real signed_dist_expect = math::dot(zu.col(0)-zu.col(1), math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1))));
-  real distance = signed_dist_original > 0 ? signed_dist_expect : -signed_dist_expect;
-  std::cout << "det_expect: " << signed_dist_expect << " det_origin: " << signed_dist_original << std::endl;
-  if (distance > tol) {
-    x = zu;
-    return false;
-  }
   // there exist the collision.
   // step 1: find the seperating plane.
   math::vec3r normal = math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1)));
@@ -52,6 +44,7 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
     e = -e;
   }
 
+  real x0c = math::dot(normal, o.col(0)) - c;
   // project to the plane.
   auto proj = [&](math::vec3r const& p) -> math::vec3r {
     return p - math::dot(normal, p - center) * normal;
@@ -60,19 +53,34 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
     x.col(i) = proj(zu.col(i));
   }
 
-  // step 2: solve vertex.
-  real l = (k * -tol + rho * e) / (k + rho);
-  if (l < 0) {
-    // We need to enforce the constraint strictly, l >= 0.
-    // (k * (-t) + r e) > 0 => k >= r e / t
-    k = 4 * (rho * e / tol);
-    l = (k * -tol + rho * e) / (k + rho);
+  // std::cout << "x0c: " << x0c << std::endl;
+  // std::cout << "e: " << e << std::endl;
+  if (x0c > 0) {
+    // step 2: solve edge.
+    if (e >= tol - math::epsilon<>) {
+      x = zu;
+      return false;
+    }
+    real l = (k * tol + rho * e) / (k + rho);
+    x.col(0) += l * normal;
+    x.col(1) -= l * normal / 3;
+    x.col(2) -= l * normal / 3;
+    x.col(3) -= l * normal / 3;
+  } else {
+    // step 2: solve vertex.
+    real l = (k * -tol + rho * e) / (k + rho);
+    if (l >= -0.5 * tol) {
+      // We need to enforce the constraint strictly, l <= 0
+      // (k * (-t) + r e) < 0 => k > r e / t
+      k = (rho * e / tol) * 3;
+      l = (k * -tol + rho * e) / (k + rho);
+    }
+  
+    x.col(0) += l * normal;
+    x.col(1) -= l * normal / 3;
+    x.col(2) -= l * normal / 3;
+    x.col(3) -= l * normal / 3;
   }
-
-  x.col(0) -= l * normal;
-  x.col(1) += l * normal / 3;
-  x.col(2) += l * normal / 3;
-  x.col(3) += l * normal / 3;
   return true;
 }
 
@@ -84,17 +92,18 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
   for (auto i : utils::iota(nC)) {
     auto C = constraint_mapping_[i];
     auto& z = dual_[i];
-    auto const& u = gap_[i];
+    auto & u = gap_[i];
     real& k = stiffness_[i];
+    real const k_old = k;
     real& rho = rho_[i];
     math::matr<3, 4> x;
     for (idx i = 0; i < 4; ++i) x.col(i) = this->constrained_vertices_position_[C[i]];
     bool has_collide = relax(x, u, origin_[i], z, rho_[i], k, tol_);
-    rho = k;
     if (has_collide) {
-      std::cout << "Still collide, " << iteration_ << " " << i << std::endl;
+      rho *= ratio_ * k / k_old;
+      u /= ratio_ * k / k_old;
     }
-
+    std::cout << "iter: " << iteration_ << "k: " << k << "rho: " << rho << std::endl;
     for (idx i = 0; i < 4; ++i) {
       sol.weighted_position_.col(C[i]) += (z.col(i) + u.col(i)) * rho;
       sol.weights_[C[i]] += rho;
@@ -114,7 +123,7 @@ real Constraint_VertexFaceCollider::UpdateDuality() {
     math::matr<3, 4> z, du;
     for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
     du = d - z;
-    // gap_[i] += du;
+    gap_[i] += du;
   }
   return sqr_prim_res;
 }
@@ -154,8 +163,6 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
 
       if (i == f.x() || i == f.y() || i == f.z()) continue;
 
-      // auto info = detect_vertex_face(CollidableVertex(i, Vertex3{x}),
-      //                                CollidableTriangle(j, Triangle3{fx, fy, fz}), 2 * tol_);
       auto info
           = detect_vertex_face(CollidableVertex(i, Vertex3{x0}), CollidableVertex(i, Vertex3{x1}),
                                CollidableTriangle(j, Triangle3{fx0, fy0, fz0}),

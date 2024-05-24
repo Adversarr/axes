@@ -65,10 +65,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(CollidableVertex
                    + 3 * a * f * h + 3 * b * d * i - 3 * b * f * g - 3 * c * d * h + 3 * c * e * g);
   real const k1 = a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
   auto toi = math::solve_cubic(k4, k3, k2, k1, 0, 1, tol * tol, 32);
-  std::cout << "k4: " << k4 << " k3: " << k3 << " k2: " << k2 << " k1: " << k1 << std::endl;
-  std::cout << toi.degree_ << " " << toi.root_[0] << " " << toi.root_[1] << " " << toi.root_[2] << std::endl;
   for (idx i = 0; i < 3; ++i) {
-    std::cout << toi.root_[i] << " " << toi.valid_[i] << std::endl;
     if (!toi.valid_[i]) continue;
     real t = toi.root_[i];
     Vertex3 a{math::lerp(a0->Position(), a1->Position(), t)};

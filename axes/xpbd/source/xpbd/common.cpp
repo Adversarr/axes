@@ -5,6 +5,7 @@
 #include "ax/core/entt.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/constraints/ball_collider.hpp"
+#include "ax/xpbd/constraints/edge_edge_collider.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/plane_collider.hpp"
@@ -34,6 +35,8 @@ UPtr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
       return std::make_unique<Constraint_BallCollider>();
     case ConstraintKind::kVertexFaceCollider:
       return std::make_unique<Constraint_VertexFaceCollider>();
+    case ConstraintKind::kEdgeEdgeCollider:
+      return std::make_unique<Constraint_EdgeEdgeCollider>();
     default:
       return nullptr;
   }

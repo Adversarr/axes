@@ -10,30 +10,6 @@ public:
   ConstraintMap() = default;
   AX_FORCE_INLINE ConstraintMap(math::matxxi const& mat) { *this = mat; }
   AX_FORCE_INLINE ConstraintMap& operator=(ConstraintMap const&) = default;
-
-  template <typename... Args, typename = std::enable_if_t<(std::is_integral_v<std::decay_t<Args>> && ...)>>
-  AX_FORCE_INLINE void emplace_back(Args&&... args) {
-    entries_.push_back(mapping_.size());
-    (mapping_.push_back(static_cast<idx>(args)), ...);
-  }
-
-  template <typename Derived, typename = std::enable_if_t<!std::is_integral_v<Derived>>>
-  AX_FORCE_INLINE void emplace_back(math::MBcr<Derived> v) {
-    static_assert(Derived::ColsAtCompileTime == 1, "Expect a column vector");
-    entries_.push_back(mapping_.size());
-    for (idx i = 0; i < v.rows(); ++i) {
-      mapping_.push_back(v[i]);
-    }
-  }
-
-  AX_FORCE_INLINE void reserve(idx n_constraint, idx n_vertices_per_constraint) {
-    mapping_.reserve(n_constraint * n_vertices_per_constraint);
-    entries_.reserve(n_constraint);
-  }
-
-  AX_FORCE_INLINE std::vector<size_t> const& Entries() const { return entries_; }
-  AX_FORCE_INLINE std::vector<idx> const& Mapping() const { return mapping_; }
-
   struct Visitor {
     AX_FORCE_INLINE Visitor(ConstraintMap& map, idx first, idx last)
         : parent_(map), first_(first), last_(last) {}
@@ -56,6 +32,32 @@ public:
     ConstraintMap& parent_;
     idx first_, last_;
   };
+
+  template <typename... Args,
+            typename = std::enable_if_t<(std::is_integral_v<std::decay_t<Args>> && ...)>>
+  AX_FORCE_INLINE Visitor emplace_back(Args&&... args) {
+    entries_.push_back(mapping_.size());
+    (mapping_.push_back(static_cast<idx>(args)), ...);
+    return back();
+  }
+
+  template <typename Derived, typename = std::enable_if_t<!std::is_integral_v<Derived>>>
+  AX_FORCE_INLINE Visitor emplace_back(math::MBcr<Derived> v) {
+    static_assert(Derived::ColsAtCompileTime == 1, "Expect a column vector");
+    entries_.push_back(mapping_.size());
+    for (idx i = 0; i < v.rows(); ++i) {
+      mapping_.push_back(v[i]);
+    }
+    return back();
+  }
+
+  AX_FORCE_INLINE void reserve(idx n_constraint, idx n_vertices_per_constraint) {
+    mapping_.reserve(n_constraint * n_vertices_per_constraint);
+    entries_.reserve(n_constraint);
+  }
+
+  AX_FORCE_INLINE std::vector<size_t> const& Entries() const { return entries_; }
+  AX_FORCE_INLINE std::vector<idx> const& Mapping() const { return mapping_; }
 
   struct ConstVisitor {
     AX_FORCE_INLINE ConstVisitor(ConstraintMap const& map, idx first, idx last)
@@ -92,6 +94,14 @@ public:
 
   AX_FORCE_INLINE ConstVisitor back() const {
     return ConstVisitor(*this, entries_.empty() ? 0 : entries_.size() - 1, mapping_.size());
+  }
+
+  AX_FORCE_INLINE Visitor front() {
+    return Visitor(*this, 0, entries_.empty() ? 0 : entries_[0]);
+  }
+
+  AX_FORCE_INLINE Visitor back() {
+    return Visitor(*this, entries_.empty() ? 0 : entries_.size() - 1, mapping_.size());
   }
 
   AX_FORCE_INLINE bool empty() const { return entries_.empty(); }

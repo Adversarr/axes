@@ -20,6 +20,7 @@ BOOST_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
                   kPlaneCollider,
                   kBallCollider,
                   kVertexFaceCollider,
+                  kEdgeEdgeCollider,
                   kHard);
 
 struct ConstraintSolution {

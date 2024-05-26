@@ -17,6 +17,7 @@ target_include_directories(axes_xpbd
 target_link_libraries(axes_xpbd
   PUBLIC
     axes_geometry
+    axes_optim
 )
 
 ax_target_apply_flag(axes_xpbd PRIVATE)

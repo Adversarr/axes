@@ -172,7 +172,6 @@ int main(int argc, char** argv) {
   g.dt_ = 1e-2;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
-  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kEdgeEdgeCollider));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
   auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());

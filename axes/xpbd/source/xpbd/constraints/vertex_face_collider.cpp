@@ -8,8 +8,7 @@ namespace ax::xpbd {
 using namespace geo;
 
 void Constraint_VertexFaceCollider::BeginStep() {
-  auto &g = ensure_server();
-  initial_rho_ = 0.1 / (tol_ * tol_);
+  initial_rho_ = 1 / (tol_ * tol_);
   gap_.clear();
   dual_.clear();
   collidings_.clear();
@@ -30,7 +29,8 @@ using m34 = math::matr<3, 4>;
 using m4 = math::matr<4, 4>;
 
 bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, real tol) {
-  // k/2(|| Dx || - d)^2 + rho/2 ||x-z+u||^2
+  // k/2(|| Dx || - d)^2 + rho/2 ||x-(z-u)||^2
+  // What i wish: x - u no collision => instead of solving x, solve x - u ?
   // first, test if there is a collision currently.
   // if there is, then we need to solve the problem.
   m34 const zu = z - u;
@@ -55,8 +55,6 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
     x.col(i) = proj(zu.col(i));
   }
 
-  // std::cout << "x0c: " << x0c << std::endl;
-  // std::cout << "e: " << e << std::endl;
   if (x0c > 0) {
     // step 2: solve edge.
     if (e >= tol - math::epsilon<>) {
@@ -95,7 +93,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     auto C = constraint_mapping_[i];
     m34 dual_old = dual_[i];
     auto& x = dual_[i];
-    auto & u = gap_[i];
+    auto & u = gap_[i]; // u.setZero();
     real& k = stiffness_[i];
     real& rho = rho_[i];
     m34 z;
@@ -103,6 +101,17 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     relax(z, u, origin_[i], x, rho_[i], k, tol_);
     rho *= ratio_;
     u /= ratio_;
+
+
+    // m34 const xu = x + u;
+    // auto vf = detect_vertex_face(CollidableVertex(0, Vertex3{origin_[i].col(0)}),
+    //                               CollidableVertex(0, Vertex3{xu.col(0)}),
+    //                               CollidableTriangle(0, Triangle3{origin_[i].col(1), origin_[i].col(2), origin_[i].col(3)}),
+    //                               CollidableTriangle(0, Triangle3{xu.col(1), xu.col(2), xu.col(3)}), tol_);
+
+    // if (vf) {
+    //   std::cout << "Retrun Value Still have Collision: " << C[0] << " " << C[1] << " " << C[2] << " " << C[3] << std::endl;
+    // }
     for (idx i = 0; i < 4; ++i) {
       sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
       sol.weights_[C[i]] += rho;
@@ -129,7 +138,11 @@ real Constraint_VertexFaceCollider::UpdateDuality() {
   return sqr_prim_res;
 }
 
-void Constraint_VertexFaceCollider::EndStep() {}
+void Constraint_VertexFaceCollider::EndStep() {
+  for (auto [vf, n] : collidings_) {
+    std::cout << "Collision: " << vf.first << " " << vf.second << " " << n << std::endl;
+  }
+}
 
 void Constraint_VertexFaceCollider::UpdateRhoConsensus(real scale) {
   for (auto& r : this->rho_) r *= scale;
@@ -147,6 +160,20 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   auto put_vert = [&](idx v) {
     if (colliding_vertices_.insert(v).second) {
       new_colliding_vertices.push_back(v);
+    }
+  };
+
+  auto put_coll = [this](std::pair<idx, idx> vf) -> bool {
+    auto it = collidings_.find(vf);
+    if (it == collidings_.end()) {
+      collidings_.emplace(vf, 1);
+      return true;
+    } else {
+      // auto i = colliding_map_.at(vf);
+      // rho_[i] *= ratio_;
+      // std::cout << "Update " << i << " " << rho_[i] << std::endl;
+      it->second += 1;
+      return false;
     }
   };
 
@@ -171,7 +198,7 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
 
       if (info) {
         // has new collide.
-        if (collidings_.insert(info).second) {
+        if (put_coll({i, j})) {
           new_collisions.push_back(info);
           put_vert(i);
           for (auto v : f) put_vert(v);
@@ -203,9 +230,9 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
       }
 
       origin_.emplace_back(di);
-
       stiffness_.push_back(initial_rho_);
       rho_.push_back(initial_rho_);
+      colliding_map_[{c.vf_vertex_, c.vf_face_}] = GetNumConstraints() - 1;
     }
   }
 

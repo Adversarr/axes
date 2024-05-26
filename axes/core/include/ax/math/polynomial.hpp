@@ -67,15 +67,15 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
 
   info.degree_ = 2;
   real const discriminant = b * b - 4 * a * c;
-  if (discriminant >= -tol) /* does have real root */ {
-    real const sqrt_discriminant = sqrt(discriminant);
-    if (discriminant <= 0 ||sqrt_discriminant < tol) {
+  if (discriminant >= -tol * tol) /* does have real root */ {
+    if (discriminant <= tol * tol) {
       info.root_[0] = (info.root_[1] = -0.5 * b / a);
       info.valid_[0] = (info.valid_[1] = (lb - tol < info.root_[0] && info.root_[0] < ub + tol));
     } else {
+      real const sqrt_discriminant = sqrt(discriminant);
       info.root_[0] = (-b - sqrt_discriminant) / (2 * a);
       info.valid_[0] = (lb - tol < info.root_[0] && info.root_[0] < ub + tol);
-      idx next = info.valid_[0] ? 1 : 0;
+      idx const next = info.valid_[0] ? 1 : 0;
       info.root_[next] = (-b + sqrt_discriminant) / (2 * a);
       info.valid_[next] = (lb - tol < info.root_[next] && info.root_[next] < ub + tol);
     }

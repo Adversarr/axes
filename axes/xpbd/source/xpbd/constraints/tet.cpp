@@ -138,7 +138,6 @@ void Constraint_Tetra::BeginStep() {
 
 real Constraint_Tetra::UpdateDuality() {
   idx nC = this->GetNumConstraints();
-  auto const& g = ensure_server();
   real sqr_prim_res = 0;
   for (idx i = 0; i < nC; ++i) {
     auto const ij = this->constraint_mapping_[i];
@@ -146,7 +145,7 @@ real Constraint_Tetra::UpdateDuality() {
     auto& gap = gap_[i];
     for (idx j = 0; j <= 3; ++j) {
       idx vi = ij[j];
-      auto const& zi = g.vertices_.col(vi);
+      auto const& zi = constrained_vertices_position_[vi];
       math::vec3r primal_residual = local.col(j) - zi;
       gap.col(j) += primal_residual;
       sqr_prim_res += math::norm2(primal_residual);
@@ -185,13 +184,11 @@ void Constraint_Tetra::SetTetrahedrons(math::fieldi<4> const& tetrahedrons,
     l++;
   }
 
-  // this->constraint_mapping_.resize(dim + 1, nC);
-  // this->constrained_vertices_position_.resize(dim, associated.size());
   for (auto i : utils::iota(nC)) {
     auto const& ij = tetrahedrons.col(i);
     this->constraint_mapping_.emplace_back(ij);
     for (auto j : utils::iota(4)) {
-      idx l = global_to_local[ij(j)];
+      idx l = global_to_local.at(ij(j));
       this->constraint_mapping_[i][j] = l;
     }
     this->rho_.push_back(stiff[i]);

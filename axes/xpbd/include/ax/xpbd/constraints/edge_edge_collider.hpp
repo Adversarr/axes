@@ -16,7 +16,7 @@ public:
   void UpdateRhoConsensus(real scale) override;
   void UpdatePositionConsensus() override;
 
-  real tol_ = 5e-3; ///< Tolerance for the collision detection. cannnot be too small for stability.
+  real tol_ = 1e-2; ///< Tolerance for the collision detection. cannnot be too small for stability.
   List<math::matr<3, 4>> dual_;
   List<math::matr<3, 4>> gap_;
   List<math::matr<3, 4>> origin_;

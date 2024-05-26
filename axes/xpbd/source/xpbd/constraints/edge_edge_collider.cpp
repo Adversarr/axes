@@ -155,8 +155,8 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
 
       auto info
           = detect_edge_edge(CollidableSegment(i, Segment3(e00, e01 - e00)),
-                             CollidableSegment(j, Segment3(e10, e11 - e10)),
                              CollidableSegment(i, Segment3(e00_new, e01_new - e00_new)),
+                             CollidableSegment(j, Segment3(e10, e11 - e10)),
                              CollidableSegment(j, Segment3(e10_new, e11_new - e10_new)), 2 * tol_);
 
       if (info) {
@@ -168,6 +168,11 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
           put_vert(e2.x());
           put_vert(e2.y());
         }
+
+        std::cout << "Collision detected: " << info.ee_a_ << " " << info.ee_b_ << " "
+                  << "e0: " << e1.transpose() << " e1: " << e2.transpose() << std::endl;
+        std::cout << e00.transpose() << ", " << e01.transpose() << ", " << e10.transpose() << ", "
+                  << e11.transpose() << std::endl;
       }
     }
   }
@@ -182,8 +187,8 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
     for (auto const& c : new_collisions) {
       auto e1 = g.edges_[c.ee_a_];
       auto e2 = g.edges_[c.ee_b_];
-      auto m = constraint_mapping_.emplace_back(global_to_local_[e1.x()], global_to_local_[e1.y()],
-                                                global_to_local_[e2.x()], global_to_local_[e2.y()]);
+      constraint_mapping_.emplace_back(global_to_local_[e1.x()], global_to_local_[e1.y()],
+                                       global_to_local_[e2.x()], global_to_local_[e2.y()]);
       auto& di = dual_.emplace_back();
       auto& actual = gap_.emplace_back();
       di.col(0) = g.last_vertices_.col(e1.x());

@@ -46,18 +46,15 @@ ConstraintSolution Constraint_BallCollider::SolveDistributed() {
   ConstraintSolution sol(nC);
 
   for (auto i : utils::iota(nC)) {
-    real rho = this->rho_[i];
+    real& rho = this->rho_[i];
     real& k = stiffness_[i];
-    math::vec3r const& z = this->constrained_vertices_position_[i];
+    math::vec3r const& z = constrained_vertices_position_[i];
     dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, center_, radius_);
-    // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
-    // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
     sol.weighted_position_.col(i) += rho * (gap_[i] + dual_[i]);
     sol.weights_[i] += rho;
   }
 
   iteration_ += 1;
-  for (real& v: this->rho_) v *= 1.1;
   return sol;
 }
 
@@ -79,7 +76,6 @@ real Constraint_BallCollider::UpdateDuality() {
   for (auto i : utils::iota(this->GetNumConstraints())) {
     math::vec3r du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
-    // std::cout << "gap[" << i << "] = " << gap_[i].transpose() << std::endl;
     sqr_prim_res += math::norm2(du);
   }
   return sqr_prim_res;
@@ -110,15 +106,14 @@ void Constraint_BallCollider::UpdatePositionConsensus() {
   }
 
   if (new_vertices.size() > 0) {
-    for (idx i : utils::iota(new_vertices.size())) {
-      idx iV = new_vertices[i];
-      this->constrained_vertices_ids_.push_back(iV);
-      this->constraint_mapping_.emplace_back(iV);
-      this->constrained_vertices_position_.push_back(g.vertices_.col(iV));
+    for (auto [i, iV] : utils::enumerate(new_vertices)) {
+      constrained_vertices_ids_.push_back(iV);
+      constraint_mapping_.emplace_back(iV);
+      constrained_vertices_position_.push_back(g.vertices_.col(iV));
       dual_.push_back(g.vertices_.col(iV));
       gap_.push_back(math::vec3r::Zero());
       stiffness_.push_back(initial_rho_ * g.dt_ * g.dt_);
-      this->rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
+      rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
     }
   }
 

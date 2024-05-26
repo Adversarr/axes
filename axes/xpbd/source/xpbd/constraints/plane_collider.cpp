@@ -37,7 +37,7 @@ ConstraintSolution Constraint_PlaneCollider::SolveDistributed() {
   for (auto i : utils::iota(nC)) {
     real rho = this->rho_[i];
     real& k = stiffness_[i];
-    math::vec3r const& z = this->constrained_vertices_position_[i];
+    math::vec3r const& z = constrained_vertices_position_[i];
     dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, normal_, offset_);
     // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
     // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
@@ -46,7 +46,6 @@ ConstraintSolution Constraint_PlaneCollider::SolveDistributed() {
   }
 
   iteration_ += 1;
-  for (auto& r : this->rho_) r *= 1.1;
   return sol;
 }
 

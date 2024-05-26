@@ -12,6 +12,7 @@
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
+#include "ax/xpbd/constraints/ball_collider.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
@@ -145,6 +146,7 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
+  g.dt_ = 1e-2;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
   idx nx = absl::GetFlag(FLAGS_nx);
@@ -152,35 +154,36 @@ int main(int argc, char** argv) {
 
   plane.vertices_.row(2) = plane.vertices_.row(1);
   plane.vertices_.row(1).setZero();
-  idx nB = nx * nx;
-  idx nV = plane.vertices_.cols() + nB;
+  // idx nB = nx * nx;
+  idx nV = plane.vertices_.cols();
 
   g.vertices_.setZero(3, nV);
   g.vertices_.block(0, 0, 3, plane.vertices_.cols()) = plane.vertices_;
   // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
-  g.vertices_.rightCols(nB).setRandom();
-  g.vertices_.rightCols(nB) *= 0.3;
-  g.vertices_.rightCols(nB).row(1).setConstant(3);
+  // g.vertices_.rightCols(nB).setRandom();
+  // g.vertices_.rightCols(nB) *= 0.3;
+  // g.vertices_.rightCols(nB).row(1).setConstant(3);
 
   g.velocities_.setZero(3, g.vertices_.cols());
   g.ext_accel_ = g.velocities_;
   g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, g.vertices_.cols(), 1e-2);
+  g.mass_.setConstant(1, g.vertices_.cols(), 1e-3);
 
   math::field2i edges = geo::get_edges(plane.indices_);
   sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e4));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  g.dt_ = 1e-2;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
+  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kBallCollider));
+  auto* bc = reinterpret_cast<xpbd::Constraint_BallCollider*>(g.constraints_.back().get());
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  math::field1i hard_indices = math::field1i::Zero(1, 4);
-  idx cnt = 0;
-  hard_indices << 0, nx, nx * (nx + 1), nx * nx + 2 * nx;
-  hard->SetHard(hard_indices);
+  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
+  // auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
+  // math::field1i hard_indices = math::field1i::Zero(1, 4);
+  // idx cnt = 0;
+  // hard_indices << 0, nx, nx * (nx + 1), nx * nx + 2 * nx;
+  // hard->SetHard(hard_indices);
 
   for (auto const& t: math::each(plane.indices_)) {
     g.faces_.push_back(t);

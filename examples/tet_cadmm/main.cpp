@@ -17,6 +17,7 @@
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
+#include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
 
@@ -100,9 +101,10 @@ void step() {
     }
 
     // z_i step:
-    for (idx iV = 0; iV < nV; ++iV) {
-      g.vertices_.col(iV) /= w(iV);
-    }
+    // for (idx iV = 0; iV < nV; ++iV) {
+    //   g.vertices_.col(iV) /= w(iV);
+    // }
+    xpbd::global_step_collision_free(g.vertices_, w);
 
     // y_i step:
     for (auto& c : g.constraints_) {
@@ -146,6 +148,7 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
+  g.dt_ = 3e-3;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
   idx nx = absl::GetFlag(FLAGS_nx);
@@ -171,7 +174,6 @@ int main(int argc, char** argv) {
   sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 3e2));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  g.dt_ = 3e-3;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));

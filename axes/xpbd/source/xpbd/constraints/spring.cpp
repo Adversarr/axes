@@ -55,6 +55,7 @@ ConstraintSolution Constraint_Spring::SolveDistributed() {
 
   const auto& rho = this->rho_;
   real const rg2 = this->rho_global_ * this->rho_global_;
+  real const dt = ensure_server().dt_;
   for (idx i = 0; i < nC; ++i) {
     auto const& ij = this->constraint_mapping_[i];
     idx vi = ij[0], vj = ij[1];
@@ -63,7 +64,7 @@ ConstraintSolution Constraint_Spring::SolveDistributed() {
     z.template head<3>() = vert[vi];
     z.template tail<3>() = vert[vj];
     math::vecr<6> y = gap_.col(i);
-    real k = spring_stiffness_[i];
+    real k = spring_stiffness_[i] * dt * dt;
     real L = spring_length_[i];
     math::vecr<6> relaxed = relax(y, z, rho[i], k, L);
     math::vecr<6> old = dual_.col(i);
@@ -95,7 +96,7 @@ void Constraint_Spring::BeginStep() {
   // this->rho_ = spring_stiffness_;
   this->rho_.resize(nC);
   for (idx i = 0; i < nC; ++i) {
-    this->rho_[i] = spring_stiffness_[i];
+    this->rho_[i] = spring_stiffness_[i] * g.dt_ * g.dt_;
   }
   this->rho_global_ = 1;
   gap_.setZero(3 * 2, nC);

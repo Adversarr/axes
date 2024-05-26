@@ -35,7 +35,7 @@ void Constraint_Hard::BeginStep() {
   idx nV = this->GetNumConstrainedVertices();
   gap_.setZero(3, nV);
   auto const& g = ensure_server();
-  this->rho_.resize(nV, initial_rho_ / (g.dt_ * g.dt_));
+  this->rho_.resize(nV, initial_rho_);
   this->rho_global_ = 1.;
 }
 

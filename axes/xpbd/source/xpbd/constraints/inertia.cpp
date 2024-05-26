@@ -15,7 +15,7 @@ ConstraintSolution Constraint_Inertia::SolveDistributed() {
   const auto& vert = this->constrained_vertices_position_;
   real dt = ensure_server().dt_, rg2 = this->rho_global_ * this->rho_global_;
   for (idx i : utils::iota(nV)) {
-    real const mi = vertex_mass_[i] / (dt * dt);
+    real const mi = vertex_mass_[i];
     auto const& zi = vert[i];
     auto const& yi = gap_.col(i);
     auto const& Y = inertia_position_.col(i);
@@ -53,12 +53,11 @@ void Constraint_Inertia::UpdateRhoConsensus(real scale) {
 void Constraint_Inertia::BeginStep() {
   auto& g = ensure_server();
   idx nV = g.vertices_.cols();
-  real const dt = g.dt_;
 
   this->constrained_vertices_ids_.resize(nV);
   this->rho_.resize(nV);
   for (idx i : utils::iota(nV)) {
-    this->rho_[i] = g.mass_[i] / (dt * dt);
+    this->rho_[i] = g.mass_[i];
     this->constrained_vertices_ids_[i] = i;
   }
   this->UpdatePositionConsensus();

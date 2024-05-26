@@ -201,8 +201,8 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
       actual.col(3) = g.vertices_.col(e2.y()) - g.last_vertices_.col(e2.y());
 
       origin_.emplace_back(di);
-      stiffness_.push_back(initial_rho_);
-      rho_.push_back(initial_rho_);
+      stiffness_.push_back(initial_rho_ * g.dt_ * g.dt_);
+      rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
     }
   }
 

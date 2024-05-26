@@ -104,8 +104,8 @@ void Constraint_PlaneCollider::UpdatePositionConsensus() {
       this->constrained_vertices_position_.push_back(g.vertices_.col(iV));
       dual_.push_back(g.vertices_.col(iV));
       gap_.push_back(math::vec3r::Zero());
-      stiffness_.push_back(initial_rho_);
-      this->rho_.push_back(initial_rho_);
+      stiffness_.push_back(initial_rho_ * g.dt_ * g.dt_);
+      this->rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
     }
   }
 

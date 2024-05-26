@@ -230,8 +230,8 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
       }
 
       origin_.emplace_back(di);
-      stiffness_.push_back(initial_rho_);
-      rho_.push_back(initial_rho_);
+      stiffness_.push_back(initial_rho_ * g.dt_ * g.dt_);
+      rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
       colliding_map_[{c.vf_vertex_, c.vf_face_}] = GetNumConstraints() - 1;
     }
   }

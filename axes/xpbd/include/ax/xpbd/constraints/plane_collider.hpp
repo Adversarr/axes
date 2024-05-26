@@ -24,7 +24,7 @@ public:
   List<math::vec3r> gap_;
   List<real> stiffness_;
   std::set<idx> collidings_;
-  real initial_rho_ = 1e6;
+  real initial_rho_ = 1e2;
   real k = 0;
   idx iteration_ = 0;
 };

@@ -15,6 +15,7 @@
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
+#include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
 
@@ -98,9 +99,10 @@ void step() {
     }
 
     // z_i step:
-    for (idx iV = 0; iV < nV; ++iV) {
-      g.vertices_.col(iV) /= w(iV);
-    }
+    // for (idx iV = 0; iV < nV; ++iV) {
+    //   g.vertices_.col(iV) /= w(iV);
+    // }
+    xpbd::global_step_collision_free(g.vertices_, w);
 
     // y_i step:
     for (auto& c : g.constraints_) {

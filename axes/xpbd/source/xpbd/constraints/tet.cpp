@@ -81,6 +81,7 @@ ConstraintSolution Constraint_Tetra::SolveDistributed() {
     }
   }
 
+  real const dt = ensure_server().dt_;
   real sqr_res = 0;
   for (idx i : utils::iota(nC)) {
     // relax dual
@@ -90,7 +91,7 @@ ConstraintSolution Constraint_Tetra::SolveDistributed() {
     auto const& z = consensus[i];
     auto const& y = x0_[i];
     real rho = this->rho_[i];
-    real k = stiffness_[i];
+    real k = stiffness_[i] * dt * dt;
     real sqr_res_i;
     for (idx iter = 0; iter < substeps_; ++iter) {
       relax_R<3>(cur, y, R);
@@ -126,8 +127,9 @@ void Constraint_Tetra::BeginStep() {
     }
   }
   // this->rho_ = stiffness_;
+  const real dt = ensure_server().dt_;
   for (idx i = 0; i < nC; ++i) {
-    this->rho_[i] = stiffness_[i];
+    this->rho_[i] = stiffness_[i] * dt * dt;
   }
   this->rho_global_ = 1;
   gap_.resize(nC);
@@ -183,7 +185,7 @@ void Constraint_Tetra::SetTetrahedrons(math::fieldi<4> const& tetrahedrons,
     global_to_local[g] = l;
     l++;
   }
-
+  real const dt = ensure_server().dt_;
   for (auto i : utils::iota(nC)) {
     auto const& ij = tetrahedrons.col(i);
     this->constraint_mapping_.emplace_back(ij);
@@ -191,7 +193,7 @@ void Constraint_Tetra::SetTetrahedrons(math::fieldi<4> const& tetrahedrons,
       idx l = global_to_local.at(ij(j));
       this->constraint_mapping_[i][j] = l;
     }
-    this->rho_.push_back(stiff[i]);
+    this->rho_.push_back(stiff[i] * dt * dt);
   }
   stiffness_ = stiff;
 

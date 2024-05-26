@@ -32,6 +32,10 @@ bool time_high_accuracy = false;
 #define LIMITER_TVD 1
 #define LIMITER_TVB 2
 
+#define SCHEME_FINITE_DIFFERENCE 0
+#define SCHEME_FINITE_VOLUME 1
+
+int scheme_type = SCHEME_FINITE_VOLUME;
 int flux_type = GODUNOV_FLUX;
 int limiter_type = LIMITER_NONE;
 
@@ -77,9 +81,17 @@ real lf_flux(real u_l, real u_r) {
   return 0.5 * (f(u_l) + f(u_r)) - 0.5 * lf_alpha * (u_r - u_l);
 }
 
+real lf_finite_difference_flux(real fl, real fr, real u_l, real u_r) {
+  return 0.5 * (fl + fr) - 0.5 * lf_alpha * (u_r - u_l);
+}
+
 real initial_data(real x, real dx) {
   // Integrate[sin x + 1/2 x, x -> x + dx] = cos(x) - cos(x + dx) + 1/4 (x + dx)^2 - 1/4 x^2
-  return (std::cos(x - 0.5 * dx) - std::cos(x + 0.5 * dx)) / dx + 0.5;
+  if (scheme_type == SCHEME_FINITE_VOLUME) {
+    return (std::cos(x - 0.5 * dx) - std::cos(x + 0.5 * dx)) / dx + 0.5;
+  } else {
+    return std::sin(x) + 0.5;
+  }
 }
 
 real cfl() {
@@ -238,7 +250,15 @@ math::field1r rk1(math::field1r const& in, real dt) {
   real dtdx = dt / dx;
   math::field2r u_c;
   if (is_weno) {
-    u_c = reconstruct_3rd_order_weno(in);
+    if (scheme_type == SCHEME_FINITE_VOLUME) {
+      u_c = reconstruct_3rd_order_weno(in);
+    } else {
+      math::field1r fu = in;
+      for (idx i = 0; i < Nx; ++i) {
+        fu(i) = f(in(i));
+      }
+      u_c = reconstruct_3rd_order_weno(fu);
+    }
   } else {
     u_c = reconstruct_3rd_order_direct(in);
     if (limiter_type != LIMITER_NONE) {
@@ -263,15 +283,25 @@ math::field1r rk1(math::field1r const& in, real dt) {
   }
 
   for (idx i = 0; i < Nx; ++i) {
-    real ui_minus = u_c(0, i);
-    real ui_plus = u_c(1, i);
-    real ui_1_minus = u_c(0, (i + Nx - 1) % Nx);
-    real ui_1_plus = u_c(1, (i + Nx - 1) % Nx);
-
-    if (flux_type == LF_FLUX) {
-      out(i) = in(i)-dtdx * (lf_flux(ui_minus, ui_plus) - lf_flux(ui_1_minus, ui_1_plus));
+    if (scheme_type == SCHEME_FINITE_VOLUME) {
+      real ui_minus = u_c(0, i);
+      real ui_plus = u_c(1, i);
+      real ui_1_minus = u_c(0, (i + Nx - 1) % Nx);
+      real ui_1_plus = u_c(1, (i + Nx - 1) % Nx);
+      if (flux_type == LF_FLUX) {
+        out(i) = in(i)-dtdx * (lf_flux(ui_minus, ui_plus) - lf_flux(ui_1_minus, ui_1_plus));
+      } else {
+        out(i)
+            = in(i)-dtdx * (godunuv_flux(ui_minus, ui_plus) - godunuv_flux(ui_1_minus, ui_1_plus));
+      }
     } else {
-      out(i) = in(i)-dtdx * (godunuv_flux(ui_minus, ui_plus) - godunuv_flux(ui_1_minus, ui_1_plus));
+      real fi_minus = u_c(0, i);
+      real fi_plus = u_c(1, i);
+      real fi_1_minus = u_c(0, (i + Nx - 1) % Nx);
+      real fi_1_plus = u_c(1, (i + Nx - 1) % Nx);
+      real ui = in[i], ui_minus = in[(i + Nx - 1) % Nx], ui_plus = in[(i + 1) % Nx];
+      out(i) = in(i)-dtdx * (lf_finite_difference_flux(fi_minus, fi_plus, ui, ui_plus)
+                             - lf_finite_difference_flux(fi_1_minus, fi_1_plus, ui_minus, ui));
     }
   }
   return out;
@@ -292,6 +322,7 @@ ABSL_FLAG(idx, Nt, 100, "Number of time steps");
 ABSL_FLAG(real, T, 1, "Final time");
 ABSL_FLAG(int, flux_type, GODUNOV_FLUX, "Flux type");
 ABSL_FLAG(int, limiter_type, LIMITER_NONE, "Limiter type");
+ABSL_FLAG(int, scheme_type, SCHEME_FINITE_VOLUME, "Scheme type");
 ABSL_FLAG(bool, weno, true, "enable weno");
 ABSL_FLAG(real, M, 1, "M for TVB limiter");
 ABSL_FLAG(bool, time_high_accuracy, false, "Time high accuracy");
@@ -312,6 +343,7 @@ int main(int argc, char** argv) {
 
   limiter_type = absl::GetFlag(FLAGS_limiter_type);
   time_high_accuracy = absl::GetFlag(FLAGS_time_high_accuracy);
+  scheme_type = absl::GetFlag(FLAGS_scheme_type);
   M = absl::GetFlag(FLAGS_M);
   if (limiter_type == LIMITER_NONE) {
     AX_LOG(INFO) << "No limiter";
@@ -320,6 +352,14 @@ int main(int argc, char** argv) {
   } else {
     AX_LOG(INFO) << "Using TVB limiter";
   }
+
+  if (scheme_type == SCHEME_FINITE_VOLUME) {
+    AX_LOG(INFO) << "Using finite volume scheme";
+  } else {
+    scheme_type = SCHEME_FINITE_DIFFERENCE;
+    AX_LOG(INFO) << "Using finite difference scheme";
+  }
+
 
   AX_LOG(INFO) << "Delta x: " << dx;
   AX_LOG(INFO) << "CFL: " << cfl();

@@ -39,4 +39,4 @@ axes_add_example(rom_experimental "axes_fem;axes_graph")
 # Homework for Nonlinear Numerical PDE:
 axes_add_example(char_burgers axes_gl)
 axes_add_example(burgers_godunov axes_gl)
-axes_add_example(burgers_high_order axes_graph)
+axes_add_example(burgers_high_order axes_core)

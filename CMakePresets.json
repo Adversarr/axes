@@ -11,7 +11,7 @@
         "hidden": false,
         "description": "Basic RelWithDebInfo, with nothing special.",
         "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build/RelWithDebInfo",
+        "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "RelWithDebInfo"
         }
@@ -21,7 +21,7 @@
         "hidden": false,
         "description": "Configure for CUDA support.",
         "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build/RelWithDebInfoGpu",
+        "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "RelWithDebInfo",
             "AX_ENABLE_CUDA": "ON"
@@ -32,7 +32,7 @@
         "hidden": false,
         "description": "Basic Debug, with nothing special.",
         "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build/Debug",
+        "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
         }
@@ -42,7 +42,7 @@
         "hidden": false,
         "description": "Configure for CUDA support.",
         "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build/DebugGpu",
+        "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
             "AX_ENABLE_CUDA": "ON"

@@ -8,10 +8,10 @@ bg = get_executable('burgers_high_order')
 accurate = get_executable('char_burgers')
 Nx_list = [10, 20, 40, 80, 160, 320]
 
-T = 0.5
+T = 1.5
 
 for Nx in Nx_list:
-  args = [bg, f"--Nx={Nx}", f'--T={T}']
+  args = [bg, f"--Nx={Nx}", f'--T={T}', '--scheme_type', '0', '--flux_type', '0']
   call(args)
   args = [accurate, f'--alpha=0.5', f'--nx={1+Nx}', '--export', f'--export_file=exact_{Nx}_{int(10*T)}.npy', f'--t={T}']
   call(args)
@@ -21,17 +21,17 @@ l_inf_list = []
 l1_list = []
 for Nx in Nx_list:
   exact = np.load(f'exact_{Nx}_{int(10*T)}.npy')[:, -1]
-  godunov = np.load(f'u{Nx}_{int(10 * T)}.npy')[:, -1]
-  l_inf = np.max(np.abs(godunov - exact))
-  l1 = (np.sum(np.abs(godunov - exact)) / Nx) * 2 * np.pi
+  numerical = np.load(f'u{Nx}_{int(10 * T)}.npy')[:, -1]
+  l_inf = np.max(np.abs(numerical - exact))
+  l1 = (np.sum(np.abs(numerical - exact)) / Nx) * 2 * np.pi
   l_inf_list.append(l_inf)
   l1_list.append(l1)
   plt.figure(dpi=200)
-  plt.plot(np.linspace(0, np.pi * 2, 1+Nx), godunov, label=f'Godunov Nx={Nx}')
+  plt.plot(np.linspace(0, np.pi * 2, 1+Nx), numerical, label=f'Godunov Nx={Nx}')
   # plt.plot(np.linspace(0, np.pi * 2, 1+Nx), exact, label=f'MY EXACT Nx={Nx}')
   plt.plot(np.linspace(0, np.pi * 2, 1+Nx_list[-1]), exact_for_plot, label=f'Exact Nx={Nx}',linestyle= '--')
   plt.legend()
-  plt.title(f'Godunov vs Exact at T={T} $N_x$={Nx}')
+  plt.title(f'Numerical vs Exact at T={T} $N_x$={Nx}')
   plt.annotate(f'$l_\\infty$={l_inf:.1e}', (1, 0), textcoords="offset points", xytext=(0, 10), ha='center')
   plt.annotate(f'$l_1$={l1:.1e}', (1, 0), textcoords="offset points", xytext=(0, 20), ha='center')
   plt.xlabel('x')

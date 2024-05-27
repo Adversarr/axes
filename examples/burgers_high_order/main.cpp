@@ -188,7 +188,7 @@ math::field3r weno_smooth_indicator(math::field1r const& u) {
               + 0.25 * (u_l - u_r) * (u_l - u_r);
     real d2 = 13.0 / 12.0 * (u_c - 2.0 * u_r + u_rr) * (u_c - 2.0 * u_r + u_rr)
               + 0.25 * (3.0 * u_c - 4.0 * u_r + u_rr) * (3.0 * u_c - 4.0 * u_r + u_rr);
-    real eps = 1e-12;
+    real eps = math::epsilon<>;
     real alpha0 = 0.1 / ((d0 + eps) * (d0 + eps));
     real alpha1 = 0.6 / ((d1 + eps) * (d1 + eps));
     real alpha2 = 0.3 / ((d2 + eps) * (d2 + eps));
@@ -245,19 +245,38 @@ math::field2r reconstruct_3rd_order_weno(math::field1r const& in) {
   return out;
 }
 
+math::field1r rk1_fd(math::field1r const& in, real dt) {
+  math::field1r out = in;
+  real dtdx = dt / dx;
+  math::field1r f_minus = in, f_plus= in;
+  for (idx i = 0; i < Nx; ++i) {
+    f_plus[i]  = 0.5 * (f(in[i]) + lf_alpha * in[i]);
+    f_minus[i] = 0.5 * (f(in[i]) - lf_alpha * in[i]);
+  }
+
+  auto fm = reconstruct_3rd_order_weno(f_minus);
+  auto fp = reconstruct_3rd_order_weno(f_plus);
+  math::field1r flux(Nx);
+  for (idx i = 0; i < Nx; ++i) {
+    flux[i] = fm(1, i) + fp(0, i);
+  }
+  for (idx i = 0; i < Nx; ++i) {
+    out[i] = in[i] - dtdx * (flux[i] - flux[(i+Nx-1)%Nx]);
+  }
+  return out;
+}
+
 math::field1r rk1(math::field1r const& in, real dt) {
+  if (scheme_type == SCHEME_FINITE_DIFFERENCE) {
+    return rk1_fd(in, dt);
+  }
+
   math::field1r out = in;
   real dtdx = dt / dx;
   math::field2r u_c;
   if (is_weno) {
     if (scheme_type == SCHEME_FINITE_VOLUME) {
       u_c = reconstruct_3rd_order_weno(in);
-    } else {
-      math::field1r fu = in;
-      for (idx i = 0; i < Nx; ++i) {
-        fu(i) = f(in(i));
-      }
-      u_c = reconstruct_3rd_order_weno(fu);
     }
   } else {
     u_c = reconstruct_3rd_order_direct(in);
@@ -283,25 +302,14 @@ math::field1r rk1(math::field1r const& in, real dt) {
   }
 
   for (idx i = 0; i < Nx; ++i) {
-    if (scheme_type == SCHEME_FINITE_VOLUME) {
-      real ui_minus = u_c(0, i);
-      real ui_plus = u_c(1, i);
-      real ui_1_minus = u_c(0, (i + Nx - 1) % Nx);
-      real ui_1_plus = u_c(1, (i + Nx - 1) % Nx);
-      if (flux_type == LF_FLUX) {
-        out(i) = in(i)-dtdx * (lf_flux(ui_minus, ui_plus) - lf_flux(ui_1_minus, ui_1_plus));
-      } else {
-        out(i)
-            = in(i)-dtdx * (godunuv_flux(ui_minus, ui_plus) - godunuv_flux(ui_1_minus, ui_1_plus));
-      }
+    real ui_minus = u_c(0, i);
+    real ui_plus = u_c(1, i);
+    real ui_1_minus = u_c(0, (i + Nx - 1) % Nx);
+    real ui_1_plus = u_c(1, (i + Nx - 1) % Nx);
+    if (flux_type == LF_FLUX) {
+      out(i) = in(i)-dtdx * (lf_flux(ui_minus, ui_plus) - lf_flux(ui_1_minus, ui_1_plus));
     } else {
-      real fi_minus = u_c(0, i);
-      real fi_plus = u_c(1, i);
-      real fi_1_minus = u_c(0, (i + Nx - 1) % Nx);
-      real fi_1_plus = u_c(1, (i + Nx - 1) % Nx);
-      real ui = in[i], ui_minus = in[(i + Nx - 1) % Nx], ui_plus = in[(i + 1) % Nx];
-      out(i) = in(i)-dtdx * (lf_finite_difference_flux(fi_minus, fi_plus, ui, ui_plus)
-                             - lf_finite_difference_flux(fi_1_minus, fi_1_plus, ui_minus, ui));
+      out(i) = in(i)-dtdx * (godunuv_flux(ui_minus, ui_plus) - godunuv_flux(ui_1_minus, ui_1_plus));
     }
   }
   return out;
@@ -359,7 +367,6 @@ int main(int argc, char** argv) {
     scheme_type = SCHEME_FINITE_DIFFERENCE;
     AX_LOG(INFO) << "Using finite difference scheme";
   }
-
 
   AX_LOG(INFO) << "Delta x: " << dx;
   AX_LOG(INFO) << "CFL: " << cfl();

@@ -154,6 +154,7 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
+  g.dt_ = 3e-3;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
   idx nx = absl::GetFlag(FLAGS_nx);
@@ -180,9 +181,9 @@ int main(int argc, char** argv) {
   sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e3));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-  g.dt_ = 3e-3;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kCollidingBalls));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
   auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());

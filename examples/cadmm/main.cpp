@@ -4,6 +4,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/geometry/accel/flat_octree.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
@@ -23,7 +24,38 @@ using namespace ax;
 Entity ent;
 ABSL_FLAG(int, nx, 4, "cloth resolution");
 
+// render_aabb:
+void render_aabb() {
+  static Entity ent = create_entity();
+  auto& box = add_or_replace_component<gl::Mesh>(ent);
+  std::vector<geo::AlignedBox3> boxes;
+
+  auto& g = xpbd::ensure_server();
+  geo::BroadPhase_FlatOctree otree;
+  for (idx i = 0; i < g.vertices_.cols(); ++i) {
+    geo::AlignedBox3 box;
+    box.min() = g.vertices_.col(i);
+    box.max() = g.vertices_.col(i);
+    box.min().array() -= 0.1;
+    box.max().array() += 0.1;
+    otree.AddCollider(box, i, i, geo::PrimitiveKind::kVertex);
+  }
+  
+  otree.DetectCollisions();
+  otree.ForeachTreeAABB([&boxes](geo::AlignedBox3 const& aabb) { boxes.push_back(aabb); });
+
+  auto const& collision_info = otree.GetCollidingPairs();
+  for (auto const& [k, v]: collision_info) {
+    std::cout << "CollisionType: " << utils::reflect_name(k).value_or("Unknown?") << std::endl;
+    for (auto const& info: v) {
+      std::cout << "- " << info.vv_a_ << " " << info.vv_b_ << std::endl;
+    }
+  }
+}
+
+
 void update_rendering() {
+  // render_aabb();
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
@@ -177,6 +209,8 @@ int main(int argc, char** argv) {
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kBallCollider));
   auto* bc = reinterpret_cast<xpbd::Constraint_BallCollider*>(g.constraints_.back().get());
+  bc->center_ = math::vec3r{0, -1, 0};
+  bc->radius_ = 0.4;
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
   // auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());

@@ -10,4 +10,11 @@ void BroadPhaseBase::ExpandAABB(real epsilon) {
 }
 
 BroadPhaseResult const& BroadPhaseBase::GetCollidingPairs() const { return collidings_; }
+
+void BroadPhaseBase::Reserve(size_t n) { colliders_.reserve(n); }
+
+void BroadPhaseBase::AddCollidingPair(idx a, idx b) {
+  auto ci = make_collision(GetCollider(a), GetCollider(b));
+  collidings_[ci.GetKind()].push_back(ci);
+}
 }  // namespace ax::geo

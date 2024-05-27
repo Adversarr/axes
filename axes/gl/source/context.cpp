@@ -208,8 +208,8 @@ void Context::Impl::OnMouse(const MouseButtonEvent& evt) {
 }
 
 void Context::Impl::OnUiRender(UiRenderEvent const&) {
-  auto w = ImGui::GetIO().DisplaySize.x;
-  auto h = ImGui::GetIO().DisplaySize.y;
+  // auto w = ImGui::GetIO().DisplaySize.x;
+  // auto h = ImGui::GetIO().DisplaySize.y;
   if (!is_context_window_open_) {
     return;
   }

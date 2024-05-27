@@ -19,6 +19,7 @@ struct MeshRenderVertexData {
 struct MeshInstanceData {
   glm::vec3 position_offset_;
   glm::vec4 color_offset_;
+  glm::vec3 scale_;
 };
 
 struct MeshRenderData {

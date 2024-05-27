@@ -157,8 +157,21 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
       } else {
         instance.color_offset_ = glm::vec4(0, 0, 0, 0);
       }
+
+      if (i < mesh.instance_scale_.cols()) {
+        instance.scale_ = glm::make_vec3(mesh.instance_scale_.col(i).data());
+      } else {
+        instance.scale_ = glm::one<glm::vec3>();
+      }
+
       instances_.push_back(instance);
     }
+  } else {
+    MeshInstanceData single;
+    single.color_offset_ = glm::zero<glm::vec4>();
+    single.position_offset_ = glm::zero<glm::vec4>();
+    single.scale_ = glm::one<glm::vec4>();
+    instances_.push_back(single);
   }
 
   /****************************** Construct VAO ******************************/
@@ -199,8 +212,12 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
         AX_CHECK_OK(vao_.EnableAttrib(4));
         AX_CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData),
                                           sizeof(glm::vec3)));
+
+        AX_CHECK_OK(vao_.EnableAttrib(5));
+        AX_CHECK_OK(vao_.SetAttribPointer(5, 3, Type::kFloat, false, sizeof(MeshInstanceData), offsetof(MeshInstanceData, scale_)));
         AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
         AX_CHECK_OK(vao_.SetAttribDivisor(4, 1));
+        AX_CHECK_OK(vao_.SetAttribDivisor(5, 1));
       }
     }
     AX_CHECK_OK(vao_.GetIndexBuffer().Bind());

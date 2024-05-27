@@ -29,6 +29,8 @@ void global_step_collision_free(math::field3r const& weighted_position, math::fi
       CollidableTriangle fj_prev(j, Triangle3{g.last_vertices_.col(f[0]), g.last_vertices_.col(f[1]), g.last_vertices_.col(f[2])});
       CollidableTriangle fj_next(j, Triangle3{expect_position.col(f[0]), expect_position.col(f[1]), expect_position.col(f[2])});
 
+
+      // BUG: if vertex is taking off, the collision will also be detected.
       if (auto collision = detect_vertex_face(vi_prev, vi_next, fj_prev, fj_next, 1e-5)) {
         for (idx v: {i, f[0], f[1], f[2]}) {
           min_toi(v) = std::min(min_toi(v), collision.rel_t_);

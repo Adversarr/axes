@@ -15,6 +15,7 @@
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
+#include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
 
@@ -98,9 +99,7 @@ void step() {
     }
 
     // z_i step:
-    for (idx iV = 0; iV < nV; ++iV) {
-      g.vertices_.col(iV) /= w(iV);
-    }
+    xpbd::global_step_collision_free(g.vertices_, w);
 
     // y_i step:
     for (auto& c : g.constraints_) {
@@ -162,7 +161,7 @@ int main(int argc, char** argv) {
 
   plane.vertices_.row(2) = plane.vertices_.row(1);
   plane.vertices_.row(1).setZero();
-  idx nB = nx * 3;
+  idx nB = 100;
   idx nV = plane.vertices_.cols() + nB;
 
   g.vertices_.setZero(3, nV);

@@ -37,8 +37,8 @@ static void relax(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real
   }
 
   v3 const dn = math::normalized(d);
-  dual.col(0) = c + dx_norm * dn;
-  dual.col(1) = c - dx_norm * dn;
+  dual.col(0) = c + 0.5 * dx_norm * dn;
+  dual.col(1) = c - 0.5 * dx_norm * dn;
 }
 
 ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {

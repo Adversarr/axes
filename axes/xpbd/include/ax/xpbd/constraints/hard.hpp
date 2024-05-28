@@ -20,7 +20,7 @@ public:
   //      f_i is the indicator fn.
   math::field3r dual_;
   math::field3r gap_;
-  real initial_rho_ = 1e2;
+  real initial_rho_ = 1e4;
 };
 
 }  // namespace ax::xpbd

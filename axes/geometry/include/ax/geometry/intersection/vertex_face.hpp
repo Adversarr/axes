@@ -29,6 +29,11 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(CollidableVertex
                                                                 CollidableTriangle const& b0,
                                                                 CollidableTriangle const& b1,
                                                                 real tol) {
+  if (auto info = detect_vertex_face(a0, b0, tol, 0)) {
+    return info;
+  } else if (auto info = detect_vertex_face(a1, b1, tol, 1)) {
+    return info;
+  }
   math::vec3r const abc = b0->A() - a0->Position();
   math::vec3r const ABC = b1->A() - a1->Position();
   math::vec3r const def = b0->B() - a0->Position();

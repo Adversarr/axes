@@ -101,10 +101,10 @@ void step() {
     }
 
     // z_i step:
-    // for (idx iV = 0; iV < nV; ++iV) {
-    //   g.vertices_.col(iV) /= w(iV);
-    // }
-    xpbd::global_step_collision_free(g.vertices_, w);
+    for (idx iV = 0; iV < nV; ++iV) {
+      g.vertices_.col(iV) /= w(iV);
+    }
+    // xpbd::global_step_collision_free(g.vertices_, w);
 
     // y_i step:
     for (auto& c : g.constraints_) {
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
   }
 
   cube.indices_.array() += plane.vertices_.cols();
-  tet->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e2));
+  tet->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e3));
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

@@ -1,6 +1,7 @@
 #include <imgui.h>
 
 #include <cinttypes>
+#include <implot.h>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -14,13 +15,16 @@
 #include "ax/xpbd/common.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
+#include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
-
+xpbd::Constraint_PlaneCollider* bottom;
 Entity ent;
 ABSL_FLAG(int, nx, 4, "cloth resolution");
+
+std::vector<float> running_time;
 
 void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
@@ -49,7 +53,7 @@ void update_rendering() {
   lines.flush_ = true;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
-  auto ball = geo::sphere(0.03, 8, 8);
+  auto ball = geo::sphere(0.2, 8, 8);
   particles.vertices_ = ball.vertices_;
   particles.indices_ = ball.indices_;
   particles.colors_.setOnes(4, ball.vertices_.cols());
@@ -122,9 +126,9 @@ void step() {
     //   for (auto& c : g.constraints_) {
     //     c->UpdateRhoConsensus(scale);
     //   }
+    //   AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
+    //                   << dual_residual;
     // }
-    // AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
-    //                 << dual_residual;
   }
 
   for (auto& c : g.constraints_) {
@@ -139,61 +143,75 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::Begin("XPBD");
 
   static bool running = false;
+  static int frame_id = 0;
   ImGui::Checkbox("Running", &running);
   ImGui::InputInt("Iterations", &n_iter);
+
+  ImGui::InputDouble("Ground Z: ", &bottom->offset_);
   if (ImGui::Button("Run Once") || running) {
+    auto start = std::chrono::high_resolution_clock::now();
     step();
+    auto end = std::chrono::high_resolution_clock::now();
+    // milli seconds
+    running_time[frame_id % running_time.size()]
+        = std::chrono::duration<double, std::milli>(end - start).count();
     update_rendering();
+    frame_id += 1;
   }
+
+  if (ImPlot::BeginPlot("Running Time(ms)")) {
+    ImPlot::PlotBars("Running Time", running_time.data(), running_time.size(), 1.0f);
+    ImPlot::EndPlot();
+  }
+
   ImGui::End();
 }
 
 int main(int argc, char** argv) {
   gl::init(argc, argv);
+  running_time.resize(80);
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
-  g.dt_ = 3e-3;
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
-  auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
+  g.dt_ = 1e-2;
   idx nx = absl::GetFlag(FLAGS_nx);
-  auto plane = geo::plane(0.5, 0.5, nx, nx);
+  idx nB = nx;
 
-  plane.vertices_.row(2) = plane.vertices_.row(1);
-  plane.vertices_.row(1).setZero();
-  idx nB = 100;
-  idx nV = plane.vertices_.cols() + nB;
-
-  g.vertices_.setZero(3, nV);
-  g.vertices_.block(0, 0, 3, plane.vertices_.cols()) = plane.vertices_;
-  // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
-  g.vertices_.rightCols(nB).setRandom();
-  g.vertices_.rightCols(nB) *= 0.3;
-  g.vertices_.rightCols(nB).row(1).setConstant(1);
-
-  g.velocities_.setZero(3, g.vertices_.cols());
-  g.ext_accel_ = g.velocities_;
-  g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, g.vertices_.cols(), 0.1);
-
-  math::field2i edges = geo::get_edges(plane.indices_);
-  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e3));
-
+  g.vertices_.setRandom(3, nB);
+  g.vertices_.setZero();
+  g.vertices_.row(1).setLinSpaced(nB, 0, 1);
+  g.velocities_.setZero(3, nB);
+  g.last_vertices_ = g.vertices_;
+  g.ext_accel_.setZero(3, nB);
+  g.mass_.setOnes(1, nB);
+  g.ext_accel_.row(1).array() -= 9.8;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
-
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kCollidingBalls));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  math::field1i hard_indices = math::field1i::Zero(1, 4);
-  idx cnt = 0;
-  hard_indices << 0, nx, nx * (nx + 1), nx * nx + 2 * nx;
-  hard->SetHard(hard_indices);
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  bottom = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
+  bottom->normal_ = math::vec3r{0, 1, 0};
+  bottom->offset_ = -1;
 
-  for (auto const& t: math::each(plane.indices_)) {
-    g.faces_.push_back(t);
-  }
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  auto* left = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
+  left->normal_ = math::vec3r{1, 0, 0};
+  left->offset_ = -1;
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  auto* right = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
+  right->normal_ = math::vec3r{-1, 0, 0};
+  right->offset_ = -1;
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  auto* front = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
+  front->normal_ = math::vec3r{0, 0, 1};
+  front->offset_ = -1;
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  auto* back = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
+  back->normal_ = math::vec3r{0, 0, -1};
+  back->offset_ = -1;
 
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());

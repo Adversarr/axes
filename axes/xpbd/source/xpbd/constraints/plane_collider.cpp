@@ -38,7 +38,9 @@ ConstraintSolution Constraint_PlaneCollider::SolveDistributed() {
     real rho = this->rho_[i];
     real& k = stiffness_[i];
     math::vec3r const& z = constrained_vertices_position_[i];
-    dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, normal_, offset_);
+    math::vec3r dual_new = relax_ipc(rho, k, tol_, gap_[i], z, normal_, offset_);
+    sol.sqr_dual_residual_ += math::norm2(dual_new - dual_[i]);
+    dual_[i] = dual_new;
     // std::cout << "z[" << i << "] = " << z.transpose() << std::endl;
     // std::cout << "dual[" << i << "] = " << dual_[i].transpose() << std::endl;
     sol.weighted_position_.col(i) += rho * (gap_[i] + dual_[i]);

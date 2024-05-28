@@ -1,11 +1,12 @@
 #include "ax/xpbd/constraints/colliding_balls.hpp"
+
 #include "ax/utils/iota.hpp"
 
 namespace ax::xpbd {
 
 using m32 = math::matr<3, 2>;
 using v3 = math::vec3r;
-static void relax(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real radius, real eps) {
+static bool relax(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real radius, real eps) {
   // Very similar to spring, let L = radius + eps.
   // The spring energy:
   //   f(x) = 1/2 k (|| D x || - (L + eps))^2
@@ -20,36 +21,43 @@ static void relax(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real
   //   k (L + eps) + rho |Dz - Du| >= (k + rho) L
   //   k eps >= rho (L - |Dz - Du|)
   // if |Dz - Du| > L, nothing will be relaxed.
-  m32 const zu = z - u; // (z - u)
+  m32 const zu = z - u;  // (z - u)
   v3 const c = 0.5 * (zu.col(0) + zu.col(1));
   v3 const d = zu.col(0) - zu.col(1);
 
   real const d_norm = d.norm();
-  if (d_norm > radius) {
+  // std::cout << "d_norm: " << d_norm << std::endl;
+  if (d_norm >= radius + eps) {
     dual = zu;
-    return;
+    return false;
   }
 
   real dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
   if (dx_norm < radius) {
     k = 4 * rho * (radius - d_norm) / eps;
     dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
+    // std::cout << "relaxing" << k << std::endl;
   }
+  // std::cout << "dx_norm: " << dx_norm << std::endl;
 
   v3 const dn = math::normalized(d);
   dual.col(0) = c + 0.5 * dx_norm * dn;
   dual.col(1) = c - 0.5 * dx_norm * dn;
+  // std::cout << "dual: " << dual << std::endl;
+  // std::cout << "z: " << zu << std::endl;
+  return true;
 }
 
 ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
   // For each collition, project to the closest point on the surface.
   idx const nC = this->GetNumConstraints();
   idx const nV = this->GetNumConstrainedVertices();
+  // std::cout << "SolveDistributed: " << nC << " " << nV << std::endl;
   ConstraintSolution sol(nV);
 
   auto dual_old = dual_;
   for (auto i : utils::iota(nC)) {
-    real& rho = this->rho_[i];
+    real rho = this->rho_[i];
     auto C = constraint_mapping_[i];
     m32 z;
     z.col(0) = constrained_vertices_position_[C[0]];
@@ -57,13 +65,9 @@ ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
     auto& g = gap_[i];
     auto& d = dual_[i];
     relax(rho, stiffness_[i], z, g, d, ball_radius_, tol_);
-  }
-
-  for (auto i : utils::iota(nC)) {
-    real const rho = this->rho_[i];
-    auto const& g = gap_[i];
-    auto const& d = dual_[i];
     m32 const rhogd = (g + d) * rho;
+    auto const& dold = dual_old[i];
+    sol.sqr_dual_residual_ += (d - dold).squaredNorm();
     ConstraintMap::ConstVisitor v = constraint_mapping_[i];
     for (idx i = 0; i < 2; ++i) {
       sol.weighted_position_.col(v[i]) += rhogd.col(i);
@@ -108,10 +112,13 @@ real Constraint_CollidingBalls::UpdateDuality() {
 
 void Constraint_CollidingBalls::EndStep() {}
 
-void Constraint_CollidingBalls::UpdateRhoConsensus(real) {}
+void Constraint_CollidingBalls::UpdateRhoConsensus(real scale) {
+  for (auto& r : this->rho_) r *= scale;
+  this->rho_global_ *= scale;
+  for (auto& g : gap_) g /= scale;
+}
 
 void Constraint_CollidingBalls::UpdatePositionConsensus() {
-  auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
   std::vector<std::pair<idx, idx>> new_collisions;
@@ -134,20 +141,18 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
     }
   };
 
-
   // Current implementation is brute force.
   idx const nV = g.vertices_.cols();
   for (idx i : utils::iota(nV)) {
-    for (idx j: utils::iota(nV)) {
-      if (i == j) continue;
-
+    for (idx j = i + 1; j < nV; ++j) {
       v3 const& pi = g.vertices_.col(i);
       v3 const& pj = g.vertices_.col(j);
-
-      if (math::norm(pi - pj) < ball_radius_ + tol_ * 3) {
-        put_vert(i);
-        put_vert(j);
+      real distance = math::norm(pi - pj);
+      if (distance < ball_radius_ + tol_ * 3) {
+        // std::cout << "collision: " << i << " " << j << " d: " << distance << std::endl;
         if (put_coll({i, j})) {
+          put_vert(i);
+          put_vert(j);
           new_collisions.push_back({i, j});
         }
       }
@@ -156,28 +161,29 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
 
   real const dt2 = g.dt_ * g.dt_;
   if (new_collisions.size() > 0) {
-    for (auto v: new_colliding_vertices) {
+    for (auto v : new_colliding_vertices) {
       constrained_vertices_ids_.push_back(v);
       global_to_local_.emplace(v, constrained_vertices_ids_.size() - 1);
       constrained_vertices_position_.push_back(g.vertices_.col(v));
     }
 
-    for (auto [i, j]: new_collisions) {
+    for (auto [i, j] : new_collisions) {
       idx const vi = global_to_local_.at(i);
       idx const vj = global_to_local_.at(j);
       constraint_mapping_.emplace_back(vi, vj);
-      auto & dual = dual_.emplace_back();
-      auto & gap = gap_.emplace_back();
-      dual.col(0) = g.vertices_.col(i);
-      dual.col(1) = g.vertices_.col(j);
-      gap.setZero();
-      rho_.push_back(1e2 * dt2);
-      stiffness_.push_back(1e2 * dt2);
+      auto& dual = dual_.emplace_back();
+      auto& gap = gap_.emplace_back();
+      dual.col(0) = g.last_vertices_.col(i);
+      dual.col(1) = g.last_vertices_.col(j);
+      gap.col(0) = g.vertices_.col(i);
+      gap.col(1) = g.vertices_.col(j);
+      gap = (dual - gap);
+      rho_.push_back(initial_rho_ * dt2);
+      stiffness_.push_back(initial_rho_ * dt2);
 
       colliding_map_.emplace(std::minmax(i, j), rho_.size() - 1);
     }
   }
-
 
   // now update the position.
   idx nCV = GetNumConstrainedVertices();
@@ -187,4 +193,4 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
   }
 }
 
-}
+}  // namespace ax::xpbd

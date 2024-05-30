@@ -17,7 +17,7 @@ public:
   void UpdateRhoConsensus(real scale) override;
   void UpdatePositionConsensus() override;
 
-  real ball_radius_ = 4e-1; ///< Tolerance for the collision detection. cannnot be too small for stability.
+  real ball_radius_ = 1e-1; ///< Tolerance for the collision detection. cannnot be too small for stability.
   std::vector<math::matr<3, 2>> dual_;
   std::vector<math::matr<3, 2>> gap_;
   std::vector<real> stiffness_;

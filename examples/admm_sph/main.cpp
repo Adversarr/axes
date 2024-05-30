@@ -13,10 +13,12 @@
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
+#include "ax/xpbd/constraints/colliding_balls.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
 #include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
+#include "ax/xpbd/constraints/tet.hpp"
 #include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
@@ -53,7 +55,7 @@ void update_rendering() {
   lines.flush_ = true;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
-  auto ball = geo::sphere(0.2, 8, 8);
+  auto ball = geo::sphere(0.05, 16, 16);
   particles.vertices_ = ball.vertices_;
   particles.indices_ = ball.indices_;
   particles.colors_.setOnes(4, ball.vertices_.cols());
@@ -173,45 +175,66 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
-  g.dt_ = 1e-2;
+  g.dt_ = 1e-3;
   idx nx = absl::GetFlag(FLAGS_nx);
-  idx nB = nx;
+  auto cube = geo::tet_cube(0.2, 3, 3, 3);
+  auto nv_cube = cube.vertices_.cols();
 
-  g.vertices_.setRandom(3, nB);
-  g.vertices_.setZero();
-  g.vertices_.row(1).setLinSpaced(nB, 0, 1);
-  g.velocities_.setZero(3, nB);
+  idx nB = nx;
+  idx nV = nB + nv_cube;
+
+  auto bd_face = geo::get_boundary_triangles(cube.vertices_, cube.indices_);
+  for (idx i = 0; i < bd_face.cols(); ++i) {
+    g.faces_.emplace_back(bd_face.col(i));
+  }
+
+  g.vertices_.setRandom(3, nV);
+  g.vertices_ *= 0.5;
+  g.vertices_.leftCols(nv_cube) = cube.vertices_;
+  g.vertices_.leftCols(nv_cube).row(1).array() += 1;
+
+  g.velocities_.setZero(3, nV);
   g.last_vertices_ = g.vertices_;
-  g.ext_accel_.setZero(3, nB);
-  g.mass_.setOnes(1, nB);
+  g.ext_accel_.setZero(3, nV);
+
+  g.mass_.setConstant(1, nV, 0.01);
   g.ext_accel_.row(1).array() -= 9.8;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
+  auto* tetra = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
+  tetra->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e5));
+
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kCollidingBalls));
+  auto* cb = reinterpret_cast<xpbd::Constraint_CollidingBalls*>(g.constraints_.back().get());
+  cb->ball_radius_ = 0.1;
+
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   bottom = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   bottom->normal_ = math::vec3r{0, 1, 0};
-  bottom->offset_ = -1;
+  bottom->offset_ = -.5;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   auto* left = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   left->normal_ = math::vec3r{1, 0, 0};
-  left->offset_ = -1;
+  left->offset_ = -.5;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   auto* right = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   right->normal_ = math::vec3r{-1, 0, 0};
-  right->offset_ = -1;
+  right->offset_ = -.5;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   auto* front = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   front->normal_ = math::vec3r{0, 0, 1};
-  front->offset_ = -1;
+  front->offset_ = -.5;
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   auto* back = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   back->normal_ = math::vec3r{0, 0, -1};
-  back->offset_ = -1;
+  back->offset_ = -.5;
 
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());

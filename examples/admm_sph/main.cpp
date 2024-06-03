@@ -5,6 +5,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/geometry/accel/flat_octree.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
@@ -25,10 +26,54 @@ using namespace ax;
 xpbd::Constraint_PlaneCollider* bottom;
 Entity ent;
 ABSL_FLAG(int, nx, 4, "cloth resolution");
-
+ABSL_FLAG(real, ball_radius, 0.1, "Radius for balls.");
 std::vector<float> running_time;
+real R;
+
+// render_aabb:
+void render_aabb() {
+  static Entity ent = create_entity();
+  auto& box = add_or_replace_component<gl::Mesh>(ent);
+  std::vector<geo::AlignedBox3> boxes;
+
+  auto& g = xpbd::ensure_server();
+  geo::BroadPhase_FlatOctree otree;
+  for (idx i = 0; i < g.vertices_.cols(); ++i) {
+    geo::AlignedBox3 box;
+    box.min() = g.vertices_.col(i);
+    box.max() = g.vertices_.col(i);
+    box.min().array() -= R;
+    box.max().array() += R;
+    otree.AddCollider(box, i, i, geo::PrimitiveKind::kVertex);
+  }
+
+  otree.DetectCollisions();
+  otree.ForeachTreeAABB([&boxes](geo::AlignedBox3 const& aabb) { boxes.push_back(aabb); });
+
+  auto const& cp = otree.GetCollidingPairs();
+  size_t total_pot_collision = 0;
+  for (auto const& [k, v]: cp) {
+    total_pot_collision += v.size();
+  }
+  AX_LOG(ERROR) << "Potential Collisions: " << total_pot_collision << "Total Vertices Pair: " << g.vertices_.cols() * (g.vertices_.cols() - 1) / 2;
+
+  auto cube = geo::cube(.5);
+  box.vertices_ = cube.vertices_;
+  box.colors_.setConstant(4, cube.vertices_.cols(), 0.7);
+  box.indices_ = cube.indices_;
+  box.instance_offset_.resize(3, boxes.size());
+  box.instance_scale_.resize(3, boxes.size());
+  box.is_flat_ = true;
+  for (auto && [i, b] : utils::enumerate(boxes)) {
+    box.instance_offset_.col(i) = b.min();
+    box.instance_scale_.col(i) = b.sizes();
+  }
+  box.flush_ = true;
+}
+
 
 void update_rendering() {
+  // render_aabb();
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
@@ -55,7 +100,7 @@ void update_rendering() {
   lines.flush_ = true;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
-  auto ball = geo::sphere(0.05, 16, 16);
+  auto ball = geo::sphere(R, 16, 16);
   particles.vertices_ = ball.vertices_;
   particles.indices_ = ball.indices_;
   particles.colors_.setOnes(4, ball.vertices_.cols());
@@ -171,6 +216,8 @@ void ui_callback(gl::UiRenderEvent const&) {
 
 int main(int argc, char** argv) {
   gl::init(argc, argv);
+  R = absl::GetFlag(FLAGS_ball_radius);
+
   running_time.resize(80);
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
@@ -183,10 +230,10 @@ int main(int argc, char** argv) {
   idx nB = nx;
   idx nV = nB + nv_cube;
 
-  auto bd_face = geo::get_boundary_triangles(cube.vertices_, cube.indices_);
-  for (idx i = 0; i < bd_face.cols(); ++i) {
-    g.faces_.emplace_back(bd_face.col(i));
-  }
+  // auto bd_face = geo::get_boundary_triangles(cube.vertices_, cube.indices_);
+  // for (idx i = 0; i < bd_face.cols(); ++i) {
+  //   g.faces_.emplace_back(bd_face.col(i));
+  // }
 
   g.vertices_.setRandom(3, nV);
   g.vertices_ *= 0.5;
@@ -201,15 +248,15 @@ int main(int argc, char** argv) {
   g.ext_accel_.row(1).array() -= 9.8;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
-  auto* tetra = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
-  tetra->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e5));
+  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
+  // auto* tetra = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
+  // tetra->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e5));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kCollidingBalls));
   auto* cb = reinterpret_cast<xpbd::Constraint_CollidingBalls*>(g.constraints_.back().get());
-  cb->ball_radius_ = 0.1;
+  cb->ball_radius_ = R * 2;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
+  // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
   bottom = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());

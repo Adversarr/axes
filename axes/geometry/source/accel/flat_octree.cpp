@@ -59,8 +59,8 @@ public:
         depth_(parent == nullptr ? 0 : parent->depth_ + 1),
         impl_(impl) {}
 
-  bool Intersect(AlignedBox3 const& aabb) const { return aabb.intersects(aabb_); }
-  bool Contain(AlignedBox3 const& aabb) const { return aabb_.contains(aabb); }
+  AX_FORCE_INLINE bool Intersect(AlignedBox3 const& aabb) const { return aabb.intersects(aabb_); }
+  AX_FORCE_INLINE bool Contain(AlignedBox3 const& aabb) const { return aabb_.contains(aabb); }
 
   void Build() {
     auto get_collider = [this](idx i) -> ColliderInfo const& { return impl_->colliders_[i]; };
@@ -100,7 +100,16 @@ public:
 
   void DetectCollisions(std::vector<idx> const& id, std::vector<std::pair<idx, idx>> & ret) const {
     auto get_collider = [this](idx i) -> ColliderInfo const& { return impl_->colliders_[i]; };
-    for (auto j: id) {
+    std::vector<idx> real_collision;
+    for (auto const& i: id) {
+      auto const& a = get_collider(i);
+      if (! Intersect(a.aabb_)) {
+        continue;
+      }
+      real_collision.push_back(i);
+    }
+
+    for (auto const& j: real_collision) {
       auto const& b = get_collider(j);
       if (! Intersect(b.aabb_)) {
         continue;
@@ -116,7 +125,7 @@ public:
     }
 
     for (auto const& child: children_) {
-      if (child) child->DetectCollisions(id, ret);
+      if (child) child->DetectCollisions(real_collision, ret);
     }
   }
 
@@ -155,6 +164,14 @@ void BroadPhase_FlatOctree::DetectCollisions() {
 
   // 2. build result
   std::vector<std::pair<idx, idx>> ret;
+  for (auto const& [i, ai]: utils::enumerate(impl_->large_colliders_)) {
+    for (auto const& [j, aj]: utils::enumerate(impl_->large_colliders_)) {
+      if (i >= j) continue;
+      if (colliders_[ai].aabb_.intersects(colliders_[aj].aabb_)) {
+        ret.push_back({ai, aj});
+      }
+    }
+  }
   for (auto const& [_, tree]: impl_->nodes_) {
     tree.DetectSelfCollisions(ret);
     tree.DetectCollisions(impl_->large_colliders_, ret);

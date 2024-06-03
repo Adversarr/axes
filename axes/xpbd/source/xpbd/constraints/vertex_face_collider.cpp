@@ -28,7 +28,7 @@ void Constraint_VertexFaceCollider::BeginStep() {
 using m34 = math::matr<3, 4>;
 using m4 = math::matr<4, 4>;
 
-bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, real tol) {
+bool relax_vertex_triangle(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, real tol) {
   // k/2(|| Dx || - d)^2 + rho/2 ||x-(z-u)||^2
   // What i wish: x - u no collision => instead of solving x, solve x - u ?
   // first, test if there is a collision currently.
@@ -70,9 +70,9 @@ bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, 
     // step 2: solve vertex.
     real l = (k * -tol + rho * e) / (k + rho);
     if (l >= -0.5 * tol) {
-      // We need to enforce the constraint strictly, l <= 0
-      // (k * (-t) + r e) < 0 => k > r e / t
-      k = (rho * e / tol) * 3;
+      // We need to enforce the constraint strictly, l <= -0.5 * tol.
+      // (k * (-t) + r e) < -0.5 t (k + rho) => 0.5 k t > r e + 0.5 t rho
+      k = 2 * (rho * e + 0.5 * tol * rho) / (0.5 * tol);
       l = (k * -tol + rho * e) / (k + rho);
     }
   
@@ -98,7 +98,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     real& rho = rho_[i];
     m34 z;
     for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
-    relax(z, u, origin_[i], x, rho_[i], k, tol_);
+    relax_vertex_triangle(z, u, origin_[i], x, rho_[i], k, tol_);
     rho *= ratio_;
     u /= ratio_;
 
@@ -228,10 +228,12 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
         di.col(i + 1) = g.last_vertices_.col(v);
         actual.col(i + 1) = g.vertices_.col(v) - g.last_vertices_.col(v);
       }
+      real const mass = 0.25 * g.mass_[c.vf_vertex_] + 0.25 * g.mass_[f.x()] + 0.25 * g.mass_[f.y()]
+                        + 0.25 * g.mass_[f.z()];
 
       origin_.emplace_back(di);
-      stiffness_.push_back(initial_rho_ * g.dt_ * g.dt_);
-      rho_.push_back(initial_rho_ * g.dt_ * g.dt_);
+      stiffness_.push_back(mass * 10);
+      rho_.push_back(mass * 10);
       colliding_map_[{c.vf_vertex_, c.vf_face_}] = GetNumConstraints() - 1;
     }
   }

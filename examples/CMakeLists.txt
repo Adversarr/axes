@@ -18,10 +18,14 @@ axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(normal "axes_gl")
 axes_add_example(cubic_solver "axes_core")
 axes_add_example(springs "axes_graph")
+axes_add_example(graph "axes_graph")
+
+# admm
 axes_add_example(cadmm "axes_gl;axes_xpbd")
 axes_add_example(tet_cadmm "axes_gl;axes_xpbd")
 axes_add_example(admm_sph "axes_gl;axes_xpbd")
-axes_add_example(graph "axes_graph")
+axes_add_example(test_admm "axes_gl;axes_xpbd")
+
 
 # Homework for DGP
 axes_add_example(decimate "axes_gl")

@@ -5,21 +5,20 @@
 namespace ax::geo {
 
 // Discrete time version
-AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(CollidableSegment const& a,
-                                                              CollidableSegment const& b, real tol,
-                                                              real t = 0.0) {
-  math::vec3r u = math::normalized(a->Direction());
-  math::vec3r v = math::normalized(b->Direction());
-  real const distance_normal = math::cross(u, b->Origin() - a->Origin()).norm();
+AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(Segment3 const& a, Segment3 const& b,
+                                                              real tol, real t = 0.0) {
+  math::vec3r u = math::normalized(a.Direction());
+  math::vec3r v = math::normalized(b.Direction());
+  real const distance_normal = math::cross(u, b.Origin() - a.Origin()).norm();
 
   if (math::cross(u, v).norm() < 1e-8) {
     if (distance_normal > tol) {
       return CollisionInfo();
     }
     // parallel. need to test if they are on the same line.
-    real const b_origin = math::dot(u, b->Origin() - a->Origin());
-    real const b_end = math::dot(u, b->End() - a->Origin());
-    real const a_end = math::dot(u, a->Direction());
+    real const b_origin = math::dot(u, b.Origin() - a.Origin());
+    real const b_end = math::dot(u, b.End() - a.Origin());
+    real const a_end = math::dot(u, a.Direction());
     auto inrange = [a_end, tol](real x) -> bool {
       if (a_end < 0) {
         return -a_end - tol < x && x < tol;
@@ -30,14 +29,14 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(CollidableSegment 
 
     // std::cout << b_origin << " " << b_end << " " << a_end << std::endl;
     if (inrange(b_origin)) {
-      return CollisionInfo::EdgeEdge(a.id_, b.id_, t);
+      return CollisionInfo::EdgeEdge(t);
     } else if (inrange(b_end)) {
-      return CollisionInfo::EdgeEdge(a.id_, b.id_, t);
+      return CollisionInfo::EdgeEdge(t);
     } else {
       return CollisionInfo();
     }
   }
-  // math::vec3r A = a->Origin(), B = a->End(), C = b->Origin(), D = b->End();
+  // math::vec3r A = a.Origin(), B = a.End(), C = b.Origin(), D = b.End();
   // if (u.dot(v) < 0) {
   //   std::swap(A, B);
   //   u.noalias() = -u;
@@ -54,47 +53,46 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(CollidableSegment 
   //   return CollisionInfo::EdgeEdge(a.id_, b.id_, t);
   // }
 
-  math::vec3r const R_cross = math::cross(a->Direction(), b->Direction());
-  real const distance = abs(math::dot(math::normalized(R_cross), b->Origin() - a->Origin()));
+  math::vec3r const R_cross = math::cross(a.Direction(), b.Direction());
+  real const distance = abs(math::dot(math::normalized(R_cross), b.Origin() - a.Origin()));
   if (distance > tol) {
     return CollisionInfo();
   }
 
   // std::cout << distance << std::endl;
 
-  math::vec3r const ba = b->Origin() - a->Origin();
-  math::vec3r const tt = math::cross(ba, b->Direction());
-  math::vec3r const uu = math::cross(ba, a->Direction());
+  math::vec3r const ba = b.Origin() - a.Origin();
+  math::vec3r const tt = math::cross(ba, b.Direction());
+  math::vec3r const uu = math::cross(ba, a.Direction());
 
   real const t1 = math::dot(tt, R_cross) / R_cross.squaredNorm();
   real const t2 = math::dot(uu, R_cross) / R_cross.squaredNorm();
-  if (t1 < tol || t1 > 1-tol || t2 < tol || t2 > 1-tol) {
+  if (t1 < tol || t1 > 1 - tol || t2 < tol || t2 > 1 - tol) {
     return CollisionInfo();
   }
 
   // std::cout << t1 << " " << t2 << std::endl;
   // validate the collision
-  math::vec3r const p = a->Origin() + a->Direction() * t1;
-  math::vec3r const q = b->Origin() + b->Direction() * t2;
+  math::vec3r const p = a.Origin() + a.Direction() * t1;
+  math::vec3r const q = b.Origin() + b.Direction() * t2;
   if ((p - q).norm() > tol) {
     return CollisionInfo();
   }
 
-  return CollisionInfo::EdgeEdge(a.id_, b.id_, t);
+  return CollisionInfo::EdgeEdge(t);
 }
 
 // Continuous time version: currently not available.
-AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(CollidableSegment const& a0,
-                                                              CollidableSegment const& a1,
-                                                              CollidableSegment const& b0,
-                                                              CollidableSegment const& b1,
-                                                              real tol) {
-  math::vec3r const abc = a0->Direction();
-  math::vec3r const ABC = a1->Direction();
-  math::vec3r const def = b0->Origin() - a0->Origin();
-  math::vec3r const DEF = b1->Origin() - a1->Origin();
-  math::vec3r const ghi = b0->End() - a0->Origin();
-  math::vec3r const GHI = b1->End() - a1->Origin();
+AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(Segment3 const& a0,
+                                                              Segment3 const& a1,
+                                                              Segment3 const& b0,
+                                                              Segment3 const& b1, real tol) {
+  math::vec3r const abc = a0.Direction();
+  math::vec3r const ABC = a1.Direction();
+  math::vec3r const def = b0.Origin() - a0.Origin();
+  math::vec3r const DEF = b1.Origin() - a1.Origin();
+  math::vec3r const ghi = b0.End() - a0.Origin();
+  math::vec3r const GHI = b1.End() - a1.Origin();
   real const a = abc[0], b = abc[1], c = abc[2], A = ABC[0], B = ABC[1], C = ABC[2];
   real const d = def[0], e = def[1], f = def[2], D = DEF[0], E = DEF[1], F = DEF[2];
   real const g = ghi[0], h = ghi[1], i = ghi[2], G = GHI[0], H = GHI[1], I = GHI[2];
@@ -122,12 +120,12 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_edge_edge(CollidableSegment 
   auto toi = math::solve_cubic(k4, k3, k2, k1, 0, 1, tol * tol, 32);
   for (idx i = 0; i < 3; ++i) {
     if (!toi.valid_[i]) continue;
-    real t = toi.root_[i];
+    real const t = toi.root_[i];
     // std::cout << "t=" << t << std::endl;
-    CollidableSegment a{a0.id_, Segment3{math::lerp(a0->Origin(), a1->Origin(), t),
-                                         math::lerp(a0->Direction(), a1->Direction(), t)}};
-    CollidableSegment b{b0.id_, Segment3{math::lerp(b0->Origin(), b1->Origin(), t),
-                                         math::lerp(b0->Direction(), b1->Direction(), t)}};
+    Segment3 a{math::lerp(a0.Origin(), a1.Origin(), t),
+               math::lerp(a0.Direction(), a1.Direction(), t)};
+    Segment3 b{math::lerp(b0.Origin(), b1.Origin(), t),
+               math::lerp(b0.Direction(), b1.Direction(), t)};
     CollisionInfo info = detect_edge_edge(a, b, tol, t);
     if (info) return info;
   }

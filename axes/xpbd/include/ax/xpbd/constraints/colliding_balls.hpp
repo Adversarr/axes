@@ -28,6 +28,6 @@ public:
   std::set<idx> colliding_vertices_;
   idx iteration_;
   real initial_rho_ = 1e4;
-  real tol_ = 1e-3;
+  real tol_ = 1e-4;
 };
 }

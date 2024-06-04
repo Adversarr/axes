@@ -1,52 +1,9 @@
 #include "ax/xpbd/constraints/colliding_balls.hpp"
 
 #include "ax/utils/iota.hpp"
+#include "ax/xpbd/details/relaxations.hpp"
 
 namespace ax::xpbd {
-
-using m32 = math::matr<3, 2>;
-using v3 = math::vec3r;
-static bool relax(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real radius, real eps) {
-  // Very similar to spring, let L = radius + eps.
-  // The spring energy:
-  //   f(x) = 1/2 k (|| D x || - (L + eps))^2
-  // with Augmented Lagrangian:
-  //   f(x) + 1/2 rho || x - z + u ||^2
-  // Take derivative:
-  //   D.T k (|Dx| - (L + eps)) (Dx)/|Dx| + rho (x - z + u) = 0
-  // Apply D again, and take norm.
-  //   k(|Dx| - (L + eps)) + rho |Dx| = rho |Dz - Du|
-  // => |Dx| = (rho |Dz - Du| + k (L + eps)) / (k + rho)
-  // we expect |Dx| >= L.
-  //   k (L + eps) + rho |Dz - Du| >= (k + rho) L
-  //   k eps >= rho (L - |Dz - Du|)
-  // if |Dz - Du| > L, nothing will be relaxed.
-  m32 const zu = z - u;  // (z - u)
-  v3 const c = 0.5 * (zu.col(0) + zu.col(1));
-  v3 const d = zu.col(0) - zu.col(1);
-
-  real const d_norm = d.norm();
-  // std::cout << "d_norm: " << d_norm << std::endl;
-  if (d_norm >= radius + eps) {
-    dual = zu;
-    return false;
-  }
-
-  real dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
-  if (dx_norm < radius) {
-    k = 4 * rho * (radius - d_norm) / eps;
-    dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
-    // std::cout << "relaxing" << k << std::endl;
-  }
-  // std::cout << "dx_norm: " << dx_norm << std::endl;
-
-  v3 const dn = math::normalized(d);
-  dual.col(0) = c + 0.5 * dx_norm * dn;
-  dual.col(1) = c - 0.5 * dx_norm * dn;
-  // std::cout << "dual: " << dual << std::endl;
-  // std::cout << "z: " << zu << std::endl;
-  return true;
-}
 
 ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
   // For each collition, project to the closest point on the surface.
@@ -64,7 +21,7 @@ ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
     z.col(1) = constrained_vertices_position_[C[1]];
     auto& g = gap_[i];
     auto& d = dual_[i];
-    relax(rho, stiffness_[i], z, g, d, ball_radius_, tol_);
+    relax_vertex_vertex_impl(rho, stiffness_[i], z, g, d, ball_radius_, tol_);
     m32 const rhogd = (g + d) * rho;
     auto const& dold = dual_old[i];
     sol.sqr_dual_residual_ += (d - dold).squaredNorm();

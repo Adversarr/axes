@@ -18,8 +18,7 @@ void BroadPhase_SortSweep::DetectCollisions() {
       }
 
       if (has_collide<3>(colliders[i].aabb_, colliders[j].aabb_)) {
-        auto info = make_collision(colliders[i], colliders[j]);
-        collidings_[info.GetKind()].push_back(info);
+        AddCollidingPair(i, j);
       }
     }
   }

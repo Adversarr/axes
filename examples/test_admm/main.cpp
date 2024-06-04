@@ -1,10 +1,11 @@
-#include <absl/log/globals.h>
 #include <imgui.h>
+#include <implot.h>
 
 #include <cinttypes>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/geometry/accel/flat_octree.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/events.hpp"
 #include "ax/gl/primitives/lines.hpp"
@@ -13,18 +14,68 @@
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/iota.hpp"
 #include "ax/xpbd/common.hpp"
+#include "ax/xpbd/constraints/colliding_balls.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
 #include "ax/xpbd/constraints/inertia.hpp"
+#include "ax/xpbd/constraints/plane_collider.hpp"
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
 #include "ax/xpbd/global_step_collision_free.hpp"
 
 using namespace ax;
+using namespace ax::xpbd;
+xpbd::Constraint_PlaneCollider* bottom;
 
 Entity ent;
-ABSL_FLAG(int, nx, 2, "cloth resolution");
+ABSL_FLAG(int, nx, 4, "cloth resolution");
+ABSL_FLAG(real, ball_radius, 0.1, "Radius for balls.");
+std::vector<float> running_time;
+real R;
+
+// render_aabb:
+void render_aabb() {
+  static Entity ent = create_entity();
+  auto& box = add_or_replace_component<gl::Mesh>(ent);
+  std::vector<geo::AlignedBox3> boxes;
+
+  auto& g = xpbd::ensure_server();
+  geo::BroadPhase_FlatOctree otree;
+  for (idx i = 0; i < g.vertices_.cols(); ++i) {
+    geo::AlignedBox3 box;
+    box.min() = g.vertices_.col(i);
+    box.max() = g.vertices_.col(i);
+    box.min().array() -= R;
+    box.max().array() += R;
+    otree.AddCollider(box, i, i, geo::PrimitiveKind::kVertex);
+  }
+
+  otree.DetectCollisions();
+  otree.ForeachTreeAABB([&boxes](geo::AlignedBox3 const& aabb) { boxes.push_back(aabb); });
+
+  auto const& cp = otree.GetCollidingPairs();
+  size_t total_pot_collision = 0;
+  for (auto const& [k, v] : cp) {
+    total_pot_collision += v.size();
+  }
+  AX_LOG(ERROR) << "Potential Collisions: " << total_pot_collision
+                << "Total Vertices Pair: " << g.vertices_.cols() * (g.vertices_.cols() - 1) / 2;
+
+  auto cube = geo::cube(.5);
+  box.vertices_ = cube.vertices_;
+  box.colors_.setConstant(4, cube.vertices_.cols(), 0.7);
+  box.indices_ = cube.indices_;
+  box.instance_offset_.resize(3, boxes.size());
+  box.instance_scale_.resize(3, boxes.size());
+  box.is_flat_ = true;
+  for (auto&& [i, b] : utils::enumerate(boxes)) {
+    box.instance_offset_.col(i) = b.min();
+    box.instance_scale_.col(i) = b.sizes();
+  }
+  box.flush_ = true;
+}
 
 void update_rendering() {
+  // render_aabb();
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
@@ -51,7 +102,7 @@ void update_rendering() {
   lines.flush_ = true;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
-  auto ball = geo::sphere(0.03, 8, 8);
+  auto ball = geo::sphere(R, 16, 16);
   particles.vertices_ = ball.vertices_;
   particles.indices_ = ball.indices_;
   particles.colors_.setOnes(4, ball.vertices_.cols());
@@ -76,7 +127,7 @@ void step() {
   // initial guess is inertia position:
   g.vertices_.noalias() = g.last_vertices_ + g.dt_ * (g.velocities_ + g.dt_ * g.ext_accel_);
   for (auto& c : g.constraints_) {
-    // c->UpdateRhoConsensus(g.dt_ * g.dt_);
+    c->UpdateRhoConsensus(g.dt_ * g.dt_);
     c->BeginStep();
   }
 
@@ -101,10 +152,7 @@ void step() {
     }
 
     // z_i step:
-    for (idx iV = 0; iV < nV; ++iV) {
-      g.vertices_.col(iV) /= w(iV);
-    }
-    // xpbd::global_step_collision_free(g.vertices_, w);
+    xpbd::global_step_collision_free(g.vertices_, w);
 
     // y_i step:
     for (auto& c : g.constraints_) {
@@ -114,6 +162,22 @@ void step() {
       AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown")
                    << " R_prim^2=" << sqr_primal_residual_c;
     }
+
+    // real scale = 1.0;
+    // real dual_residual = std::sqrt(sqr_dual_residual);
+    // real primal_residual = std::sqrt(sqr_primal_residual);
+    // if (primal_residual > dual_residual * g.primal_dual_threshold_) {
+    //   scale = g.primal_dual_ratio_;
+    // } else if (dual_residual > primal_residual * g.dual_primal_threshold_) {
+    //   scale = 1.0 / g.dual_primal_ratio_;
+    // }
+    // if (scale != 1.0) {
+    //   for (auto& c : g.constraints_) {
+    //     c->UpdateRhoConsensus(scale);
+    //   }
+    //   AX_LOG(WARNING) << i << "===> rho updown: " << scale << " " << primal_residual << " "
+    //                   << dual_residual;
+    // }
   }
 
   for (auto& c : g.constraints_) {
@@ -128,84 +192,61 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::Begin("XPBD");
 
   static bool running = false;
+  static int frame_id = 0;
   ImGui::Checkbox("Running", &running);
   ImGui::InputInt("Iterations", &n_iter);
+
+  ImGui::InputDouble("Ground Z: ", &bottom->offset_);
   if (ImGui::Button("Run Once") || running) {
-    
-    auto begin_time = std::chrono::high_resolution_clock::now();
-    step();
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - begin_time);
-    std::cout << "Elapsed time: " << elapsed.count() / 1000.0 << " ms" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto _ : utils::iota(10)) {
+      step();
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    // milli seconds
+    running_time[frame_id % running_time.size()]
+        = std::chrono::duration<double, std::milli>(end - start).count();
     update_rendering();
+    frame_id += 1;
   }
+
+  if (ImPlot::BeginPlot("Running Time(ms)")) {
+    ImPlot::PlotBars("Running Time", running_time.data(), running_time.size(), 1.0f);
+    ImPlot::EndPlot();
+  }
+
   ImGui::End();
 }
 
 int main(int argc, char** argv) {
   gl::init(argc, argv);
-  // absl::SetStderrThreshold(absl::LogSeverity::kInfo);
+  R = absl::GetFlag(FLAGS_ball_radius);
+
+  running_time.resize(80);
   connect<gl::UiRenderEvent, &ui_callback>();
   ent = create_entity();
   auto& g = xpbd::ensure_server();
   g.dt_ = 1e-3;
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
-  auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
   idx nx = absl::GetFlag(FLAGS_nx);
-  auto plane = geo::plane(0.5, 0.5, nx, nx);
-  auto cube = geo::tet_cube(0.5, nx, nx, nx);
-  plane.vertices_.row(2) = plane.vertices_.row(1);
-  plane.vertices_.row(1).setZero();
-  idx nB = cube.vertices_.cols();
-  idx nV = plane.vertices_.cols() + nB;
+  auto cube = geo::tet_cube(0.2, 3, 3, 3);
+  auto nv_cube = cube.vertices_.cols();
 
-  g.vertices_.setZero(3, nV);
-  g.vertices_.block(0, 0, 3, plane.vertices_.cols()) = plane.vertices_;
-  // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
-  g.vertices_.rightCols(nB) = cube.vertices_ * 0.5;
-  g.vertices_.rightCols(nB).row(1).array() += 1;
-  g.velocities_.setZero(3, g.vertices_.cols());
-  g.velocities_.rightCols(nB).row(1).array() -= 1;
-  g.ext_accel_ = g.velocities_;
-  g.ext_accel_.row(1).setConstant(-9.8);
-  g.mass_.setConstant(1, g.vertices_.cols(), 1e-3);
+  idx nB = nx;
+  idx nV = nB + nv_cube;
 
-  math::field2i edges = geo::get_edges(plane.indices_);
-  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e3));
+  g.vertices_.setRandom(3, nV);
+  g.vertices_ *= 0.5;
+  g.vertices_.leftCols(nv_cube) = cube.vertices_;
+  g.vertices_.leftCols(nv_cube).row(1).array() += 1;
 
+  g.velocities_.setZero(3, nV);
+  g.last_vertices_ = g.vertices_;
+  g.ext_accel_.setZero(3, nV);
+
+  g.mass_.setConstant(1, nV, 0.01);
+  g.ext_accel_.row(1).array() -= 9.8;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
-  auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-
-  for (auto e: math::each(edges)) {
-    g.edges_.push_back(e);
-  }
-  auto bd_e_cube = geo::get_boundary_edges(cube.vertices_, cube.indices_);
-  for (auto e: math::each(bd_e_cube)) {
-    g.edges_.push_back({e.x() + plane.vertices_.cols(), e.y() + plane.vertices_.cols()});
-  }
-
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
-  auto *tet = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
-
-  math::field1i hard_indices = math::field1i::Zero(1, 3);
-  idx cnt = 0;
-  hard_indices << 0, nx, nx * (nx + 1);//, nx * nx + 2 * nx;
-  hard->SetHard(hard_indices);
-
-  for (auto const& t: math::each(plane.indices_)) {
-    g.faces_.push_back(t);
-  }
-  auto bd_f_cube = geo::get_boundary_triangles(cube.vertices_, cube.indices_);
-  for (auto f: math::each(bd_f_cube)) {
-    g.faces_.push_back(f.array() + plane.vertices_.cols());
-  }
-
-  cube.indices_.array() += plane.vertices_.cols();
-  tet->SetTetrahedrons(cube.indices_, math::field1r::Constant(1, cube.indices_.cols(), 1e3));
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();

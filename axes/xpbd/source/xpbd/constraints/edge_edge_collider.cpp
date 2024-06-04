@@ -1,8 +1,8 @@
 #include "ax/xpbd/constraints/edge_edge_collider.hpp"
 
 #include "ax/geometry/intersection/edge_edge.hpp"
-#include "ax/math/linalg.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/xpbd/details/relaxations.hpp"
 
 namespace ax::xpbd {
 
@@ -27,50 +27,6 @@ void Constraint_EdgeEdgeCollider::BeginStep() {
 
 using m34 = math::matr<3, 4>;
 using m4 = math::mat4r;
-static bool relax(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho, real& k, real tol) {
-  m34 const zu = z - u;
-  math::vec3r normal = math::normalized(math::cross(zu.col(1) - zu.col(0), zu.col(3) - zu.col(2)));
-  // TODO: If normal is zero.
-  math::vec3r center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
-  real c = math::dot(normal, center);
-  real e = math::dot(normal, zu.col(3)) - c;
-  if (e < 0) {
-    normal = -normal;
-    c = -c;
-    e = -e;
-  }
-  auto proj = [&](auto const& p) { return p - math::dot(normal, p - center) * normal; };
-
-  for (idx i = 0; i < 4; ++i) {
-    x.col(i) = proj(zu.col(i));
-  }
-
-  if (math::dot(normal, o.col(3)) - c > 0) {
-    if (e >= tol - math::epsilon<>) {
-      x = zu;
-      return false;
-    }
-
-    real l = (k * tol + rho * e) / (k + rho);
-    x.col(0) += l * normal;
-    x.col(1) += l * normal;
-    x.col(2) -= l * normal;
-    x.col(3) -= l * normal;
-  } else {
-    real l = (k * -tol + rho * e) / (k + rho);
-    if (l >= -0.5 * tol) {
-      k = (rho * e / tol) * 3;
-      l = (k * -tol + rho * e) / (k + rho);
-    }
-
-    x.col(0) -= l * normal;
-    x.col(1) -= l * normal;
-    x.col(2) += l * normal;
-    x.col(3) += l * normal;
-  }
-
-  return true;
-}
 
 ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
   idx const nC = GetNumConstraints();
@@ -86,7 +42,7 @@ ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
     real& rho = rho_[i];
     m34 z;
     for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
-    relax(z, u, origin_[i], x, rho_[i], k, tol_);
+    relax_edge_edge_impl(z, u, origin_[i], x, rho_[i], k, tol_);
     rho *= ratio_;
     u /= ratio_;
     for (idx i = 0; i < 4; ++i) {
@@ -127,7 +83,7 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
-  std::vector<geo::CollisionInfo> new_collisions;
+  std::vector<std::pair<idx, idx>> new_collisions;
   std::vector<idx> new_colliding_vertices;
 
   auto put_vert = [&](idx v) {
@@ -142,7 +98,6 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
       if (i == j) continue;
       if (e1.x() == e2.x() || e1.x() == e2.y() || e1.y() == e2.x() || e1.y() == e2.y()) continue;
 
-
       auto const& e00 = g.last_vertices_.col(e1.x());
       auto const& e01 = g.last_vertices_.col(e1.y());
       auto const& e10 = g.last_vertices_.col(e2.x());
@@ -153,24 +108,22 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
       auto const& e10_new = g.vertices_.col(e2.x());
       auto const& e11_new = g.vertices_.col(e2.y());
 
-      auto info
-          = detect_edge_edge(CollidableSegment(i, Segment3(e00, e01 - e00)),
-                             CollidableSegment(i, Segment3(e00_new, e01_new - e00_new)),
-                             CollidableSegment(j, Segment3(e10, e11 - e10)),
-                             CollidableSegment(j, Segment3(e10_new, e11_new - e10_new)), 2 * tol_);
+      auto info = detect_edge_edge(Segment3(e00, e01 - e00), Segment3(e00_new, e01_new - e00_new),
+                                   Segment3(e10, e11 - e10), Segment3(e10_new, e11_new - e10_new),
+                                   2 * tol_);
 
       if (info) {
         // has new collide.
-        if (collidings_.insert(info).second) {
-          new_collisions.push_back(info);
+        if (collidings_.insert({i, j}).second) {
+          new_collisions.emplace_back(i, j);
           put_vert(e1.x());
           put_vert(e1.y());
           put_vert(e2.x());
           put_vert(e2.y());
         }
 
-        std::cout << "Collision detected: " << info.ee_a_ << " " << info.ee_b_ << " "
-                  << "e0: " << e1.transpose() << " e1: " << e2.transpose() << std::endl;
+        std::cout << "Collision detected: " << i << " " << j << " " << "e0: " << e1.transpose()
+                  << " e1: " << e2.transpose() << std::endl;
         std::cout << e00.transpose() << ", " << e01.transpose() << ", " << e10.transpose() << ", "
                   << e11.transpose() << std::endl;
       }
@@ -184,9 +137,9 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
       this->constrained_vertices_position_.push_back(g.vertices_.col(v));
     }
 
-    for (auto const& c : new_collisions) {
-      auto e1 = g.edges_[c.ee_a_];
-      auto e2 = g.edges_[c.ee_b_];
+    for (auto const& [ei1, ei2] : new_collisions) {
+      auto e1 = g.edges_[ei1];
+      auto e2 = g.edges_[ei2];
       constraint_mapping_.emplace_back(global_to_local_[e1.x()], global_to_local_[e1.y()],
                                        global_to_local_[e2.x()], global_to_local_[e2.y()]);
       auto& di = dual_.emplace_back();

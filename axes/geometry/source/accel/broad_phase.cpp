@@ -14,7 +14,14 @@ BroadPhaseResult const& BroadPhaseBase::GetCollidingPairs() const { return colli
 void BroadPhaseBase::Reserve(size_t n) { colliders_.reserve(n); }
 
 void BroadPhaseBase::AddCollidingPair(idx a, idx b) {
-  auto ci = make_collision(GetCollider(a), GetCollider(b));
-  collidings_[ci.GetKind()].push_back(ci);
+  auto const& ca = GetCollider(a);
+  auto const& cb = GetCollider(b);
+  auto kind = get_collision_kind(ca.external_kind_, cb.external_kind_);
+  BroadPhaseCollisionInfo ci;
+  ci.a_ = a;
+  ci.b_ = b;
+  ci.info_.valid_ = true;
+  ci.info_.type_ = kind;
+  collidings_[kind].push_back(ci);
 }
 }  // namespace ax::geo

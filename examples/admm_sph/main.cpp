@@ -1,7 +1,7 @@
 #include <imgui.h>
+#include <implot.h>
 
 #include <cinttypes>
-#include <implot.h>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -52,10 +52,11 @@ void render_aabb() {
 
   auto const& cp = otree.GetCollidingPairs();
   size_t total_pot_collision = 0;
-  for (auto const& [k, v]: cp) {
+  for (auto const& [k, v] : cp) {
     total_pot_collision += v.size();
   }
-  AX_LOG(ERROR) << "Potential Collisions: " << total_pot_collision << "Total Vertices Pair: " << g.vertices_.cols() * (g.vertices_.cols() - 1) / 2;
+  AX_LOG(ERROR) << "Potential Collisions: " << total_pot_collision
+                << "Total Vertices Pair: " << g.vertices_.cols() * (g.vertices_.cols() - 1) / 2;
 
   auto cube = geo::cube(.5);
   box.vertices_ = cube.vertices_;
@@ -64,13 +65,12 @@ void render_aabb() {
   box.instance_offset_.resize(3, boxes.size());
   box.instance_scale_.resize(3, boxes.size());
   box.is_flat_ = true;
-  for (auto && [i, b] : utils::enumerate(boxes)) {
+  for (auto&& [i, b] : utils::enumerate(boxes)) {
     box.instance_offset_.col(i) = b.min();
     box.instance_scale_.col(i) = b.sizes();
   }
   box.flush_ = true;
 }
-
 
 void update_rendering() {
   // render_aabb();
@@ -197,7 +197,9 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::InputDouble("Ground Z: ", &bottom->offset_);
   if (ImGui::Button("Run Once") || running) {
     auto start = std::chrono::high_resolution_clock::now();
-    step();
+    for (auto _ : utils::iota(10)) {
+      step();
+    }
     auto end = std::chrono::high_resolution_clock::now();
     // milli seconds
     running_time[frame_id % running_time.size()]

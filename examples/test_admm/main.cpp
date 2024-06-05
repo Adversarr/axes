@@ -184,7 +184,7 @@ void step() {
   }
 
   g.velocities_ = (g.vertices_ - g.last_vertices_) / g.dt_;
-  std::cout << g.velocities_.rowwise().sum() << std::endl;
+  // std::cout << g.velocities_.rowwise().sum() << std::endl;
 }
 
 void ui_callback(gl::UiRenderEvent const&) {
@@ -229,19 +229,21 @@ int main(int argc, char** argv) {
   auto nv_cube = cube.vertices_.cols();
 
   idx nB = nx;
-  idx nV = 4;
+  idx nV = 5;
 
-  g.vertices_.setZero(3, 4);
+  g.vertices_.setZero(3, nV);
   g.velocities_.setZero(3, nV);
   g.last_vertices_ = g.vertices_;
   g.ext_accel_.setZero(3, nV);
   g.vertices_.leftCols<3>().setIdentity();
-  g.vertices_.col(3) = math::vec3r{.5, 1, 0};
-  g.velocities_.col(3) = math::vec3r{0, -1, 0};
+  g.vertices_.col(3) = math::vec3r{0, 0, -1};
+  g.vertices_.col(4) = math::vec3r{.5, 1.00000, 0};
+  g.velocities_.col(4) = math::vec3r{0, -1, 0};
 
   g.faces_.push_back({0, 1, 2});
+  g.faces_.push_back({0, 1, 3});
 
-  g.mass_.setConstant(1, nV, 0.01);
+  g.mass_.setConstant(1, nV, 0.001);
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 

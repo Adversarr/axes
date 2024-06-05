@@ -18,7 +18,11 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(Vertex3 const& a
     math::vec3r const projected = a.Position() - d * normal;
     // baricentric coordinates
     math::vec3r const bary = math::barycentric(projected, b.A(), b.B(), b.C());
-    if (bary[0] >= -math::epsilon<> && bary[1] >= -math::epsilon<> && bary[2] >= -math::epsilon<>) {
+    if (bary[0] >= 0 && bary[1] >= 0 && bary[2] >= 0) {
+      // std::cout << "Vertex Face Collision: " << bary.transpose() << std::endl;
+      // std::cout << "Vertex: " << a.Position().transpose() << std::endl;
+      // std::cout << "Triangle: " << b.A().transpose() << " " << b.B().transpose() << " "
+      //           << b.C().transpose() << std::endl;
       return CollisionInfo::VertexFace(dt);
     }
   }
@@ -30,11 +34,6 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(Vertex3 const& a
                                                                 Vertex3 const& a1,
                                                                 Triangle3 const& b0,
                                                                 Triangle3 const& b1, real tol) {
-  if (auto info = detect_vertex_face(a0, b0, tol, 0)) {
-    return info;
-  } else if (auto info = detect_vertex_face(a1, b1, tol, 1)) {
-    return info;
-  }
   // Derived from the notebooks/distance.ipynb
   math::vec3r const abc = b0.A() - a0.Position();
   math::vec3r const ABC = b1.A() - a1.Position();

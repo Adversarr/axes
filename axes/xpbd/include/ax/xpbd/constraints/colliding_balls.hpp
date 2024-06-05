@@ -21,6 +21,7 @@ public:
   std::vector<math::matr<3, 2>> dual_;
   std::vector<math::matr<3, 2>> gap_;
   std::vector<real> stiffness_;
+  std::vector<math::matr<3, 2>> origin_;
 
   std::map<std::pair<idx, idx>, idx> collidings_;
   std::map<std::pair<idx, idx>, idx> colliding_map_;

@@ -126,16 +126,14 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   math::vec3r const e1 = zu.col(1), e2 = zu.col(2), v = zu.col(0);
   math::vec3r const n_unnormalized = math::cross(zu.col(1) - zu.col(0), zu.col(2) - zu.col(0));
   math::vec3r const o_unnormalized = math::cross(o.col(1) - o.col(0), o.col(2) - o.col(0));
-  math::vec3r const normal = n_unnormalized.squaredNorm() < 1e-9
-                                 ? math::normalized(o_unnormalized)
-                                 : math::normalized(n_unnormalized);
+  math::vec3r const normal = n_unnormalized.squaredNorm() < 1e-9 ? math::normalized(o_unnormalized)
+                                                                 : math::normalized(n_unnormalized);
 
   std::cout << normal.transpose() << std::endl;
   // Question: How to determine if there is a collision in actual?
   // The collision is determined by the normal of the triangle.
   // if there exist the collision, we need to project to another direction.
-  real zu_det = zu.determinant(), o_det = o.determinant();
-  bool const collision = zu_det * o_det <= math::epsilon<>;
+  bool const collision = n_unnormalized.dot(o_unnormalized) <= 0;
 
   // compute the unsigned distance of target position.
   real const area2 = math::norm(math::cross(e1 - v, e2 - v));
@@ -155,12 +153,15 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     return {math::dot(p - center_of_mass, x_c), math::dot(p - center_of_mass, y_c)};
   };
 
-  auto from = [&](math::vec2r const& p) -> math::vec3r { return center_of_mass + p[0] * x_c + p[1] * y_c; };
+  auto from = [&](math::vec2r const& p) -> math::vec3r {
+    return center_of_mass + p[0] * x_c + p[1] * y_c;
+  };
 
   math::vec2r e1_c = to(e1), e2_c = to(e2), v_c = to(v);
-  std::cout << "dets: " << n_unnormalized.dot(o_unnormalized) << std::endl;
+  std::cout << "n dot o: " << n_unnormalized.dot(o_unnormalized) << std::endl;
   std::cout << "x: " << x_c.transpose() << std::endl;
   std::cout << "y: " << y_c.transpose() << std::endl;
+  std::cout << "n: " << normal.transpose() << std::endl;
   std::cout << "e1c: " << e1_c.transpose() << std::endl;
   std::cout << "e2c: " << e2_c.transpose() << std::endl;
   std::cout << "vc: " << v_c.transpose() << std::endl;
@@ -168,15 +169,15 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   if (collision) {
     // output position of e1 and e2 should have different sign compared with e1_c and e2_c.
     real const vcx = v_c.x();
-    bool const sgnb = std::signbit(vcx);
-    real const t = sgnb ? -tol : tol;
+    bool const sgn_vcx = std::signbit(vcx);
+    real const t = sgn_vcx ? tol : -tol;
     // k/2(x-t)^2 + rho/2 (x-vcx)^2
     // => optimal point is (k+rho) x = k t + rho vcx
     // => x = (kt + rho vcx) / (k+rho)
     // x represents the optimal x coordinate of vertex in 2D plane.
     real x = (k * t + rho * vcx) / (k + rho);
     // also need to test, if x have same sign with t.
-    if (abs(x) < 0.5 * abs(t) || std::signbit(x) == sgnb) {
+    if (abs(x) < 0.5 * abs(t) || std::signbit(x) == sgn_vcx) {
       // need to enlarge k to satisfy the constraint.
       //   if t < 0 => x < 0.5 t.
       //   if t > 0 => x > 0.5 t.
@@ -186,6 +187,7 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
       // => k = rho - 2 vcx / t.
       // vcx always have different sign with t, then k is always positive.
       k = rho - 2 * vcx / t;
+      std::cout << "enlarge k: " << k << std::endl;
       x = (k * t + rho * vcx) / (k + rho);
     }
 
@@ -200,14 +202,13 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     // we need to project to a safer range.
     // k/2(x-t)^2 + rho/2 (x-vcx)^2
     real const vcx = v_c.x();
-    std::cout << vcx << std::endl;
     if (vcx >= tol * 0.9) {
       // no no no, you are ok, allow to set zu.
       x = zu;
       return false;
     }
     bool const sgnb = std::signbit(vcx);
-    real const t = sgnb ? tol : -tol;
+    real const t = sgnb ? -tol : tol;
     real x = (k * t + rho * vcx) / (k + rho);
     // wish |x| > 0.5 |t|
     // => k t + rho vcx = 0.5 t (k + rho)
@@ -224,16 +225,21 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   }
 
   // now recover from 2D plane.
+  std::cout << "After relax, plane coords:" << std::endl;
+  std::cout << "v: " << v_c.transpose() << std::endl;
+  std::cout << "e1: " << e1_c.transpose() << std::endl;
+  std::cout << "e2: " << e2_c.transpose() << std::endl;
   x.col(0) = from(v_c);
   x.col(1) = from(e1_c);
   x.col(2) = from(e2_c);
   std::cout << x << std::endl;
   std::cout << zu << std::endl;
-  std::cout << o << std::endl;
+  // std::cout << o << std::endl;
   return true;
 }
 
-inline bool relax_vertex_vertex_impl(real rho, real& k, m32 const& z, m32 const& u, m32& dual, real radius, real eps) {
+inline bool relax_vertex_vertex_impl(m32 const& z, m32 const& u, m32 const& o, m32& dual, real &k, real rho,
+                                     real radius, real eps) {
   // Very similar to spring, let L = radius + eps.
   // The spring energy:
   //   f(x) = 1/2 k (|| D x || - (L + eps))^2
@@ -268,6 +274,11 @@ inline bool relax_vertex_vertex_impl(real rho, real& k, m32 const& z, m32 const&
   // std::cout << "dx_norm: " << dx_norm << std::endl;
 
   v3 const dn = math::normalized(d);
+
+  if ((zu.col(1) - zu.col(0)).dot(o.col(1) - o.col(0)) < 0) {
+    dx_norm = -dx_norm;
+  }
+
   dual.col(0) = c + 0.5 * dx_norm * dn;
   dual.col(1) = c - 0.5 * dx_norm * dn;
   // std::cout << "dual: " << dual << std::endl;

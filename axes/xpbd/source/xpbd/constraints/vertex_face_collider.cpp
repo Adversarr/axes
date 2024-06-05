@@ -48,7 +48,7 @@ std::pair<CollisionKind, idx> determine_real_collision_kind(m34 const& o, real t
   // std::cout << std::boolalpha << "ve12: " <<  static_cast<bool>(ve12) << std::endl;
   // std::cout << std::boolalpha << "ve23: " <<  static_cast<bool>(ve23) << std::endl;
   // std::cout << std::boolalpha << "ve31: " <<  static_cast<bool>(ve31) << std::endl;
-
+  //
   // NOTE: Should be changed to continuous version?
   bool any_vv = vv1 || vv2 || vv3;
   bool any_ve = ve12 || ve23 || ve31;
@@ -84,16 +84,18 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     real& rho = rho_[i];
     m34 z;
     for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
-    auto [kind, id] = determine_real_collision_kind(z - u, tol_);
+    auto [kind, id] = determine_real_collision_kind(origin_[i], tol_);
     if (kind == geo::CollisionKind::kVertexVertex) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
-      m32 z_vv, u_vv;
+      m32 z_vv, u_vv, o_vv;
       z_vv.col(0) = z.col(0);
       z_vv.col(1) = z.col(id);
       u_vv.col(0) = u.col(0);
       u_vv.col(1) = u.col(id);
+      o_vv.col(0) = origin_[i].col(0);
+      o_vv.col(1) = origin_[i].col(id);
       m32 x_vv;
-      relax_vertex_vertex_impl(rho, k, z_vv, u_vv, x_vv, 0.2 * tol_, 0.05 * tol_);
+      relax_vertex_vertex_impl(z_vv, u_vv, o_vv, x_vv, k, rho, 0.2 * tol_, 0.05 * tol_);
       x.col(0) = x_vv.col(0);
       x.col(id) = x_vv.col(1);
       for (idx i = 1; i < 4; ++i) {
@@ -102,6 +104,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     } else if (kind == geo::CollisionKind::kVertexEdge) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
       m3 z_ve, u_ve;
+      idx unused = 6 - (id / 10) % 10 - id % 10;
       z_ve.col(0) = z.col(0);
       z_ve.col(1) = z.col((id / 10) % 10);
       z_ve.col(2) = z.col(id % 10);
@@ -112,33 +115,30 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
       o_ve.col(0) = origin_[i].col(0);
       o_ve.col(1) = origin_[i].col((id / 10) % 10);
       o_ve.col(2) = origin_[i].col(id % 10);
-      relax_vertex_edge_impl(z_ve, u_ve, o_ve, x_ve, rho, k, tol_ * 0.1);
+      std::cout << o_ve << std::endl;
+      relax_vertex_edge_impl(z_ve, u_ve, o_ve, x_ve, rho, k, tol_ * 0.2);
       x.col(0) = x_ve.col(0);
       x.col((id / 10) % 10) = x_ve.col(1);
       x.col(id % 10) = x_ve.col(2);
-      x.col(6 - (id / 10) % 10 - id % 10) = (z - u).col(3);
-    } else {
+      x.col(unused) = (z - u).col(unused);
+      for (idx i = 0; i < 4; ++i) {
+        if (i == unused) continue;
+        sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
+        sol.weights_[C[i]] += rho;
+      }
+    } else if (kind == geo::CollisionKind::kVertexFace) {
       relax_vertex_triangle_impl(z, u, origin_[i], x, rho_[i], k, tol_);
-    }
-    rho *= ratio_;
-    u /= ratio_;
-
-    // m34 const xu = x + u;
-    // auto vf = detect_vertex_face(CollidableVertex(0, Vertex3{origin_[i].col(0)}),
-    //                               CollidableVertex(0, Vertex3{xu.col(0)}),
-    //                               CollidableTriangle(0, Triangle3{origin_[i].col(1),
-    //                               origin_[i].col(2), origin_[i].col(3)}), CollidableTriangle(0,
-    //                               Triangle3{xu.col(1), xu.col(2), xu.col(3)}), tol_);
-
-    // if (vf) {
-    //   std::cout << "Retrun Value Still have Collision: " << C[0] << " " << C[1] << " " << C[2] <<
-    //   " " << C[3] << std::endl;
-    // }
-    for (idx i = 0; i < 4; ++i) {
-      sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
-      sol.weights_[C[i]] += rho;
+      for (idx i = 0; i < 4; ++i) {
+        sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
+        sol.weights_[C[i]] += rho;
+      }
+    } else {
+      x = z - u;
+      // TODO: ???????
     }
     sol.sqr_dual_residual_ += (x - dual_old).squaredNorm();
+    rho *= ratio_;
+    u /= ratio_;
   }
 
   iteration_ += 1;
@@ -239,12 +239,11 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
       this->constraint_mapping_.emplace_back(global_to_local_[vid], global_to_local_[f.x()],
                                              global_to_local_[f.y()], global_to_local_[f.z()]);
       auto& di = dual_.emplace_back();
-      auto& actual = gap_.emplace_back();
+      gap_.emplace_back().setZero();
       di.col(0) = g.last_vertices_.col(vid);
       for (auto [i, v] : utils::enumerate(f)) {
         di.col(i + 1) = g.last_vertices_.col(v);
       }
-      actual.setZero();
       real const mass = 0.25 * g.mass_[vid] + 0.25 * g.mass_[f.x()] + 0.25 * g.mass_[f.y()]
                         + 0.25 * g.mass_[f.z()];
 

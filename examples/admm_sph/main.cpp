@@ -183,7 +183,6 @@ void step() {
   }
 
   g.velocities_ = (g.vertices_ - g.last_vertices_) / g.dt_;
-  // std::cout << g.velocities_.rowwise().sum() << std::endl;
 }
 
 void ui_callback(gl::UiRenderEvent const&) {

@@ -19,10 +19,11 @@ ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
     m32 z;
     z.col(0) = constrained_vertices_position_[C[0]];
     z.col(1) = constrained_vertices_position_[C[1]];
-    auto& g = gap_[i];
+    auto const& u = gap_[i];
     auto& d = dual_[i];
-    relax_vertex_vertex_impl(rho, stiffness_[i], z, g, d, ball_radius_, tol_);
-    m32 const rhogd = (g + d) * rho;
+    auto& k = stiffness_[i];
+    relax_vertex_vertex_impl(z, u, origin_[i], d, k, rho, ball_radius_, tol_);
+    m32 const rhogd = (u + d) * rho;
     auto const& dold = dual_old[i];
     sol.sqr_dual_residual_ += (d - dold).squaredNorm();
     ConstraintMap::ConstVisitor v = constraint_mapping_[i];
@@ -39,6 +40,7 @@ void Constraint_CollidingBalls::BeginStep() {
   // Initialize the dual variable.
   dual_.clear();
   gap_.clear();
+  origin_.clear();
   colliding_map_.clear();
   colliding_vertices_.clear();
   collidings_.clear();
@@ -138,6 +140,7 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
       rho_.push_back(initial_rho_ * dt2);
       stiffness_.push_back(initial_rho_ * dt2);
 
+      origin_.push_back(dual);
       colliding_map_.emplace(std::minmax(i, j), rho_.size() - 1);
     }
   }

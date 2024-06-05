@@ -24,7 +24,6 @@
 
 using namespace ax;
 using namespace ax::xpbd;
-xpbd::Constraint_PlaneCollider* bottom;
 
 Entity ent;
 ABSL_FLAG(int, nx, 4, "cloth resolution");
@@ -185,7 +184,7 @@ void step() {
   }
 
   g.velocities_ = (g.vertices_ - g.last_vertices_) / g.dt_;
-  // std::cout << g.velocities_.rowwise().sum() << std::endl;
+  std::cout << g.velocities_.rowwise().sum() << std::endl;
 }
 
 void ui_callback(gl::UiRenderEvent const&) {
@@ -195,8 +194,6 @@ void ui_callback(gl::UiRenderEvent const&) {
   static int frame_id = 0;
   ImGui::Checkbox("Running", &running);
   ImGui::InputInt("Iterations", &n_iter);
-
-  ImGui::InputDouble("Ground Z: ", &bottom->offset_);
   if (ImGui::Button("Run Once") || running) {
     auto start = std::chrono::high_resolution_clock::now();
     for (auto _ : utils::iota(10)) {
@@ -232,20 +229,21 @@ int main(int argc, char** argv) {
   auto nv_cube = cube.vertices_.cols();
 
   idx nB = nx;
-  idx nV = nB + nv_cube;
+  idx nV = 4;
 
-  g.vertices_.setRandom(3, nV);
-  g.vertices_ *= 0.5;
-  g.vertices_.leftCols(nv_cube) = cube.vertices_;
-  g.vertices_.leftCols(nv_cube).row(1).array() += 1;
-
+  g.vertices_.setZero(3, 4);
   g.velocities_.setZero(3, nV);
   g.last_vertices_ = g.vertices_;
   g.ext_accel_.setZero(3, nV);
+  g.vertices_.leftCols<3>().setIdentity();
+  g.vertices_.col(3) = math::vec3r{.5, 1, 0};
+  g.velocities_.col(3) = math::vec3r{0, -1, 0};
+
+  g.faces_.push_back({0, 1, 2});
 
   g.mass_.setConstant(1, nV, 0.01);
-  g.ext_accel_.row(1).array() -= 9.8;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
   update_rendering();
   AX_CHECK_OK(gl::enter_main_loop());

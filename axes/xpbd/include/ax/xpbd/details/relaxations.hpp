@@ -124,13 +124,18 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   // First compute the normal of target positions.
   m3 const zu = z - u;
   math::vec3r const e1 = zu.col(1), e2 = zu.col(2), v = zu.col(0);
-  math::vec3r const normal = math::normalized(math::cross(e1 - v, e2 - v));
+  math::vec3r const n_unnormalized = math::cross(zu.col(1) - zu.col(0), zu.col(2) - zu.col(0));
+  math::vec3r const o_unnormalized = math::cross(o.col(1) - o.col(0), o.col(2) - o.col(0));
+  math::vec3r const normal = n_unnormalized.squaredNorm() < 1e-9
+                                 ? math::normalized(o_unnormalized)
+                                 : math::normalized(n_unnormalized);
 
+  std::cout << normal.transpose() << std::endl;
   // Question: How to determine if there is a collision in actual?
   // The collision is determined by the normal of the triangle.
   // if there exist the collision, we need to project to another direction.
   real zu_det = zu.determinant(), o_det = o.determinant();
-  bool const collision = zu_det * o_det < 0;
+  bool const collision = zu_det * o_det <= math::epsilon<>;
 
   // compute the unsigned distance of target position.
   real const area2 = math::norm(math::cross(e1 - v, e2 - v));
@@ -150,9 +155,15 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     return {math::dot(p - center_of_mass, x_c), math::dot(p - center_of_mass, y_c)};
   };
 
-  auto from = [&](math::vec2r const& p) -> math::vec3r { return v + p[0] * x_c + p[1] * y_c; };
+  auto from = [&](math::vec2r const& p) -> math::vec3r { return center_of_mass + p[0] * x_c + p[1] * y_c; };
 
   math::vec2r e1_c = to(e1), e2_c = to(e2), v_c = to(v);
+  std::cout << "dets: " << n_unnormalized.dot(o_unnormalized) << std::endl;
+  std::cout << "x: " << x_c.transpose() << std::endl;
+  std::cout << "y: " << y_c.transpose() << std::endl;
+  std::cout << "e1c: " << e1_c.transpose() << std::endl;
+  std::cout << "e2c: " << e2_c.transpose() << std::endl;
+  std::cout << "vc: " << v_c.transpose() << std::endl;
   // e1_c and e2_c should have same x component, and v_c should have different x component.
   if (collision) {
     // output position of e1 and e2 should have different sign compared with e1_c and e2_c.
@@ -183,11 +194,13 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     e1_c[0] = -0.5 * x;
     e2_c[0] = -0.5 * x;
     v_c[0] = x;
+    std::cout << "collision: " << x << std::endl;
   } else {
     // although there is no collision actually, but the distance is too small.
     // we need to project to a safer range.
     // k/2(x-t)^2 + rho/2 (x-vcx)^2
     real const vcx = v_c.x();
+    std::cout << vcx << std::endl;
     if (vcx >= tol * 0.9) {
       // no no no, you are ok, allow to set zu.
       x = zu;
@@ -207,12 +220,16 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     v_c[0] = x;
     e1_c[0] = -0.5 * x;
     e2_c[0] = -0.5 * x;
+    std::cout << "no collision: " << x << std::endl;
   }
 
   // now recover from 2D plane.
   x.col(0) = from(v_c);
   x.col(1) = from(e1_c);
   x.col(2) = from(e2_c);
+  std::cout << x << std::endl;
+  std::cout << zu << std::endl;
+  std::cout << o << std::endl;
   return true;
 }
 

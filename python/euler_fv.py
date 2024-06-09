@@ -58,9 +58,9 @@ def linf(inexact, exact):
 
 def do_experiment_continuous():
     T = 1
-    exact_nx = 512
-    ref_density, ref_momentum, ref_energy = do_experiment(exact_nx, T, 1, PROB_SOD, FLUX_HLL)
+    exact_nx = 1024
 
+    ref_density, ref_momentum, ref_energy = do_experiment(exact_nx, T, 1, PROB_SOD, FLUX_HLL)
     l, r = -np.pi, np.pi
     dx = (r - l) / exact_nx
     x = np.arange(l, r, dx)
@@ -72,33 +72,41 @@ def do_experiment_continuous():
     true_pressure = np.ones_like(true_density)
     true_velocity = np.ones_like(true_density)
 
-    plt.figure(dpi=150)
+    plt.figure(figsize=(12, 8), dpi=150)
     plt.subplot(221)
     plt.xlim(l, r)
     plt.ylim(0, 1.25);
     plt.plot(x, ref_density, label='computed')
     plt.plot(x, true_density, '--', label='true')
+    plt.grid()
+    plt.legend()
     plt.title('Density')
     plt.subplot(222)
     plt.xlim(l, r)
     plt.ylim(-0.25, 1.25);
     plt.plot(x, velocity(ref_density, ref_momentum), label='computed')
     plt.plot(x, velocity(true_density, true_momentum), '--', label='true')
-    plt.title('velocity')
+    plt.grid()
+    plt.legend()
+    plt.title('Velocity')
     plt.subplot(223)
     plt.xlim(l, r)
     plt.plot(x, ref_energy, label='computed')
     plt.plot(x, true_energy, '--', label='true')
-    plt.title('energy')
+    plt.grid()
+    plt.legend()
+    plt.title('Energy')
     plt.subplot(224)
     plt.xlim(l, r)
     plt.ylim(0, 1.25);
     plt.plot(x, pressure(ref_density, ref_momentum, ref_energy), label='computed')
     plt.plot(x, pressure(true_density, true_momentum, true_energy),'--', label='true')
-    plt.title('pressure')
+    plt.grid()
+    plt.legend()
+    plt.title('Pressure')
 
 
-    test_nx = [32, 64, 128, 256, ]
+    test_nx = [32, 64, 128, 256, 512, ]
 
     linferrors = {
         'density': [],
@@ -172,47 +180,92 @@ def do_experiment_continuous():
         l1errors['energy'].append(el1)
         l1errors['pressure'].append(pl1)
 
-    plt.figure(dpi=150)
-    plt.loglog(test_nx, linferrors['density'], '+--',label='density')
-    plt.loglog(test_nx, linferrors['momentum'], '*--', label='momentum')
-    plt.loglog(test_nx, linferrors['energy'], label='energy')
+    plt.figure(figsize=(10, 4), dpi=200)
+    plt.subplot(121)
+    plt.loglog(test_nx, linferrors['density'], '+-',label='density')
+    plt.loglog(test_nx, linferrors['momentum'], '*-', label='momentum')
+    plt.loglog(test_nx, linferrors['energy'], 'x-', label='energy')
     plt.loglog(test_nx, np.array(test_nx, dtype=np.float64)**-3, '--', label='$1/h^3$')
     plt.legend()
+    plt.grid()
+    plt.title('$L^\\infty$ error')
+    plt.subplot(122)
+    plt.loglog(test_nx, l1errors['density'], '+-',label='density')
+    plt.loglog(test_nx, l1errors['momentum'], '*-', label='momentum')
+    plt.loglog(test_nx, l1errors['energy'], 'x-', label='energy')
+    plt.loglog(test_nx, np.array(test_nx, dtype=np.float64)**-3, '--', label='$1/h^3$')
+    plt.legend()
+    plt.grid()
+    plt.title('$L^1$ error')
     plt.show()
 
+    # print the error table in typst
+    # name,
+    # l1e, l1o, linfe, linfo
+    for name in ['density', 'momentum', 'velocity', 'energy', 'pressure']:
+        print(f'[{test_nx[0]}], [{l1errors[name][0]}], [--], [{linferrors[name][0]}], [--],')
+        for i, nx in enumerate(test_nx[1:]):
+            print(f'[{nx}], ', end='')
+            for errt in [l1errors, linferrors]:
+                err = errt[name][i + 1]
+                err_last = errt[name][i]
+                order = np.log(err / err_last) / np.log(2)
+                print(f'[{err}], [{-order}], ', end='')
+            print('')
+
+
+
+
+
 def do_experiment_discontinuous():
-    exact_nx = 1024
+    compute_nx = 128
+    ref_nx = 4096
     # standard SOD problem
-    # l, r = -1, 1
-    # ref_density, ref_momentum, ref_energy = do_experiment(exact_nx, 0.2, 0, PROB_SOD, FLUX_HLL)
+    l, r = -1, 1
+    density, momentum, energy = do_experiment(compute_nx, .2, 0, PROB_SOD, FLUX_HLL)
+    ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 0.2, 0, PROB_SOD, FLUX_HLL)
 
-    ref_density, ref_momentum, ref_energy = do_experiment(exact_nx, 1, 0, PROB_NONE, FLUX_HLL)
-    l, r = -6, 6
+    # l, r = -6, 6
+    # density, momentum, energy = do_experiment(compute_nx, 1, 0, PROB_NONE, FLUX_LAX_FRIDRICH)
+    # ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 1, 0, PROB_NONE, FLUX_HLL)
 
-    x = np.linspace(l, r, exact_nx)
+    x = np.linspace(l, r, compute_nx)
+    ref_x = np.linspace(l, r, ref_nx)
 
-    plt.figure(dpi=150)
+    plt.figure(figsize=(12, 8), dpi=200)
     plt.subplot(221)
     plt.xlim(l, r)
     plt.ylim(0, 1.25);
-    plt.plot(x, ref_density, label='computed')
+    plt.plot(x, density, label='computed')
+    plt.plot(ref_x, ref_density, '--', label='reference')
+    plt.grid()
+    plt.legend()
     plt.title('Density')
     plt.subplot(222)
     plt.xlim(l, r)
     plt.ylim(-0.25, 1.25);
-    plt.plot(x, velocity(ref_density, ref_momentum), label='computed')
-    plt.title('velocity')
+    plt.plot(x, velocity(density, momentum), label='computed')
+    plt.plot(ref_x, velocity(ref_density, ref_momentum), '--', label='reference')
+    plt.legend()
+    plt.grid()
+    plt.title('Velocity')
     plt.subplot(223)
     plt.xlim(l, r)
-    plt.plot(x, ref_energy, label='computed')
-    plt.title('energy')
+    plt.plot(x, energy, label='computed')
+    plt.plot(ref_x, ref_energy, '--', label='reference')
+    plt.title('Energy')
+    plt.grid()
+    plt.legend()
     plt.subplot(224)
     plt.xlim(l, r)
     plt.ylim(0, 1.25);
-    plt.plot(x, pressure(ref_density, ref_momentum, ref_energy), label='computed')
-    plt.title('pressure')
+    plt.plot(x, pressure(density, momentum, energy), label='computed')
+    plt.plot(ref_x, pressure(ref_density, ref_momentum, ref_energy), '--', label='reference')
+    plt.title('Pressure')
+    plt.grid()
+    plt.legend()
     plt.show()
 
 
-# do_experiment_continuous()
-do_experiment_discontinuous()
+do_experiment_continuous()
+# do_experiment_discontinuous()

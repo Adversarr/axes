@@ -28,19 +28,20 @@ field1r density;
 field1r momentum;
 field1r energy;
 scalar x_min, x_max;
+string input;
 
 // Ideal gas equation of state:
 // E = p / (gamma - 1) + 0.5 * rho * u^2
 
 constexpr scalar GAMMA = 1.4;
-inline scalar pressure(scalar density, scalar momentum, scalar energy) {
+AX_FORCE_INLINE scalar pressure(scalar density, scalar momentum, scalar energy) {
   return (energy - 0.5 * momentum * momentum / density) * (GAMMA - 1);
 }
 
-inline scalar sound_speed(scalar density, scalar momentum, scalar energy) {
+AX_FORCE_INLINE scalar sound_speed(scalar density, scalar momentum, scalar energy) {
   return sqrt(GAMMA * pressure(density, momentum, energy) / density);
 }
-inline scalar compute_energy(scalar density, scalar momentum, scalar pressure) {
+AX_FORCE_INLINE scalar compute_energy(scalar density, scalar momentum, scalar pressure) {
   return pressure / (GAMMA - 1) + 0.5 * momentum * momentum / density;
 }
 
@@ -53,7 +54,7 @@ scalar cfl(scalar dx) {
   return dx / max_speed * 0.1;
 }
 
-v3 fu(scalar density, scalar momentum, scalar energy) {
+AX_FORCE_INLINE v3 fu(scalar density, scalar momentum, scalar energy) {
   v3 f;
   scalar speed = momentum / density;
   scalar pres = pressure(density, momentum, energy);
@@ -63,9 +64,9 @@ v3 fu(scalar density, scalar momentum, scalar energy) {
   return f;
 }
 
-v3 fu(const v3& u) { return fu(u.x(), u.y(), u.z()); }
+AX_FORCE_INLINE v3 fu(const v3& u) { return fu(u.x(), u.y(), u.z()); }
 
-v3 lax_friedrichs(const v3& left, const v3& right) {
+AX_FORCE_INLINE v3 lax_friedrichs(const v3& left, const v3& right) {
   scalar const left_speed = left.y() / left.x();
   scalar const right_speed = right.y() / right.x();
   scalar const speed = 1.4 * max(abs(left_speed), abs(right_speed));
@@ -74,7 +75,7 @@ v3 lax_friedrichs(const v3& left, const v3& right) {
   return 0.5 * (f_left + f_right - speed * (right - left));
 }
 
-v3 hll(const v3& left, const v3& right) {
+AX_FORCE_INLINE v3 hll(const v3& left, const v3& right) {
   scalar const left_speed = left.y() / left.x();
   scalar const right_speed = right.y() / right.x();
   scalar const left_energy = left.z();
@@ -105,6 +106,17 @@ void initialize() {
   density.resize(nx);
   momentum.resize(nx);
   energy.resize(nx);
+
+  if (!input.empty()) {
+    // assuming that the input is [-pi, pi]
+    x_min = -pi<>;
+    x_max = pi<>;
+    density = read_npy_v10_real(input + "_density.npy").transpose();
+    momentum = read_npy_v10_real(input + "_momentum.npy").transpose();
+    energy = read_npy_v10_real(input + "_energy.npy").transpose();
+    return;
+  }
+
   if (periodic) {
     x_min = -pi<>;
     x_max = pi<>;
@@ -168,6 +180,7 @@ AX_FORCE_INLINE vec3r field_get(const field3r& f, idx i) {
 
 math::field3r weno_smooth_indicator(math::field1r const& u) {
   math::field3r beta(3, u.cols());
+#pragma unroll 4
   for (idx i = 0; i < u.cols(); ++i) {
     scalar u_ll = field_get(u, (i - 2));
     scalar u_l = field_get(u, (i - 1));
@@ -195,6 +208,7 @@ math::field3r weno_smooth_indicator(math::field1r const& u) {
 
 math::field3r reconstruct_3rd_order_weno_left(math::field1r const& in) {
   math::field3r left(3, in.cols());
+#pragma unroll 4
   for (idx i = 0; i < nx; ++i) {
     scalar u_ll = field_get(in, (i - 2));
     scalar u_l = field_get(in, (i - 1));
@@ -210,6 +224,7 @@ math::field3r reconstruct_3rd_order_weno_left(math::field1r const& in) {
 
 math::field3r reconstruct_3rd_order_weno_right(math::field1r const& in) {
   math::field3r right(3, in.cols());
+#pragma unroll 4
   for (idx i = 0; i < nx; ++i) {
     scalar u_ll = field_get(in, (i - 2));
     scalar u_l = field_get(in, (i - 1));
@@ -229,6 +244,7 @@ math::field2r reconstruct_3rd_order_weno(math::field1r const& in) {
   math::field3r right = reconstruct_3rd_order_weno_right(in);
   math::field3r beta = weno_smooth_indicator(in);
   math::field2r out(2, in.cols());
+#pragma unroll 4
   for (idx i = 0; i < nx; ++i) {
     out(0, i) = math::dot(right.col(i), beta.col(i));
     v3 const l = field_get(left, i + 1), b = field_get(beta, i + 1);
@@ -237,7 +253,8 @@ math::field2r reconstruct_3rd_order_weno(math::field1r const& in) {
   return out;
 }
 
-void apply_flux(field1r& target, field1r const& f, scalar dtdx) {
+AX_FORCE_INLINE void apply_flux(field1r& target, field1r const& f, scalar dtdx) {
+#pragma unroll 4
   for (idx i = 0; i < nx; ++i) {
     target(i) -= dtdx * (field_get(f, i) - field_get(f, i - 1));
   }
@@ -307,6 +324,7 @@ ABSL_FLAG(bool, periodic, true,
           "notice your nx.");
 ABSL_FLAG(int, flux_type, FLUX_HLL, "Flux type");
 ABSL_FLAG(string, out, "output", "Output file");
+ABSL_FLAG(string, input, "", "Input, if possible.");
 
 int main(int argc, char** argv) {
   init(argc, argv);
@@ -317,6 +335,7 @@ int main(int argc, char** argv) {
   periodic = absl::GetFlag(FLAGS_periodic);
   problem = absl::GetFlag(FLAGS_problem);
   flux_type = absl::GetFlag(FLAGS_flux_type);
+  input = absl::GetFlag(FLAGS_input);
 
   initialize();
   scalar t_current = 0;

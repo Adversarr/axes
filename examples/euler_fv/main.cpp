@@ -10,7 +10,8 @@
 
 using namespace ax;
 using namespace ax::math;
-using namespace std; using scalar = ax::real;
+using namespace std;
+using scalar = ax::real;
 using v3 = vec3r;
 
 #define PROBLEM_SOD 0
@@ -58,7 +59,7 @@ v3 fu(scalar density, scalar momentum, scalar energy) {
   scalar pres = pressure(density, momentum, energy);
   f.x() = momentum;
   f.y() = momentum * speed + pres;
-  f.z() = energy * (pres + speed);
+  f.z() = speed * (energy + pres);
   return f;
 }
 
@@ -109,48 +110,33 @@ void initialize() {
     x_max = pi<>;
     scalar dx = (x_max - x_min) / nx;
     for (idx i = 0; i < nx; ++i) {
-      scalar x = x_min + (x_max - x_min) * i / nx;
-      scalar l = x_min + (x_max - x_min) * (i - 0.5) / nx;
-      scalar r = x_min + (x_max - x_min) * (i + 0.5) / nx;
+      scalar x = x_min + i * dx;
       // 1+0.2 sin x, 1, 1
-      density(i) = 1 + 0.2 * (cos(l) - cos(r)) / dx;
+      density(i) = 1 + 0.2 * (cos(x) - cos(x + dx)) / dx;
       momentum(i) = density(i);
       energy(i) = 2.5 + 0.5 * density(i);
     }
   } else {
     x_min = -6;
     x_max = 6;
-
     if (problem == PROBLEM_SOD) {
       x_min = -1;
       x_max = 1;
-      for (idx i = 0; i < nx; ++i) {
-        scalar x = x_min + (x_max - x_min) * i / nx;
-        if (x < 0) {
-          density(i) = 1;
-          momentum(i) = 0;
-          energy(i) = compute_energy(density(i), momentum(i), 1.0);
-        } else {
-          density(i) = 0.125;
-          momentum(i) = 0;
-          energy(i) = 0.1 / (GAMMA - 1);
-        }
-      }
     }
 
-    // for (idx i = 0; i < nx; ++i) {
-    //   scalar x = x_min + (x_max - x_min) * i / nx;
-    //   // 1+0.2 sin x, 1, 1
-    //   if (x < 0) {
-    //     density(i) = 1;
-    //     momentum(i) = 1;
-    //     energy(i) = compute_energy(density(i), momentum(i), 1);
-    //   } else {
-    //     density(i) = 0.125;
-    //     momentum(i) = 0;
-    //     energy(i) = compute_energy(density(i), momentum(i), 0.1);
-    //   }
-    // }
+    scalar dx = (x_max - x_min) / nx;
+    for (idx i = 0; i < nx; ++i) {
+      scalar x = x_min + i * dx;
+      if (x < 0) {
+        density(i) = 1;
+        momentum(i) = 0;
+        energy(i) = compute_energy(density(i), momentum(i), 1.0);
+      } else {
+        density(i) = 0.125;
+        momentum(i) = 0;
+        energy(i) = 0.1 / (GAMMA - 1);
+      }
+    }
   }
 }
 
@@ -304,11 +290,11 @@ void rk3(scalar dtdx) {
   // 2 = 0.75 * prev + 0.25 * 1
   // 3 = 1/3 * prev + 2/3 * 2
   copy_global(density1, momentum1, energy1);
-  rk1(density, momentum, energy, dtdx); // now density is u1
+  rk1(density, momentum, energy, dtdx);  // now density is u1
   rk1(density, momentum, energy, dtdx);
-  blend_to_global(density1, momentum1, energy1, 0.75); // now density is u2
+  blend_to_global(density1, momentum1, energy1, 0.75);  // now density is u2
   rk1(density, momentum, energy, dtdx);
-  blend_to_global(density1, momentum1, energy1, 1.0 / 3.0); // now density is u3
+  blend_to_global(density1, momentum1, energy1, 1.0 / 3.0);  // now density is u3
   // rk1(density, momentum, energy, dtdx);
 }
 

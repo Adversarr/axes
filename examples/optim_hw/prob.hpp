@@ -17,16 +17,13 @@ using namespace ax;
 using namespace math;
 
 constexpr idx PREDEFINED_M = 32561;
+constexpr idx PREDEFINED_FEAT = 123;
 
 class SPLR {
 public:
   real Energy(vecxr const& x) const {
     // x is m by 1
-    vecxr bAx = bA_.transpose() * x;
-    real loss = (bAx.array().exp() + 1).log().sum();
-    real l2 = norm2(x);
-    real l1 = norm(x, l1_t{});
-    return loss + lambda_ * l2 + mu_ * l1;
+    return Energy_Loss(x) + Energy_L2(x) + Energy_L1(x);
   }
 
   real Energy_L2(vecxr const& x) const {
@@ -36,7 +33,7 @@ public:
   }
   real Energy_Loss(vecxr const& x) const {
     vecxr bAx = bA_.transpose() * x;
-    real loss = (bAx.array().exp() + 1).log().sum();
+    real loss = (bAx.array().exp() + 1).log().mean();
     return loss;
   }
 
@@ -54,7 +51,7 @@ public:
   vecxr Gradient_Loss(vecxr const& x) const {
     vecxr bAx = bA_.transpose() * x;
     vecxr grad = bA_ * (bAx.array().exp() / (bAx.array().exp() + 1)).matrix();
-    return grad;
+    return grad / PREDEFINED_M;
   }
 
   vecxr Gradient_Loss_L2(vecxr const& x) const { return lambda_ * x; }
@@ -65,7 +62,7 @@ public:
     bA_ = A;
     for (idx i = 0; i < A.outerSize(); ++i) {
       for (sp_matxxr::InnerIterator it(A, i); it; ++it) {
-        it.valueRef() = it.value() * b(it.row());
+        it.valueRef() = it.value() * b(it.col());
       }
     }
   }
@@ -80,7 +77,7 @@ inline SPLR load_from_file(std::string const& filename) {
     throw std::runtime_error("Cannot open file " + filename);
   }
 
-  idx m = 0, n = 0;
+  idx m = 0, n = PREDEFINED_FEAT;
   math::vecxr b = math::vecxr::Zero(PREDEFINED_M);
   sp_coeff_list coeff_list;
   for (std::string line; std::getline(file, line);) {
@@ -101,20 +98,17 @@ inline SPLR load_from_file(std::string const& filename) {
     if (split_by_whitespace.empty()) {
       throw std::runtime_error("Invalid line: " + line);
     }
-    idx bi;
-    auto p = sscanf(split_by_whitespace[0].c_str(), "%ld", &bi);
+    int bi;
+    int p = sscanf(split_by_whitespace[0].c_str(), "%d", &bi);
     // +1 i1:v1 i2:v2 ...
     if (!(bi == 1 || bi == -1) || p != 1) {
       throw std::runtime_error("Invalid label: " + line);
     }
-    for (idx i = 1; i < split_by_whitespace.size(); ++i) {
+    for (size_t i = 1; i < split_by_whitespace.size(); ++i) {
       int row, aim;
-      idx ret = sscanf(split_by_whitespace[i].c_str(), "%d:%d", &row, &aim);
+      int ret = sscanf(split_by_whitespace[i].c_str(), "%d:%d", &row, &aim);
       if (row < 1 || aim == 0 || ret != 2) {
         throw std::runtime_error("Invalid feature: " + line);
-      }
-      if (row > n) {
-        n = row;
       }
       coeff_list.push_back(sp_coeff(row - 1, m, aim));
     }
@@ -126,10 +120,10 @@ inline SPLR load_from_file(std::string const& filename) {
     throw std::runtime_error("Invalid number of samples: " + std::to_string(m));
   }
   std::cout << "Loaded " << m << " samples, " << n << " features." << std::endl;
-  sp_matxxr A(n, m);
+  sp_matxxr A(PREDEFINED_FEAT, PREDEFINED_M);
   A.setFromTriplets(coeff_list.begin(), coeff_list.end());
   A.makeCompressed();
-  return SPLR(A, b);
+  return SPLR(A, -b);
 }
 
 }  // namespace xx

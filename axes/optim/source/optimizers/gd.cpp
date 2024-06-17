@@ -23,7 +23,7 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
   bool converged_var = false;
   idx iter = 0;
   for (iter = 0; iter < max_iter_; ++iter) {
-    problem.EvalVerbose(iter, x, problem.EvalEnergy(x));
+    problem.EvalVerbose(iter, x, energy);
     // if (!math::isfinite(energy)) {
     //   return utils::FailedPreconditionError("Energy function returns Infinite number!");
     // }
@@ -53,14 +53,14 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
       break;
     }
 
-    math::vecxr dir = -grad;
+    math::vecxr const dir = -grad;
     real step_length = lr_;
     if (linesearch_) {
       auto lsr = linesearch_->Optimize(problem, x, grad, dir);
       x = lsr.x_opt_;
       step_length = lsr.step_length_;
     } else {
-      x += dir * lr_;
+      x.noalias() += dir * lr_;
       step_length = lr_;
     }
 

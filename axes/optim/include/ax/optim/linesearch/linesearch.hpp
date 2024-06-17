@@ -22,6 +22,7 @@ public:
 
   real LastStepLength() const { return step_length_; }
 
+
 protected:
   idx max_iter_{100};
   real step_length_{1.0};
@@ -41,8 +42,8 @@ protected:
  * @return false
  */
 inline bool examine_arjimo_condition(real f_step, real f_original, real expected_descent,
-                                     real required_descent_rate, real step_length) {
-  return f_step <= f_original + expected_descent * required_descent_rate * step_length;
+                                     real required_descent_rate) {
+  return f_step <= f_original + expected_descent * required_descent_rate;
 }
 
 /**
@@ -78,7 +79,8 @@ inline bool examine_curvature_condition(math::vecxr const& step_dir, math::vecxr
 inline bool examine_strong_wolfe_condition(math::vecxr const& step_dir,
                                            math::vecxr const& grad_step, real expected_descent,
                                            real required_curvature_rate) {
-  return math::abs(grad_step.dot(step_dir)) <= math::abs(required_curvature_rate * expected_descent);
+  return math::abs(grad_step.dot(step_dir))
+         <= math::abs(required_curvature_rate * expected_descent);
 }
 
 }  // namespace ax::optim

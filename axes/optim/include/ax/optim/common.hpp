@@ -17,6 +17,7 @@ using EnergyFn = std::function<real(const math::vecxr&)>;
 using GradFn = std::function<math::vecxr(const math::vecxr&)>;
 using HessianFn = std::function<math::matxxr(const math::vecxr&)>;
 using SparseHessianFn = std::function<math::sp_matxxr(math::vecxr const&)>;
+using ProximatorFn = std::function<math::vecxr(const math::vecxr&, real)>;
 template <typename NormType = math::l2_t>
 inline real default_converge_grad(math::vecxr const&, math::vecxr const& grad) {
   return math::norm(grad, NormType{});
@@ -40,6 +41,7 @@ public:
   real EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
   real EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
   void EvalVerbose(idx iter, math::vecxr const& x, real f) const;
+  math::vecxr EvalProximator(math::vecxr const& x, real step_length) const;
 
   /****************************** Setters ******************************/
   OptProblem& SetEnergy(EnergyFn const& energy);
@@ -56,6 +58,8 @@ public:
 
   OptProblem& SetVerbose(VerboseFn const& verbose);
 
+  OptProblem& SetProximator(ProximatorFn const& proximator);
+
   /****************************** Check Valid ******************************/
   bool HasEnergy() const;
 
@@ -71,6 +75,8 @@ public:
 
   bool HasVerbose() const;
 
+  bool HasProximator() const;
+
 private:
   EnergyFn energy_{nullptr};
   GradFn grad_{nullptr};
@@ -79,6 +85,7 @@ private:
   ConvergeVarFn converge_var_{nullptr};
   ConvergeGradFn converge_grad_{nullptr};
   VerboseFn verbose_{nullptr};
+  ProximatorFn proximator_{nullptr};
 };
 
 /****************************** Optimization Result

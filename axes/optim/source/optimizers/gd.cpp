@@ -17,6 +17,7 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
   AX_THROW_IF_FALSE(problem.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");
   AX_THROW_IF_LT(lr_, 0, "Invalid learning rate: " + std::to_string(lr_));
+
   real energy = problem.EvalEnergy(x);
   math::vecxr grad, x_old = x;
   bool converged_grad = false;
@@ -24,9 +25,6 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
   idx iter = 0;
   for (iter = 0; iter < max_iter_; ++iter) {
     problem.EvalVerbose(iter, x, energy);
-    // if (!math::isfinite(energy)) {
-    //   return utils::FailedPreconditionError("Energy function returns Infinite number!");
-    // }
     AX_THROW_IF_FALSE(math::isfinite(energy), "Energy function returns Infinite number!");
 
     real evalcg = (iter > 0 && problem.HasConvergeGrad()) ? problem.EvalConvergeGrad(x, grad)
@@ -42,10 +40,7 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
                    << "  conv_grad: " << evalcg << std::endl
                    << "  conv_var: " << evalcv << std::endl;
     }
-    if (iter > 1 && enable_fista_) {
-      real blend = real(iter - 2) / real(iter + 1);
-      x = x + blend * (x - x_old);
-    }
+
     x_old = x;
     grad = problem.EvalGrad(x);
 
@@ -54,18 +49,14 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
     }
 
     math::vecxr const dir = -grad;
-    real step_length = lr_;
     if (linesearch_) {
       auto lsr = linesearch_->Optimize(problem, x, grad, dir);
       x = lsr.x_opt_;
-      step_length = lsr.step_length_;
     } else {
       x.noalias() += dir * lr_;
-      step_length = lr_;
-    }
-
-    if (proximator_) {
-      x = proximator_(x, step_length);
+      if (problem.HasProximator()) {
+        x = problem.EvalProximator(x, lr_);
+      }
     }
 
     energy = problem.EvalEnergy(x);
@@ -81,11 +72,6 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
   return result;
 }
 
-void ax::optim::GradientDescent::SetProximator(
-    std::function<math::vecxr(math::vecxr const&, real)> proximator) {
-  proximator_ = proximator;
-}
-
 void ax::optim::GradientDescent::SetLineSearch(UPtr<LinesearchBase> linesearch) {
   linesearch_ = std::move(linesearch);
 }
@@ -95,7 +81,6 @@ void ax::optim::GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
 void GradientDescent::SetOptions(utils::Opt const& opt) {
   OptimizerBase::SetOptions(opt);
   AX_SYNC_OPT_IF(opt, real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
-  AX_SYNC_OPT(opt, bool, enable_fista);
   auto [has_linesearch, linesearch] = utils::extract_enum<LineSearchKind>(opt, "linesearch");
   if (has_linesearch) {
     AX_THROW_IF_NULL(linesearch,
@@ -113,7 +98,6 @@ void GradientDescent::SetOptions(utils::Opt const& opt) {
 utils::Opt GradientDescent::GetOptions() const {
   auto opt = OptimizerBase::GetOptions();
   opt["lr"] = lr_;
-  opt["enable_fista"] = enable_fista_;
   if (linesearch_) {
     auto name = utils::reflect_name(linesearch_->GetKind());
     opt["linesearch"] = name.value();

@@ -12,6 +12,7 @@
 #include "ax/math/io.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/optim/optimizer_base.hpp"
+#include "ax/optim/optimizers/fista.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/iota.hpp"
@@ -53,17 +54,16 @@ int main(int argc, char** argv) {
   std::vector<math::vecxr> x_history;
   std::vector<real> tk_history;
 
-  if (opt_name == "prox_grad") {
+  prob.SetProximator([&](vecxr const& x, real lambda) -> math::vecxr {
+        return xx::l1_proximator(x, splr.mu_ * lambda);
+      })
+      .SetGrad(
+          [&](vecxr const& x) -> vecxr { return splr.Gradient_Loss(x) + splr.Gradient_Loss_L2(x); })
+      .SetEnergy([&](vecxr const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); });
+
+  if (!absl::GetFlag(FLAGS_fista)) {
     optimizer = std::make_unique<GradientDescent>();
     GradientDescent* gd = dynamic_cast<GradientDescent*>(optimizer.get());
-    gd->SetProximator([&](vecxr const& x, real lambda) -> math::vecxr {
-      tk_history.push_back(lambda);
-      return xx::l1_proximator(x, splr.mu_ * lambda);
-    });
-    prob.SetGrad(
-        [&](vecxr const& x) -> vecxr { return splr.Gradient_Loss(x) + splr.Gradient_Loss_L2(x); });
-
-    prob.SetEnergy([&](vecxr const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); });
     gd->SetLearningRate(lr);
     if (absl::GetFlag(FLAGS_linesearch) == "backtracking") {
       std::cout << "Using backtracking line search.\n";
@@ -80,11 +80,9 @@ int main(int argc, char** argv) {
                      {"required_curvature_rate", 0.1}});
       gd->SetLineSearch(std::move(p));
     }
-
-    // FISTA mode:
-    gd->EnableFista(absl::GetFlag(FLAGS_fista));
   } else {
-    throw std::runtime_error("Unknown optimizer: " + opt_name);
+    optimizer = std::make_unique<Fista>();
+    Fista* fista = dynamic_cast<Fista*>(optimizer.get());
   }
 
   optimizer->SetOptions({{"max_iter", absl::GetFlag(FLAGS_max_iter)},
@@ -93,14 +91,20 @@ int main(int argc, char** argv) {
                          {"verbose", absl::GetFlag(FLAGS_verbose)}});
   AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
 
-  if (absl::GetFlag(FLAGS_verbose)) {
-    prob.SetVerbose([&](idx iter, vecxr const& x, real energy) {
-      if (iter % 100 == 0) {
-        std::cout << "Iter " << iter << ": " << splr.Energy(x) << std::endl;
+  prob.SetVerbose([&, verb = absl::GetFlag(FLAGS_verbose)](idx iter, vecxr const& x, real energy) {
+    if (iter % 100 == 0 || verb) {
+      std::cout << "Iter " << iter << ": " << splr.Energy(x) << std::endl;
+      // print sparsity.
+      idx n = 0;
+      for (idx i = 0; i < x.size(); ++i) {
+        if (std::abs(x(i)) > 1E-7) {
+          ++n;
+        }
       }
-      x_history.push_back(x);
-    });
-  }
+      std::cout << "Sparsity: " << n << "/" << x.size() << std::endl;
+    }
+    x_history.push_back(x);
+  });
 
   // Initial guess
   AX_LOG(INFO) << "Problem loaded.\n";
@@ -108,8 +112,9 @@ int main(int argc, char** argv) {
 
   // Reason for termination
   AX_LOG(WARNING) << "Converged Grad: " << std::boolalpha << result.converged_grad_;
-  AX_LOG(WARNING) << "Converged Energy: " << std::boolalpha << result.converged_var_;
-  AX_LOG(WARNING) << "Converged Iter: " << result.n_iter_;
+  AX_LOG(WARNING) << "Converged Var: " << std::boolalpha << result.converged_var_;
+  AX_LOG(WARNING) << "Iter: " << result.n_iter_;
+  AX_LOG(WARNING) << "Energy: " << splr.Energy(result.x_opt_);
 
   // write output.
   std::string const export_prefix = absl::GetFlag(FLAGS_export);

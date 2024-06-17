@@ -9,7 +9,8 @@ namespace ax::optim {
 BOOST_DEFINE_ENUM_CLASS(OptimizerKind,
     kNewton,
     kGradientDescent,
-    kLbfgs);
+    kLbfgs,
+    kFista);
 
 class OptimizerBase : public utils::Tunable {
 public:

@@ -19,17 +19,13 @@ public:
 
   void SetLineSearch(UPtr<LinesearchBase> linesearch);
 
-  void EnableFista(bool enable) { enable_fista_ = enable; }
-
   void SetOptions(const utils::Opt &options) override;
 
   utils::Opt GetOptions() const override;
 
 private:
   UPtr<LinesearchBase> linesearch_;
-  std::function<math::vecxr(math::vecxr const&, real)> proximator_;
   real lr_;
-  bool enable_fista_ = false;
 };
 
 }  // namespace ax::optim

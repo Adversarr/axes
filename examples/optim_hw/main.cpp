@@ -35,6 +35,7 @@ ABSL_FLAG(std::string, linesearch, "backtracking", "Line search method: backtrac
 ABSL_FLAG(std::string, export, "", "Export result to file");
 ABSL_FLAG(bool, fista, false, "Enable FISTA");
 ABSL_FLAG(bool, strong_wolfe, false, "Enable strong Wolfe condition");
+ABSL_FLAG(bool, mono, false, "Fista step length is mono");
 
 int main(int argc, char** argv) {
   ax::init(argc, argv);
@@ -43,9 +44,12 @@ int main(int argc, char** argv) {
   xx::SPLR splr = xx::load_from_file(utils::get_asset("/temporaries/a9a.txt"));
   splr.lambda_ = 0.5 / xx::PREDEFINED_M;
   splr.mu_ = absl::GetFlag(FLAGS_mu);
+
+  std::cout << "lambda: " << splr.lambda_ << std::endl;
+  std::cout << "mu: " << splr.mu_ << std::endl;
   OptProblem prob;
 
-  vecxr x0 = vecxr::Zero(splr.bA_.rows());
+  vecxr x0 = vecxr::Zero(xx::PREDEFINED_FEAT);
   real lr = absl::GetFlag(FLAGS_lr);
   // Optimizer
   std::string opt_name = absl::GetFlag(FLAGS_optimizer);
@@ -53,13 +57,16 @@ int main(int argc, char** argv) {
   // History data recording:
   std::vector<math::vecxr> x_history;
   std::vector<real> tk_history;
+  std::vector<real> energy_history;
 
   prob.SetProximator([&](vecxr const& x, real lambda) -> math::vecxr {
+        tk_history.push_back(lambda);
         return xx::l1_proximator(x, splr.mu_ * lambda);
       })
       .SetGrad(
           [&](vecxr const& x) -> vecxr { return splr.Gradient_Loss(x) + splr.Gradient_Loss_L2(x); })
-      .SetEnergy([&](vecxr const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); });
+      .SetEnergy([&](vecxr const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); })
+      .SetConvergeVar(nullptr);
 
   if (!absl::GetFlag(FLAGS_fista)) {
     optimizer = std::make_unique<GradientDescent>();
@@ -69,7 +76,7 @@ int main(int argc, char** argv) {
       std::cout << "Using backtracking line search.\n";
       auto p = LinesearchBase::Create(ax::optim::LineSearchKind::kBacktracking);
       p->SetOptions(
-          {{"initial_step_length", 1}, {"step_shrink_rate", 0.3}, {"required_descent_rate", 0.1}});
+          {{"initial_step_length", 1}, {"step_shrink_rate", 0.6}, {"required_descent_rate", 0.3}});
       gd->SetLineSearch(std::move(p));
     } else if (absl::GetFlag(FLAGS_linesearch) == "wolfe") {
       std::cout << "Using Wolfe line search.\n";
@@ -83,6 +90,7 @@ int main(int argc, char** argv) {
   } else {
     optimizer = std::make_unique<Fista>();
     Fista* fista = dynamic_cast<Fista*>(optimizer.get());
+    fista->SetMonotonic(absl::GetFlag(FLAGS_mono));
   }
 
   optimizer->SetOptions({{"max_iter", absl::GetFlag(FLAGS_max_iter)},
@@ -92,8 +100,9 @@ int main(int argc, char** argv) {
   AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
 
   prob.SetVerbose([&, verb = absl::GetFlag(FLAGS_verbose)](idx iter, vecxr const& x, real energy) {
+    real e = splr.Energy(x);
     if (iter % 100 == 0 || verb) {
-      std::cout << "Iter " << iter << ": " << splr.Energy(x) << std::endl;
+      std::cout << "Iter " << iter << ": " << e << std::endl;
       // print sparsity.
       idx n = 0;
       for (idx i = 0; i < x.size(); ++i) {
@@ -104,6 +113,7 @@ int main(int argc, char** argv) {
       std::cout << "Sparsity: " << n << "/" << x.size() << std::endl;
     }
     x_history.push_back(x);
+    energy_history.push_back(e);
   });
 
   // Initial guess
@@ -116,10 +126,21 @@ int main(int argc, char** argv) {
   AX_LOG(WARNING) << "Iter: " << result.n_iter_;
   AX_LOG(WARNING) << "Energy: " << splr.Energy(result.x_opt_);
 
+  if (absl::GetFlag(FLAGS_fista)) {
+    Fista* fista = dynamic_cast<Fista*>(optimizer.get());
+    tk_history = fista->tk_;
+  }
+
   // write output.
   std::string const export_prefix = absl::GetFlag(FLAGS_export);
   // solution.
-  math::write_npy_v10(export_prefix + "_x.npy", result.x_opt_);
+  {
+    math::matxxr x(xx::PREDEFINED_FEAT, x_history.size());
+    for (auto i : utils::iota(x_history.size())) {
+      x.col(i) = x_history[i];
+    }
+    math::write_npy_v10(export_prefix + "_x.npy", x);
+  }
   {
     // export |xk-xk+1|/tk
     math::vecxr diffs(tk_history.size());
@@ -129,6 +150,15 @@ int main(int argc, char** argv) {
     }
     math::write_npy_v10(export_prefix + "_diff.npy", diffs);
   }
+  // export energy.
+  {
+    math::vecxr energies(energy_history.size());
+    for (auto i : utils::iota(energy_history.size())) {
+      energies(i) = energy_history[i];
+    }
+    math::write_npy_v10(export_prefix + "_energy.npy", energies);
+  }
+
 
   ax::clean_up();
   return EXIT_SUCCESS;

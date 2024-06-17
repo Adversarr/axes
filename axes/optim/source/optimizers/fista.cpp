@@ -17,7 +17,7 @@ OptResult Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) cons
   math::vecxr grad = problem.EvalGrad(x), x_old = x;
   math::vecxr v = x;
 
-  real theta, theta_old = 1, step_length_old = 0;
+  real theta_old = 1, step_length_old = 1;
   real energy = problem.EvalEnergy(x);
   bool converged_grad, converged_var;
   idx iter;
@@ -48,14 +48,19 @@ OptResult Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) cons
                                                          : math::inf<real>;
     converged_grad = evalcg < tol_grad_;
     converged_var = evalcv < tol_var_;
+
+    if (iter >= 1) {
+      converged_var |= (x - x_old).norm() < tol_var_ * step_length_old;
+    }
     if (verbose_) {
       AX_LOG(INFO) << "Fista iter " << iter << std::endl
                    << "  f: " << energy << std::endl
                    << "  grad_norm: " << grad.norm() << std::endl
                    << "  conv_grad: " << evalcg << std::endl
                    << "  conv_var: " << evalcv << std::endl
-                   << "  theta: " << theta << std::endl;
+                   << "  theta: " << theta_old << std::endl;
     }
+
     if (converged_grad || converged_var) {
       break;
     }
@@ -63,32 +68,33 @@ OptResult Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) cons
     x_old = x;  // xk-1
     grad = problem.EvalGrad(x);
 
-    // SECT: Fista Update
+    math::vecxr y = x;
     real t = lr_;
-    theta = select_theta(t);
-    math::vecxr y = (1 - theta) * x_old + theta * v;
-    x = y - t * problem.EvalGrad(y);
-    x = problem.EvalProximator(x, t);
     auto converged_linesearch = [&]() -> bool {
       real energy_at_x = (energy = problem.EvalEnergy(x));
       real energy_at_y = problem.EvalEnergy(y);
-      real grad_dot_xy = grad.dot(x - y);
+      real grad_dot_xy = math::dot(problem.EvalGrad(y), x - y);
       real displacement_norm = math::norm2(x - y);
       return energy_at_x <= energy_at_y + grad_dot_xy + 0.5 / t * displacement_norm;
     };
+    // SECT: Fista Update
+    real theta = select_theta(t);
+    y = (1 - theta) * x_old + theta * v;
+    x = y - t * problem.EvalGrad(y);
+    x = problem.EvalProximator(x, t);
 
     while (!converged_linesearch()) {
       t *= shrink_rate_;
       theta = select_theta(t);
-      y.noalias() = (1 - theta) * x_old + theta * v;
-      x.noalias() = y - t * problem.EvalGrad(y);
+      y = (1 - theta) * x_old + theta * v;
+      x = y - t * problem.EvalGrad(y);
       x = problem.EvalProximator(x, t);
     }
-
     // SECT: Update v, theta, step_length
     theta_old = theta;
     step_length_old = t;
-    v.noalias() = 1 / theta * (x - x_old) + x_old;
+    v = 1 / theta * (x - x_old) + x_old;
+    tk_.push_back(t);
   }
 
   OptResult result;

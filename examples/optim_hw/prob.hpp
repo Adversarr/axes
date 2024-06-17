@@ -5,6 +5,7 @@
 
 #include "ax/core/config.hpp"
 #include "ax/core/echo.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/math/common.hpp"
 #include "ax/math/linalg.hpp"
 #include "ax/math/sparse.hpp"
@@ -32,43 +33,40 @@ public:
     return lambda_ * l2;
   }
   real Energy_Loss(vecxr const& x) const {
-    vecxr bAx = bA_.transpose() * x;
-    real loss = (bAx.array().exp() + 1).log().mean();
-    return loss;
+    // logistic regression loss.
+    // x is FEAT by 1
+    // bA_ is FEAT by M
+    // bA_ * x is FEAT by 1
+
+    // math::vecxr y = bA_.transpose() * x;
+    math::vecxr y = A_.transpose() * x;
+    y = y.cwiseProduct(b_);
+    real loss = 0;
+    for (idx i = 0; i < y.size(); ++i) {
+      loss += std::log(1 + std::exp(y(i)));
+    }
+    return loss / PREDEFINED_M;
   }
 
-  real Energy_L1(vecxr const& x) const {
-    real l1 = norm(x, l1_t{});
-    return mu_ * l1;
-  }
+  real Energy_L1(vecxr const& x) const { return mu_ * x.cwiseAbs().sum(); }
 
-  vecxr Gradient(vecxr const& x) const {
-    vecxr grad = Gradient_Loss(x);
-    grad.noalias() += lambda_ * x;
-    grad.noalias() += mu_ * x.cwiseSign();
-    return grad;
-  }
   vecxr Gradient_Loss(vecxr const& x) const {
-    vecxr bAx = bA_.transpose() * x;
-    vecxr grad = bA_ * (bAx.array().exp() / (bAx.array().exp() + 1)).matrix();
+    // x is FEAT by 1
+    // bA_ is FEAT by M
+    // bA_ * x is FEAT by 1
+    math::vecxr y = A_.transpose() * x;
+    y = y.cwiseProduct(b_);
+    math::vecxr grad = A_ * (1 - 1 / (1 + y.array().exp())).matrix().cwiseProduct(b_);
     return grad / PREDEFINED_M;
   }
 
-  vecxr Gradient_Loss_L2(vecxr const& x) const { return lambda_ * x; }
+  vecxr Gradient_Loss_L2(vecxr const& x) const { return 2 * lambda_ * x; }
 
-  vecxr Gradient_Loss_L1(vecxr const& x) const { return mu_ * x.cwiseSign(); }
-
-  SPLR(sp_matxxr const& A, vecxr const& b) {
-    bA_ = A;
-    for (idx i = 0; i < A.outerSize(); ++i) {
-      for (sp_matxxr::InnerIterator it(A, i); it; ++it) {
-        it.valueRef() = it.value() * b(it.col());
-      }
-    }
-  }
+  SPLR(sp_matxxr const& A, vecxr const& b) : A_(A), b_(b) {}
 
   real lambda_, mu_;
-  sp_matxxr bA_;  // row = dim, col = m
+  const sp_matxxr A_;  // row = dim, col = m
+  const vecxr b_;
 };
 
 inline SPLR load_from_file(std::string const& filename) {
@@ -85,34 +83,22 @@ inline SPLR load_from_file(std::string const& filename) {
       continue;
     }
 
-    std::vector<std::string> split_by_whitespace;
-    idx j = 0;
-    for (idx i = 0; i < line.size(); ++i) {
-      if (line[i] == ' ' || line[i] == '\t' || i == line.size() - 1) {
-        if (j < i) {
-          split_by_whitespace.push_back(line.substr(j, i - j));
-        }
-        j = i + 1;
-      }
-    }
-    if (split_by_whitespace.empty()) {
-      throw std::runtime_error("Invalid line: " + line);
-    }
-    int bi;
-    int p = sscanf(split_by_whitespace[0].c_str(), "%d", &bi);
     // +1 i1:v1 i2:v2 ...
-    if (!(bi == 1 || bi == -1) || p != 1) {
-      throw std::runtime_error("Invalid label: " + line);
+    std::istringstream iss(line);
+    real y;
+    iss >> y;
+    b(m) = y;
+    AX_THROW_IF_FALSE(y == 1 || y == -1, "Invalid label: " + std::to_string(y));
+    for (std::string pair; iss >> pair;) {
+      std::istringstream iss_pair(pair);
+      idx i;
+      real v;
+      iss_pair >> i;
+      iss_pair.ignore();
+      iss_pair >> v;
+      coeff_list.emplace_back(i - 1, m, v);
+      AX_THROW_IF_TRUE(v != 1, "Invalid value: " + std::to_string(v));
     }
-    for (size_t i = 1; i < split_by_whitespace.size(); ++i) {
-      int row, aim;
-      int ret = sscanf(split_by_whitespace[i].c_str(), "%d:%d", &row, &aim);
-      if (row < 1 || aim == 0 || ret != 2) {
-        throw std::runtime_error("Invalid feature: " + line);
-      }
-      coeff_list.push_back(sp_coeff(row - 1, m, aim));
-    }
-    b(m) = bi;
     ++m;
   }
 

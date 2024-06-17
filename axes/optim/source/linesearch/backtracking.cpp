@@ -31,7 +31,7 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
     x.noalias() = x0 + alpha * dir;
     if (prob.HasProximator()) {
       x = prob.EvalProximator(x, alpha);
-      expected_descent = grad.dot(x - x0);
+      expected_descent = grad.dot(x - x0) / alpha;
     }
     f = prob.EvalEnergy(x);
     if (examine_arjimo_condition(f, f0, alpha * expected_descent, required_descent_rate_) && math::isfinite(f)) {

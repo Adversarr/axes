@@ -1,6 +1,7 @@
 #include "ax/optim/common.hpp"
 
 #include "ax/core/echo.hpp"
+#include "ax/core/excepts.hpp"
 
 namespace ax::optim {
 
@@ -55,6 +56,11 @@ OptProblem& OptProblem::SetVerbose(VerboseFn const& verbose) {
   return *this;
 }
 
+OptProblem& OptProblem::SetProximator(ProximatorFn const& proximator) {
+  proximator_ = proximator;
+  return *this;
+}
+
 math::sp_matxxr OptProblem::EvalSparseHessian(math::vecxr const& x) const {
   AX_CHECK(sparse_hessian_) << "Sparse Hessian Fn is not set.";
   return sparse_hessian_(x);
@@ -94,6 +100,15 @@ real OptProblem::EvalConvergeGrad(math::vecxr const& x,
   return converge_grad_(x, grad);
 }
 
+math::vecxr OptProblem::EvalProximator(math::vecxr const& x,
+                                       real step_length) const {
+  AX_THROW_IF_NULL(proximator_, "Proximator Fn is not set.");
+  if (proximator_) {
+    return proximator_(x, step_length);
+  }
+  return x;
+}
+
 bool OptProblem::HasEnergy() const { return static_cast<bool>(energy_); }
 
 bool OptProblem::HasGrad() const { return static_cast<bool>(grad_); }
@@ -113,5 +128,9 @@ bool OptProblem::HasConvergeGrad() const {
 }
 
 bool OptProblem::HasVerbose() const { return static_cast<bool>(verbose_); }
+
+bool OptProblem::HasProximator() const {
+  return static_cast<bool>(proximator_);
+}
 
 }  // namespace ax::optim

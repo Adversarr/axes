@@ -2,6 +2,8 @@
 #include "ax/core/excepts.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 namespace ax::optim {
+
+
 OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr const& x0,
                                            math::vecxr const& grad, math::vecxr const& dir) const {
   // SECT: Check Inputs
@@ -27,8 +29,12 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
   real f;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;
+    if (prob.HasProximator()) {
+      x = prob.EvalProximator(x, alpha);
+      expected_descent = grad.dot(x - x0);
+    }
     f = prob.EvalEnergy(x);
-    if (examine_arjimo_condition(f, f0, expected_descent, required_descent_rate_, alpha) && math::isfinite(f)) {
+    if (examine_arjimo_condition(f, f0, alpha * expected_descent, required_descent_rate_) && math::isfinite(f)) {
       break;
     }
     alpha *= step_shrink_rate_;

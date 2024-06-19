@@ -13,7 +13,7 @@ namespace ax::fem {
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Initialize());
   solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
-  solver_->SetPreconditioner(std::make_unique<math::PreconditionerDiagonal>());
+  solver_->SetPreconditioner(std::make_unique<math::Preconditioner_Diagonal>());
   AX_RETURN_OK();
 }
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {

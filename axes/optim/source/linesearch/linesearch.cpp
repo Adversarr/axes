@@ -14,4 +14,12 @@ UPtr<LinesearchBase> LinesearchBase::Create(LineSearchKind kind) {
   }
 }
 
+utils::Opt LinesearchBase::GetOptions() const {
+  utils::Opt opt = utils::Tunable::GetOptions();
+  opt["max_iter"] = max_iter_;
+  return opt;
+}
+
+void LinesearchBase::SetOptions(const utils::Opt& option) { AX_SYNC_OPT(option, idx, max_iter); }
+
 }  // namespace ax::optim

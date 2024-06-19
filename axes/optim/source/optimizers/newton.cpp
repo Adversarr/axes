@@ -2,13 +2,10 @@
 
 #include "ax/core/echo.hpp"
 #include "ax/math/linsys/dense.hpp"
-#include "ax/math/linsys/dense/LDLT.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
 #include "ax/math/linsys/sparse.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
-#include "ax/math/linsys/sparse/LDLT.hpp"
-#include "ax/math/linsys/sparse/LLT.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/status.hpp"
@@ -18,16 +15,6 @@ namespace ax::optim {
 
 OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_TIME_FUNC();
-  // if (!problem_.HasEnergy()) {
-  //   return utils::FailedPreconditionError("Energy function not set");
-  // }
-  // if (!problem_.HasGrad()) {
-  //   return utils::FailedPreconditionError("Gradient function not set");
-  // }
-
-  // if (!problem_.HasHessian() && !problem_.HasSparseHessian()) {
-  //   return utils::FailedPreconditionError("Hessian function not set");
-  // }
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem_.HasHessian() || problem_.HasSparseHessian(), "Hessian function not set");
@@ -56,9 +43,6 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
                     << "  grad: " << grad.transpose();
     }
 
-    // if (math::isnan(f_iter) || math::isinf(f_iter)) {
-    //   return utils::FailedPreconditionError("Energy function returns NaN or Inf");
-    // }
     AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns NaN or Inf");
 
     // SECT: Check convergence
@@ -73,9 +57,6 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
     // SECT: Find a Dir
     if (is_dense_hessian) {
       math::matxxr H = problem_.EvalHessian(x);
-      // if (H.rows() != x.rows() || H.cols() != x.rows()) {
-      //   return utils::FailedPreconditionError("Hessian matrix size mismatch");
-      // }
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
       math::LinsysProblem_Dense prob(std::move(H), grad);
       auto solution = dense_solver_->SolveProblem(prob);
@@ -137,7 +118,7 @@ Newton::Newton() {
   dense_solver_name_ = "kLDLT";
   sparse_solver_name_ = "kConjugateGradient";
   math::SparseSolver_ConjugateGradient *cg = dynamic_cast<math::SparseSolver_ConjugateGradient *>(sparse_solver_.get());
-  cg->SetPreconditioner(std::make_unique<math::PreconditionerIncompleteCholesky>());
+  cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
 void Newton::SetOptions(utils::Opt const& options) {

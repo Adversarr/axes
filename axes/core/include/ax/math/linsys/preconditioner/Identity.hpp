@@ -2,7 +2,7 @@
 
 #include "ax/math/linsys/preconditioner.hpp"
 namespace ax::math {
-class PreconditionerIdentity : public PreconditionerBase {
+class Preconditioner_Identity : public PreconditionerBase {
 public:
   void Analyse(LinsysProblem_Sparse const &problem) override;
 

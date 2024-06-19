@@ -3,7 +3,7 @@
 #include "ax/math/linsys/preconditioner.hpp"
 namespace ax::math {
 
-class PreconditionerIncompleteLU : public PreconditionerBase {
+class Preconditioner_IncompleteLU : public PreconditionerBase {
 public:
   void Analyse(LinsysProblem_Sparse const &problem) override;
 

@@ -20,12 +20,12 @@ public:
 
   static UPtr<LinesearchBase> Create(LineSearchKind kind);
 
-  real LastStepLength() const { return step_length_; }
+  utils::Opt GetOptions() const override;
 
+  void SetOptions(const utils::Opt &option) override;
 
 protected:
   idx max_iter_{100};
-  real step_length_{1.0};
 };
 
 /**

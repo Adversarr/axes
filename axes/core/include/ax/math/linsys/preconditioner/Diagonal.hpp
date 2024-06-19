@@ -3,7 +3,7 @@
 #include "ax/math/linsys/preconditioner.hpp"
 namespace ax::math {
 
-class PreconditionerDiagonal : public PreconditionerBase {
+class Preconditioner_Diagonal : public PreconditionerBase {
 public:
   void Analyse(LinsysProblem_Sparse const &problem) override;
 

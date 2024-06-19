@@ -3,7 +3,7 @@
 #include "ax/math/linsys/preconditioner.hpp"
 namespace ax::math {
 
-class PreconditionerIncompleteCholesky : public PreconditionerBase {
+class Preconditioner_IncompleteCholesky : public PreconditionerBase {
 public:
   void Analyse(LinsysProblem_Sparse const &problem) override;
 

@@ -221,13 +221,13 @@ def do_experiment_discontinuous():
     compute_nx = 128
     ref_nx = 4096
     # standard SOD problem
-    l, r = -1, 1
-    density, momentum, energy = do_experiment(compute_nx, .2, 0, PROB_SOD, FLUX_HLL)
-    ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 0.2, 0, PROB_SOD, FLUX_HLL)
+    # l, r = -1, 1
+    # density, momentum, energy = do_experiment(compute_nx, .2, 0, PROB_SOD, FLUX_HLL)
+    # ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 0.2, 0, PROB_SOD, FLUX_HLL)
 
-    # l, r = -6, 6
-    # density, momentum, energy = do_experiment(compute_nx, 1, 0, PROB_NONE, FLUX_LAX_FRIDRICH)
-    # ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 1, 0, PROB_NONE, FLUX_HLL)
+    l, r = -6, 6
+    density, momentum, energy = do_experiment(compute_nx, 1.3, 0, PROB_NONE, FLUX_LAX_FRIDRICH)
+    ref_density, ref_momentum, ref_energy = do_experiment(ref_nx, 1.3, 0, PROB_NONE, FLUX_HLL)
 
     x = np.linspace(l, r, compute_nx)
     ref_x = np.linspace(l, r, ref_nx)
@@ -267,5 +267,5 @@ def do_experiment_discontinuous():
     plt.show()
 
 
-do_experiment_continuous()
-# do_experiment_discontinuous()
+# do_experiment_continuous()
+do_experiment_discontinuous()

@@ -200,6 +200,9 @@ std::pair<bool, std::optional<Enum>> extract_enum(utils::Opt const& opt, const c
 template <typename AnyTunable>
 bool extract_tunable(utils::Opt const& opt, const char* key, AnyTunable* tun) {
   static_assert(std::is_base_of_v<Tunable, AnyTunable>, "Only Tunable is supported");
+  if (tun == nullptr) {
+    return false;
+  }
   if (auto it = opt.find(key); it != opt.end()) {
     AX_THROW_IF_FALSE(it->value().is_object(),
                       "Expect '" + std::string(key) + "' to be a json object");

@@ -24,7 +24,6 @@ endif()
 option(AX_ENABLE_TEST "Enable test." ON)
 option(AX_BUILD_SHARED "Build shared library" OFF)
 option(AX_ENABLE_TIME_TRACE "Enable time trace." OFF)
-option(AX_ENABLE_AVX "Enable AVX." OFF)
 option(AX_ENABLE_CUDA "Enable cuda." OFF)
 option(AX_NO_WARNING "Disable all warnings." OFF)
 option(AX_ENABLE_OPENMP "Enable OpenMP for automatic multi-threading in Eigen." ON)
@@ -164,16 +163,6 @@ endforeach()
 if (MSVC)
   ax_add_cxx_compiler_flag("/bigobj")
   ax_add_cxx_compiler_flag("/Zc:preprocessor")
-endif()
-
-# Further optimize for SIMD.
-if (AX_ENABLE_AVX)
-  if(NOT MSVC)
-    ax_add_cxx_compiler_flag("-march=native")
-    include(cmake/check_avx.cmake)
-  else()
-    # ax_add_cxx_compiler_flag("/arch:AVX") Eigen still have bug with AVX2
-  endif()
 endif()
 
 # Time trace

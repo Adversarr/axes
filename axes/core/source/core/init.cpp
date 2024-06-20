@@ -1,5 +1,6 @@
 #include "ax/core/init.hpp"
 
+#include <Eigen/Core>
 #include <absl/debugging/failure_signal_handler.h>
 #include <absl/debugging/symbolize.h>
 #include <absl/flags/parse.h>
@@ -71,6 +72,8 @@ void init() {
   if (nT > 1) {
     math::init_parallel();
   }
+
+  AX_LOG(INFO) << "Eigen is using vectorize: " << Eigen::SimdInstructionSetsInUse();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {

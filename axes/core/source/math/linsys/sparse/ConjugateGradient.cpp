@@ -9,16 +9,14 @@
 namespace ax::math {
 
 void SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
+  sparse_problem_ = problem;
   if (preconditioner_) {
-    sparse_problem_ = problem;
     // AX_RETURN_NOTOK(preconditioner_->Analyse(sparse_problem_));
     preconditioner_->Analyse(sparse_problem_);
   } else {
-    solver_.compute(problem.A_);
-    // if (solver_.info() != Eigen::Success) {
-    //   return utils::FailedPreconditionError("SparseSolver_ConjugateGradient: factorization failed");
-    // }
-    AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_ConjugateGradient: factorization failed");
+    solver_.compute(sparse_problem_.A_);
+    AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
+                      "SparseSolver_ConjugateGradient: factorization failed");
   }
 }
 
@@ -27,14 +25,12 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     // ERROR: Use the Eigen Solver!!!
     vecxr x;
     if (x0.size() > 0) {
-      // if (x0.size() != b.size()) {
-      //   return utils::FailedPreconditionError("Size mismatch!");
-      // }
       AX_THROW_IF_NE(x0.size(), b.size(), "Size mismatch!");
       x = solver_.solveWithGuess(b, x0);
     } else {
       x = solver_.solve(b);
     }
+
     LinsysSolveResult impl(x, solver_.info() == Eigen::Success);
     impl.num_iter_ = solver_.iterations();
     impl.l2_err_ = solver_.error();
@@ -45,8 +41,9 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     //   return utils::InvalidArgumentError("Invalid rhs vector: b" + std::to_string(b.size())
     //                                      + " != A" + std::to_string(A.rows()));
     // }
-    AX_THROW_IF_NE(b.size(), A.rows(), "Invalid rhs vector: b" + std::to_string(b.size())
-                                       + " != A" + std::to_string(A.rows()));
+    AX_THROW_IF_NE(
+        b.size(), A.rows(),
+        "Invalid rhs vector: b" + std::to_string(b.size()) + " != A" + std::to_string(A.rows()));
     // Initialize the solution vector.
     math::vecxr x = x0;
     if (x.size() != A.cols()) {

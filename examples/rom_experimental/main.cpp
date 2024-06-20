@@ -132,7 +132,6 @@ int main(int argc, char** argv) {
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   auto p = (fem::TimeStepper_ROM<3>*) ts.get();
   // p->SetBasis(math::matxxr::Identity(input_mesh.vertices_.cols() * 3, input_mesh.vertices_.cols() * 3));
-  ts->SetLame(lame);
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9 && position.y() >= 0.499) {

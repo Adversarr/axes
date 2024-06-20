@@ -4,6 +4,11 @@
 
 namespace ax::optim {
 
+using LbfgsHessianApproximator
+    = std::function<math::vecxr(math::vecxr const& /*r, solve this*/,
+                                math::vecxr const& /*x_k+1 - x_k, if possible else empty*/,
+                                math::vecxr const& /*g_k+1 - g_k, if possible else empty*/)>;
+
 class Lbfgs : public OptimizerBase {
 public:
   explicit Lbfgs();
@@ -18,16 +23,15 @@ public:
 
   utils::Opt GetOptions() const override;
 
-  std::function<math::vecxr(math::vecxr const&, math::vecxr const&)> central_hessian_;
-
   idx history_size_{20};
 
-  void SetApproxSolve(std::function<math::vecxr(math::vecxr const&)> hessian_approximation);
+  void SetApproxSolve(LbfgsHessianApproximator approximator);
 
 protected:
   std::string linesearch_name_;
   bool check_approx_quality_{false};
   UPtr<LinesearchBase> linesearch_;
-  std::function<math::vecxr(math::vecxr const& )> approx_solve_;
+  LbfgsHessianApproximator approx_solve_;
+
 };
 }  // namespace ax::optim

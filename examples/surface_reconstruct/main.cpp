@@ -47,7 +47,7 @@ openvdb::points::PointDataGrid::Ptr point_data_grid;
 openvdb::tools::PointIndexGrid::Ptr point_index_grid;
 openvdb::math::Transform::Ptr transform;
 
-vdb::RealGridPtr distance;
+vdb::RealGridPtr l2;
 
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("Mesh to Point Cloud");
@@ -59,7 +59,7 @@ void ui_callback(gl::UiRenderEvent) {
   if (ImGui::SliderFloat("Ratio", &ratio, min, max)) {
     auto& mesh = get_component<gl::Mesh>(reconstructed);
     vdb::VolumeToMesh mesher(ratio);
-    auto trimesh = mesher(distance);
+    auto trimesh = mesher(l2);
     mesh.vertices_ = trimesh.vertices_;
     mesh.indices_ = trimesh.indices_;
     mesh.vertices_.row(0) *= transform->voxelSize().x();
@@ -181,9 +181,9 @@ int main(int argc, char** argv) {
   AX_LOG(INFO) << "Upper Bounds: " << bbox.max();
 
 
-  distance = solve_poisson(divergence);
+  l2 = solve_poisson(divergence);
   vdb::VolumeToMesh mesher(ratio);
-  auto mesh = mesher(distance);
+  auto mesh = mesher(l2);
 
   reconstructed = cmpt::create_named_entity("Reconstructed Mesh");
   auto& mesh_reconstructed = add_component<gl::Mesh>(reconstructed);
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
   point_data_grid.reset();
   point_index_grid.reset();
   transform.reset();
-  distance.reset();
+  l2.reset();
   normal_grid.reset();
   ax::clean_up();
   return 0;

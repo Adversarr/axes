@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/fem/elasticity/base.hpp"
 #include "ax/math/common.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/utils/enum_refl.hpp"
@@ -41,7 +42,9 @@ public:
   // External force getter/setter
   math::fieldr<dim> const &GetExternalAcceleration() const { return ext_accel_; }
   void SetExternalAcceleration(math::fieldr<dim> const &ext_force) { ext_accel_ = ext_force; }
-  void SetExternalAccelerationUniform(math::vecr<dim> const &ext_force) { SetExternalAcceleration(ext_force.replicate(1, mesh_->GetNumVertices())); }
+  void SetExternalAccelerationUniform(math::vecr<dim> const &ext_force) {
+    SetExternalAcceleration(ext_force.replicate(1, mesh_->GetNumVertices()));
+  }
 
   // Do the time stepping.
   /*************************
@@ -59,27 +62,21 @@ public:
   math::sp_matxxr const &GetMassMatrixOriginal() const { return mass_matrix_original_; }
 
   // SECT: Lame:
-  void SetLame(math::vec2r const &lame) { u_lame_ = lame; }
-  void SetYoungs(real youngs) { youngs_ = youngs; }
-  void SetPoissonRatio(real poisson_ratio) { poisson_ratio_ = poisson_ratio; }
+  void SetYoungs(real youngs) {
+    youngs_ = youngs;
+    u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
+  }
+  void SetPoissonRatio(real poisson_ratio) {
+    poisson_ratio_ = poisson_ratio;
+    u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
+  }
   math::vec2r const &GetLame() const { return u_lame_; }
 
   void SetupElasticity(std::string name, std::string device);
-  /*************************
-   * SECT: Runtim APIs
-   *************************/
-
-  math::sp_matxxr GetStiffnessMatrix(math::fieldr<dim> const &x, bool project = false) const;
-  math::fieldr<dim> GetElasticForce(math::fieldr<dim> const &x) const;
-
-  // WARN: Deprecated APIs.
-  math::fieldr<dim> GetInertiaPosition(real dt) const;
-  virtual Status Precompute();
 
   /*************************
    * SECT: Runtime (new)
    *************************/
-
   // Requiest the Simulator to setup basic buffers. such as deformation map, velocity.
   virtual Status Initialize();
   // acknowledge the beginning of simulation
@@ -88,7 +85,7 @@ public:
   virtual void BeginTimestep(real dt);
   // Set the mesh to new position
   virtual void EndTimestep();
-  virtual void EndTimestep(math::fieldr<dim> const& du);
+  virtual void EndTimestep(math::fieldr<dim> const &du);
   // Solve the timestep
   optim::OptProblem AssembleProblem() const;
   math::fieldr<dim> const &GetInitialGuess() const { return du_inertia_; }
@@ -96,15 +93,21 @@ public:
   virtual void SolveTimestep();
 
   // SECT: During the timestep, optimizers may require such information
+
   real Energy(math::fieldr<dim> const &du) const;
+  math::fieldr<dim> GetElasticForce(math::fieldr<dim> const &x) const;
   math::fieldr<dim> Gradient(math::fieldr<dim> const &du) const;
   math::vecxr GradientFlat(math::vecxr const &du_flat) const;
+  math::sp_matxxr GetStiffnessMatrix(math::fieldr<dim> const &x, bool project = false) const;
   math::sp_matxxr Hessian(math::fieldr<dim> const &du) const;
 
   real ResidualNorm(math::fieldr<dim> const &grad) const;
-  real L2Residual(math::fieldr<dim> const& grad) const;
-  real L1Residual(math::fieldr<dim> const& grad) const;
-  real LinfResidual(math::fieldr<dim> const& grad) const;
+  real L2Residual(math::fieldr<dim> const &grad) const;
+  real L1Residual(math::fieldr<dim> const &grad) const;
+  real LinfResidual(math::fieldr<dim> const &grad) const;
+
+  std::vector<math::fieldr<dim>> const &GetLastTrajectory() const { return last_trajectory_; }
+  std::vector<real> const &GetLastEnergy() const { return last_energy_; }
 
 protected:
   // Common data
@@ -121,7 +124,7 @@ protected:
   math::fieldr<dim> ext_accel_;                 ///< External acceleration
 
   // Solve Results.
-  math::fieldr<dim> du_inertia_, du_;  ///< Stores the solution of displacement of displacement.
+  math::fieldr<dim> du_inertia_, du_, u_inertia_;  ///< Stores the solution of displacement of displacement.
 
   // runtime parameters.
   math::vec2r u_lame_;
@@ -129,14 +132,17 @@ protected:
   math::sp_matxxr mass_matrix_original_;
   real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
-  real abs_tol_grad_; // Dynamically set according to rel_tol_grad.
+  real abs_tol_grad_;  // Dynamically set according to rel_tol_grad.
 
   // Convergency Parameters:
   real rel_tol_grad_{0.02};
   real tol_var_{1e-12};
   TimestepConvergeNormKind converge_kind_{TimestepConvergeNormKind::kLinf};
   idx max_iter_{1000};
-  bool verbose_{false};
+  bool record_trajectory_{false};
+
+  std::vector<math::fieldr<dim>> last_trajectory_;
+  std::vector<real> last_energy_;
 
 private:
   bool has_time_step_begin_;

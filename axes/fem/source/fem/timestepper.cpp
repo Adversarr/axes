@@ -48,7 +48,7 @@ template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) 
   }
   AX_SYNC_OPT_IF(opt, real, tol_var) { AX_LOG(INFO) << "Tol Variance: " << tol_var_; }
   AX_SYNC_OPT_IF(opt, idx, max_iter) { AX_LOG(INFO) << "Max Iteration: " << max_iter_; }
-  AX_SYNC_OPT(opt, bool, verbose);
+  AX_SYNC_OPT(opt, bool, record_trajectory);
   if (auto it = opt.find("conv_norm"); it != opt.end()) {
     auto conv_norm = utils::reflect_enum<TimestepConvergeNormKind>(it->value().as_string().c_str());
     AX_THROW_IF_NULL(conv_norm);
@@ -137,7 +137,7 @@ template <idx dim> utils::Opt TimeStepperBase<dim>::GetOptions() const {
   opt["rel_tol_grad"] = rel_tol_grad_;
   opt["tol_var"] = tol_var_;
   opt["max_iter"] = max_iter_;
-  opt["verbose"] = verbose_;
+  opt["record_trajectory"] = record_trajectory_;
   opt["conv_norm"] = utils::reflect_name(converge_kind_).value();
   opt["integration_scheme"] = utils::reflect_name(integration_scheme_->GetKind()).value();
   opt["elasticity"] = elasticity_name_;
@@ -160,8 +160,6 @@ template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& de
   mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
-template <idx dim> Status TimeStepperBase<dim>::Precompute() { AX_RETURN_OK(); }
-
 template <idx dim>
 math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
                                                          bool project) const {
@@ -181,11 +179,7 @@ math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const&
   return elasticity_->GetStressOnVertices();
 }
 
-template <idx dim> math::fieldr<dim> TimeStepperBase<dim>::GetInertiaPosition(real dt) const {
-  return mesh_->GetVertices() + dt * velocity_ + dt * dt * ext_accel_;
-}
-
-template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real ) {
+template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real) {
   has_time_step_begin_ = false;
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
   AX_THROW_IF_NULLPTR(mesh_);
@@ -204,6 +198,7 @@ template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
   integration_scheme_->SetDeltaT(dt);
   du_inertia_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
                                                  velocity_back_, ext_accel_);
+  u_inertia_ = u_ + du_inertia_;
   mesh_->FilterField(du_inertia_, true);
   mesh_->FilterField(du_, true);
   auto V = GetPosition();
@@ -246,41 +241,37 @@ template <idx dim> void TimeStepperBase<dim>::SolveTimestep() {
   du_.setZero();
 }
 
-template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& du) const {
-  math::fieldr<dim> x_new = du + u_ + mesh_->GetVertices();
+template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& u) const {
+  math::fieldr<dim> x_new = u + mesh_->GetVertices();
   elasticity_->Update(x_new, ElasticityUpdateLevel::kEnergy);
   elasticity_->UpdateEnergy();
   real stiffness = elasticity_->GetEnergyOnElements().sum();
-  math::fieldr<dim> duu = du - du_inertia_;
+  math::fieldr<dim> duu = u - u_inertia_;
   math::fieldr<dim> Mdx = 0.5 * duu * mass_matrix_original_;
   real inertia = (duu.array() * Mdx.array()).sum();
   return integration_scheme_->ComposeEnergy(inertia, stiffness);
 }
 
 template <idx dim>
-math::fieldr<dim> TimeStepperBase<dim>::Gradient(math::fieldr<dim> const& du) const {
-  math::fieldr<dim> u_cur = du + u_;
+math::fieldr<dim> TimeStepperBase<dim>::Gradient(math::fieldr<dim> const& u_cur) const {
   math::fieldr<dim> x_new = u_cur + mesh_->GetVertices();
-
   elasticity_->Update(x_new, ElasticityUpdateLevel::kStress);
   elasticity_->UpdateStress();
   elasticity_->GatherStressToVertices();
   math::fieldr<dim> neg_force = elasticity_->GetStressOnVertices();
   math::fieldr<dim> grad
-      = integration_scheme_->ComposeGradient(mass_matrix_original_, du, neg_force, du_inertia_);
+      = integration_scheme_->ComposeGradient(mass_matrix_original_, u_cur, neg_force, u_inertia_);
   mesh_->FilterField(grad, true);
   return grad;
 }
 
-template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr const& du) const {
+template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr const& u_cur) const {
   idx n_vert = mesh_->GetNumVertices();
-  return Gradient(du.reshaped(dim, n_vert)).reshaped();
+  return Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
 }
 
-template <idx dim>
-math::sp_matxxr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& du) const {
-  auto x_cur = u_ + mesh_->GetVertices();
-  math::fieldr<dim> x_new = du + x_cur;
+template <idx dim> math::sp_matxxr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u) const {
+  math::fieldr<dim> x_new = u + mesh_->GetVertices();
   elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(true);
   elasticity_->GatherHessianToVertices();
@@ -292,23 +283,33 @@ math::sp_matxxr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& du) const
 
 template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() const {
   optim::OptProblem problem;
+  auto n_vert = mesh_->GetNumVertices();
   problem
-      .SetEnergy([this](math::vecxr const& du) -> real {
-        return Energy(du.reshaped(dim, mesh_->GetNumVertices()));
+      .SetEnergy([this, n_vert](math::vecxr const& du) -> real {
+        return Energy(du.reshaped(dim, n_vert) + u_);
       })
-      .SetGrad([this](math::vecxr const& du) -> math::vecxr { return GradientFlat(du); })
-      .SetSparseHessian([this](math::vecxr const& du) -> math::sp_matxxr {
-        return Hessian(du.reshaped(dim, mesh_->GetNumVertices()));
+      .SetGrad([this, n_vert](math::vecxr const& du) -> math::vecxr {
+        return GradientFlat(du + u_.reshaped());
       })
-      .SetConvergeGrad([this](const math::vecxr& , const math::vecxr& grad) -> real {
-        return ResidualNorm(grad.reshaped(dim, this->mesh_->GetNumVertices())) / abs_tol_grad_;
+      .SetSparseHessian([this, n_vert](math::vecxr const& du) -> math::sp_matxxr {
+        return Hessian(du.reshaped(dim, n_vert) + u_);
+      })
+      .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {
+        return ResidualNorm(grad.reshaped(dim, n_vert)) / abs_tol_grad_;
       })
       .SetConvergeVar([this](const math::vecxr& du_back, const math::vecxr& du) -> real {
         return ResidualNorm(du_back - du);
       });
-  if (verbose_) {
-    problem.SetVerbose([](idx i, const math::vecxr& x, const real energy) {
-      AX_LOG(INFO) << "I-th: " << i << " energy: " << energy;
+
+  if (record_trajectory_) {
+    problem.SetVerbose([this](idx ith, const math::vecxr& x, const real energy) {
+      auto* self = const_cast<TimeStepperBase<dim>*>(this);
+      if (ith == 0) {
+        self->last_trajectory_.clear();
+        self->last_energy_.clear();
+      }
+      self->last_trajectory_.push_back(x.reshaped(dim, mesh_->GetNumVertices()));
+      self->last_energy_.push_back(energy);
     });
   }
   return problem;

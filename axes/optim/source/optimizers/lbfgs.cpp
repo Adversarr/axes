@@ -1,29 +1,34 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 
 #include "ax/core/echo.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/status.hpp"
-#include "ax/core/excepts.hpp"
-
 #include "ax/utils/time.hpp"
-
-// #define CHECK_APPROX_SOLVER
-
 
 namespace ax::optim {
 
-real cosine_sim(math::vecxr const& a, math::vecxr const& b) { return a.dot(b) / (a.norm() * b.norm());
+real cosine_sim(math::vecxr const& a, math::vecxr const& b) {
+  return a.dot(b) / (a.norm() * b.norm());
+}
+
+static math::vecxr approx_solve_default(math::vecxr const& r, math::vecxr const& sk,
+                                        math::vecxr const& yk) {
+  if (sk.size() == 0 || yk.size() == 0) {
+    return r;
+  } else {
+    real H0 = sk.dot(yk) / (yk.dot(yk) + math::epsilon<real>);
+    return H0 * r;
+  }
 }
 
 OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
   AX_THROW_IF_LT(history_size_, 0, "Invalid history size: " + std::to_string(history_size_));
-
-  AX_TIME_FUNC();
 
   // SECT: Initialize
   idx n_dof = x0.size();
@@ -47,12 +52,32 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   math::vecxr x_old = x;
 
   math::sp_matxxr sp_hessian;
-  bool check_approx_quality = check_approx_quality_ && problem_.HasSparseHessian() && approx_solve_;
+  bool const check_approx_quality
+      = check_approx_quality_ && problem_.HasSparseHessian() && approx_solve_;
   if (!check_approx_quality && check_approx_quality_) {
     AX_LOG(WARNING) << "Approx Hessian is not set or Hessian is not sparse, "
                     << "Approx quality check is disabled.";
   }
 
+  auto check_quality
+      = [&](std::string name, math::vecxr const& residual, math::vecxr const& approx) {
+          math::LinsysProblem_Sparse sp;
+          sp.A_ = sp_hessian;
+          sp.b_ = residual;
+          sp.converge_residual_ = [&](math::vecxr const& x, math::vecxr const& g) {
+            return problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
+          };
+          math::SparseSolver_ConjugateGradient cg;
+          auto result = cg.SolveProblem(sp, {});
+          if (!result.converged_) {
+            AX_LOG(ERROR) << name << ": CG failed to converge for check quality.";
+            return;
+          }
+          real cs = cosine_sim(approx, result.solution_);
+          real l2 = (approx - result.solution_).norm();
+          real rel = l2 / result.solution_.norm();
+          AX_LOG(ERROR) << name << ": cs=" << cs << "\t l2=" << l2 << "\t rel=" << rel;
+        };
 
   while (iter < max_iter_) {
     // SECT: Verbose
@@ -79,13 +104,12 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
     math::vecxr q = grad;
     math::vecxr r = q;
     idx const available_history = std::min(iter, history_size_);
-
-
     if (check_approx_quality) {
       sp_hessian = problem_.EvalSparseHessian(x);
     }
 
     if (available_history > 0) {
+      // SECT: Limited Memory BFGS: Loop over history 1
       AX_TIMEIT("Two Loop");
       for (idx i = available_history - 1; i >= 0; i--) {
         idx rotate_id = (iter + i) % available_history;
@@ -95,66 +119,40 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
         real alpha_i = (alpha[i] = rho_i * si.dot(q));
         q.noalias() -= alpha_i * yi;
       }
+      // SECT: Central step
       idx rotate_id = (iter + available_history - 1) % available_history;
       auto const& sback = S.col(rotate_id);
       auto const& yback = Y.col(rotate_id);
-      if (approx_solve_) {
-        AX_TIMEIT("Approx Solve");
-        r = approx_solve_(q);
-        if (sp_hessian.size() > 0 && check_approx_quality) {
-          math::LinsysProblem_Sparse sp;
-          sp.A_ = sp_hessian;
-          sp.b_ = q;
-          sp.converge_residual_ = [&] (math::vecxr const& x, math::vecxr const& g) {
-            return problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
-          };
-          math::SparseSolver_ConjugateGradient cg;
-          auto result = cg.SolveProblem(sp, {});
-          auto cs = cosine_sim(r, result.solution_);
-          auto l2 = (r - result.solution_).norm();
-          AX_LOG(ERROR) << "Q-Sovle Approx: Cosine Sim=" << cs
-                        << "\t 2-norm=" << l2
-                        << "\t rel-l2=" << l2 / result.solution_.norm();
-        }
-      } else {
-        real H0 = sback.dot(yback) / (yback.dot(yback) + 1e-19);
-        r = H0 * q;
+      r = approx_solve_(q, sback, yback);
+
+      if (check_approx_quality) {
+        check_quality("Approx", q, r);
       }
+
+      // SECT: Limited Memory BFGS: Loop over history 2
       for (idx i = 0; i < available_history; i++) {
         idx rotate_id = (iter + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
         real beta = rho[rotate_id] * yi.dot(r);
-        // r = r + si * (alpha[i] - beta);
         r.noalias() += si * (alpha[i] - beta);
       }
     } else if (approx_solve_) {
-      AX_TIMEIT("Two Loop");
-      {
-        AX_TIMEIT("Approx Solve");
-        r = approx_solve_(r);
+      r = approx_solve_(r, math::vecxr(), math::vecxr());
+
+      if (check_approx_quality) {
+        check_quality("Approx", q, r);
       }
     }
 
-    if (sp_hessian.size() > 0 && check_approx_quality) {
-      math::LinsysProblem_Sparse sp;
-      sp.A_ = sp_hessian;
-      sp.b_ = grad;
-      sp.converge_residual_ = [&] (math::vecxr const& x, math::vecxr const& g) {
-        return problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
-      };
-      math::SparseSolver_ConjugateGradient cg;
-      auto result = cg.SolveProblem(sp, {});
-      auto cs = cosine_sim(r, result.solution_);
-      auto l2 = (r - result.solution_).norm();
-      AX_LOG(ERROR) << "Approx: Cosine Sim=" << cs
-                    << "\t 2-norm=" << l2
-                    << "\t rel-l2=" << l2 / result.solution_.norm();
+    if (check_approx_quality) {
+      check_quality("Whole BFGS", q, r);
     }
 
     math::vecxr dir = -r;
 
-    AX_THROW_IF_TRUE(math::dot(dir, grad) >= real(0), "Direction is not descent: " + std::to_string(math::dot(dir, grad)));
+    AX_THROW_IF_TRUE(math::dot(dir, grad) >= real(0),
+                     "Direction is not descent: " + std::to_string(math::dot(dir, grad)));
     // SECT: Line search
     auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
 
@@ -191,6 +189,8 @@ Lbfgs::Lbfgs() {
   ls->required_descent_rate_ = 1e-4;
   ls->initial_step_length_ = 1.0;
   ls->step_shrink_rate_ = 0.7;
+
+  SetApproxSolve(approx_solve_default);
 }
 
 void Lbfgs::SetOptions(utils::Opt const& options) {
@@ -202,6 +202,8 @@ void Lbfgs::SetOptions(utils::Opt const& options) {
     linesearch_ = LinesearchBase::Create(ls.value());
     utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
   }
+
+  AX_SYNC_OPT(options, bool, check_approx_quality);
 }
 
 utils::Opt Lbfgs::GetOptions() const {
@@ -209,10 +211,11 @@ utils::Opt Lbfgs::GetOptions() const {
   opt["history_size"] = history_size_;
   opt["linesearch_name"] = linesearch_name_;
   opt["linesearch_opt"] = linesearch_->GetOptions();
+  opt["check_approx_quality"] = check_approx_quality_;
   return opt;
 }
 
-void Lbfgs::SetApproxSolve(std::function<math::vecxr(math::vecxr const&)> hessian_approximation) {
+void Lbfgs::SetApproxSolve(LbfgsHessianApproximator hessian_approximation) {
   approx_solve_ = hessian_approximation;
 }
 

@@ -50,14 +50,33 @@ void OptimizerBase::SetOptions(utils::Opt const& options) {
   }
 
   AX_SYNC_OPT(options, bool, verbose);
+  // AX_SYNC_OPT(options, bool, record_trajectory);
   utils::Tunable::SetOptions(options);
 }
 
+// void OptimizerBase::RecordTrajectory(math::vecxr const& x, math::vecxr const& grad,
+//                                      real energy) const {
+//   if (record_trajectory_) {
+//     x_history_.push_back(x);
+//     grad_history_.push_back(grad);
+//     energy_history_.push_back(energy);
+//   }
+// }
+//
+// void OptimizerBase::ClearTrajectory() const {
+//   x_history_.clear();
+//   grad_history_.clear();
+//   energy_history_.clear();
+// }
+
 utils::Opt OptimizerBase::GetOptions() const {
-  utils::Opt options{{"max_iter", max_iter_},
-                     {"tol_var", tol_var_},
-                     {"tol_grad", tol_grad_},
-                     {"verbose", idx(verbose_ ? 1 : 0)}};
+  utils::Opt options{
+      {"max_iter", max_iter_},
+      {"tol_var", tol_var_},
+      {"tol_grad", tol_grad_},
+      {"verbose", idx(verbose_ ? 1 : 0)},
+      // {"record_trajectory", idx(record_trajectory_ ? 1 : 0)},
+  };
   return options;
 }
 

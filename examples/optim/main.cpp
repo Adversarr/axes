@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   utils::Opt opt{
     {"verbose", idx(absl::GetFlag(FLAGS_verbose))},
     {"max_iter", idx(200)},
-    {"linesearch_name", "kBacktracking"},
+    {"linesearch", "kBacktracking"},
     {"linesearch_opt", utils::Opt{
       {"required_descent_rate", real(1e-4)},
     }}
@@ -72,9 +72,9 @@ int main(int argc, char** argv) {
 
   /************************* SECT: Create Optimizer *************************/
   if (absl::GetFlag(FLAGS_optimizer) == "newton") {
-    optimizer = new optim::Newton;
+    optimizer = new optim::Optimizer_Newton;
   } else if (absl::GetFlag(FLAGS_optimizer) == "lbfgs") {
-    optimizer = new optim::Lbfgs;
+    optimizer = new optim::Optimizer_Lbfgs;
   } else {
     AX_LOG(FATAL) << "Unknown optimizer: " << absl::GetFlag(FLAGS_optimizer);
   }

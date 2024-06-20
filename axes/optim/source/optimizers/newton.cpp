@@ -13,7 +13,7 @@
 
 namespace ax::optim {
 
-OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
+OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_TIME_FUNC();
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
@@ -110,47 +110,52 @@ OptResult Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) co
   return result;
 }
 
-Newton::Newton() {
+Optimizer_Newton::Optimizer_Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
   sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
-  linesearch_name_ = "kBacktracking";
-  dense_solver_name_ = "kLDLT";
-  sparse_solver_name_ = "kConjugateGradient";
-  math::SparseSolver_ConjugateGradient *cg = dynamic_cast<math::SparseSolver_ConjugateGradient *>(sparse_solver_.get());
+  math::SparseSolver_ConjugateGradient *cg = static_cast<math::SparseSolver_ConjugateGradient *>(sparse_solver_.get());
   cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
-void Newton::SetOptions(utils::Opt const& options) {
+void Optimizer_Newton::SetOptions(utils::Opt const& options) {
+  using namespace math;
+  // auto [has_linesearch, linesearch] = utils::extract_enum<LineSearchKind>(options, "linesearch");
+  // if (has_linesearch) {
+  //   AX_THROW_IF_NULL(linesearch, "Linesearch not found: " + std::string(options.at("linesearch").as_string()));
+  //   linesearch_ = LinesearchBase::Create(*linesearch);
+  //   AX_THROW_IF_NULL(linesearch, "Linesearch create failed: " + std::string(options.at("linesearch").as_string()));
+  // }
+
+  // auto [has_dense_solver, dense_solver] = utils::extract_enum<DenseSolverKind>(options, "dense_solver");
+  // if (has_dense_solver) {
+  //   AX_THROW_IF_NULL(dense_solver, "DenseSolver not found: " + std::string(options.at("dense_solver").as_string()));
+  //   dense_solver_ = math::DenseSolverBase::Create(*dense_solver);
+  //   AX_THROW_IF_NULL(dense_solver, "DenseSolver create failed: " + std::string(options.at("dense_solver").as_string()));
+  // }
+
+  // auto [has_sparse_solver, sparse_solver] = utils::extract_enum<SparseSolverKind>(options, "sparse_solver");
+  // if (has_sparse_solver) {
+  //   AX_THROW_IF_NULL(sparse_solver, "SparseSolver not found: " + std::string(options.at("sparse_solver").as_string()));
+  //   sparse_solver_ = math::SparseSolverBase::Create(*sparse_solver);
+  //   AX_THROW_IF_NULL(sparse_solver, "SparseSolver create failed: " + std::string(options.at("sparse_solver").as_string()));
+  // }
+  utils::extract_and_create<LinesearchBase, LineSearchKind>(options, "linesearch", linesearch_);
+  utils::extract_and_create<DenseSolverBase, DenseSolverKind>(options, "dense_solver", dense_solver_);
+  utils::extract_and_create<SparseSolverBase, SparseSolverKind>(options, "sparse_solver", sparse_solver_);
+
+  utils::extract_tunable(options, "linesearch_opt", linesearch_.get());
+  utils::extract_tunable(options, "dense_solver_opt", dense_solver_.get());
+  utils::extract_tunable(options, "sparse_solver_opt", sparse_solver_.get());
+
   OptimizerBase::SetOptions(options);
-  AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
-    auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
-    AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
-    linesearch_ = LinesearchBase::Create(ls.value());
-    utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
-  }
-
-  AX_SYNC_OPT_IF(options, std::string, dense_solver_name) {
-    auto ds = utils::reflect_enum<math::DenseSolverKind>(dense_solver_name_);
-    AX_CHECK(ds) << "Unknown dense_solver_name: " << dense_solver_name_;
-    dense_solver_ = math::DenseSolverBase::Create(ds.value());
-    utils::sync_from_opt(*dense_solver_, options, "dense_solver_opt");
-  }
-
-  AX_SYNC_OPT_IF(options, std::string, sparse_solver_name) {
-    auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
-    AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;
-    sparse_solver_ = math::SparseSolverBase::Create(ss.value());
-    utils::sync_from_opt(*sparse_solver_, options, "sparse_solver_opt");
-  }
 }
 
-utils::Opt Newton::GetOptions() const {
+utils::Opt Optimizer_Newton::GetOptions() const {
   utils::Opt opt = OptimizerBase::GetOptions();
-  opt["linesearch_name"] = linesearch_name_;
-  opt["dense_solver_name"] = dense_solver_name_;
-  opt["sparse_solver_name"] = sparse_solver_name_;
-  opt["linesearch_opt"] = linesearch_->GetOptions();
+  opt["linesearch"] = utils::reflect_name(linesearch_->GetKind()).value();
+  opt["dense_solver"] = utils::reflect_name(dense_solver_->GetKind()).value();
+  opt["sparse_solver"] = utils::reflect_name(sparse_solver_->GetKind()).value();
   opt["dense_solver_opt"] = dense_solver_->GetOptions();
   opt["sparse_solver_opt"] = sparse_solver_->GetOptions();
   return opt;

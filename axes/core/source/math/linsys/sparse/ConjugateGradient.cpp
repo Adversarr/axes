@@ -129,7 +129,7 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
     }
   }
 
-  if (auto it = opt.find("preconditioner_options"); it != opt.end()) {
+  if (auto it = opt.find("preconditioner_opt"); it != opt.end()) {
     if (preconditioner_ || it->value().is_object()) {
       preconditioner_->SetOptions(it->value().as_object());
     }
@@ -143,12 +143,13 @@ utils::Opt SparseSolver_ConjugateGradient::GetOptions() const {
       {"tol", tol_},
   };
   if (preconditioner_) {
-    auto name = utils::reflect_name(preconditioner_->Kind());
+    auto name = utils::reflect_name(preconditioner_->GetKind());
     if (!name) {
-      AX_LOG(FATAL) << "Invalid preconditioner kind: " << static_cast<idx>(preconditioner_->Kind());
+      AX_LOG(FATAL) << "Invalid preconditioner kind: "
+                    << static_cast<idx>(preconditioner_->GetKind());
     }
     opt.insert_or_assign("preconditioner", name.value());
-    opt.insert_or_assign("preconditioner_options", preconditioner_->GetOptions());
+    opt.insert_or_assign("preconditioner_opt", preconditioner_->GetOptions());
   }
   return opt;
 }

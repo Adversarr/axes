@@ -9,11 +9,11 @@ using LbfgsHessianApproximator
                                 math::vecxr const& /*x_k+1 - x_k, if possible else empty*/,
                                 math::vecxr const& /*g_k+1 - g_k, if possible else empty*/)>;
 
-class Lbfgs : public OptimizerBase {
+class Optimizer_Lbfgs : public OptimizerBase {
 public:
-  explicit Lbfgs();
+  explicit Optimizer_Lbfgs();
 
-  ~Lbfgs() override = default;
+  ~Optimizer_Lbfgs() override = default;
 
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
@@ -28,7 +28,6 @@ public:
   void SetApproxSolve(LbfgsHessianApproximator approximator);
 
 protected:
-  std::string linesearch_name_;
   bool check_approx_quality_{false};
   UPtr<LinesearchBase> linesearch_;
   LbfgsHessianApproximator approx_solve_;

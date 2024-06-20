@@ -13,7 +13,7 @@ public:
 
   utils::Opt GetOptions() const final;
 
-  SparseSolverKind Kind() const final { return SparseSolverKind::kConjugateGradient; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::kConjugateGradient; }
 
 private:
   Eigen::ConjugateGradient<sp_matxxr, Eigen::Lower | Eigen::Upper,

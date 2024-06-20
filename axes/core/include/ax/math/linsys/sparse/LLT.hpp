@@ -9,7 +9,7 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
-  SparseSolverKind Kind() const final { return SparseSolverKind::kLLT; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::kLLT; }
 
 private:
   Eigen::SimplicialLLT<sp_matxxr> solver_;

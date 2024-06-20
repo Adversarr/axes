@@ -213,7 +213,89 @@ bool extract_tunable(utils::Opt const& opt, const char* key, AnyTunable* tun) {
   }
 }
 
+template <typename Factory, typename Kind>
+auto extract_and_create(utils::Opt const& opt, const char* key) {
+  auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
+  if (has_key) {
+    if (kind) {
+      return Factory::Create(kind.value());
+    } else {
+      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
+                                  + std::string(opt.at(key).as_string()));
+    }
+  }
+}
+
+template <typename Factory, typename Kind, typename Ptr>
+bool extract_and_create(utils::Opt const& opt, const char* key, Ptr& ptr) {
+  auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
+  if (has_key) {
+    if (kind) {
+      ptr = Factory::Create(kind.value());
+      return true;
+    } else {
+      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
+                                  + std::string(opt.at(key).as_string()));
+    }
+  }
+  return false;
+}
+
+template <typename Kind>
+bool extract_enum(utils::Opt const& opt, const char* key, Kind& kind) {
+  auto [has_key, _kind] = utils::extract_enum<Kind>(opt, key);
+  if (has_key) {
+    if (_kind) {
+      kind = _kind.value();
+      return true;
+    } else {
+      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
+                                  + std::string(opt.at(key).as_string()));
+    }
+  }
+  return false;
+}
+
+template <typename Kind>
+auto extract_enum_force(utils::Opt const& opt, const char* key) {
+  auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
+  if (has_key) {
+    if (kind) {
+      return kind.value();
+    } else {
+      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
+                                  + std::string(opt.at(key).as_string()));
+    }
+  }
+}
+
 #define AX_SYNC_OPT(opt, type, var) ax::utils::sync_from_opt<type>(var##_, (opt), #var)
 #define AX_SYNC_OPT_IF(opt, type, var) if (AX_SYNC_OPT(opt, type, var))
+
+#define AX_SYNC_OPT_FACTORY(opt, type, var, name, factory)                         \
+  do {                                                                             \
+    auto [has_##name, _kind_##name] = ax::utils::extract_enum<type>((opt), #name); \
+    if (has_##name) {                                                              \
+      if (_kind_##name) {                                                          \
+        var = factory::Create(_kind_##name.value());                               \
+      } else {                                                                     \
+        throw std::invalid_argument("Invalid \"" #name "\" option: "               \
+                                    + std::string((opt).at(#name).as_string()));   \
+      }                                                                            \
+    }                                                                              \
+  } while (false)
+
+#define AX_SYNC_OPT_ENUM(opt, type, var, name)                                     \
+  do {                                                                             \
+    auto [has_##name, _enum_##name] = ax::utils::extract_enum<type>((opt), #name); \
+    if (has_##name) {                                                              \
+      if (_enum_##name) {                                                          \
+        var = (_enum_##name).value();                                              \
+      } else {                                                                     \
+        throw std::invalid_argument("Invalid \"" #name "\" option: "               \
+                                    + std::string((opt).at(#var).as_string()));    \
+      }                                                                            \
+    }                                                                              \
+  } while (false)
 
 }  // namespace ax::utils

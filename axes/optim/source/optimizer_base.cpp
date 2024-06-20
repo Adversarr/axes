@@ -11,11 +11,11 @@ namespace ax::optim {
 UPtr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
   switch (k) {
     case OptimizerKind::kNewton:
-      return std::make_unique<Newton>();
+      return std::make_unique<Optimizer_Newton>();
     case OptimizerKind::kLbfgs:
-      return std::make_unique<Lbfgs>();
+      return std::make_unique<Optimizer_Lbfgs>();
     case OptimizerKind::kGradientDescent:
-      return std::make_unique<GradientDescent>();
+      return std::make_unique<Optimizer_GradientDescent>();
     default:
       return nullptr;
   }

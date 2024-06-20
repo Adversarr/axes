@@ -9,7 +9,7 @@ public:
 
   result_type Solve(vecxr const &b, vecxr const &x0) override;
 
-  SparseSolverKind Kind() const final { return SparseSolverKind::kLU; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::kLU; }
 
 private:
   Eigen::SparseLU<sp_matxxr, Eigen::COLAMDOrdering<idx>> solver_;

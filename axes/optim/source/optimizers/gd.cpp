@@ -7,7 +7,8 @@
 using namespace ax;
 using namespace ax::optim;
 
-OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const& x0) const {
+OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
+                                              math::vecxr const& x0) const {
   math::vecxr x = x0;
   // if (!problem.HasGrad()) {
   //   return utils::FailedPreconditionError("Gradient function not set");
@@ -72,36 +73,33 @@ OptResult GradientDescent::Optimize(OptProblem const& problem, math::vecxr const
   return result;
 }
 
-void ax::optim::GradientDescent::SetLineSearch(UPtr<LinesearchBase> linesearch) {
+void ax::optim::Optimizer_GradientDescent::SetLineSearch(UPtr<LinesearchBase> linesearch) {
   linesearch_ = std::move(linesearch);
 }
 
-void ax::optim::GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
+void ax::optim::Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
 
-void GradientDescent::SetOptions(utils::Opt const& opt) {
+void Optimizer_GradientDescent::SetOptions(utils::Opt const& opt) {
   OptimizerBase::SetOptions(opt);
-  AX_SYNC_OPT_IF(opt, real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
-  auto [has_linesearch, linesearch] = utils::extract_enum<LineSearchKind>(opt, "linesearch");
-  if (has_linesearch) {
-    AX_THROW_IF_NULL(linesearch,
-                     "Linesearch not found: " + std::string(opt.at("linesearch").as_string()));
-    linesearch_ = LinesearchBase::Create(*linesearch);
-    AX_THROW_IF_NULL(linesearch,
-                     "Linesearch create failed: " + std::string(opt.at("linesearch").as_string()));
+  AX_SYNC_OPT_IF(opt, real, lr) { 
+    AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive");
   }
-
-  if (linesearch_) {
-    utils::extract_tunable(opt, "linesearch_options", linesearch_.get());
-  }
+  utils::extract_and_create<LinesearchBase, LineSearchKind>(opt, "linesearch", linesearch_);
+  utils::extract_tunable(opt, "linesearch_opt", linesearch_.get());
 }
 
-utils::Opt GradientDescent::GetOptions() const {
+utils::Opt Optimizer_GradientDescent::GetOptions() const {
   auto opt = OptimizerBase::GetOptions();
   opt["lr"] = lr_;
   if (linesearch_) {
     auto name = utils::reflect_name(linesearch_->GetKind());
     opt["linesearch"] = name.value();
-    opt["linesearch_options"] = linesearch_->GetOptions();
+    opt["linesearch_opt"] = linesearch_->GetOptions();
   }
   return opt;
 }
+
+OptimizerKind Optimizer_GradientDescent::GetKind() const {
+  return OptimizerKind::kGradientDescent;
+}
+

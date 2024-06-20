@@ -3,10 +3,10 @@
 
 namespace ax::optim {
 
-class Fista final : public OptimizerBase {
+class Optimizer_Fista final : public OptimizerBase {
 public:
-  Fista() = default;
-  ~Fista() = default;
+  Optimizer_Fista() = default;
+  ~Optimizer_Fista() = default;
 
   OptResult Optimize(const OptProblem &problem, const math::vecxr &x0) const final;
 

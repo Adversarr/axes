@@ -69,16 +69,16 @@ static bool running = false;
 float dt = 1e-2;
 math::vecxr fps;
 math::vecxr cs_dist_eigen, eval, l2_dist_eigen, relative_l2_dist_eigen;
+math::vecxr cs_dist_invs, l2_dist_invs, relative_l2_dist_invs;
 math::vecxr cs_dist_units, l2_dist_units, relative_l2_dist_units;
+math::vecxr cs_dist_randoms, l2_dist_randoms, relative_l2_dist_randoms;
 
-bool plot_log = false;
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM");
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
   ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
               ts->GetMesh().GetNumVertices());
-  ImGui::Checkbox("Log", &plot_log);
   if (ImGui::Button("Step") || running) {
     ts->BeginTimestep(dt);
     math::field3r u0 = ts->GetPosition();
@@ -113,38 +113,67 @@ void ui_callback(gl::UiRenderEvent) {
     auto l2
         = [](const math::vecxr& a, const math::vecxr& b) { return math::norm(a - b) / a.size(); };
 
-    auto relative_l2 = [](const math::vecxr& a, const math::vecxr& b) {
-      return math::norm(a - b) / math::norm(b);
-    };
+    auto relative_l2
+        = [l2](const math::vecxr& a, const math::vecxr& b) { return l2(a, b) / math::norm(b); };
 
     cs_dist_eigen.resize(val.size());
     l2_dist_eigen.resize(val.size());
     relative_l2_dist_eigen.resize(val.size());
     for (auto i : utils::iota(val.size())) {
-      math::vecxr laplacian_applied = laplacian * math::normalized(vec.col(i));
-      math::vecxr stiffness_applied = A * math::normalized(vec.col(i));
+      math::vecxr laplacian_applied = laplacian * vec.col(i);
+      math::vecxr stiffness_applied = A * vec.col(i);
       l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied);
       cs_dist_eigen(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-      relative_l2_dist_eigen(i) = relative_l2(laplacian_applied, stiffness_applied);
+      relative_l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied) / val(i);
+    }
+
+    relative_l2_dist_eigen /= relative_l2_dist_eigen.maxCoeff();
+
+    cs_dist_invs.resize(val.size());
+    l2_dist_invs.resize(val.size());
+    relative_l2_dist_invs.resize(val.size());
+    idx const nDof = ts->GetMesh().GetNumVertices() * 3;
+    math::matxxr A_inverse = A.toDense().inverse();
+    std::tie(vec, val) = math::eig(A_inverse);
+    for (auto i : utils::iota(val.size())) {
+      math::vecxr evec = math::normalized(vec.col(i));
+      auto laplacian_applied = laplacian_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
+      auto stiffness_applied = hyper_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
+
+      l2_dist_invs(i) = l2(laplacian_applied, stiffness_applied);
+      cs_dist_invs(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+      relative_l2_dist_invs(i) = relative_l2(laplacian_applied, stiffness_applied);
     }
 
     cs_dist_units.resize(val.size());
     l2_dist_units.resize(val.size());
     relative_l2_dist_units.resize(val.size());
-    // idx const nDof = ts->GetMesh().GetNumVertices() * 3;
-    // for (auto i : utils::iota(val.size())) {
-    //   math::vecxr evec = vec.col(i);
-    //   auto laplacian_applied = laplacian_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
-    //   auto stiffness_applied = hyper_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
-    //
-    //   l2_dist_units(i) = l2(laplacian_applied, stiffness_applied);
-    //   cs_dist_units(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-    //   relative_l2_dist_units(i) = relative_l2(laplacian_applied, stiffness_applied);
-    // }
+    for (auto i : utils::iota(val.size())) {
+      math::vecxr unit_i = math::vecxr::Zero(val.size());
+      unit_i(i) = 1;
+      auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+      auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
 
-    // check the relationship between M_dt2_L and M + dt2 * K
+      l2_dist_units(i) = l2(laplacian_applied, stiffness_applied);
+      cs_dist_units(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+      relative_l2_dist_units(i) = relative_l2(laplacian_applied, stiffness_applied);
+    }
 
+    cs_dist_randoms.resize(val.size());
+    l2_dist_randoms.resize(val.size());
+    relative_l2_dist_randoms.resize(val.size());
+    for (auto i : utils::iota(val.size())) {
+      math::vecxr unit_i = math::vecxr::Zero(val.size());
+      unit_i.setRandom().normalize();
+      auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+      auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+
+      l2_dist_randoms(i) = l2(laplacian_applied, stiffness_applied);
+      cs_dist_randoms(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+      relative_l2_dist_randoms(i) = relative_l2(laplacian_applied, stiffness_applied);
+    }
     eval = val * dt * dt;
+
     update_rendering();
 
     if (scene == SCENE_TWIST) {
@@ -162,17 +191,24 @@ void ui_callback(gl::UiRenderEvent) {
         }
       }
     }
+
     std::cout << "Average cs for eigen: " << cs_dist_eigen.mean() << std::endl;
     std::cout << "Average l2 for eigen: " << l2_dist_eigen.mean() << std::endl;
     std::cout << "Average rl for eigen: " << relative_l2_dist_eigen.mean() << std::endl;
+    std::cout << "Average cs for inv: " << cs_dist_invs.mean() << std::endl;
+    std::cout << "Average l2 for inv: " << l2_dist_invs.mean() << std::endl;
+    std::cout << "Average rl for inv: " << relative_l2_dist_invs.mean() << std::endl;
     std::cout << "Average cs for unit: " << cs_dist_units.mean() << std::endl;
     std::cout << "Average l2 for unit: " << l2_dist_units.mean() << std::endl;
     std::cout << "Average rl for unit: " << relative_l2_dist_units.mean() << std::endl;
+    std::cout << "Average cs for random: " << cs_dist_randoms.mean() << std::endl;
+    std::cout << "Average l2 for random: " << l2_dist_randoms.mean() << std::endl;
+    std::cout << "Average rl for random: " << relative_l2_dist_randoms.mean() << std::endl;
   }
 
   if (ImPlot::BeginPlot("eig")) {
     ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_AutoFit);
-    ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
+    // ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
     ImPlot::PlotLine("cs", cs_dist_eigen.data(), cs_dist_eigen.size());
     ImPlot::PlotLine("eigen", eval.data(), eval.size());
     ImPlot::PlotLine("l2", l2_dist_eigen.data(), l2_dist_eigen.size());
@@ -180,12 +216,30 @@ void ui_callback(gl::UiRenderEvent) {
     ImPlot::EndPlot();
   }
 
+  if (ImPlot::BeginPlot("inv")) {
+    ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_AutoFit);
+    // ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
+    ImPlot::PlotLine("cs", cs_dist_invs.data(), cs_dist_invs.size());
+    ImPlot::PlotLine("l2", l2_dist_invs.data(), l2_dist_invs.size());
+    ImPlot::PlotLine("relative_l2", relative_l2_dist_invs.data(), relative_l2_dist_invs.size());
+    ImPlot::EndPlot();
+  }
+
   if (ImPlot::BeginPlot("unit")) {
     ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_AutoFit);
-    ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
+    // ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
     ImPlot::PlotLine("cs", cs_dist_units.data(), cs_dist_units.size());
     ImPlot::PlotLine("l2", l2_dist_units.data(), l2_dist_units.size());
     ImPlot::PlotLine("relative_l2", relative_l2_dist_units.data(), relative_l2_dist_units.size());
+    ImPlot::EndPlot();
+  }
+
+  if (ImPlot::BeginPlot("random")) {
+    ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_AutoFit);
+    // ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
+    ImPlot::PlotLine("cs", cs_dist_randoms.data(), cs_dist_randoms.size());
+    ImPlot::PlotLine("l2", l2_dist_randoms.data(), l2_dist_randoms.size());
+    ImPlot::PlotLine("relative_l2", relative_l2_dist_randoms.data(), relative_l2_dist_randoms.size());
     ImPlot::EndPlot();
   }
 
@@ -230,9 +284,10 @@ int main(int argc, char** argv) {
   ts->SetOptions({
       {"tol_var", 0.0},
       {"record_trajectory", 1},
-      {"lbfgs_strategy", "kReservedForExperimental"},
+      // {"lbfgs_strategy", "kReservedForExperimental"},
+      {"lbfgs_strategy", "kLaplacian"},
       {"rel_tol_grad", 1e-2},
-      {"lbfgs_opt", {{"check_approx_quality", true}}}
+      // {"lbfgs_opt", {{"check_approx_quality", true}}}
   });
 
   AX_CHECK_OK(ts->Initialize());
@@ -252,12 +307,12 @@ int main(int argc, char** argv) {
     laplacian.makeCompressed();
   }
 
-  laplacian_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kConjugateGradient);
+  laplacian_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLLT);
   math::LinsysProblem_Sparse pro;
   pro.A_ = laplacian;
   laplacian_solver->Analyse(pro);
 
-  hyper_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kConjugateGradient);
+  hyper_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLLT);
 
   out = create_entity();
   add_component<gl::Mesh>(out);

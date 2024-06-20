@@ -9,7 +9,7 @@ public:
 
   vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
-  PreconditionerKind Kind() const final { return PreconditionerKind::kIncompleteCholesky; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteCholesky; }
 
 private:
   // Eigen::IncompleteCholesky<real, Eigen::Upper | Eigen::Lower, Eigen::AMDOrdering<idx>> impl_;

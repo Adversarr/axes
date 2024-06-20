@@ -5,13 +5,13 @@
 
 namespace ax::optim {
 
-class GradientDescent : public OptimizerBase {
+class Optimizer_GradientDescent : public OptimizerBase {
 public:
-  GradientDescent(real const& lr = 0.01) : lr_(lr) {}
+  Optimizer_GradientDescent(real const& lr = 0.01) : lr_(lr) {}
 
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
 
-  OptimizerKind GetKind() const override { return OptimizerKind::kGradientDescent; }
+  OptimizerKind GetKind() const override;
 
   void SetLearningRate(real const& lr);
 

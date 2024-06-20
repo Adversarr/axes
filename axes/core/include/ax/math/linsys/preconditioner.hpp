@@ -21,7 +21,7 @@ public:
   virtual void Analyse(LinsysProblem_Sparse const &problem) = 0;
   virtual vecxr Solve(vecxr const &b, vecxr const &x0) = 0;
 
-  virtual PreconditionerKind Kind() const = 0;
+  virtual PreconditionerKind GetKind() const = 0;
 };
 
 }  // namespace ax::math

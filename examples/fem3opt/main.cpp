@@ -129,7 +129,6 @@ int main(int argc, char** argv) {
   // input_mesh.vertices_ = vet->transpose();
 
   ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
-  ts->SetLame(lame);
   AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
   for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
@@ -149,7 +148,7 @@ int main(int argc, char** argv) {
       {"youngs", 1e7},
       {"poisson", 0.33},
       {"optimizer", absl::GetFlag(FLAGS_optimizer)},
-      {"optimizer_options", {
+      {"optimizer_opt", {
         {"linesearch", "kBacktracking"},
         // {"enable_fista", true},
         // {"verbose", true},

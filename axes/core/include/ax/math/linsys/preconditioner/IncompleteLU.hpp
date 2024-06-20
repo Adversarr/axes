@@ -9,7 +9,7 @@ public:
 
   vecxr Solve(vecxr const &b, vecxr const &x0) override;
 
-  PreconditionerKind Kind() const final { return PreconditionerKind::kIncompleteLU; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteLU; }
 
 private:
   Eigen::IncompleteLUT<real, idx> impl_;

@@ -8,12 +8,12 @@
 
 namespace ax::optim {
 
-class Newton : public OptimizerBase {
+class Optimizer_Newton : public OptimizerBase {
 public:
   /****************************** Ctor Dtor ******************************/
-  explicit Newton();
+  explicit Optimizer_Newton();
 
-  ~Newton() override = default;
+  ~Optimizer_Newton() override = default;
 
   /****************************** Interfaces ******************************/
   OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
@@ -27,9 +27,6 @@ public:
   /****************************** Getter Setter ******************************/
 
 protected:
-  std::string linesearch_name_;
-  std::string dense_solver_name_;
-  std::string sparse_solver_name_;
   UPtr<LinesearchBase> linesearch_;
   UPtr<math::DenseSolverBase> dense_solver_;
   UPtr<math::SparseSolverBase> sparse_solver_;

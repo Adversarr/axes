@@ -257,13 +257,13 @@ int main(int argc, char** argv) {
     auto p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
     if (strategy == "naive") {
       std::cout << "LBFGS: Naive" << std::endl;
-      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kNaive);
+      p_ts->SetOptions({{"lbfgs_strategy", "kNaive"}});
     } else if (strategy == "laplacian") {
       std::cout << "LBFGS: Liu17" << std::endl;
-      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kLaplacian);
+      p_ts->SetOptions({{"lbfgs_strategy", "kLaplacian"}});
     } else {
       std::cout << "LBFGS: Hard" << std::endl;
-      p_ts->SetLbfgsStrategy(ax::fem::LbfgsStrategy::kHard);
+      p_ts->SetOptions({{"lbfgs_strategy", "kHard"}});
     }
   } else if (opt == "newton") {
     std::cout << "Newton" << std::endl;
@@ -325,6 +325,8 @@ int main(int argc, char** argv) {
   add_component<gl::Lines>(out);
   update_rendering();
   connect<gl::UiRenderEvent, &ui_callback>();
+  std::cout << ts->GetOptions() << std::endl;
+
   AX_CHECK_OK(gl::enter_main_loop());
 
   ts.reset();

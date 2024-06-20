@@ -28,6 +28,7 @@ class DenseSolverBase : public LinsysSolverBase<LinsysProblem_Dense> {
 public:
   static UPtr<DenseSolverBase> Create(DenseSolverKind kind);
 
+  virtual DenseSolverKind GetKind() const = 0;
 private:
 };
 

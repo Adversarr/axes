@@ -25,7 +25,7 @@ static math::vecxr approx_solve_default(math::vecxr const& r, math::vecxr const&
   }
 }
 
-OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
+OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
   AX_THROW_IF_LT(history_size_, 0, "Invalid history size: " + std::to_string(history_size_));
@@ -181,9 +181,8 @@ OptResult Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) con
   return result;
 }
 
-Lbfgs::Lbfgs() {
+Optimizer_Lbfgs::Optimizer_Lbfgs() {
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
-  linesearch_name_ = "kBacktracking";
 
   auto ls = reinterpret_cast<Linesearch_Backtracking*>(linesearch_.get());
   ls->required_descent_rate_ = 1e-4;
@@ -193,29 +192,27 @@ Lbfgs::Lbfgs() {
   SetApproxSolve(approx_solve_default);
 }
 
-void Lbfgs::SetOptions(utils::Opt const& options) {
+void Optimizer_Lbfgs::SetOptions(utils::Opt const& options) {
   OptimizerBase::SetOptions(options);
-  AX_SYNC_OPT(options, idx, history_size);
-  AX_SYNC_OPT_IF(options, std::string, linesearch_name) {
-    auto ls = utils::reflect_enum<LineSearchKind>(linesearch_name_);
-    AX_CHECK(ls) << "Unknown linesearch_name: " << linesearch_name_;
-    linesearch_ = LinesearchBase::Create(ls.value());
-    utils::sync_from_opt(*linesearch_, options, "linesearch_opt");
+  AX_SYNC_OPT_IF(options, idx, history_size) {
+    AX_THROW_IF_LT(history_size_, 0, "History size should be positive");
   }
-
   AX_SYNC_OPT(options, bool, check_approx_quality);
+  utils::extract_and_create<LinesearchBase, LineSearchKind>(options, "linesearch", linesearch_);
+  utils::extract_tunable(options, "linesearch_opt", linesearch_.get());
+  OptimizerBase::SetOptions(options);
 }
 
-utils::Opt Lbfgs::GetOptions() const {
+utils::Opt Optimizer_Lbfgs::GetOptions() const {
   utils::Opt opt = OptimizerBase::GetOptions();
   opt["history_size"] = history_size_;
-  opt["linesearch_name"] = linesearch_name_;
+  opt["linesearch"] = utils::reflect_name(linesearch_->GetKind()).value();
   opt["linesearch_opt"] = linesearch_->GetOptions();
   opt["check_approx_quality"] = check_approx_quality_;
   return opt;
 }
 
-void Lbfgs::SetApproxSolve(LbfgsHessianApproximator hessian_approximation) {
+void Optimizer_Lbfgs::SetApproxSolve(LbfgsHessianApproximator hessian_approximation) {
   approx_solve_ = hessian_approximation;
 }
 

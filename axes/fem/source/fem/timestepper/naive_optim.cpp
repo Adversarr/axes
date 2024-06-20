@@ -11,7 +11,7 @@
 namespace ax::fem {
 
 template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim() {
-  optimizer_ = std::make_unique<optim::Newton>();
+  optimizer_ = std::make_unique<optim::Optimizer_Newton>();
 }
 
 template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(SPtr<TriMesh<dim>> mesh)
@@ -56,23 +56,25 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Opt
   //   optimizer_ = optim::OptimizerBase::Create(opt_kind.value());
   //   AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: " + std::string(o.as_string()));
   // }
-  auto [has_opt, optimizer] = utils::extract_enum<optim::OptimizerKind>(opt, "optimizer");
-  if (has_opt) {
-    AX_THROW_IF_NULL(optimizer, "Failed to reflect optimizer: "
-                                + std::string(utils::extract_string(opt.at("optimizer"))));
-    optimizer_ = optim::OptimizerBase::Create(optimizer.value());
-    AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: "
-                                 + std::string(utils::extract_string(opt.at("optimizer"))));
-  }
+  // auto [has_opt, optimizer] = utils::extract_enum<optim::OptimizerKind>(opt, "optimizer");
+  // if (has_opt) {
+  //   AX_THROW_IF_NULL(optimizer, "Failed to reflect optimizer: "
+  //                               + std::string(utils::extract_string(opt.at("optimizer"))));
+  //   optimizer_ = optim::OptimizerBase::Create(optimizer.value());
+  //   AX_THROW_IF_NULL(optimizer_, "Failed to create optimizer: "
+  //                                + std::string(utils::extract_string(opt.at("optimizer"))));
+  // }
+
+  utils::extract_and_create<optim::OptimizerBase, optim::OptimizerKind>(opt, "optimizer", optimizer_);
   if (optimizer_) {
-    utils::extract_tunable(opt, "optimizer_options", optimizer_.get());
+    utils::extract_tunable(opt, "optimizer_opt", optimizer_.get());
   }
 }
 
 template <idx dim> utils::Opt Timestepper_NaiveOptim<dim>::GetOptions() const {
   auto opt = TimeStepperBase<dim>::GetOptions();
   opt["optimizer"] = utils::reflect_name(optimizer_->GetKind()).value();
-  opt["optimizer_options"] = optimizer_->GetOptions();
+  opt["optimizer_opt"] = optimizer_->GetOptions();
   return opt;
 }
 

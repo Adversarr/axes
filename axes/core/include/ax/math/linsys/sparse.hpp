@@ -34,7 +34,7 @@ public:
 
   virtual ~SparseSolverBase() = default;
 
-  virtual SparseSolverKind Kind() const = 0;
+  virtual SparseSolverKind GetKind() const = 0;
 
 protected:
   UPtr<PreconditionerBase> preconditioner_{nullptr};

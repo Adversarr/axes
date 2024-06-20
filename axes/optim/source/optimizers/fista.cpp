@@ -6,7 +6,7 @@
 namespace ax::optim {
 
 // fista method have a special linesearch.
-OptResult Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) const {
+OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) const {
   // SECT: Checkings
   AX_THROW_IF_FALSE(problem.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");

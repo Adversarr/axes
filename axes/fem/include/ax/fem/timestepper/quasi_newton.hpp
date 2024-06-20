@@ -23,13 +23,13 @@ public:
   void SetOptions(const utils::Opt& option) override;
   utils::Opt GetOptions() const override;
 
-  optim::Lbfgs& GetOptimizer() { return optimizer_; }
+  optim::Optimizer_Lbfgs& GetOptimizer() { return optimizer_; }
 
 protected:
   real dt_back_ = -1;
   SPtr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_ = LbfgsStrategy::kNaive;
-  optim::Lbfgs optimizer_;
+  optim::Optimizer_Lbfgs optimizer_;
 };
 
 }  // namespace ax::fem

@@ -1,6 +1,4 @@
 #pragma once
-#include <tbb/partitioner.h>
-
 #include "ax/math/decomp/svd/common.hpp"
 #include "ax/math/sparse.hpp"
 #include "elasticity/common.hpp"
@@ -100,6 +98,9 @@ public:
   using MeshPtr = SPtr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
+  ElasticityCompute_CPU(SPtr<TriMesh<dim>> mesh);
+  ~ElasticityCompute_CPU() override;
+
   virtual void UpdateEnergy();
   virtual void UpdateStress();
   virtual void UpdateHessian(bool projection);
@@ -120,7 +121,8 @@ public:
 protected:
   List<math::decomp::SvdResult<dim, real>> svd_results_;
   elasticity::DeformationGradientList<dim> deformation_gradient_;
-  tbb::affinity_partitioner e_ap, s_ap, h_ap, svd_ap;
+  struct TbbPartitioners; ///< include tbb in CUDA will cause error, so we have to put it here.
+  std::unique_ptr<TbbPartitioners> partitioner_impl_;
 };
 
 }  // namespace ax::fem

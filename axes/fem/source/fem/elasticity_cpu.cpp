@@ -1,5 +1,3 @@
-#include <tbb/parallel_for.h>
-
 #include <Eigen/SVD>
 
 #include "ax/fem/elasticity.hpp"
@@ -12,6 +10,10 @@
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
 #include "ax/utils/iota.hpp"
+
+
+#include <tbb/partitioner.h>
+#include <tbb/parallel_for.h>
 
 // TBB States that, The relation between GRAINSIZE and INSTRUCTION COUNT should be:
 //    G * IC >= 100,000
@@ -46,6 +48,12 @@
 #endif
 
 namespace ax::fem {
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+struct ElasticityCompute_CPU<dim, ElasticModelTemplate>::TbbPartitioners {
+  tbb::affinity_partitioner e_ap, h_ap, s_ap, svd_ap;
+};
+
 template <idx dim> static bool check_cache(elasticity::DeformationGradientCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
@@ -307,7 +315,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
                               * this->rest_volume_(i);
         }
       },
-      this->e_ap);
+      this->partitioner_impl_->e_ap);
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -329,7 +337,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
                       * this->rest_volume_(i);
         }
       },
-      this->s_ap);
+      this->partitioner_impl_->s_ap);
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -354,7 +362,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
           }
         }
       },
-      this->h_ap);
+      this->partitioner_impl_->h_ap);
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -460,7 +468,7 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
           }
         }
       },
-      this->svd_ap);
+      this->partitioner_impl_->svd_ap);
   return failed.load();
 }
 
@@ -509,7 +517,7 @@ math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::fie
                               * this->rest_volume_(i);
         }
       },
-      this->e_ap);
+      this->partitioner_impl_->e_ap);
   return element_energy;
 }
 
@@ -532,7 +540,7 @@ math::field1r ElasticityCompute_CPU<dim, ElasticModelTemplate>::Energy(math::vec
                               * this->rest_volume_(i);
         }
       },
-      this->e_ap);
+      this->partitioner_impl_->e_ap);
   return element_energy;
 }
 
@@ -555,7 +563,7 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTempl
                       * this->rest_volume_(i);
         }
       },
-      this->s_ap);
+      this->partitioner_impl_->s_ap);
   return stress;
 }
 
@@ -578,7 +586,7 @@ List<elasticity::StressTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTempl
                       * this->rest_volume_(i);
         }
       },
-      this->s_ap);
+      this->partitioner_impl_->s_ap);
   return stress;
 }
 
@@ -601,7 +609,7 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemp
                        * this->rest_volume_(i);
         }
       },
-      this->h_ap);
+      this->partitioner_impl_->h_ap);
   return hessian;
 }
 
@@ -624,9 +632,18 @@ List<elasticity::HessianTensor<dim>> ElasticityCompute_CPU<dim, ElasticModelTemp
                        * this->rest_volume_(i);
         }
       },
-      this->h_ap);
+      this->partitioner_impl_->h_ap);
   return hessian;
 }
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(SPtr<TriMesh<dim>> mesh)
+    : ElasticityComputeBase<dim>(mesh) {
+  this->partitioner_impl_ = std::make_unique<TbbPartitioners>();
+}
+
+template <idx dim, template <idx> class ElasticModelTemplate>
+ElasticityCompute_CPU<dim, ElasticModelTemplate>::~ElasticityCompute_CPU(){}
 
 template class ElasticityComputeBase<2>;
 template class ElasticityComputeBase<3>;

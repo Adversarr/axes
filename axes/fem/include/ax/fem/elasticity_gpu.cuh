@@ -1,3 +1,4 @@
+#pragma once
 #include "elasticity.hpp"
 
 namespace ax::fem {

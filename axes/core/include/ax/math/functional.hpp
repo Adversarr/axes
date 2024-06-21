@@ -1,7 +1,12 @@
 #pragma once
 
 #include "./common.hpp"
-#include "ax/math/details/rsqrt_impl.hpp"
+#include <random>
+
+#ifndef __CUDACC__
+#  include "ax/math/details/rsqrt_impl.hpp"
+#endif
+
 #include "ax/math/traits.hpp"
 namespace ax::math {
 
@@ -14,7 +19,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
-  return 1.0 / ::sqrt(x);
+  return ((Scalar) 1.0) / ::sqrt(x);
 }
 
 #else
@@ -37,7 +42,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {
 
 #define IMPLEMENT_UNARY_STL(op)                                     \
   template <typename Scalar, typename = enable_if_scalar_t<Scalar>> \
-  AX_HOST_DEVICE AX_FORCE_INLINE auto op(Scalar x) {           \
+  AX_HOST_DEVICE AX_FORCE_INLINE auto op(Scalar x) {                \
     return std::op(x);                                              \
   }
 
@@ -92,11 +97,11 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
 /****************************** Unary op available for matrices ******************************/
 #define IMPLEMENT_UNARY(FUNC, OP)                                                          \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) {                        \
+  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(MBcr<Derived> mv) {                             \
     return mv.OP();                                                                        \
   }                                                                                        \
   template <typename Derived, typename = std::enable_if_t<!is_scalar_v<Derived>, Derived>> \
-  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) {                        \
+  AX_HOST_DEVICE AX_FORCE_INLINE auto FUNC(ABcr<Derived> mv) {                             \
     return mv.FUNC();                                                                      \
   }
 #define A_OP_M(OP) array().OP().matrix
@@ -183,9 +188,7 @@ template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool all(DBcr<A> mv) { retu
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool any(DBcr<A> mv) { return mv.any(); }
 
-template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE idx count(DBcr<A> mv) {
-  return mv.count();
-}
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE idx count(DBcr<A> mv) { return mv.count(); }
 
 /****************************** argxxx ******************************/
 
@@ -212,9 +215,8 @@ using std::isnan;
 using std::lgamma;
 using std::tgamma;
 
-template <idx dim>
-AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
-                                                         const math::veci<dim>& b) {
+template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
+                                                                       const math::veci<dim>& b) {
   math::veci<dim> output;
 #ifdef __clang__
 #  pragma unroll
@@ -231,8 +233,8 @@ constexpr subscript_t subscript;
 constexpr stride_t stride;
 
 template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
-                                                                   math::veci<dim> const& stride,
-                                                                   stride_t) {
+                                                              math::veci<dim> const& stride,
+                                                              stride_t) {
   return dot(sub, stride);
 }
 
@@ -247,14 +249,14 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> to_stride(math::veci<dim> const& 
 }
 
 template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
-                                                                   math::veci<dim> const& shape,
-                                                                   subscript_t = subscript) {
+                                                              math::veci<dim> const& shape,
+                                                              subscript_t = subscript) {
   return sub2ind(sub, math::to_stride<dim>(shape), stride);
 }
 
 template <idx dim>
 AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(idx ind, math::veci<dim> const& stride,
-                                                            subscript_t) {
+                                                       subscript_t) {
   math::veci<dim> sub;
   for (idx d = dim - 1; d >= 0; --d) {
     sub[d] = ind / stride[d];
@@ -263,39 +265,17 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(idx ind, math::veci<dim> 
   return sub;
 }
 
-namespace details {
-constexpr real factorials[32] = {1.0,
-                                 1.0,
-                                 2.0,
-                                 6.0,
-                                 24.0,
-                                 120.0,
-                                 720.0,
-                                 5040.0,
-                                 40320.0,
-                                 362880.0,
-                                 3628800.0,
-                                 39916800.0,
-                                 479001600.0,
-                                 6227020800.0,
-                                 87178291200.0,
-                                 1307674368000.0,
-                                 20922789888000.0,
-                                 355687428096000.0,
-                                 6402373705728000.0,
-                                 121645100408832000.0,
-                                 2432902008176640000.0,
-                                 51090942171709440000.0,
-                                 1124000727777607680000.0,
-                                 25852016738884976640000.0,
-                                 620448401733239439360000.0,
-                                 15511210043330985984000000.0,
-                                 403291461126605635584000000.0,
-                                 10888869450418352160768000000.0,
-                                 304888344611713860501504000000.0,
-                                 8841761993739701954543616000000.0,
-                                 265252859812191058636308480000000.0,
-                                 8222838654177922817725562880000000.0};
+template <typename T, typename A, typename B>
+AX_HOST_DEVICE AX_FORCE_INLINE auto lerp(A const& a, B const& b, T const& t) {
+  static_assert(is_scalar_v<T>, "T must be scalar.");
+  return (static_cast<T>(1) - t) * a + t * b;
+}
+
+template <typename Scalar=real, typename = enable_if_scalar_t<Scalar>>
+AX_HOST AX_FORCE_INLINE auto random(Scalar low = 0, Scalar high = 1) {
+  auto const rand_int = std::rand();
+  auto const rand_scalar = static_cast<Scalar>(rand_int) / RAND_MAX;
+  return low + (high - low) * rand_scalar;
 }
 
 }  // namespace ax::math

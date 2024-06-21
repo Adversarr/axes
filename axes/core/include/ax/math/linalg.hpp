@@ -25,7 +25,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
 }
 
 template <typename A, typename B>
-AX_HOST_DEVICE AX_FORCE_INLINE math::vec<typename A::Scalar, 3> cross(MBcr<A> a, MBcr<B> b) {
+AX_HOST_DEVICE AX_FORCE_INLINE auto cross(MBcr<A> a, MBcr<B> b) {
   static_assert(A::RowsAtCompileTime == 3, "cross product requires 3D vectors");
   static_assert(B::RowsAtCompileTime == 3, "cross product requires 3D vectors");
 
@@ -54,26 +54,18 @@ template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar norm(MBc
   return mv.cwiseAbs().sum();
 }
 
-template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE
-    math::mat<typename A::Scalar, A::RowsAtCompileTime, A::ColsAtCompileTime>
-    normalized(MBcr<A> mv) {
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE auto normalized(MBcr<A> mv) {
   return mv.normalized();
 }
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE void normalize_(MBr<A> mv) { mv.normalize(); }
 
 /****************************** outer ******************************/
-template <typename A, typename B> AX_HOST_DEVICE AX_FORCE_INLINE
-    math::mat<typename A::Scalar, A::RowsAtCompileTime, B::RowsAtCompileTime>
-    outer(MBcr<A> a, MBcr<B> b) {
+template <typename A, typename B> AX_HOST_DEVICE AX_FORCE_INLINE auto outer(MBcr<A> a, MBcr<B> b) {
   return a * b.transpose();
 }
 
-template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE
-    math::mat<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>
-    outer(MBcr<A> a) {
-  return outer(a, a);
-}
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE auto outer(MBcr<A> a) { return outer(a, a); }
 
 /****************************** determinant ******************************/
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar det(MBcr<A> a) { return a.determinant(); }

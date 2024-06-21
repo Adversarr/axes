@@ -52,8 +52,12 @@ template <typename Enum> List<std::string> reflect_names() {
  * the enum value is invalid.
  */
 template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
-  char buf[256];  /// Typically a cpp identifier will not exceed 256 char.
-  return boost::describe::enum_to_string<Enum>(val, buf);
+  char buf[256] = {0};  /// Typically a cpp identifier will not exceed 256 char.
+  if (boost::describe::enum_to_string(val, buf)) {
+    return buf;
+  } else {
+    return std::nullopt;
+  }
 }
 
 /**

@@ -26,7 +26,7 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
 
   idx iter = 0;
   math::vecxr x;
-  real f;
+  real f = math::inf<real>;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;
     if (prob.HasProximator()) {

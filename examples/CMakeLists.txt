@@ -32,7 +32,7 @@ axes_add_example(fem3opt "axes_gl;axes_fem")
 axes_add_example(fem3liu "axes_gl;axes_fem")
 axes_add_example(fem_tetra_fd "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
-axes_add_example(fem3_experiment "axes_fem;axes_graph")
+axes_add_example(fem3_experiment "axes_fem;axes_gl")
 axes_add_example(rom_experimental "axes_fem;axes_graph")
 
 # Homework for Nonlinear Numerical PDE:

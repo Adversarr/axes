@@ -10,6 +10,28 @@ template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(real W)
   idx nE = mesh_.GetNumElements();
   for (idx i = 0; i < nE; ++i) {
     math::veci<dim + 1> elem = mesh_.GetElement(i);
+    // Should be faster than you integrate the Partial Partial...
+    // math::matr<dim + 1, dim + 1> C;
+    // for (idx i = 0; i <= dim; ++ i) {
+    //   math::vecr<dim> v = mesh_.GetVertex(elem[i]);
+    //   for (idx j = 0; j < dim; ++j) {
+    //     C(i, j) = v[j];
+    //   }
+    //   C(i, dim) = 1;
+    // }
+    // constexpr real volume_of_unit_simplex = dim == 2 ? 0.5 : 1.0 / 6.0;
+    // real const volume = abs(C.determinant()) * volume_of_unit_simplex;
+    // C = C.inverse();
+    // for (idx i = 0; i <= dim; ++i) {
+    //   for (idx j = 0; j <= dim; ++j) {
+    //     real lap = 0.;
+    //     for (idx D = 0; D < dim; ++D) {
+    //       lap += C(D, i) * C(D, j);
+    //     }
+    //     l_coef.push_back({elem[i], elem[j], lap * W * volume});
+    //   }
+    // }
+
     std::array<math::vecr<dim>, dim + 1> vert;
     for (idx i = 0; i <= dim; ++i) {
       vert[i] = mesh_.GetVertex(elem[i]);

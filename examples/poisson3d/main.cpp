@@ -15,12 +15,21 @@
 
 #include "ax/core/init.hpp"
 #include "ax/fem/elements/p1.hpp"
+#include "ax/fem/laplace_matrix.hpp"
+#include "ax/fem/trimesh.hpp"
+#include "ax/geometry/primitives.hpp"
+#include "ax/geometry/topology.hpp"
+#include "ax/math/io.hpp"
+#include "ax/math/linsys/preconditioner/Identity.hpp"
+#include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
+#include "ax/math/linsys/preconditioner/IncompleteLU.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/utils/asset.hpp"
+#include "ax/utils/iota.hpp"
 
 using namespace ax;
 using namespace ax::math;
-idx n = 10;
-ABSL_FLAG(idx, n, 10, "Number of grid points in each direction.");
 
 real neg_laplace(real x, real y, real z) {
   return 2 * (-1 + x) * (-1 + y) * cos(z) * sin(x) * sin(y)
@@ -33,53 +42,7 @@ real analytical(real x, real y, real z) {
   return (1 - x) * sin(x) * (1 - y) * sin(y) * (1 - z) * sin(z);
 }
 
-std::pair<field3r, field4i> tetra_grid3(idx nx, idx ny, idx nz) {
-  field3r vertices(3, nx * ny * nz);
-  field4i elements(4, 5 * (nx - 1) * (ny - 1) * (nz - 1));
-  idx id = 0;
-  for (idx i = 0; i < nx; ++i) {
-    for (idx j = 0; j < ny; ++j) {
-      for (idx k = 0; k < nz; ++k) {
-        vertices.col(id) = vec3r{i / real(nx - 1), j / real(ny - 1), k / real(nz - 1)};
-        id++;
-      }
-    }
-  }
-
-  id = 0;
-  for (idx i = 0; i < nx - 1; ++i) {
-    for (idx j = 0; j < ny - 1; ++j) {
-      for (idx k = 0; k < nz - 1; ++k) {
-        idx idx000 = i * ny * nz + j * nz + k;
-        idx idx100 = (i + 1) * ny * nz + j * nz + k;
-        idx idx010 = i * ny * nz + (j + 1) * nz + k;
-        idx idx001 = i * ny * nz + j * nz + k + 1;
-        idx idx110 = (i + 1) * ny * nz + (j + 1) * nz + k;
-        idx idx101 = (i + 1) * ny * nz + j * nz + k + 1;
-        idx idx011 = i * ny * nz + (j + 1) * nz + k + 1;
-        idx idx111 = (i + 1) * ny * nz + (j + 1) * nz + k + 1;
-        elements.col(id++) = vec4i{idx000, idx100, idx010, idx001};
-        elements.col(id++) = vec4i{idx100, idx010, idx110, idx111};
-        elements.col(id++) = vec4i{idx100, idx010, idx001, idx111};
-        elements.col(id++) = vec4i{idx100, idx001, idx101, idx111};
-        elements.col(id++) = vec4i{idx011, idx010, idx001, idx111};
-      }
-    }
-  }
-
-  return {vertices, elements};
-}
-
-bool is_dirichlet(idx id) {
-  idx i = id / (n * n);
-  idx j = (id % (n * n)) / n;
-  idx k = id % n;
-  return i == 0 || i == n - 1 || j == 0 || j == n - 1 || k == 0 || k == n - 1;
-}
-
-int main(int argc, char** argv) {
-  init(argc, argv);
-  n = absl::GetFlag(FLAGS_n);
+void print_basic_test_case() {
   fem::elements::P1Element3D element;
   mat4r pfpx_pgpy = math::zeros<4, 4>();
   for (idx i = 0; i < 4; ++i) {
@@ -90,82 +53,109 @@ int main(int argc, char** argv) {
     }
   }
   AX_LOG(INFO) << "Local Laplacian Stiffness: \n" << pfpx_pgpy;
-  auto [vertices, elements] = tetra_grid3(n, n, n);
 
-  sp_coeff_list coefficients;
-  for (auto elem : each(elements)) {
-    idx idx000 = elem[0];
-    idx idx100 = elem[1];
-    idx idx010 = elem[2];
-    idx idx110 = elem[3];
-    vec3r v000 = vertices.col(idx000);
-    vec3r v100 = vertices.col(idx100);
-    vec3r v010 = vertices.col(idx010);
-    vec3r v001 = vertices.col(idx110);
-    fem::elements::P1Element3D element({v000, v100, v010, v001});
-    for (idx i = 0; i < 4; ++i) {
-      for (idx j = 0; j < 4; ++j) {
-        idx ei = elem[i];
-        idx ej = elem[j];
-        coefficients.push_back(sp_coeff(ei, ej,
-                                        element.Integrate_PF_PF(i, j, 0, 0)
-                                            + element.Integrate_PF_PF(i, j, 1, 1)
-                                            + element.Integrate_PF_PF(i, j, 2, 2)));
-      }
+  math::field3r vertices(3, 4);
+  vertices.col(0) = vec3r{0, 0, 0};
+  vertices.col(1) = vec3r{1, 0, 0};
+  vertices.col(2) = vec3r{0, 1, 0};
+  vertices.col(3) = vec3r{0, 0, 1};
+
+  vertices *= 0.1;
+  math::field4i elements(4, 1);
+  elements.col(0) = vec4i{0, 1, 2, 3};
+
+  SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
+  AX_CHECK_OK(pmesh->SetMesh(elements, vertices));
+
+  math::sp_matxxr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  std::cout << K.toDense() << std::endl;
+}
+
+int main(int argc, char** argv) {
+  init(argc, argv);
+  print_basic_test_case();
+  math::matxxr input_mesh_vertices
+      = math::read_npy_v10_real(utils::get_asset("/mesh/npy/beam_high_res_vertices.npy"));
+  math::matxxi input_mesh_elements
+      = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/beam_high_res_elements.npy"));
+
+  math::field3r vertices = input_mesh_vertices.transpose();
+  math::field4i elements = input_mesh_elements.transpose();
+  vertices.row(0) /= vertices.row(0).maxCoeff();
+
+  // idx nx = 5;
+  // auto [vertices, elements] = geo::tet_cube(1, nx, nx, nx);
+
+  vertices = vertices.array() * 0.5 + 0.5;
+  idx const nVertices = vertices.cols();
+
+  SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
+  std::set<int> dirichlet;
+  for (auto i : utils::iota(nVertices)) {
+    // [0, 1] x [0, 1] x [0, 1]
+    if (vertices(0, i) == 0 || vertices(0, i) == 1 || vertices(1, i) == 0 || vertices(1, i) == 1
+        || vertices(2, i) == 0 || vertices(2, i) == 1) {
+      dirichlet.insert(i);
     }
   }
 
-  sp_coeff_list coef_no_dirichlet;
-  for (auto coef : coefficients) {
-    if (!is_dirichlet(coef.row()) && !is_dirichlet(coef.col())) {
-      coef_no_dirichlet.push_back(coef);
-    }
-  }
-  for (idx i = 0; i < n * n * n; ++i) {
-    if (is_dirichlet(i)) {
-      coef_no_dirichlet.push_back(sp_coeff(i, i, 1));
-    }
+  std::cout << "Dirichlet boundary: " << dirichlet.size() << std::endl;
+
+  std::cout << "min x: " << vertices.row(0).minCoeff() << " max x: " << vertices.row(0).maxCoeff()
+            << std::endl;
+  std::cout << "min y: " << vertices.row(1).minCoeff() << " max y: " << vertices.row(1).maxCoeff()
+            << std::endl;
+  std::cout << "min z: " << vertices.row(2).minCoeff() << " max z: " << vertices.row(2).maxCoeff()
+            << std::endl;
+
+  AX_CHECK_OK(pmesh->SetMesh(elements, vertices));
+
+  for (auto const& i : dirichlet) {
+    // there is only one degree of freedom.
+    pmesh->MarkDirichletBoundary(i, 0, 0);
   }
 
-  sp_matxxr K(n * n * n, n * n * n);
-  K.setFromTriplets(coef_no_dirichlet.begin(), coef_no_dirichlet.end());
+  math::sp_matxxr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  pmesh->FilterMatrixDof(0, K);
   K.makeCompressed();
-
-  vecxr b(n * n * n);
+  math::vecxr b(nVertices);
+  math::vecxr accurate(nVertices);
   b.setZero();
-  for (idx i = 1; i < n - 1; ++i) {
-    for (idx j = 1; j < n - 1; ++j) {
-      for (idx k = 1; k < n - 1; ++k) {
-        idx idx000 = i * n * n + j * n + k;
-        real x = vertices(0, idx000);
-        real y = vertices(1, idx000);
-        real z = vertices(2, idx000);
-        b[idx000] = neg_laplace(x, y, z);
-      }
+
+  for (auto const& e : math::each(elements)) {
+    math::vec3r x0 = vertices.col(e[0]);
+    math::vec3r x1 = vertices.col(e[1]);
+    math::vec3r x2 = vertices.col(e[2]);
+    math::vec3r x3 = vertices.col(e[3]);
+    real volume = (x1 - x0).cross(x2 - x0).dot(x3 - x0);
+    volume = abs(volume) / 6.0;
+
+    for (auto const& i : e) {
+      math::vec3r xi = vertices.col(i);
+      real load = neg_laplace(xi(0), xi(1), xi(2));
+      b(i) += load * volume / 4;
     }
   }
-  b *= 1.0 / (n * n * n);
 
-  vecxr accurate(n * n * n);
-  for (idx i = 0; i < n; ++i) {
-    for (idx j = 0; j < n; ++j) {
-      for (idx k = 0; k < n; ++k) {
-        idx idx000 = i * n * n + j * n + k;
-        real x = vertices(0, idx000);
-        real y = vertices(1, idx000);
-        real z = vertices(2, idx000);
-        accurate[idx000] = analytical(x, y, z);
-      }
+  for (auto const& i : utils::iota(nVertices)) {
+    auto const& v = vertices.col(i);
+    accurate(i) = analytical(v(0), v(1), v(2));
+    if (dirichlet.find(i) != dirichlet.end()) {
+      b(i) = accurate(i);
     }
   }
 
   LinsysProblem_Sparse problem(K, b);
-  SparseSolver_LDLT ldlt;
+  SparseSolver_ConjugateGradient spsolve;
+  spsolve.SetPreconditioner(std::make_unique<Preconditioner_IncompleteLU>());
+  spsolve.SetOptions({{"max_iter", 10000}});
 
-  auto result = ldlt.SolveProblem(problem);
+  auto result = spsolve.SolveProblem(problem);
   vecxr x = result.solution_;
   vecxr error = x - accurate;
-  real l2_error = error.norm() / (n * n * n);
+  std::cout << "num vertices: " << nVertices << std::endl;
+
+  real l2_error = error.squaredNorm() / nVertices;
 
   AX_LOG(INFO) << "L2 error: " << l2_error;
   clean_up();

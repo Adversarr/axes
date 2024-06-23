@@ -2,6 +2,6 @@
 namespace ax::math {
 
 // Initializes the Eigen Parallel module.
-void init_parallel();
+void init_parallel(int nT = 0);
 
 }

@@ -1,6 +1,5 @@
 #include "ax/core/init.hpp"
 
-#include <Eigen/Core>
 #include <absl/debugging/failure_signal_handler.h>
 #include <absl/debugging/symbolize.h>
 #include <absl/flags/parse.h>
@@ -10,6 +9,8 @@
 #include <absl/log/log.h>
 #include <openvdb/openvdb.h>
 
+#include <Eigen/Core>
+
 #include "ax/core/echo.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/math/init.hpp"
@@ -17,7 +18,9 @@
 #include "ax/utils/status.hpp"
 #include "ax/utils/time.hpp"
 
-ABSL_FLAG(int, n_eigen_threads, 0, "Number of eigen parallelism");
+ABSL_FLAG(int, n_eigen_threads, -1,
+          "Number of eigen parallelism: negative for disable, 0 for hardware cocurrency, positive "
+          "for specific number of threads.");
 
 namespace ax {
 
@@ -69,11 +72,8 @@ void init() {
   /****************************** Vdb ******************************/
   openvdb::initialize();
   int nT = absl::GetFlag(FLAGS_n_eigen_threads);
-  if (nT > 1) {
-    math::init_parallel();
-  }
-
-  AX_LOG(INFO) << "Eigen is using vectorize: " << Eigen::SimdInstructionSetsInUse();
+  math::init_parallel(nT);
+  AX_LOG(INFO) << "Eigen SIMD instruction sets: " << Eigen::SimdInstructionSetsInUse();
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {

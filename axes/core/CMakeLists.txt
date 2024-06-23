@@ -57,6 +57,8 @@ set(ABSL_LIBRARIES
   absl::flags_parse
   absl::flags_usage
   absl::failure_signal_handler
+  absl::stacktrace
+  absl::symbolize
   absl::statusor)
 
 target_link_libraries(axes_core

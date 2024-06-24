@@ -8,6 +8,7 @@
 #include <ax/math/common.hpp>
 #include <boost/json/stream_parser.hpp>
 
+#include "ax/components/name.hpp"
 #include "ax/core/echo.hpp"  // IWYU pragma: export
 #include "ax/core/init.hpp"
 #include "ax/math/linsys/sparse.hpp"
@@ -140,7 +141,15 @@ void bind_core_init(pybind11::module &m) {
       .def("add_clean_up_hook", &add_clean_up_hook, py::arg("name"), py::arg("f"))
       .def("get_program_path", []() -> std::string { return get_program_path(); });
 
-  // TODO: EnTT
+  /************************* SECT: Entt *************************/
+  py::class_<Entity>(m, "Entity")
+      .def("__repr__",
+           [](Entity const &e) { return std::format("<Entity id={}>", entt::to_integral(e)); })
+      .def("__eq__", [](Entity const &e1, Entity const &e2) { return e1 == e2; })
+      .def("to_integral", [](Entity const &e) -> idx { return entt::to_integral(e); });
+
+  m.def("create_named_entity",
+        [](std::string const &name) -> entt::entity { return cmpt::create_named_entity(name); });
 
   /************************* SECT: Json *************************/
   m.def("to_json_object", [](std::string const &str) -> boost::json::object {

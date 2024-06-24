@@ -103,6 +103,12 @@ void clean_up() {
 void add_init_hook(const char* name, std::function<void()> f) { init_hooks.push_back({name, f}); }
 
 void add_clean_up_hook(const char* name, std::function<void()> f) {
+  // Check if the callback is already in the list.
+  for (auto& [n, _] : clean_up_hooks) {
+    if (n == name) {
+      return;
+    }
+  }
   clean_up_hooks.push_back({name, f});
 }
 

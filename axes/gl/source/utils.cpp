@@ -11,23 +11,23 @@
 
 namespace ax::gl {
 
-void init() {
-  ax::add_init_hook("InitializeAxglContext", []() -> void {
+void init(bool is_registering) {
+  if (is_registering) {
+    ax::add_init_hook("InitializeAxglContext", []() -> void { add_resource<Context>(); });
+  } else {
     add_resource<Context>();
-  });
+  }
 
-  ax::add_clean_up_hook("CleanupAxglContext", []() -> void {
-    erase_resource<Context>();
-  });
+  ax::add_clean_up_hook("CleanupAxglContext", []() -> void { erase_resource<Context>(); });
 }
 
 void init(int argc, char** argv) {
-  gl::init();
+  gl::init(true);
   ::ax::init(argc, argv);
 }
 
 Status enter_main_loop() {
-  auto & c = get_resource<Context>();
+  auto& c = get_resource<Context>();
   while (!c.GetWindow().ShouldClose()) {
     AX_RETURN_NOTOK(c.TickLogic());
     AX_RETURN_NOTOK(c.TickRender());
@@ -35,4 +35,4 @@ Status enter_main_loop() {
   AX_RETURN_OK();
 }
 
-}
+}  // namespace ax::gl

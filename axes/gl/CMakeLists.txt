@@ -33,6 +33,6 @@ target_link_libraries(axes_gl
     glad::glad
     imgui::imgui_core imgui::implot imgui::imnode
     OpenGL::GLU)
-
 include(${PROJECT_SOURCE_DIR}/cmake/utils.cmake)
 ax_target_apply_flag(axes_gl PRIVATE)
+set_target_properties(axes_gl PROPERTIES POSITION_INDEPENDENT_CODE ON)

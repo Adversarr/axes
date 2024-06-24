@@ -12,14 +12,12 @@
 namespace ax::gl {
 
 void init() {
-  ax::add_init_hook("InitializeAxglContext", []() {
+  ax::add_init_hook("InitializeAxglContext", []() -> void {
     add_resource<Context>();
-    AX_RETURN_OK();
   });
 
-  ax::add_clean_up_hook("CleanupAxglContext", []() {
+  ax::add_clean_up_hook("CleanupAxglContext", []() -> void {
     erase_resource<Context>();
-    AX_RETURN_OK();
   });
 }
 

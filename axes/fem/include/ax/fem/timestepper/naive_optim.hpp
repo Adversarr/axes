@@ -6,7 +6,6 @@ namespace ax::fem {
 
 template <idx dim> class Timestepper_NaiveOptim : public TimeStepperBase<dim> {
 public:
-  Timestepper_NaiveOptim();
   Timestepper_NaiveOptim(SPtr<TriMesh<dim>> mesh);
   virtual ~Timestepper_NaiveOptim() = default;
   void SolveTimestep() final;

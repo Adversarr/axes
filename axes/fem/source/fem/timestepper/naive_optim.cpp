@@ -10,13 +10,9 @@
 
 namespace ax::fem {
 
-template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim() {
-  optimizer_ = std::make_unique<optim::Optimizer_Newton>();
-}
-
 template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(SPtr<TriMesh<dim>> mesh)
-    : Timestepper_NaiveOptim() {
-  this->mesh_ = mesh;
+    : ax::fem::TimeStepperBase<dim>(mesh) {
+  optimizer_ = std::make_unique<optim::Optimizer_Newton>();
 }
 
 template <idx dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
@@ -65,7 +61,8 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Opt
   //                                + std::string(utils::extract_string(opt.at("optimizer"))));
   // }
 
-  utils::extract_and_create<optim::OptimizerBase, optim::OptimizerKind>(opt, "optimizer", optimizer_);
+  utils::extract_and_create<optim::OptimizerBase, optim::OptimizerKind>(opt, "optimizer",
+                                                                        optimizer_);
   if (optimizer_) {
     utils::extract_tunable(opt, "optimizer_opt", optimizer_.get());
   }

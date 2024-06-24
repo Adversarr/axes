@@ -54,7 +54,7 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;
@@ -77,8 +77,8 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM");
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
-              ts->GetMesh().GetNumVertices());
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(),
+              ts->GetMesh()->GetNumVertices());
   if (ImGui::Button("Step") || running) {
     ts->BeginTimestep(dt);
     math::field3r u0 = ts->GetPosition();
@@ -88,9 +88,9 @@ void ui_callback(gl::UiRenderEvent) {
 
     auto const& trajectory = ts->GetLastTrajectory();
 
-    idx const dofs = ts->GetMesh().GetNumVertices() * 3;
+    idx const dofs = ts->GetMesh()->GetNumVertices() * 3;
     math::vecxr dx = (u1 - u0).reshaped();
-    ts->GetMesh().FilterVector(dx, true);
+    ts->GetMesh()->FilterVector(dx, true);
     // stiffness:
     // find the eigen values of K
     math::spmatr A = ts->Hessian(u1);
@@ -130,7 +130,7 @@ void ui_callback(gl::UiRenderEvent) {
     cs_dist_invs.resize(val.size());
     l2_dist_invs.resize(val.size());
     relative_l2_dist_invs.resize(val.size());
-    idx const nDof = ts->GetMesh().GetNumVertices() * 3;
+    idx const nDof = ts->GetMesh()->GetNumVertices() * 3;
     math::matxxr A_inverse = A.toDense().inverse();
     std::tie(vec, val) = math::eig(A_inverse);
     for (auto i : utils::iota(val.size())) {
@@ -178,14 +178,15 @@ void ui_callback(gl::UiRenderEvent) {
       // Apply some Dirichlet BC
       math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
       u0 = ts->GetPosition();
+      auto m = ts->GetMesh();
       for (auto i : utils::iota(u0.cols())) {
         const auto& position = u0.col(i);
         if (-position.x() > 1.9) {
           // Mark as dirichlet bc.
           math::vec3r p = rotate * position;
-          ts->GetMesh().MarkDirichletBoundary(i, 0, p.x());
-          ts->GetMesh().MarkDirichletBoundary(i, 1, p.y());
-          ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
+          m->MarkDirichletBoundary(i, 0, p.x());
+          m->MarkDirichletBoundary(i, 1, p.y());
+          m->MarkDirichletBoundary(i, 2, p.z());
         }
       }
     }
@@ -264,15 +265,16 @@ int main(int argc, char** argv) {
   ts->SetYoungs(youngs);
   ts->SetPoissonRatio(poisson);
 
-  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
+  ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
+  auto m = ts->GetMesh();
   for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (abs(position.x()) > 1.9) {
       // Mark as dirichlet bc.
       if (scene == SCENE_TWIST || position.x() > 1.9) {
-        ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
-        ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
-        ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+        m->MarkDirichletBoundary(i, 0, position.x());
+        m->MarkDirichletBoundary(i, 1, position.y());
+        m->MarkDirichletBoundary(i, 2, position.z());
       }
     }
   }
@@ -298,11 +300,11 @@ int main(int argc, char** argv) {
   {
     real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
     real W = 2 * mu + lambda;
-    auto L = fem::LaplaceMatrixCompute<3>{ts->GetMesh()}(W);
+    auto L = fem::LaplaceMatrixCompute<3>{*ts->GetMesh()}(W);
     laplacian = math::kronecker_identity<3>(L);
     auto const& M = ts->GetMassMatrix();
     laplacian = M + dt * dt * laplacian;
-    ts->GetMeshPtr()->FilterMatrixFull(laplacian);
+    ts->GetMesh()->FilterMatrixFull(laplacian);
     laplacian.makeCompressed();
   }
 

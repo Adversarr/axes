@@ -65,7 +65,7 @@ void print_basic_test_case() {
   elements.col(0) = vec4i{0, 1, 2, 3};
 
   SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
-  AX_CHECK_OK(pmesh->SetMesh(elements, vertices));
+  pmesh->SetMesh(elements, vertices);
 
   math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   std::cout << K.toDense() << std::endl;
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
   std::cout << "min z: " << vertices.row(2).minCoeff() << " max z: " << vertices.row(2).maxCoeff()
             << std::endl;
 
-  AX_CHECK_OK(pmesh->SetMesh(elements, vertices));
+  pmesh->SetMesh(elements, vertices);
 
   for (auto const& i : dirichlet) {
     // there is only one degree of freedom.

@@ -14,6 +14,8 @@ endmacro()
 pybind11_add_module(pyax main.cpp)
 
 ax_binding_decl_library(core)
+ax_binding_decl_library(gl)
+ax_binding_decl_library(fem)
 
 # Link the libraries
 target_link_libraries(pyax PRIVATE ${AXES_BINDING_LIBRARIES})
@@ -21,4 +23,8 @@ target_link_libraries(pyax PRIVATE ${AXES_BINDING_LIBRARIES})
 # For windows:
 if (WIN32)
   target_link_libraries(pyax PRIVATE pybind11::windows_extras)
+endif()
+
+if (CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set_target_properties(pyax PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 endif()

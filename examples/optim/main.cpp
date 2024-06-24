@@ -36,6 +36,17 @@ int main(int argc, char** argv) {
     }}
   };
 
+  /************************* SECT: Create Optimizer *************************/
+  if (absl::GetFlag(FLAGS_optimizer) == "newton") {
+    optimizer = new optim::Optimizer_Newton;
+  } else if (absl::GetFlag(FLAGS_optimizer) == "lbfgs") {
+    optimizer = new optim::Optimizer_Lbfgs;
+  } else {
+    AX_LOG(FATAL) << "Unknown optimizer: " << absl::GetFlag(FLAGS_optimizer);
+  }
+  optimizer->SetOptions(opt);
+  AX_LOG(INFO) << "Optimizer Options: " << std::endl << optimizer->GetOptions();
+
   /************************* SECT: Setup Problems *************************/
   if (absl::GetFlag(FLAGS_problem) == "rosenbrock") {
     prob = new optim::test::RosenbrockProblem();
@@ -70,20 +81,9 @@ int main(int argc, char** argv) {
     AX_LOG(FATAL) << "Unknown problem: " << absl::GetFlag(FLAGS_problem);
   }
 
-  /************************* SECT: Create Optimizer *************************/
-  if (absl::GetFlag(FLAGS_optimizer) == "newton") {
-    optimizer = new optim::Optimizer_Newton;
-  } else if (absl::GetFlag(FLAGS_optimizer) == "lbfgs") {
-    optimizer = new optim::Optimizer_Lbfgs;
-  } else {
-    AX_LOG(FATAL) << "Unknown optimizer: " << absl::GetFlag(FLAGS_optimizer);
-  }
-
   /************************* SECT: Run Optimize *************************/
   auto start = utils::GetCurrentTimeNanos();
-  optimizer->SetOptions(opt);
   // AX_LOG(INFO) << "Initial : " << x0.transpose();
-  AX_LOG(INFO) << "Optimizer Options: " << std::endl << optimizer->GetOptions();
   auto solution = optimizer->Optimize(*prob, x0);
 
   auto end = utils::GetCurrentTimeNanos();

@@ -1,4 +1,5 @@
 .idea
+*.egg-info
 build
 .cache
 cmake-build-*

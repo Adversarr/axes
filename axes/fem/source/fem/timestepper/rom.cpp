@@ -90,7 +90,7 @@ namespace ax::fem {
 
 template<idx dim>
 Status TimeStepper_ROM<dim>::Initialize() {
-  x0_ = this->GetMesh().GetVertices();
+  x0_ = this->GetMesh()->GetVertices();
   return TimeStepperBase<dim>::Initialize();
 }
 

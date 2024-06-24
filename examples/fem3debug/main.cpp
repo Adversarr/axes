@@ -2,6 +2,11 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity/linear.hpp"
+#include "ax/fem/elasticity/neohookean_bw.hpp"
+#include "ax/fem/elasticity/stvk.hpp"
+#include "ax/fem/trimesh.hpp"
 #include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
@@ -9,11 +14,6 @@
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/utils.hpp"
-#include "ax/fem/elasticity/neohookean_bw.hpp"
-#include "ax/fem/elasticity/stvk.hpp"
-#include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/elasticity.hpp"
-#include "ax/fem/trimesh.hpp"
 #include "ax/utils/asset.hpp"
 
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
@@ -29,12 +29,16 @@ void update_entity() {
   msh.vertices_ = input_mesh.vertices_;
   msh.indices_.resize(3, input_mesh.indices_.cols() * 4);
   for (idx i = 0; i < input_mesh.indices_.cols(); ++i) {
-    msh.indices_.col(i * 4 + 0) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i), input_mesh.indices_(2, i)};
-    msh.indices_.col(i * 4 + 1) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i), input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 2) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(2, i), input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 3) = math::vec3i{input_mesh.indices_(1, i), input_mesh.indices_(2, i), input_mesh.indices_(3, i)};
+    msh.indices_.col(i * 4 + 0) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+                                              input_mesh.indices_(2, i)};
+    msh.indices_.col(i * 4 + 1) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+                                              input_mesh.indices_(3, i)};
+    msh.indices_.col(i * 4 + 2) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(2, i),
+                                              input_mesh.indices_(3, i)};
+    msh.indices_.col(i * 4 + 3) = math::vec3i{input_mesh.indices_(1, i), input_mesh.indices_(2, i),
+                                              input_mesh.indices_(3, i)};
   }
-  for (auto v: math::each(msh.vertices_)) {
+  for (auto v : math::each(msh.vertices_)) {
     v = (v.array() * stretching.cast<real>().array());
   }
   auto V = msh.vertices_;
@@ -43,7 +47,7 @@ void update_entity() {
   msh.is_flat_ = false;
   msh.flush_ = true;
   SPtr<fem::TriMesh<3>> mesh = std::make_shared<fem::TriMesh<3>>();
-  AX_CHECK_OK(mesh->SetMesh(F, V));
+  mesh->SetMesh(F, V);
   fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(mesh);
   // add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);

@@ -39,7 +39,7 @@ void update_entity() {
   msh.is_flat_ = false;
   msh.flush_ = true;
   auto mesh = std::make_shared<fem::TriMesh<2>>();
-  AX_CHECK_OK(mesh->SetMesh(F, V.topRows<2>()));
+  mesh->SetMesh(F, V.topRows<2>());
   fem::ElasticityCompute_CPU<2, fem::elasticity::NeoHookeanBW> elast(mesh);
   add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);

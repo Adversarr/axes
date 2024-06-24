@@ -26,14 +26,12 @@ BOOST_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase();
   TimeStepperBase(SPtr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, default, default);
   virtual ~TimeStepperBase() = default;
 
   // Common Data Accessors
-  TriMesh<dim> &GetMesh() { return *mesh_; }
-  SPtr<TriMesh<dim>> &GetMeshPtr() { return mesh_; }
+  SPtr<TriMesh<dim>> GetMesh() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
   TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
   virtual void SetOptions(const utils::Options &option) override;
@@ -94,12 +92,12 @@ public:
 
   // SECT: During the timestep, optimizers may require such information
 
-  real Energy(math::fieldr<dim> const &du) const;
+  real Energy(math::fieldr<dim> const &u) const;
   math::fieldr<dim> GetElasticForce(math::fieldr<dim> const &x) const;
-  math::fieldr<dim> Gradient(math::fieldr<dim> const &du) const;
-  math::vecxr GradientFlat(math::vecxr const &du_flat) const;
+  math::fieldr<dim> Gradient(math::fieldr<dim> const &u) const;
+  math::vecxr GradientFlat(math::vecxr const &u_flat) const;
   math::spmatr GetStiffnessMatrix(math::fieldr<dim> const &x, bool project = false) const;
-  math::spmatr Hessian(math::fieldr<dim> const &du) const;
+  math::spmatr Hessian(math::fieldr<dim> const &u, bool project = true) const;
 
   real ResidualNorm(math::fieldr<dim> const &grad) const;
   real L2Residual(math::fieldr<dim> const &grad) const;

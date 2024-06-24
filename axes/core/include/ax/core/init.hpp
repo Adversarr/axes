@@ -34,7 +34,7 @@ void clean_up();
  * @param name The name of the hook.
  * @param f The function to be called.
  */
-void add_init_hook(const char* name, std::function<Status()> f);
+void add_init_hook(const char* name, std::function<void()> f);
 
 /**
  * @brief Hook a function to be called before the program exits.
@@ -45,7 +45,7 @@ void add_init_hook(const char* name, std::function<Status()> f);
  * @param name The name of the hook.
  * @param f The function to be called.
  */
-void add_clean_up_hook(const char* name, std::function<Status()> f);
+void add_clean_up_hook(const char* name, std::function<void()> f);
 
 const char* get_program_path();
 

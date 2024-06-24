@@ -50,7 +50,7 @@ void update_rendering() {
   if (mesh.indices_ .size() == 0) {
     mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
   }
-  mesh.vertices_ = ts->GetMesh().GetVertices();
+  mesh.vertices_ = ts->GetMesh()->GetVertices();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
   mesh.flush_ = true;
   mesh.use_lighting_ = false;
@@ -62,7 +62,7 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), 
+  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), 
       fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
@@ -81,9 +81,9 @@ void ui_callback(gl::UiRenderEvent ) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(), ts->GetMesh().GetNumVertices());
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(), ts->GetMesh()->GetNumVertices());
   if (ImGui::Button("Step") || running) {
-    const auto& vert = ts->GetMesh().GetVertices();
+    const auto& vert = ts->GetMesh()->GetVertices();
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
     //   math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
@@ -92,9 +92,9 @@ void ui_callback(gl::UiRenderEvent ) {
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
     //       math::vec3r p = rotate * position;
-    //       ts->GetMesh().MarkDirichletBoundary(i, 0, p.x());
-    //       ts->GetMesh().MarkDirichletBoundary(i, 1, p.y());
-    //       ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
     //     }
     //   }
     // }
@@ -102,8 +102,8 @@ void ui_callback(gl::UiRenderEvent ) {
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;
     auto p = (fem::TimeStepper_ROM<3>*) ts.get();
-    auto K = ts->GetStiffnessMatrix(ts->GetMesh().GetVertices(), true);
-    ts->GetMesh().FilterMatrixFull(K);
+    auto K = ts->GetStiffnessMatrix(ts->GetMesh()->GetVertices(), true);
+    ts->GetMesh()->FilterMatrixFull(K);
     auto [vec, val] = math::eig(K.toDense());
     p->SetBasis(vec.leftCols(100));
     // AX_CHECK_OK(ts->Step(dt));
@@ -129,30 +129,31 @@ int main(int argc, char** argv) {
   input_mesh.vertices_.row(0) *= 4;
 
   ts = std::make_unique<fem::TimeStepper_ROM<3>>(std::make_unique<fem::TriMesh<3>>());
-  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
+  ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   auto p = (fem::TimeStepper_ROM<3>*) ts.get();
+  auto m = ts->GetMesh();
   // p->SetBasis(math::matxxr::Identity(input_mesh.vertices_.cols() * 3, input_mesh.vertices_.cols() * 3));
   for (auto i: utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9 && position.y() >= 0.499) {
       // Mark as dirichlet bc.
-      ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
-      ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
-      ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+      m->MarkDirichletBoundary(i, 0, position.x());
+      m->MarkDirichletBoundary(i, 1, position.y());
+      m->MarkDirichletBoundary(i, 2, position.z());
     }
   }
 
   // compute M lambda v + K v = 0's solution.
-  math::spmatr M_sp = fem::MassMatrixCompute<3>(ts->GetMesh())(1);
-  ts->GetMesh().FilterMatrixDof(0, M_sp);
+  math::spmatr M_sp = fem::MassMatrixCompute<3>(*ts->GetMesh())(1);
+  ts->GetMesh()->FilterMatrixDof(0, M_sp);
   math::matxxr M = M_sp.toDense();
-  math::spmatr K_sp = fem::LaplaceMatrixCompute<3>(ts->GetMesh())(1.0);
+  math::spmatr K_sp = fem::LaplaceMatrixCompute<3>(*ts->GetMesh())(1.0);
   // fem::elasticity::Linear<3> linear(lame.x(), lame.y());
   // fem::ElasticityCompute_CPU<3, fem::elasticity::Linear> e(ts->GetMeshPtr());
   // e.RecomputeRestPose();
-  // e.Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kHessian);
+  // e.Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kHessian);
   // math::spmatr K_sp = e.ComputeHessianAndGather(lame);
-  ts->GetMesh().FilterMatrixDof(0, K_sp);
+  ts->GetMesh()->FilterMatrixDof(0, K_sp);
   math::matxxr K = K_sp.toDense();
   Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> solver(K+M, M);
   // Eigen::SelfAdjointEigenSolver<math::matxxr> solver(K);
@@ -199,7 +200,7 @@ int main(int argc, char** argv) {
 //     auto indi = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/" + name + "_elements.npy"));
 //     m = geo::TetraMesh(vert.value().transpose(), indi.value().transpose());
 //   }
-//   AX_CHECK_OK(mesh->SetMesh(m.indices_, m.vertices_));
+//   mesh->SetMesh(m.indices_, m.vertices_);
 //   auto L = math::kronecker_identity<3>(fem::LaplaceMatrixCompute<3>(*mesh)()).toDense().eval();
 //   auto M = math::kronecker_identity<3>(fem::MassMatrixCompute<3>(*mesh)(1)).toDense().eval();
 

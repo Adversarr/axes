@@ -16,7 +16,7 @@ struct LinsysProblem_Dense {
   // Problem Description
   matxxr A_;
   LinsysProblem_Dense(matxxr const& A) : A_{A} {}
-  LinsysProblem_Dense(matxxr&& A) : A_{A} {}
+  LinsysProblem_Dense(matxxr&& A) : A_{std::move(A)} {}
 
   LinsysProblem_Dense() = default;
 };
@@ -40,8 +40,12 @@ struct LinsysProblem_Sparse {
   // Additional checkers.
   std::function<bool(vecxr const&, vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
-  LinsysProblem_Sparse(spmatr const& A) : A_{A} {}
-  LinsysProblem_Sparse(spmatr&& A) : A_{A} {}
+  LinsysProblem_Sparse(spmatr const& A) : A_{A} {
+    A_.makeCompressed();
+  }
+  LinsysProblem_Sparse(spmatr&& A) : A_{std::move(A)} {
+    A_.makeCompressed();
+  }
   LinsysProblem_Sparse() = default;
 };
 

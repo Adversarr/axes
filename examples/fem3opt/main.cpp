@@ -59,7 +59,7 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
   static real m = 0, M = 0;
@@ -77,10 +77,10 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::InputFloat("dt", &dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
-              ts->GetMesh().GetNumVertices());
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(),
+              ts->GetMesh()->GetNumVertices());
   if (ImGui::Button("Step") || running) {
-    const auto& vert = ts->GetMesh().GetVertices();
+    const auto& vert = ts->GetMesh()->GetVertices();
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
     //   math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
@@ -89,9 +89,9 @@ void ui_callback(gl::UiRenderEvent) {
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
     //       math::vec3r p = rotate * position;
-    //       ts->GetMesh().MarkDirichletBoundary(i, 0, p.x());
-    //       ts->GetMesh().MarkDirichletBoundary(i, 1, p.y());
-    //       ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
+    //       ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
     //     }
     //   }
     // }
@@ -129,15 +129,16 @@ int main(int argc, char** argv) {
   // input_mesh.vertices_ = vet->transpose();
 
   ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
-  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
+  ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
+  auto m = ts->GetMesh();
   for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9) {
       // Mark as dirichlet bc.
       if (scene == SCENE_TWIST || position.x() > 1.9) {
-        ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
-        ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
-        ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+        m->MarkDirichletBoundary(i, 0, position.x());
+        m->MarkDirichletBoundary(i, 1, position.y());
+        m->MarkDirichletBoundary(i, 2, position.z());
       }
     }
   }

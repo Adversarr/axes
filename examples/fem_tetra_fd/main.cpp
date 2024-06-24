@@ -41,20 +41,21 @@ int main(int argc, char** argv) {
   // Apply Random Rotation:
   // math::mat3r R = Eigen::AngleAxis(math::pi<> / 4, math::vec3r::UnitX()).toRotationMatrix();
   // original_vertices = R * original_vertices;
-  AX_CHECK_OK(mesh->SetMesh(indices, original_vertices));
+  mesh->SetMesh(indices, original_vertices);
 
   // Elasticity and Deformation.
-  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(mesh);  //< 3d Linear Elasticity
+  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(
+      mesh);  //< 3d Linear Elasticity
 
   // randomly perturb the vertices.
   for (idx i = 0; i <= DIM; ++i) {
     for (idx d = 0; d < DIM; ++d) {
-      original_vertices(d, i) += (rand() % 1000 - 500) * 1e-4; // Range: [-0.05, 0.05]
+      original_vertices(d, i) += (rand() % 1000 - 500) * 1e-4;  // Range: [-0.05, 0.05]
     }
   }
   // Update the deformation gradient.
   std::cout << "Vertices:\n" << original_vertices << std::endl;
-  AX_CHECK_OK(mesh->SetVertices(original_vertices));
+  mesh->SetVertices(original_vertices);
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
 
   // Compute Gradient by Finite Difference:
@@ -78,7 +79,8 @@ int main(int argc, char** argv) {
         // Compute the slope:
         real slope = (e_p - e0) / delta_d;
         std::cout << "Vertex [" << i << "] Dof[" << d << "], Delta=" << delta_d
-                  << ", Slope=" << slope << "RelE: " << math::abs(slope / (stress(i * DIM + d) + math::epsilon<real>) - 1)
+                  << ", Slope=" << slope
+                  << "RelE: " << math::abs(slope / (stress(i * DIM + d) + math::epsilon<real>)-1)
                   << std::endl;
       }
     }
@@ -117,7 +119,8 @@ int main(int argc, char** argv) {
               }
             }
           }
-          std::cout << "Clothest Err: " << clothest << "\tRelative " << clothest / math::abs(stiffness(i * DIM + d, j * DIM + k)) << std::endl;
+          std::cout << "Clothest Err: " << clothest << "\tRelative "
+                    << clothest / math::abs(stiffness(i * DIM + d, j * DIM + k)) << std::endl;
         }
       }
     }

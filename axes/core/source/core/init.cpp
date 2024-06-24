@@ -30,7 +30,7 @@ UPtr<entt::dispatcher> dispatcher_p;
 
 struct Hook {
   const char* name_;
-  std::function<Status()> call_;
+  std::function<void()> call_;
 };
 
 List<Hook> init_hooks;
@@ -43,20 +43,20 @@ const char* get_program_path() { return program_path; }
 /****************************** Implementation ******************************/
 
 void init(int argc, char** argv) {
-  using namespace absl;
-  /****************************** Flags ******************************/
-  absl::ParseCommandLine(argc, argv);
+  if (argc > 0) {
+    /****************************** Flags ******************************/
+    absl::ParseCommandLine(argc, argv);
+    /****************************** Install the debuggers ******************************/
+    absl::InitializeSymbolizer(argv[0]);
+    program_path = argv[0];
+    absl::FailureSignalHandlerOptions failure_signal_handler{};
+    absl::InstallFailureSignalHandler(failure_signal_handler);
+  } else {
+    std::cerr << "Program path is not available: failure signal handler is not installed."
+              << std::endl;
+  }
 
-  /****************************** Install the debuggers ******************************/
-  AX_CHECK(argc > 0) << "argc must be greater than 0";
-  absl::InitializeSymbolizer(argv[0]);
-  program_path = argv[0];
-  FailureSignalHandlerOptions failure_signal_handler{};
-  absl::InstallFailureSignalHandler(failure_signal_handler);
-  add_clean_up_hook("Show Timers", []() {
-    erase_resource<utils::TimerRegistry>();
-    AX_RETURN_OK();
-  });
+  add_clean_up_hook("Show Timers", []() { erase_resource<utils::TimerRegistry>(); });
 
   init();
 }
@@ -77,23 +77,32 @@ void init() {
 
   /****************************** Run all the hooks ******************************/
   for (auto [name, call] : init_hooks) {
-    AX_LOG(INFO) << "Running init-hook [" << name << "]";
-    AX_CHECK_OK(call()) << "Init-hook [" << name << "] failed.";
+    AX_LOG(INFO) << "Run init-hook [" << name << "]";
+    try {
+      call();
+    } catch (const std::exception& e) {
+      AX_LOG(FATAL) << "Init-hook [" << name << "] failed: " << e.what();
+    }
   }
   init_hooks.clear();
 }
 
 void clean_up() {
   for (auto [name, call] : clean_up_hooks) {
-    AX_CHECK_OK(call()) << "CleanUp-hook [" << name << "] failed.";
+    AX_LOG(INFO) << "Run clean-up-hook [" << name << "]";
+    try {
+      call();
+    } catch (const std::exception& e) {
+      AX_LOG(FATAL) << "CleanUp-hook [" << name << "] failed: " << e.what();
+    }
   }
   registry_p->clear();
   clean_up_hooks.clear();
 }
 
-void add_init_hook(const char* name, std::function<Status()> f) { init_hooks.push_back({name, f}); }
+void add_init_hook(const char* name, std::function<void()> f) { init_hooks.push_back({name, f}); }
 
-void add_clean_up_hook(const char* name, std::function<Status()> f) {
+void add_clean_up_hook(const char* name, std::function<void()> f) {
   clean_up_hooks.push_back({name, f});
 }
 

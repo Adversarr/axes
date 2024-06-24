@@ -38,9 +38,11 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string const& nam
  * @return A vector containing the names of all enum values.
  */
 template <typename Enum> List<std::string> reflect_names() {
-  List<std::string> names;
-  boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>(
-      [&](auto D) { names.push_back(D.name()); });
+  static List<std::string> names;
+  if (names.empty()) {
+    boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>(
+        [&](auto D) { names.push_back(D.name); });
+  }
   return names;
 }
 
@@ -52,9 +54,8 @@ template <typename Enum> List<std::string> reflect_names() {
  * the enum value is invalid.
  */
 template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
-  char buf[256] = {0};  /// Typically a cpp identifier will not exceed 256 char.
-  if (boost::describe::enum_to_string(val, buf)) {
-    return buf;
+  if (auto p = boost::describe::enum_to_string(val, nullptr)) {
+    return p;
   } else {
     return std::nullopt;
   }

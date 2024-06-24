@@ -1,5 +1,6 @@
 #include "ax/fem/trimesh.hpp"
 
+#include "ax/core/excepts.hpp"
 #include "ax/utils/status.hpp"
 
 #ifdef AX_PLATFORM_WINDOWS
@@ -10,7 +11,7 @@ namespace ax::fem {
 template <idx dim> TriMesh<dim>::TriMesh() {}
 
 template <idx dim>
-Status TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
+void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
   elements_ = elements;
   vertices_ = vertices;
 
@@ -27,15 +28,13 @@ Status TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const
   }
 
   ResetAllBoundaries();
-  AX_RETURN_OK();
 }
 
-template <idx dim> Status TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
-  if (vertices.size() != vertices_.size()) {
-    return utils::InvalidArgumentError("The number of vertices does not match.");
-  }
+template <idx dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
+  AX_THROW_IF_NE(vertices.cols(), vertices_.cols(),
+                 "Invalid size: " + std::to_string(vertices.cols())
+                     + " != " + std::to_string(vertices_.cols()));
   vertices_ = vertices;
-  AX_RETURN_OK();
 }
 
 template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
@@ -43,8 +42,8 @@ template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
   vertices_.col(i) = vertex;
 }
 
-template <idx dim> auto TriMesh<dim>::GetVertices() const noexcept
-    -> TriMesh<dim>::vertex_list_t const& {
+template <idx dim>
+auto TriMesh<dim>::GetVertices() const noexcept -> TriMesh<dim>::vertex_list_t const& {
   return vertices_;
 }
 
@@ -65,44 +64,43 @@ template <idx dim> math::vecxr TriMesh<dim>::GetVerticesFlattened() const noexce
 
 template <idx dim> void TriMesh<dim>::ResetBoundary(idx i, idx dof) {
   AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
   dirichlet_boundary_mask_(dof, i) = 1;
   boundary_values_(dof, i) = 0;
 }
 
 template <idx dim> void TriMesh<dim>::MarkDirichletBoundary(idx i, idx dof, const real& value) {
-  AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  AX_THROW_IF_TRUE(i < 0 || i >= vertices_.cols(), "Index out of range.");
+  AX_THROW_IF_TRUE(dof < 0 || dof >= n_dof_per_vertex_, "Dof out of range.");
   boundary_values_(dof, i) = value;
   dirichlet_boundary_mask_(dof, i) = 0;
 }
 
 template <idx dim> void TriMesh<dim>::ResetAllBoundaries() {
-  boundary_values_.resize(dim, vertices_.cols());
-  boundary_values_.setZero();
-  dirichlet_boundary_mask_.setOnes(dim, vertices_.cols());
+  boundary_values_.setZero(n_dof_per_vertex_, vertices_.cols());
+  dirichlet_boundary_mask_.setOnes(n_dof_per_vertex_, vertices_.cols());
 }
 
 template <idx dim> real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
   AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
   return boundary_values_(dof, i);
 }
 
 template <idx dim> bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
   AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < dim) << "Dof out of range.";
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
   return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
-template <idx dim>
-void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
+template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input,
+                                                       math::sp_coeff_list& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
-    idx row_id = coeff.row() / dim;
-    idx row_dof = coeff.row() % dim;
-    idx col_id = coeff.col() / dim;
-    idx col_dof = coeff.col() % dim;
+    idx row_id = coeff.row() / n_dof_per_vertex_;
+    idx row_dof = coeff.row() % n_dof_per_vertex_;
+    idx col_id = coeff.col() / n_dof_per_vertex_;
+    idx col_dof = coeff.col() % n_dof_per_vertex_;
     if (IsDirichletBoundary(row_id, row_dof) || IsDirichletBoundary(col_id, col_dof)) {
       continue;
     }
@@ -111,7 +109,7 @@ void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input, math::sp_c
 
   // Add the Dirichlet boundary conditions.
   for (idx i = 0; i < vertices_.cols(); ++i) {
-    for (idx j = 0; j < dim; ++j) {
+    for (idx j = 0; j < n_dof_per_vertex_; ++j) {
       if (IsDirichletBoundary(i, j)) {
         out.push_back(math::sp_coeff(i * dim + j, i * dim + j, 1));
       }
@@ -119,8 +117,8 @@ void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input, math::sp_c
   }
 }
 
-template <idx dim>
-void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_coeff_list const& input, math::sp_coeff_list& out) const {
+template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_coeff_list const& input,
+                                                      math::sp_coeff_list& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     if (IsDirichletBoundary(coeff.row(), d) || IsDirichletBoundary(coeff.row(), d)) {
@@ -138,7 +136,7 @@ void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_coeff_list const& input, math
 }
 
 template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
-  AX_CHECK(inout.rows() == GetNumVertices() * dim) << "Invalid size.";
+  AX_CHECK(inout.rows() == GetNumVertices() * n_dof_per_vertex_) << "Invalid size.";
   inout.array() *= dirichlet_boundary_mask_.reshaped().array();
   if (!set_zero) {
     inout += boundary_values_.reshaped();
@@ -210,7 +208,7 @@ template <idx dim> void TriMesh<dim>::ApplyPermutation(std::vector<idx> const& p
       vertices_new(j, i) = vertices_(j, inverse_perm[i]);
     }
   }
-  AX_CHECK_OK(SetMesh(elements_new, vertices_new));
+  SetMesh(elements_new, vertices_new);
 }
 
 template class TriMesh<2>;

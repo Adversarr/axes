@@ -14,18 +14,19 @@
 
 namespace ax::fem {
 
-template <idx dim> TimeStepperBase<dim>::TimeStepperBase() {
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh) {
   integration_scheme_ = TimestepSchemeBase<dim>::Create(TimestepSchemeKind::kBackwardEuler);
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
-}
-
-template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh)
-    : TimeStepperBase() {
   mesh_ = std::move(mesh);
+  mesh_->SetNumDofPerVertex(dim);
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Initialize() {
   AX_THROW_IF_NULLPTR(mesh_);
+  if (! elasticity_) {
+    SetupElasticity(elasticity_name_, device_);
+  }
+
   idx n_vert = mesh_->GetNumVertices();
   u_.setZero(dim, n_vert);
   u_back_ = u_;
@@ -160,9 +161,8 @@ template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& de
   mass_matrix_ = math::kronecker_identity<dim>(mass_matrix_original_);
 }
 
-template <idx dim>
-math::spmatr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
-                                                         bool project) const {
+template <idx dim> math::spmatr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
+                                                                         bool project) const {
   elasticity_->Update(x, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
@@ -268,10 +268,11 @@ template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr co
   return Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
 }
 
-template <idx dim> math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u) const {
+template <idx dim>
+math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u, bool project) const {
   math::fieldr<dim> x_new = u + mesh_->GetVertices();
   elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
-  elasticity_->UpdateHessian(true);
+  elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
   auto stiffness = elasticity_->GetHessianOnVertices();
   auto H = integration_scheme_->ComposeHessian(mass_matrix_, stiffness);
@@ -286,9 +287,8 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
       .SetEnergy([this, n_vert](math::vecxr const& du) -> real {
         return Energy(du.reshaped(dim, n_vert) + u_);
       })
-      .SetGrad([this, n_vert](math::vecxr const& du) -> math::vecxr {
-        return GradientFlat(du + u_.reshaped());
-      })
+      .SetGrad(
+          [this](math::vecxr const& du) -> math::vecxr { return GradientFlat(du + u_.reshaped()); })
       .SetSparseHessian([this, n_vert](math::vecxr const& du) -> math::spmatr {
         return Hessian(du.reshaped(dim, n_vert) + u_);
       })

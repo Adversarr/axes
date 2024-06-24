@@ -67,7 +67,7 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-  ts->GetElasticity().Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   auto e_per_elem = ts->GetElasticity().Energy(lame);
   auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
 
@@ -163,10 +163,10 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::Text("dt=%lf", dt);
-  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh().GetNumElements(),
-              ts->GetMesh().GetNumVertices());
+  ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(),
+              ts->GetMesh()->GetNumVertices());
   if (ImGui::Button("Step") || running) {
-    const auto& vert = ts->GetMesh().GetVertices();
+    const auto& vert = ts->GetMesh()->GetVertices();
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
       math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
@@ -175,15 +175,15 @@ void ui_callback(gl::UiRenderEvent) {
         if (-position.x() > 4.9) {
           // Mark as dirichlet bc.
           math::vec3r p = rotate * position;
-          ts->GetMesh().MarkDirichletBoundary(i, 0, p.x());
-          ts->GetMesh().MarkDirichletBoundary(i, 1, p.y());
-          ts->GetMesh().MarkDirichletBoundary(i, 2, p.z());
+          ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
+          ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
+          ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
         }
       }
     } else if (scene == SCENE_ARMADILLO_DRAG) {
-      handle_armadillo_drags(ts->GetMesh(), frame * dt);
+      handle_armadillo_drags(*ts->GetMesh(), frame * dt);
     } else if (scene == SCENE_ARMADILLO_EXTREME) {
-      handle_armadillo_extreme(ts->GetMesh(), frame * dt);
+      handle_armadillo_extreme(*ts->GetMesh(), frame * dt);
     }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
@@ -274,30 +274,30 @@ int main(int argc, char** argv) {
   ts->SetYoungs(absl::GetFlag(FLAGS_youngs));
   ts->SetPoissonRatio(0.45);
 
-  AX_CHECK_OK(ts->GetMesh().SetMesh(input_mesh.indices_, input_mesh.vertices_));
+  ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
     auto [p, ip] = fem::optimize_topology<3>(input_mesh.indices_, input_mesh.vertices_.cols());
-    ts->GetMesh().ApplyPermutation(p, ip);
+    ts->GetMesh()->ApplyPermutation(p, ip);
   }
 
-  input_mesh.vertices_ = ts->GetMesh().GetVertices();
-  input_mesh.indices_ = ts->GetMesh().GetElements();
+  input_mesh.vertices_ = ts->GetMesh()->GetVertices();
+  input_mesh.indices_ = ts->GetMesh()->GetElements();
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
     for (auto i : utils::iota(input_mesh.vertices_.cols())) {
       const auto& position = input_mesh.vertices_.col(i);
       if (math::abs(position.x()) > 4.9) {
         // Mark as dirichlet bc.
         if (scene == SCENE_TWIST || position.x() > 4.9) {
-          ts->GetMesh().MarkDirichletBoundary(i, 0, position.x());
-          ts->GetMesh().MarkDirichletBoundary(i, 1, position.y());
-          ts->GetMesh().MarkDirichletBoundary(i, 2, position.z());
+          ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
+          ts->GetMesh()->MarkDirichletBoundary(i, 1, position.y());
+          ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());
         }
       }
     }
   } else if (scene == SCENE_ARMADILLO_DRAG) {
-    handle_armadillo_drags(ts->GetMesh(), 0);
+    handle_armadillo_drags(*ts->GetMesh(), 0);
   } else if (scene == SCENE_ARMADILLO_EXTREME) {
-    handle_armadillo_extreme(ts->GetMesh(), 0);
+    handle_armadillo_extreme(*ts->GetMesh(), 0);
   }
 
   ts->SetDensity(1e3);
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
   if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
-    ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh().GetNumVertices()));
+    ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh()->GetNumVertices()));
   } else {
     ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
   }

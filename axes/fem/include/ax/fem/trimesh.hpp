@@ -24,8 +24,7 @@ public:
   using vertex_list_t = math::fieldr<dim>; /**< Type for storing a list of mesh vertices. */
 
   using boundary_value_t = vertex_t;           /**< Type for storing boundary values. */
-  using boundary_value_list_t = vertex_list_t; /**< Type for storing a list of boundary values. */
-  using boundary_type_list_t = std::vector<bool>; /**< Type for storing boundary types. */
+  using boundary_value_list_t = math::fieldxr; /**< Type for storing a list of boundary values. */
 
   using ElementPositionPair = std::pair<idx, idx>;
   /**
@@ -47,7 +46,7 @@ public:
    * @param vertices The list of mesh vertices.
    * @return The status of the operation.
    */
-  Status SetMesh(element_list_t const& elements, vertex_list_t const& vertices);
+  void SetMesh(element_list_t const& elements, vertex_list_t const& vertices);
 
   /**
    * @brief Sets the vertex at the specified index.
@@ -63,7 +62,7 @@ public:
    * @param vertices The list of mesh vertices.
    * @return The status of the operation.
    */
-  Status SetVertices(vertex_list_t const& vertices);
+  void SetVertices(vertex_list_t const& vertices);
 
   /**
    * @brief Gets the vertex at the specified index.
@@ -200,17 +199,22 @@ public:
 
   void FilterVector(math::vecxr& inout, bool set_zero = false) const;
 
-  void FilterField(math::fieldr<dim> & inout, bool set_zero = false) const;
+  void FilterField(math::fieldr<dim>& inout, bool set_zero = false) const;
+
+  void SetNumDofPerVertex(idx n_dof_per_vertex) noexcept { n_dof_per_vertex_ = n_dof_per_vertex; }
+
+  idx GetNumDofPerVertex() const noexcept { return n_dof_per_vertex_; }
 
   std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept {
     return v_e_map_;
   }
 
-  math::fieldr<dim> const& GetDirichletBoundaryMask() const noexcept {
+  boundary_value_list_t const& GetDirichletBoundaryMask() const noexcept {
     return dirichlet_boundary_mask_;
   }
 
   void ApplyPermutation(std::vector<idx> const& perm, std::vector<idx> const& inverse_perm);
+
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
   vertex_list_t vertices_;  /**< The list of mesh vertices. */
@@ -218,8 +222,9 @@ protected:
   // We may need to compute the inverse mapping, i.e. the vertex->elements connected to it.
   std::vector<std::vector<ElementPositionPair>> v_e_map_;
 
+  idx n_dof_per_vertex_;                  /**< The number of degrees of freedom per vertex. */
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
-  vertex_list_t dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
+  boundary_value_list_t dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };
 
 // NOTE: Some member functions does not have a FRIENDLY return value, we provide it as

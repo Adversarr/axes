@@ -20,9 +20,9 @@ public:
 
   static UPtr<LinesearchBase> Create(LineSearchKind kind);
 
-  utils::Opt GetOptions() const override;
+  utils::Options GetOptions() const override;
 
-  void SetOptions(const utils::Opt &option) override;
+  void SetOptions(const utils::Options &option) override;
 
 protected:
   idx max_iter_{100};

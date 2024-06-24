@@ -33,4 +33,25 @@ UPtr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
 
 SparseSolverBase::SparseSolverBase() {}
 
+SparseSolverBase& SparseSolverBase::SetProblem(SPtr<LinsysProblem_Sparse> problem) {
+  cached_problem_ = std::move(problem);
+  return *this;
+}
+
+void SparseSolverBase::Compute() {
+  AX_THROW_IF_NULL(cached_problem_, "SparseSolverBase: problem is not set");
+  AnalyzePattern();
+  Factorize();
+}
+
+SparseSolverBase& SparseSolverBase::SetProblem(spmatr const& A) {
+  return SetProblem(make_sparse_problem(A));
+}
+SparseSolverBase& SparseSolverBase::SetProblem(spmatr&& A) {
+  return SetProblem(make_sparse_problem(std::move(A)));
+}
+SPtr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const { return cached_problem_; }
+void SparseSolverBase::SetPreconditioner(UPtr<PreconditionerBase> preconditioner) {
+  preconditioner_ = std::move(preconditioner);
+}
 }  // namespace ax::math

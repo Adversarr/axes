@@ -36,7 +36,7 @@ void OptimizerBase::SetTolGrad(real tol_grad) {
   tol_grad_ = tol_grad;
 }
 
-void OptimizerBase::SetOptions(utils::Opt const& options) {
+void OptimizerBase::SetOptions(utils::Options const& options) {
   AX_SYNC_OPT_IF(options, idx, max_iter) {
     AX_THROW_IF_LT(max_iter_, 1, "max_iter must be positive");
   }
@@ -69,8 +69,8 @@ void OptimizerBase::SetOptions(utils::Opt const& options) {
 //   energy_history_.clear();
 // }
 
-utils::Opt OptimizerBase::GetOptions() const {
-  utils::Opt options{
+utils::Options OptimizerBase::GetOptions() const {
+  utils::Options options{
       {"max_iter", max_iter_},
       {"tol_var", tol_var_},
       {"tol_grad", tol_grad_},

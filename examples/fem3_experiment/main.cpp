@@ -30,7 +30,7 @@ math::vec2r lame;
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
 
-math::sp_matxxr laplacian;
+math::spmatr laplacian;
 std::unique_ptr<math::SparseSolverBase> laplacian_solver, hyper_solver;
 
 int scene;
@@ -93,10 +93,8 @@ void ui_callback(gl::UiRenderEvent) {
     ts->GetMesh().FilterVector(dx, true);
     // stiffness:
     // find the eigen values of K
-    math::sp_matxxr A = ts->Hessian(u1);
-    math::LinsysProblem_Sparse pro;
-    pro.A_ = A;
-    hyper_solver->Analyse(pro);
+    math::spmatr A = ts->Hessian(u1);
+    hyper_solver->SetProblem(A).Compute();
 
     auto [vec, val] = math::eig(A.toDense());
     // Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> es(K, M);
@@ -239,7 +237,8 @@ void ui_callback(gl::UiRenderEvent) {
     // ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
     ImPlot::PlotLine("cs", cs_dist_randoms.data(), cs_dist_randoms.size());
     ImPlot::PlotLine("l2", l2_dist_randoms.data(), l2_dist_randoms.size());
-    ImPlot::PlotLine("relative_l2", relative_l2_dist_randoms.data(), relative_l2_dist_randoms.size());
+    ImPlot::PlotLine("relative_l2", relative_l2_dist_randoms.data(),
+                     relative_l2_dist_randoms.size());
     ImPlot::EndPlot();
   }
 
@@ -308,10 +307,7 @@ int main(int argc, char** argv) {
   }
 
   laplacian_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLLT);
-  math::LinsysProblem_Sparse pro;
-  pro.A_ = laplacian;
-  laplacian_solver->Analyse(pro);
-
+  laplacian_solver->SetProblem(laplacian).Compute();
   hyper_solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLLT);
 
   out = create_entity();

@@ -61,7 +61,7 @@ LeastSquareProblem::LeastSquareProblem(math::matxxr const& A, math::vecxr const&
 
 math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b_; }
 
-SparseLeastSquareProblem::SparseLeastSquareProblem(math::sp_matxxr const& A, math::vecxr const& b)
+SparseLeastSquareProblem::SparseLeastSquareProblem(math::spmatr const& A, math::vecxr const& b)
     : A_(A), b_(b) {
   AX_CHECK(A.rows() == A.cols());
   AX_CHECK(A.rows() == b.rows());
@@ -83,8 +83,7 @@ SparseLeastSquareProblem::SparseLeastSquareProblem(math::sp_matxxr const& A, mat
 math::vecxr SparseLeastSquareProblem::Optimal(math::vecxr const&) {
   math::vecxr x_opt = math::vecxr::Zero(b_.rows());
   math::SparseSolver_QR solver;
-  math::LinsysProblem_Sparse linsys{A_, b_};
-  solver.Analyse(linsys);
+  solver.SetProblem(A_).Compute();
   auto solution = solver.Solve(b_, {});
   x_opt = solution.solution_;
   return x_opt;

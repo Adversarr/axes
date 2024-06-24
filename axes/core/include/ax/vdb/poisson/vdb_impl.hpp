@@ -8,8 +8,8 @@ public:
   ~VdbPoissonSolver() = default;
   RealGridPtr operator()(RealGridPtr source) override;
 
-  virtual void SetOptions(utils::Opt const& option) final;
-  virtual utils::Opt GetOptions() const final;
+  virtual void SetOptions(utils::Options const& option) final;
+  virtual utils::Options GetOptions() const final;
 
 private:
   idx max_iterations_ = 50;

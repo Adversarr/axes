@@ -5,8 +5,8 @@ namespace ax::math {
 
 class DenseSolver_LDLT final : public DenseSolverBase {
 public:
-  result_type Solve(vecxr const& b, vecxr const& init_guess) final;
-  void Analyse(problem_t const& problem) final;
+  math::vecxr Solve(const math::vecxr &b) override;
+  void Compute() override;
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kLDLT; }
 
 private:

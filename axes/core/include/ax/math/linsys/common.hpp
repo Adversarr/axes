@@ -15,17 +15,23 @@ namespace ax::math {
 struct LinsysProblem_Dense {
   // Problem Description
   matxxr A_;
-  vecxr b_;
-
-  LinsysProblem_Dense(matxxr A, vecxr b) : A_{std::move(A)}, b_{std::move(b)} {}
+  LinsysProblem_Dense(matxxr const& A) : A_{A} {}
+  LinsysProblem_Dense(matxxr&& A) : A_{A} {}
 
   LinsysProblem_Dense() = default;
 };
 
+AX_FORCE_INLINE UPtr<LinsysProblem_Dense> make_dense_problem(matxxr const& A) {
+  return std::make_unique<LinsysProblem_Dense>(A);
+}
+
+AX_FORCE_INLINE UPtr<LinsysProblem_Dense> make_dense_problem(matxxr&& A) {
+  return std::make_unique<LinsysProblem_Dense>(std::move(A));
+}
+
 struct LinsysProblem_Sparse {
   // Problem Description
-  sp_matxxr A_;
-  vecxr b_;
+  spmatr A_;
 
   // For Iterative Solvers: Solution Requirement
   real l2_tol_;
@@ -34,27 +40,18 @@ struct LinsysProblem_Sparse {
   // Additional checkers.
   std::function<bool(vecxr const&, vecxr const&)> converge_residual_;
   std::function<bool(vecxr const&)> converge_solution_;
-  LinsysProblem_Sparse(sp_matxxr const& A, vecxr const& b) : A_{A}, b_{b} {}
-
+  LinsysProblem_Sparse(spmatr const& A) : A_{A} {}
+  LinsysProblem_Sparse(spmatr&& A) : A_{A} {}
   LinsysProblem_Sparse() = default;
 };
 
-struct LinsysProblem_Implicit {
-  // Problem Description
-  std::function<vecxr(vecxr const&)> A_;
-  std::function<vecxr(vecxr const&)> At_;
-  std::function<vecxr(vecxr const&)> AtA_;
-  vecxr const& b_;
-  bool is_spsd_;
+AX_FORCE_INLINE UPtr<LinsysProblem_Sparse> make_sparse_problem(spmatr const& A) {
+  return std::make_unique<LinsysProblem_Sparse>(A);
+}
 
-  // For Iterative Solvers: Solution Requirement
-  real l2_tol_;
-  real linf_tol_;
-
-  // Additional checkers.
-  std::function<bool(vecxr const&)> converge_residual_;
-  std::function<bool(vecxr const&)> converge_solution_;
-};
+AX_FORCE_INLINE UPtr<LinsysProblem_Sparse> make_sparse_problem(spmatr&& A) {
+  return std::make_unique<LinsysProblem_Sparse>(std::move(A));
+}
 
 /****************************** Solver Result ******************************/
 struct LinsysSolveResult {
@@ -68,13 +65,6 @@ struct LinsysSolveResult {
   // May be not set?
   real l2_err_{-1};
   real linf_err_{-1};
-
-  LinsysSolveResult(vecxr solution, bool converged, idx num_iter, real l2_err, real linf_err)
-      : solution_{std::move(solution)},
-        converged_(converged),
-        num_iter_{num_iter},
-        l2_err_{l2_err},
-        linf_err_{linf_err} {}
 
   LinsysSolveResult(vecxr const& solution, bool converged = true)
       : solution_{solution}, converged_{converged} {}

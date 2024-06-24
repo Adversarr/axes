@@ -20,7 +20,7 @@ math::matxxr read_npy_v10_real(std::string path);
 
 math::matxxi read_npy_v10_idx(std::string path);
 
-Status write_sparse_matrix(std::string path, const sp_matxxr& mat);
-sp_matxxr read_sparse_matrix(std::string path);
+Status write_sparse_matrix(std::string path, const spmatr& mat);
+spmatr read_sparse_matrix(std::string path);
 
 }  // namespace ax::math

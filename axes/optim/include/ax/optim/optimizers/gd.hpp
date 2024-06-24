@@ -19,9 +19,9 @@ public:
 
   void SetLineSearch(UPtr<LinesearchBase> linesearch);
 
-  void SetOptions(const utils::Opt &options) override;
+  void SetOptions(const utils::Options &options) override;
 
-  utils::Opt GetOptions() const override;
+  utils::Options GetOptions() const override;
 
 private:
   UPtr<LinesearchBase> linesearch_;

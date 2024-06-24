@@ -475,7 +475,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
   return mat;
 }
 
-Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
+Status write_sparse_matrix(std::string path, const spmatr& mat) {
   std::ofstream out(path);
   if (!out.is_open()) {
     return utils::NotFoundError("Failed to open the file. " + path);
@@ -507,14 +507,14 @@ Status write_sparse_matrix(std::string path, const sp_matxxr& mat) {
   out << "\n" << mat.rows() << " " << mat.cols() << " " << mat.nonZeros() << "\n";
 
   for (idx k = 0; k < mat.outerSize(); ++k) {
-    for (sp_matxxr::InnerIterator it(mat, k); it; ++it) {
+    for (spmatr::InnerIterator it(mat, k); it; ++it) {
       out << it.row() + 1 << " " << it.col() + 1 << " " << it.value() << "\n";
     }
   }
   AX_RETURN_OK();
 }
 
-sp_matxxr read_sparse_matrix(std::string path) {
+spmatr read_sparse_matrix(std::string path) {
   std::ifstream in(path);
   // if (!in.is_open()) {
   //   throw FileNotFoundError(path);

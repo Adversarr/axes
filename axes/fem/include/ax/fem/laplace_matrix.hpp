@@ -19,7 +19,7 @@ public:
    * @param W weight for the Laplace operator.
    * @return math::sp_coeff_list 
    */
-  math::sp_matxxr operator()(real W = 1.0);
+  math::spmatr operator()(real W = 1.0);
 
   /**
    * @brief Compute the Laplace matrix.
@@ -27,7 +27,7 @@ public:
    * @param W weight for the Laplace operator, per element.
    * @return math::sp_coeff_list 
    */
-  math::sp_matxxr operator()(math::field1r const& W);
+  math::spmatr operator()(math::field1r const& W);
 
 private:
   TriMesh<dim> const& mesh_;

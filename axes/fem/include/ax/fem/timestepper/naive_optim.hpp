@@ -11,8 +11,8 @@ public:
   virtual ~Timestepper_NaiveOptim() = default;
   void SolveTimestep() final;
 
-  void SetOptions(utils::Opt const& opt) final;
-  utils::Opt GetOptions() const final;
+  void SetOptions(utils::Options const& opt) final;
+  utils::Options GetOptions() const final;
 
 private:
   UPtr<optim::OptimizerBase> optimizer_;

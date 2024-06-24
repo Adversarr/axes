@@ -2,6 +2,7 @@
 
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCholesky>
+
 #include "ax/utils/opt.hpp"
 
 #define is_interior(sub) ((sub).minCoeff() >= 0 && ((sub).array() - n_).maxCoeff() < 0)
@@ -33,8 +34,8 @@ template <idx dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(i
 
 template <idx dim> void PoissonProblemCellCentered<dim>::SetSource(RealLattice const& f) {
   AX_CHECK(math::all(f.Shape().array() == f_.Shape().array()))
-      << "Source shape mismatch:"
-      << "f: " << f.Shape().transpose() << ", desired: " << f_.Shape().transpose();
+      << "Source shape mismatch:" << "f: " << f.Shape().transpose()
+      << ", desired: " << f_.Shape().transpose();
   f_ = f;
 }
 
@@ -42,8 +43,7 @@ template <idx dim> void PoissonProblemCellCentered<dim>::SetDomain(
     math::Lattice<dim, PoissonProblemCellType> const& domain) {
   cell_type_ = PoissonProblemCellType::kOuter;
   AX_CHECK((domain.Shape().array() == cell_type_.Shape().array()).all())
-      << "Domain shape mismatch:"
-      << "domain: " << domain.Shape().transpose()
+      << "Domain shape mismatch:" << "domain: " << domain.Shape().transpose()
       << ", desired: " << cell_type_.Shape().transpose();
   cell_type_ = domain;
 }
@@ -70,13 +70,12 @@ template <idx dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
     math::Lattice<dim, std::array<PoissonProblemBoundaryType, dim>> const& bc_type,
     math::Lattice<dim, math::vecr<dim>> const& bc_value) {
   AX_CHECK((bc_type.Shape().array() == bc_value.Shape().array()).all())
-      << "Boundary condition shape mismatch:"
-      << "bc_type: " << bc_type.Shape().transpose()
+      << "Boundary condition shape mismatch:" << "bc_type: " << bc_type.Shape().transpose()
       << ", bc_value: " << bc_value.Shape().transpose();
 
   AX_CHECK((bc_type.Shape().array() == (bc_type_.Shape()).array()).all())
-      << "Boundary condition shape mismatch:"
-      << "bc_type: " << bc_type.Shape().transpose() << "desired: " << bc_type_.Shape().transpose();
+      << "Boundary condition shape mismatch:" << "bc_type: " << bc_type.Shape().transpose()
+      << "desired: " << bc_type_.Shape().transpose();
 
   AX_CHECK(bc_type.IsStaggered()) << "Boundary condition should be staggered.";
   AX_CHECK(bc_value.IsStaggered()) << "Boundary condition should be staggered.";
@@ -158,7 +157,7 @@ PoissonProblemCellCentered<dim>::Solve() {
   bc_source_.resize(dofs);
   bc_source_.setZero();
 
-  math::sp_matxxr A(dofs, dofs);
+  math::spmatr A(dofs, dofs);
   idx cnt = 0;
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     if (t == PoissonProblemCellType::kInterior) {
@@ -222,13 +221,12 @@ PoissonProblemCellCentered<dim>::Solve() {
 
   A.resize(dofs, dofs);
   A.setFromTriplets(coef.begin(), coef.end());
-  // Eigen::ConjugateGradient<math::sp_matxxr> lu(A);
+  // Eigen::ConjugateGradient<math::spmatr> lu(A);
 
   // Build the linear system.
-  math::LinsysProblem_Sparse sp_problem;
-  sp_problem.A_ = std::move(A);
-  sp_problem.b_ = rhs + bc_source_;
-  auto result = sparse_solver_->SolveProblem(sp_problem);
+  sparse_solver_->SetProblem(math::make_sparse_problem(A));
+  sparse_solver_->Compute();
+  auto result = sparse_solver_->Solve(rhs);
   const auto& sol = result.solution_;
 
   RealLattice solution(f_.Shape());
@@ -260,14 +258,14 @@ PoissonProblemCellCentered<dim>::SolveUnchanged(math::vecxr const& source) {
   return solution;
 }
 
-template <idx dim> utils::Opt PoissonProblemCellCentered<dim>::GetOptions() const {
-  utils::Opt opt;
+template <idx dim> utils::Options PoissonProblemCellCentered<dim>::GetOptions() const {
+  utils::Options opt;
   opt["sparse_solver_name"] = sparse_solver_name_;
   opt["sparse_solver_opt"] = sparse_solver_->GetOptions();
   return opt;
 }
 
-template <idx dim> void PoissonProblemCellCentered<dim>::SetOptions(utils::Opt const& option) {
+template <idx dim> void PoissonProblemCellCentered<dim>::SetOptions(utils::Options const& option) {
   AX_SYNC_OPT_IF(option, std::string, sparse_solver_name) {
     auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
     AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;

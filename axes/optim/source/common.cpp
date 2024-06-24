@@ -61,7 +61,7 @@ OptProblem& OptProblem::SetProximator(ProximatorFn const& proximator) {
   return *this;
 }
 
-math::sp_matxxr OptProblem::EvalSparseHessian(math::vecxr const& x) const {
+math::spmatr OptProblem::EvalSparseHessian(math::vecxr const& x) const {
   AX_CHECK(sparse_hessian_) << "Sparse Hessian Fn is not set.";
   return sparse_hessian_(x);
 }

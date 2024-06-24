@@ -4,7 +4,7 @@
 
 namespace ax::fem {
 
-template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(real W) {
+template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
   math::sp_coeff_list l_coef;
   l_coef.reserve(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   idx nE = mesh_.GetNumElements();
@@ -51,7 +51,7 @@ template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(real W)
   return math::make_sparse_matrix(dofs, dofs, l_coef);
 }
 
-template <idx dim> math::sp_matxxr LaplaceMatrixCompute<dim>::operator()(math::field1r const& W) {
+template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::field1r const& W) {
   math::sp_coeff_list l_coef;
   l_coef.reserve(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   idx nE = mesh_.GetNumElements();

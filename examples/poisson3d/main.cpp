@@ -67,7 +67,7 @@ void print_basic_test_case() {
   SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   AX_CHECK_OK(pmesh->SetMesh(elements, vertices));
 
-  math::sp_matxxr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   std::cout << K.toDense() << std::endl;
 }
 
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
     pmesh->MarkDirichletBoundary(i, 0, 0);
   }
 
-  math::sp_matxxr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   pmesh->FilterMatrixDof(0, K);
   K.makeCompressed();
   math::vecxr b(nVertices);
@@ -145,12 +145,12 @@ int main(int argc, char** argv) {
     }
   }
 
-  LinsysProblem_Sparse problem(K, b);
   SparseSolver_ConjugateGradient spsolve;
   spsolve.SetPreconditioner(std::make_unique<Preconditioner_IncompleteLU>());
   spsolve.SetOptions({{"max_iter", 10000}});
+  spsolve.SetProblem(K).Compute();
 
-  auto result = spsolve.SolveProblem(problem);
+  auto result = spsolve.Solve(b, {});
   vecxr x = result.solution_;
   vecxr error = x - accurate;
   std::cout << "num vertices: " << nVertices << std::endl;

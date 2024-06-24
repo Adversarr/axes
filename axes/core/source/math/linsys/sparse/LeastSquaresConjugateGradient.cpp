@@ -2,14 +2,14 @@
 
 namespace ax::math {
 
-void SparseSolver_LeastSquaresConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
-  solver_.compute(problem.A_);
-  // if (solver_.info() != Eigen::Success) {
-  //   return utils::FailedPreconditionError(
-  //       "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
-  // }
+void SparseSolver_LeastSquaresConjugateGradient::AnalyzePattern() {
+  solver_.analyzePattern(cached_problem_->A_);
+  AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
+                    "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
+}
 
-  // AX_RETURN_OK();
+void SparseSolver_LeastSquaresConjugateGradient::Factorize() {
+  solver_.factorize(cached_problem_->A_);
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
                     "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
 }

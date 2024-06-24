@@ -23,14 +23,14 @@ RealGridPtr VdbPoissonSolver::operator()(RealGridPtr source) {
   return RealGrid::create(solution_tree);
 }
 
-void VdbPoissonSolver::SetOptions(utils::Opt const& option) {
+void VdbPoissonSolver::SetOptions(utils::Options const& option) {
   AX_SYNC_OPT_IF(option, idx, max_iterations) { AX_CHECK_GT(max_iterations_, 0); }
   AX_SYNC_OPT_IF(option, real, rel_error) { AX_CHECK_GT(rel_error_, 0); }
   AX_SYNC_OPT_IF(option, real, abs_error) { AX_CHECK_GT(abs_error_, 0); }
 }
 
-utils::Opt VdbPoissonSolver::GetOptions() const {
-  return utils::Opt{
+utils::Options VdbPoissonSolver::GetOptions() const {
+  return utils::Options{
       {"max_iterations", max_iterations_},
       {"rel_error", rel_error_},
       {"abs_error", abs_error_},

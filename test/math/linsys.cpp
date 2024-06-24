@@ -33,13 +33,12 @@ TEST_CASE("Solve Invertible") {
   A << 1, 2, 3, 4;
   vecxr b = vecxr::Ones(2);
   vecxr x = A.inverse() * b;
-  LinsysProblem_Dense A_b{A, b};
   for (auto kind : kinds) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    solver->Analyse(A_b);
-    auto result = solver->Solve(b, {});
-    CHECK(result.solution_.isApprox(x));
+    solver->SetProblem(A).Compute();
+    auto result = solver->Solve(b);
+    CHECK(result.isApprox(x));
   }
 }
 
@@ -48,7 +47,6 @@ TEST_CASE("Solve Non-Invertible") {
   matxxr A(2, 2);
   A << 1, 2, 2, 4;
   vecxr b = vecxr::Ones(2);
-  LinsysProblem_Dense A_b{A, b};
   for (auto kind : {
            DenseSolverKind::kFullPivLU,
            DenseSolverKind::kFullPivHouseHolderQR,
@@ -59,7 +57,7 @@ TEST_CASE("Solve Non-Invertible") {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     try {
-      solver->Analyse(A_b);
+      solver->SetProblem(A).Compute();
       CHECK(false);
     } catch (std::exception const &e) {
     }
@@ -73,7 +71,7 @@ TEST_CASE("Solve Non-Invertible") {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     try {
-      solver->Analyse(A_b);
+      solver->SetProblem(A).Compute();
       CHECK(false);
     } catch (std::exception const &e) {
     }
@@ -82,7 +80,7 @@ TEST_CASE("Solve Non-Invertible") {
 
 TEST_CASE("Sparse LU") {
   using namespace ax::math;
-  sp_matxxr A(2, 2);
+  spmatr A(2, 2);
   A.insert(0, 0) = 3;
   A.insert(0, 1) = 1;
   A.insert(1, 0) = 1;
@@ -90,12 +88,12 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   vecxr x = vecxr::Ones(2);
   vecxr b = A * x;
-  LinsysProblem_Sparse A_b{A, b};
+  ax::SPtr<LinsysProblem_Sparse> problem = make_sparse_problem(A);
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    solver->Analyse(A_b);
+    solver->SetProblem(problem).Compute();
     auto result = solver->Solve(b, {});
     CHECK(result.solution_.isApprox(x));
   }

@@ -26,7 +26,7 @@ math::matxxr EigenvalueModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
-math::sp_matxxr EigenvalueModification::Modify(math::sp_matxxr const& A) {
+math::spmatr EigenvalueModification::Modify(math::spmatr const& A) {
   AX_LOG_FIRST_N(WARNING, 1) << "EigenvalueModification::Modify: "
                              << "This method will convert sparse matrix to a dense matrix, and leading to a large memory usage.";
   math::matxxr A_dense = A;
@@ -35,13 +35,13 @@ math::sp_matxxr EigenvalueModification::Modify(math::sp_matxxr const& A) {
 }
 
 
-void EigenvalueModification::SetOptions(utils::Opt const& options) {
+void EigenvalueModification::SetOptions(utils::Options const& options) {
   AX_SYNC_OPT(options, real, min_eigval);
   SpsdModificationBase::SetOptions(options);
 }
 
-utils::Opt EigenvalueModification::GetOptions() const {
-  return utils::Opt{{"min_eigval", min_eigval_}};
+utils::Options EigenvalueModification::GetOptions() const {
+  return utils::Options{{"min_eigval", min_eigval_}};
 }
 
 }  // namespace ax::optim

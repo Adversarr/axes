@@ -5,15 +5,15 @@
 
 namespace ax::optim {
 
-void DiagonalModification::SetOptions(utils::Opt const& options) {
+void DiagonalModification::SetOptions(utils::Options const& options) {
   AX_SYNC_OPT_IF(options, real, additional_offset) {
     AX_THROW_IF_LT(additional_offset_, 0, "Eigen modification encountered negative offset");
   }
   SpsdModificationBase::SetOptions(options);
 }
 
-utils::Opt DiagonalModification::GetOptions() const {
-  utils::Opt opt = SpsdModificationBase::GetOptions();
+utils::Options DiagonalModification::GetOptions() const {
+  utils::Options opt = SpsdModificationBase::GetOptions();
   opt.insert_or_assign("additional_offset", additional_offset_);
   return opt;
 }
@@ -40,18 +40,18 @@ math::matxxr DiagonalModification::Modify(math::matxxr const& A) {
   return A_mod;
 }
 
-math::sp_matxxr DiagonalModification::Modify(math::sp_matxxr const& A) {
+math::spmatr DiagonalModification::Modify(math::spmatr const& A) {
   math::vecxr row_sum(A.rows());
   math::vecxr col_sum(A.cols());
   for (idx i = 0; i < A.outerSize(); ++i) {
-    for (math::sp_matxxr::InnerIterator it(A, i); it; ++it) {
+    for (math::spmatr::InnerIterator it(A, i); it; ++it) {
       real abs_aij = std::abs(it.value());
       row_sum[it.row()] += abs_aij;
       col_sum[it.col()] += abs_aij;
     }
   }
 
-  math::sp_matxxr A_mod = A;
+  math::spmatr A_mod = A;
   for (idx i = 0; i < A.rows(); ++i) {
     real diag = abs(A.coeff(i, i));
     diag = std::max(diag, row_sum[i] - diag + additional_offset_);

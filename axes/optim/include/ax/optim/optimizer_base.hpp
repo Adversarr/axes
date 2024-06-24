@@ -18,9 +18,9 @@ public:
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase() = default;
 
-  virtual void SetOptions(utils::Opt const& options) override;
+  virtual void SetOptions(utils::Options const& options) override;
 
-  utils::Opt GetOptions() const override;
+  utils::Options GetOptions() const override;
 
   virtual ~OptimizerBase() = default;
 

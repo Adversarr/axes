@@ -6,10 +6,10 @@ namespace ax::optim {
 class EigenvalueModification : public SpsdModificationBase {
 public:
   virtual math::matxxr Modify(math::matxxr const& A) final;
-  virtual math::sp_matxxr Modify(math::sp_matxxr const& A) final;
+  virtual math::spmatr Modify(math::spmatr const& A) final;
 
-  void SetOptions(utils::Opt const& options) final;
-  utils::Opt GetOptions() const final;
+  void SetOptions(utils::Options const& options) final;
+  utils::Options GetOptions() const final;
 
   real min_eigval_{1e-6};
 };

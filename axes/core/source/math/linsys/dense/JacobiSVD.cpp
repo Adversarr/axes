@@ -1,17 +1,16 @@
-
 #include "ax/math/linsys/dense/JacobiSVD.hpp"
-
-#include "ax/utils/status.hpp"
 
 namespace ax::math {
 
-LinsysSolveResult DenseSolver_JacobiSVD::Solve(vecxr const& b, vecxr const&) {
+math::vecxr DenseSolver_JacobiSVD::Solve(const math::vecxr& b) {
   vecxr x = impl_.solve(b);
-  return LinsysSolveResult{std::move(x)};
+  AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "Eigen::JacobiSVD: solve failed.");
+  return x;
 }
 
-void DenseSolver_JacobiSVD::Analyse(problem_t const& problem) {
-  impl_.compute(problem.A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+void DenseSolver_JacobiSVD::Compute() {
+  impl_.compute(cached_problem_->A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "Eigen::JacobiSVD: compute failed");
 }
 
 }  // namespace ax::math

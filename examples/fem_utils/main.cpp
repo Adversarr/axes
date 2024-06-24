@@ -89,7 +89,7 @@ public:
         .AddInput<bool>("lumped",
                         "Compute the lumped mass instead of standard FEM one. default=false")
         .AddInput<bool>("reload", "Reload every frame.")
-        .AddOutput<math::sp_matxxr>("mass_matrix", "The mass matrix.")
+        .AddOutput<math::spmatr>("mass_matrix", "The mass matrix.")
         .AddOutput<real>("total", "total mass.")
         .FinalizeAndRegister();
   }

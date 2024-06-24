@@ -359,7 +359,7 @@ public:
         .SetDescription("Reads a sparse matrix from a file")
         .AddInput<std::string>("file", "The path to the file")
         .AddInput<bool>("reload", "Reload every frame")
-        .AddOutput<math::sp_matxxr>("matrix", "The read sparse matrix")
+        .AddOutput<math::spmatr>("matrix", "The read sparse matrix")
         .FinalizeAndRegister();
   }
 
@@ -371,7 +371,7 @@ public:
 
     try {
       auto val = math::read_sparse_matrix(*file);
-      SetOutput<sp_matxxr>(0, val);
+      SetOutput<spmatr>(0, val);
     } catch (std::exception const& e) {
       AX_LOG(ERROR) << "Read sparse failed: " << e.what();
     }
@@ -399,7 +399,7 @@ public:
     NodeDescriptorFactory<Write_SparseMatrix>()
         .SetName("Write_SparseMatrix")
         .SetDescription("Writes a sparse matrix to a file")
-        .AddInput<math::sp_matxxr>("data", "The sparse matrix to write")
+        .AddInput<math::spmatr>("data", "The sparse matrix to write")
         .AddInput<std::string>("file", "The path to the file")
         .FinalizeAndRegister();
   }
@@ -409,7 +409,7 @@ public:
     if (file == nullptr) {
       return utils::FailedPreconditionError("File path is not set");
     }
-    auto* matrix = RetriveInput<math::sp_matxxr>(0);
+    auto* matrix = RetriveInput<math::spmatr>(0);
     if (matrix == nullptr) {
       return utils::FailedPreconditionError("Matrix is not set");
     }

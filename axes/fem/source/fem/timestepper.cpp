@@ -42,7 +42,7 @@ template <idx dim> Status TimeStepperBase<dim>::Initialize() {
   AX_RETURN_OK();
 }
 
-template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Opt const& opt) {
+template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Options const& opt) {
   AX_SYNC_OPT_IF(opt, real, rel_tol_grad) {
     AX_THROW_IF_LT(rel_tol_grad_, 1e-6, "The relative tol grad is too small");
   }
@@ -132,8 +132,8 @@ void TimeStepperBase<dim>::SetupElasticity(std::string name, std::string device)
   throw InvalidArgument("Elasticity model" + name + " not found.");
 }
 
-template <idx dim> utils::Opt TimeStepperBase<dim>::GetOptions() const {
-  utils::Opt opt = utils::Tunable::GetOptions();
+template <idx dim> utils::Options TimeStepperBase<dim>::GetOptions() const {
+  utils::Options opt = utils::Tunable::GetOptions();
   opt["rel_tol_grad"] = rel_tol_grad_;
   opt["tol_var"] = tol_var_;
   opt["max_iter"] = max_iter_;
@@ -161,9 +161,8 @@ template <idx dim> void TimeStepperBase<dim>::SetDensity(math::field1r const& de
 }
 
 template <idx dim>
-math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
+math::spmatr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const& x,
                                                          bool project) const {
-  auto lame = u_lame_;
   elasticity_->Update(x, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
@@ -172,7 +171,6 @@ math::sp_matxxr TimeStepperBase<dim>::GetStiffnessMatrix(math::fieldr<dim> const
 
 template <idx dim>
 math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const& x) const {
-  auto lame = u_lame_;
   elasticity_->Update(x, ElasticityUpdateLevel::kStress);
   elasticity_->UpdateStress();
   elasticity_->GatherStressToVertices();
@@ -270,7 +268,7 @@ template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr co
   return Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
 }
 
-template <idx dim> math::sp_matxxr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u) const {
+template <idx dim> math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u) const {
   math::fieldr<dim> x_new = u + mesh_->GetVertices();
   elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(true);
@@ -291,7 +289,7 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
       .SetGrad([this, n_vert](math::vecxr const& du) -> math::vecxr {
         return GradientFlat(du + u_.reshaped());
       })
-      .SetSparseHessian([this, n_vert](math::vecxr const& du) -> math::sp_matxxr {
+      .SetSparseHessian([this, n_vert](math::vecxr const& du) -> math::spmatr {
         return Hessian(du.reshaped(dim, n_vert) + u_);
       })
       .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {

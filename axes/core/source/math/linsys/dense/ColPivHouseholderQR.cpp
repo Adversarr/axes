@@ -1,18 +1,20 @@
 #include "ax/math/linsys/dense/ColPivHouseholderQR.hpp"
 
-#include "ax/utils/status.hpp"
-
 namespace ax::math {
 
-LinsysSolveResult DenseSolver_ColPivHouseholderQR::Solve(vecxr const& b, vecxr const&) {
-  AX_THROW_IF_FALSE(impl_.isInjective(), "The factorization has not been computed.");
+math::vecxr DenseSolver_ColPivHouseholderQR::Solve(vecxr const& b) {
+  AX_THROW_IF_FALSE(impl_.isInjective(),
+                    "Eigen::ColPivHouseholderQR: The factorization has not been computed.");
   vecxr x = impl_.solve(b);
-  return LinsysSolveResult{std::move(x)};
+  AX_THROW_IF_FALSE(impl_.info() == Eigen::Success,
+                    "Eigen::ColPivHouseholderQR: Failed to solve the linear system.");
+  return x;
 }
 
-void DenseSolver_ColPivHouseholderQR::Analyse(problem_t const& problem) {
-  impl_.compute(problem.A_);
-  AX_THROW_IF_FALSE(impl_.isInjective(), "The factorization has not been computed.");
+void DenseSolver_ColPivHouseholderQR::Compute() {
+  impl_.compute(cached_problem_->A_);
+  AX_THROW_IF_FALSE(impl_.isInjective(),
+                    "Eigen::ColPivHouseholderQR: The factorization has not been computed.");
 }
 
 }  // namespace ax::math

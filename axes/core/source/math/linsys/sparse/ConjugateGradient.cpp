@@ -3,26 +3,37 @@
 #include "ax/core/excepts.hpp"
 #include "ax/math/linalg.hpp"
 #include "ax/math/linsys/common.hpp"
-#include "ax/math/linsys/solver_base.hpp"
 #include "ax/math/linsys/sparse.hpp"
 
 namespace ax::math {
 
-void SparseSolver_ConjugateGradient::Analyse(LinsysProblem_Sparse const &problem) {
-  sparse_problem_ = problem;
+void SparseSolver_ConjugateGradient::AnalyzePattern() {
   if (preconditioner_) {
-    // AX_RETURN_NOTOK(preconditioner_->Analyse(sparse_problem_));
-    preconditioner_->Analyse(sparse_problem_);
+    preconditioner_->SetProblem(cached_problem_);
+    preconditioner_->AnalyzePattern();
   } else {
-    solver_.compute(sparse_problem_.A_);
+    solver_.analyzePattern(cached_problem_->A_);
+    AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
+                      "SparseSolver_ConjugateGradient: factorization failed");
+  }
+}
+
+void SparseSolver_ConjugateGradient::Factorize() {
+  if (preconditioner_) {
+    preconditioner_->Factorize();
+  } else {
+    solver_.factorize(cached_problem_->A_);
     AX_THROW_IF_FALSE(solver_.info() == Eigen::Success,
                       "SparseSolver_ConjugateGradient: factorization failed");
   }
 }
 
 LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
+  spmatr const &A = cached_problem_->A_;
+  AX_THROW_IF_NE(
+      b.size(), A.rows(),
+      "Invalid rhs vector: b" + std::to_string(b.size()) + " != A" + std::to_string(A.rows()));
   if (!preconditioner_) {
-    // ERROR: Use the Eigen Solver!!!
     vecxr x;
     if (x0.size() > 0) {
       AX_THROW_IF_NE(x0.size(), b.size(), "Size mismatch!");
@@ -36,14 +47,6 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     impl.l2_err_ = solver_.error();
     return impl;
   } else {
-    sp_matxxr const &A = sparse_problem_.A_;
-    // if (b.size() != A.rows()) {
-    //   return utils::InvalidArgumentError("Invalid rhs vector: b" + std::to_string(b.size())
-    //                                      + " != A" + std::to_string(A.rows()));
-    // }
-    AX_THROW_IF_NE(
-        b.size(), A.rows(),
-        "Invalid rhs vector: b" + std::to_string(b.size()) + " != A" + std::to_string(A.rows()));
     // Initialize the solution vector.
     math::vecxr x = x0;
     if (x.size() != A.cols()) {
@@ -53,7 +56,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
 
     // Initialize the residual vector.
     math::vecxr r = A * x - b;
-    math::vecxr y = preconditioner_->Solve(r, x0);
+    math::vecxr y = preconditioner_->Solve(r);
     math::vecxr p = -y;
     math::vecxr p_new(r.size());
     math::vecxr Ap(p.size());
@@ -69,14 +72,14 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
       if (residual_norm <= tol_) {
         converged = true;
         break;
-      } else if (sparse_problem_.converge_residual_ && sparse_problem_.converge_residual_(x, r)) {
+      } else if (cached_problem_->converge_residual_ && cached_problem_->converge_residual_(x, r)) {
         conv_residual = true;
         break;
-      } else if (sparse_problem_.converge_solution_ && sparse_problem_.converge_solution_(x)) {
+      } else if (cached_problem_->converge_solution_ && cached_problem_->converge_solution_(x)) {
         converged = true;
         break;
       }
-      y.noalias() = preconditioner_->Solve(r, x0);
+      y.noalias() = preconditioner_->Solve(r);
       real rk_dot_yk_new = r.dot(y);
       real beta = rk_dot_yk_new / rk_dot_yk;
       rk_dot_yk = rk_dot_yk_new;
@@ -89,7 +92,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
   }
 }
 
-void SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
+void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
   AX_SYNC_OPT_IF(opt, idx, max_iter) {
     // if (max_iter_ < 1) {
     //   return utils::InvalidArgumentError("max_iter must be positive");
@@ -137,8 +140,8 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Opt const &opt) {
   SparseSolverBase::SetOptions(opt);
 }
 
-utils::Opt SparseSolver_ConjugateGradient::GetOptions() const {
-  utils::Opt opt{
+utils::Options SparseSolver_ConjugateGradient::GetOptions() const {
+  utils::Options opt{
       {"max_iter", max_iter_},
       {"tol", tol_},
   };

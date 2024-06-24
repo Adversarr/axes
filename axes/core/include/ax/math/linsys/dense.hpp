@@ -1,6 +1,7 @@
 #pragma once
-#include "ax/utils/enum_refl.hpp"
-#include "solver_base.hpp"
+#include "ax/utils/opt.hpp"
+#include "common.hpp"
+
 namespace ax::math {
 
 /****************************** Embedded Solver Kinds ******************************/
@@ -24,12 +25,32 @@ BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, idx,
   kBDCSVD);
 
 /****************************** Implement ******************************/
-class DenseSolverBase : public LinsysSolverBase<LinsysProblem_Dense> {
+class DenseSolverBase : public utils::Tunable {
 public:
   static UPtr<DenseSolverBase> Create(DenseSolverKind kind);
 
+  virtual ~DenseSolverBase() = default;
+
+  DenseSolverBase& SetProblem(SPtr<LinsysProblem_Dense> problem) {
+    cached_problem_ = std::move(problem);
+    return *this;
+  }
+
+  DenseSolverBase& SetProblem(math::matxxr const &A) {
+    return SetProblem(make_dense_problem(A));
+  }
+
+  DenseSolverBase& SetProblem(math::matxxr &&A) {
+    return SetProblem(make_dense_problem(A));
+  }
+
+  virtual void Compute() = 0;
+  virtual math::vecxr Solve(math::vecxr const &b) = 0;
   virtual DenseSolverKind GetKind() const = 0;
-private:
+
+
+protected:
+  SPtr<LinsysProblem_Dense> cached_problem_;
 };
 
 }  // namespace ax::math

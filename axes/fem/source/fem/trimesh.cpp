@@ -153,10 +153,10 @@ template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool
   }
 }
 
-template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_matxxr& mat) const {
+template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::spmatr& mat) const {
   math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {
-    for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
+    for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
       coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
     }
   }
@@ -165,10 +165,10 @@ template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_matxxr& mat) con
   mat = math::make_sparse_matrix(dim * GetNumVertices(), dim * GetNumVertices(), coo_filtered);
 }
 
-template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_matxxr& mat) const {
+template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::spmatr& mat) const {
   math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {
-    for (typename math::sp_matxxr::InnerIterator it(mat, i); it; ++it) {
+    for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
       coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
     }
   }

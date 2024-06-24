@@ -20,8 +20,8 @@ public:
   void BeginTimestep(real dt) final;
   void SolveTimestep() final;
 
-  void SetOptions(const utils::Opt& option) override;
-  utils::Opt GetOptions() const override;
+  void SetOptions(const utils::Options& option) override;
+  utils::Options GetOptions() const override;
 
   optim::Optimizer_Lbfgs& GetOptimizer() { return optimizer_; }
 

@@ -17,7 +17,7 @@ static math::matr<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real 
   return result;
 }
 
-template <idx dim> math::sp_matxxr MassMatrixCompute<dim>::operator()(real density) {
+template <idx dim> math::spmatr MassMatrixCompute<dim>::operator()(real density) {
   math::sp_coeff_list result;
   for (auto const& ijk : mesh_) {
     std::array<math::vecr<dim>, dim + 1> vert;
@@ -36,7 +36,7 @@ template <idx dim> math::sp_matxxr MassMatrixCompute<dim>::operator()(real densi
 }
 
 template <idx dim>
-math::sp_matxxr MassMatrixCompute<dim>::operator()(math::field1r const& density) {
+math::spmatr MassMatrixCompute<dim>::operator()(math::field1r const& density) {
   math::sp_coeff_list result;
   for (idx i = 0; i < mesh_.GetElements().cols(); ++i) {
     const auto& ijk = mesh_.GetElement(i);

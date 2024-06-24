@@ -58,25 +58,26 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
     if (is_dense_hessian) {
       math::matxxr H = problem_.EvalHessian(x);
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
-      math::LinsysProblem_Dense prob(std::move(H), grad);
-      auto solution = dense_solver_->SolveProblem(prob);
-      dir = -solution.solution_;
+      // TODO: this is not correct
+      dense_solver_->SetProblem(H).Compute();
+      dir = dense_solver_->Solve(-grad);
     } else {
       AX_TIMEIT("Eval and Solve Sparse System");
-      math::sp_matxxr H = problem_.EvalSparseHessian(x);
+      math::spmatr H = problem_.EvalSparseHessian(x);
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(), "Hessian matrix size mismatch");
-      math::LinsysProblem_Sparse prob(H, grad);
+      auto prob = math::make_sparse_problem(H);
       if (problem_.HasConvergeGrad()) {
-        prob.converge_residual_ = [&](math::vecxr const& x, math::vecxr const& r) -> bool {
+        prob->converge_residual_ = [&](math::vecxr const& x, math::vecxr const& r) -> bool {
           return problem_.EvalConvergeGrad(x, r) < tol_grad_;
         };
       }
       if (problem_.HasConvergeVar()) {
-        prob.converge_solution_ = [&](math::vecxr const& x) -> bool {
+        prob->converge_solution_ = [&](math::vecxr const& x) -> bool {
           return problem_.EvalConvergeVar(x, x0) < tol_var_;
         };
       }
-      auto solution = sparse_solver_->SolveProblem(prob);
+      sparse_solver_->SetProblem(std::move(prob)).Compute();
+      auto solution = sparse_solver_->Solve(grad);
       dir = -solution.solution_;
     }
 
@@ -118,28 +119,8 @@ Optimizer_Newton::Optimizer_Newton() {
   cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
-void Optimizer_Newton::SetOptions(utils::Opt const& options) {
+void Optimizer_Newton::SetOptions(utils::Options const& options) {
   using namespace math;
-  // auto [has_linesearch, linesearch] = utils::extract_enum<LineSearchKind>(options, "linesearch");
-  // if (has_linesearch) {
-  //   AX_THROW_IF_NULL(linesearch, "Linesearch not found: " + std::string(options.at("linesearch").as_string()));
-  //   linesearch_ = LinesearchBase::Create(*linesearch);
-  //   AX_THROW_IF_NULL(linesearch, "Linesearch create failed: " + std::string(options.at("linesearch").as_string()));
-  // }
-
-  // auto [has_dense_solver, dense_solver] = utils::extract_enum<DenseSolverKind>(options, "dense_solver");
-  // if (has_dense_solver) {
-  //   AX_THROW_IF_NULL(dense_solver, "DenseSolver not found: " + std::string(options.at("dense_solver").as_string()));
-  //   dense_solver_ = math::DenseSolverBase::Create(*dense_solver);
-  //   AX_THROW_IF_NULL(dense_solver, "DenseSolver create failed: " + std::string(options.at("dense_solver").as_string()));
-  // }
-
-  // auto [has_sparse_solver, sparse_solver] = utils::extract_enum<SparseSolverKind>(options, "sparse_solver");
-  // if (has_sparse_solver) {
-  //   AX_THROW_IF_NULL(sparse_solver, "SparseSolver not found: " + std::string(options.at("sparse_solver").as_string()));
-  //   sparse_solver_ = math::SparseSolverBase::Create(*sparse_solver);
-  //   AX_THROW_IF_NULL(sparse_solver, "SparseSolver create failed: " + std::string(options.at("sparse_solver").as_string()));
-  // }
   utils::extract_and_create<LinesearchBase, LineSearchKind>(options, "linesearch", linesearch_);
   utils::extract_and_create<DenseSolverBase, DenseSolverKind>(options, "dense_solver", dense_solver_);
   utils::extract_and_create<SparseSolverBase, SparseSolverKind>(options, "sparse_solver", sparse_solver_);
@@ -151,8 +132,8 @@ void Optimizer_Newton::SetOptions(utils::Opt const& options) {
   OptimizerBase::SetOptions(options);
 }
 
-utils::Opt Optimizer_Newton::GetOptions() const {
-  utils::Opt opt = OptimizerBase::GetOptions();
+utils::Options Optimizer_Newton::GetOptions() const {
+  utils::Options opt = OptimizerBase::GetOptions();
   opt["linesearch"] = utils::reflect_name(linesearch_->GetKind()).value();
   opt["dense_solver"] = utils::reflect_name(dense_solver_->GetKind()).value();
   opt["sparse_solver"] = utils::reflect_name(sparse_solver_->GetKind()).value();

@@ -19,7 +19,7 @@ public:
 
   virtual math::matxxr Modify(math::matxxr const& A) = 0;
 
-  virtual math::sp_matxxr Modify(math::sp_matxxr const& A) = 0;
+  virtual math::spmatr Modify(math::spmatr const& A) = 0;
 };
 
 }  // namespace ax::optim

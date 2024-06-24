@@ -20,9 +20,9 @@ public:
 
   OptimizerKind GetKind() const override { return OptimizerKind::kNewton; }
 
-  void SetOptions(utils::Opt const& options) override;
+  void SetOptions(utils::Options const& options) override;
 
-  utils::Opt GetOptions() const override;
+  utils::Options GetOptions() const override;
 
   /****************************** Getter Setter ******************************/
 

@@ -11,27 +11,30 @@
 
 namespace ax::utils {
 
-using Opt = boost::json::object;
+using Options = boost::json::object;
 
 /**
  * @brief The Tunable class represents an interface for objects that can be tuned with options.
  */
 class Tunable {
 public:
+  Tunable() noexcept = default;
+  virtual ~Tunable() noexcept = default;
+
   /**
    * @brief Sets the options for the object.
    *
    * @param option The options to be set.
    * @return The status of the operation.
    */
-  virtual void SetOptions(utils::Opt const& option);
+  virtual void SetOptions(utils::Options const& option);
 
   /**
    * @brief Gets the current options of the object.
    *
    * @return The current options.
    */
-  virtual utils::Opt GetOptions() const;
+  virtual utils::Options GetOptions() const;
 };
 
 /**
@@ -51,7 +54,7 @@ public:
  *         If the synchronization is successful, true is returned.
  */
 template <typename T> struct SyncToFieldHelper {
-  bool Apply(T& value, Opt const& options, const char* name) {
+  bool Apply(T& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it != options.end()) {
       if (it->value().is_object()) {
         value.SetOptions(it->value().as_object());
@@ -71,7 +74,7 @@ template <typename T> struct SyncToFieldHelper {
 };
 
 template <> struct SyncToFieldHelper<idx> {
-  bool Apply(idx& value, Opt const& options, const char* name) {
+  bool Apply(idx& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
@@ -92,7 +95,7 @@ template <> struct SyncToFieldHelper<idx> {
 };
 
 template <> struct SyncToFieldHelper<real> {
-  bool Apply(real& value, Opt const& options, const char* name) {
+  bool Apply(real& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
@@ -115,7 +118,7 @@ template <> struct SyncToFieldHelper<real> {
 };
 
 template <> struct SyncToFieldHelper<std::string> {
-  bool Apply(std::string& value, Opt const& options, const char* name) {
+  bool Apply(std::string& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
@@ -134,7 +137,7 @@ template <> struct SyncToFieldHelper<std::string> {
 };
 
 template <> struct SyncToFieldHelper<bool> {
-  bool Apply(bool& value, Opt const& options, const char* name) {
+  bool Apply(bool& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
@@ -154,7 +157,7 @@ template <> struct SyncToFieldHelper<bool> {
   }
 };
 
-template <typename T> bool sync_from_opt(T& value, Opt const& options, const char* name) {
+template <typename T> bool sync_from_opt(T& value, Options const& options, const char* name) {
   return SyncToFieldHelper<std::decay_t<T>>{}.Apply(value, options, name);
 }
 
@@ -187,7 +190,7 @@ inline real extract_real(boost::json::value const& v) {
 }
 
 template <typename Enum>
-std::pair<bool, std::optional<Enum>> extract_enum(utils::Opt const& opt, const char* name) {
+std::pair<bool, std::optional<Enum>> extract_enum(utils::Options const& opt, const char* name) {
   if (auto it = opt.find(name); it != opt.end()) {
     AX_THROW_IF_FALSE(it->value().is_string(),
                       "Expect '" + std::string(name) + "' to be a string.");
@@ -198,7 +201,7 @@ std::pair<bool, std::optional<Enum>> extract_enum(utils::Opt const& opt, const c
 }
 
 template <typename AnyTunable>
-bool extract_tunable(utils::Opt const& opt, const char* key, AnyTunable* tun) {
+bool extract_tunable(utils::Options const& opt, const char* key, AnyTunable* tun) {
   static_assert(std::is_base_of_v<Tunable, AnyTunable>, "Only Tunable is supported");
   if (tun == nullptr) {
     return false;
@@ -214,7 +217,7 @@ bool extract_tunable(utils::Opt const& opt, const char* key, AnyTunable* tun) {
 }
 
 template <typename Factory, typename Kind>
-auto extract_and_create(utils::Opt const& opt, const char* key) {
+auto extract_and_create(utils::Options const& opt, const char* key) {
   auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (kind) {
@@ -227,7 +230,7 @@ auto extract_and_create(utils::Opt const& opt, const char* key) {
 }
 
 template <typename Factory, typename Kind, typename Ptr>
-bool extract_and_create(utils::Opt const& opt, const char* key, Ptr& ptr) {
+bool extract_and_create(utils::Options const& opt, const char* key, Ptr& ptr) {
   auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (kind) {
@@ -242,7 +245,7 @@ bool extract_and_create(utils::Opt const& opt, const char* key, Ptr& ptr) {
 }
 
 template <typename Kind>
-bool extract_enum(utils::Opt const& opt, const char* key, Kind& kind) {
+bool extract_enum(utils::Options const& opt, const char* key, Kind& kind) {
   auto [has_key, _kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (_kind) {
@@ -257,7 +260,7 @@ bool extract_enum(utils::Opt const& opt, const char* key, Kind& kind) {
 }
 
 template <typename Kind>
-auto extract_enum_force(utils::Opt const& opt, const char* key) {
+auto extract_enum_force(utils::Options const& opt, const char* key) {
   auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (kind) {

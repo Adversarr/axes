@@ -1,17 +1,20 @@
 #pragma once
 #include "ax/math/linsys/sparse.hpp"
+#include <Eigen/IterativeLinearSolvers>
 
 namespace ax::math {
 
 class SparseSolver_BiCGSTAB : public SparseSolverBase {
 public:
-  void Analyse(LinsysProblem_Sparse const &problem) override;
+  void AnalyzePattern() final;
 
-  result_type Solve(vecxr const &b, vecxr const &x0) override;
+  void Factorize() final;
+
+  LinsysSolveResult Solve(vecxr const &b, vecxr const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kBiCGSTAB; }
 
 private:
-  Eigen::BiCGSTAB<sp_matxxr> solver_;
+  Eigen::BiCGSTAB<spmatr> solver_;
 };
 }  // namespace ax::math

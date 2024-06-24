@@ -143,15 +143,15 @@ int main(int argc, char** argv) {
   }
 
   // compute M lambda v + K v = 0's solution.
-  math::sp_matxxr M_sp = fem::MassMatrixCompute<3>(ts->GetMesh())(1);
+  math::spmatr M_sp = fem::MassMatrixCompute<3>(ts->GetMesh())(1);
   ts->GetMesh().FilterMatrixDof(0, M_sp);
   math::matxxr M = M_sp.toDense();
-  math::sp_matxxr K_sp = fem::LaplaceMatrixCompute<3>(ts->GetMesh())(1.0);
+  math::spmatr K_sp = fem::LaplaceMatrixCompute<3>(ts->GetMesh())(1.0);
   // fem::elasticity::Linear<3> linear(lame.x(), lame.y());
   // fem::ElasticityCompute_CPU<3, fem::elasticity::Linear> e(ts->GetMeshPtr());
   // e.RecomputeRestPose();
   // e.Update(ts->GetMesh().GetVertices(), fem::ElasticityUpdateLevel::kHessian);
-  // math::sp_matxxr K_sp = e.ComputeHessianAndGather(lame);
+  // math::spmatr K_sp = e.ComputeHessianAndGather(lame);
   ts->GetMesh().FilterMatrixDof(0, K_sp);
   math::matxxr K = K_sp.toDense();
   Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> solver(K+M, M);

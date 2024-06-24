@@ -17,7 +17,7 @@ public:
   using elem_stress_t = List<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
   using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::sp_matxxr;
+  using vert_hessian_t = math::spmatr;
   using MeshPtr = SPtr<TriMesh<dim>>;
 
   explicit ElasticityComputeBase(SPtr<TriMesh<dim>> mesh);
@@ -49,13 +49,13 @@ public:
   // SECT: Old APIs.
   virtual math::field1r GatherEnergy(math::field1r const& element_values) const;
   virtual math::fieldr<dim> GatherStress(List<elasticity::StressTensor<dim>> const& stress) const;
-  virtual math::sp_matxxr GatherHessian(List<elasticity::HessianTensor<dim>> const& hessian) const;
+  virtual math::spmatr GatherHessian(List<elasticity::HessianTensor<dim>> const& hessian) const;
   virtual math::field1r ComputeEnergyAndGather(math::vec2r const& u_lame);
   virtual math::field1r ComputeEnergyAndGather(math::field2r const& lame);
   virtual math::fieldr<dim> ComputeStressAndGather(math::vec2r const& u_lame);
   virtual math::fieldr<dim> ComputeStressAndGather(math::field2r const& lame);
-  virtual math::sp_matxxr ComputeHessianAndGather(math::vec2r const& u_lame);
-  virtual math::sp_matxxr ComputeHessianAndGather(math::field2r const& lame);
+  virtual math::spmatr ComputeHessianAndGather(math::vec2r const& u_lame);
+  virtual math::spmatr ComputeHessianAndGather(math::field2r const& lame);
 
   virtual math::field1r Energy(math::vec2r const& u_lame) = 0;
   virtual math::field1r Energy(math::field2r const& lame) = 0;
@@ -94,7 +94,7 @@ public:
   using elem_stress_t = List<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
   using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::sp_matxxr;
+  using vert_hessian_t = math::spmatr;
   using MeshPtr = SPtr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 

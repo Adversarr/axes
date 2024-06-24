@@ -42,7 +42,7 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
-template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Opt& opt) {
+template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Options& opt) {
   TimeStepperBase<dim>::SetOptions(opt);
   // if (auto it = opt.find("optimizer"); it != opt.end()) {
   //   auto const& o = it->value();
@@ -71,7 +71,7 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Opt
   }
 }
 
-template <idx dim> utils::Opt Timestepper_NaiveOptim<dim>::GetOptions() const {
+template <idx dim> utils::Options Timestepper_NaiveOptim<dim>::GetOptions() const {
   auto opt = TimeStepperBase<dim>::GetOptions();
   opt["optimizer"] = utils::reflect_name(optimizer_->GetKind()).value();
   opt["optimizer_opt"] = optimizer_->GetOptions();

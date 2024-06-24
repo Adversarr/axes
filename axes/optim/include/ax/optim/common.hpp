@@ -16,7 +16,7 @@ using VerboseFn = std::function<void(idx, const math::vecxr&, const real)>;
 using EnergyFn = std::function<real(const math::vecxr&)>;
 using GradFn = std::function<math::vecxr(const math::vecxr&)>;
 using HessianFn = std::function<math::matxxr(const math::vecxr&)>;
-using SparseHessianFn = std::function<math::sp_matxxr(math::vecxr const&)>;
+using SparseHessianFn = std::function<math::spmatr(math::vecxr const&)>;
 using ProximatorFn = std::function<math::vecxr(const math::vecxr&, real)>;
 template <typename NormType = math::l2_t>
 inline real default_converge_grad(math::vecxr const&, math::vecxr const& grad) {
@@ -37,7 +37,7 @@ public:
   real EvalEnergy(math::vecxr const& x) const;
   math::vecxr EvalGrad(math::vecxr const& x) const;
   math::matxxr EvalHessian(math::vecxr const& x) const;
-  math::sp_matxxr EvalSparseHessian(math::vecxr const& x) const;
+  math::spmatr EvalSparseHessian(math::vecxr const& x) const;
   real EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
   real EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
   void EvalVerbose(idx iter, math::vecxr const& x, real f) const;

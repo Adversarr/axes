@@ -1,15 +1,15 @@
 #include "ax/math/linsys/dense/BDCSVD.hpp"
 
-#include "ax/utils/status.hpp"
-
 namespace ax::math {
-LinsysSolveResult DenseSolver_BDCSVD::Solve(vecxr const& b, vecxr const&) {
+math::vecxr DenseSolver_BDCSVD::Solve(vecxr const& b) {
   vecxr x = impl_.solve(b);
-  return LinsysSolveResult{std::move(x)};
+  AX_THROW_IF_FALSE(impl_.info() == Eigen::Success,
+                    "BDCSVD solver failed to solve the linear system.");
+  return x;
 }
 
-void DenseSolver_BDCSVD::Analyse(problem_t const& problem) {
-  impl_.compute(problem.A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+void DenseSolver_BDCSVD::Compute() {
+  impl_.compute(cached_problem_->A_, Eigen::ComputeFullU | Eigen::ComputeFullV);
 }
 
 }  // namespace ax::math

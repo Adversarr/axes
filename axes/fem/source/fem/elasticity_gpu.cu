@@ -907,7 +907,7 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-math::sp_matxxr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
+math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
   auto& gpu = impl_->hessian_on_vertices_;
   auto& cpu = this->hessian_on_vertices_;
   thrust::host_vector<COO> coo = gpu;

@@ -79,7 +79,7 @@ void ax::optim::Optimizer_GradientDescent::SetLineSearch(UPtr<LinesearchBase> li
 
 void ax::optim::Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
 
-void Optimizer_GradientDescent::SetOptions(utils::Opt const& opt) {
+void Optimizer_GradientDescent::SetOptions(utils::Options const& opt) {
   OptimizerBase::SetOptions(opt);
   AX_SYNC_OPT_IF(opt, real, lr) { 
     AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive");
@@ -88,7 +88,7 @@ void Optimizer_GradientDescent::SetOptions(utils::Opt const& opt) {
   utils::extract_tunable(opt, "linesearch_opt", linesearch_.get());
 }
 
-utils::Opt Optimizer_GradientDescent::GetOptions() const {
+utils::Options Optimizer_GradientDescent::GetOptions() const {
   auto opt = OptimizerBase::GetOptions();
   opt["lr"] = lr_;
   if (linesearch_) {

@@ -11,7 +11,7 @@ public:
   using elem_stress_t = List<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
   using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::sp_matxxr;
+  using vert_hessian_t = math::spmatr;
   using MeshPtr = SPtr<TriMesh<dim>>;
   ElasticityCompute_GPU(MeshPtr const& mesh);
 

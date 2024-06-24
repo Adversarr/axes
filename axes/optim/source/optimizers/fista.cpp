@@ -17,7 +17,7 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const math::vecxr
   math::vecxr grad = problem.EvalGrad(x), x_old = x;
   math::vecxr v = x;
 
-  real theta, theta_old = 1, step_length_old = 0;
+  real theta = math::nan<real>, theta_old = 1, step_length_old = 0;
   real energy = problem.EvalEnergy(x);
   bool converged_grad, converged_var;
   idx iter;

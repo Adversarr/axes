@@ -16,18 +16,16 @@ template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
   this->integration_scheme_->SetDeltaT(dt_back_);
-  math::LinsysProblem_Sparse problem_sparse;
   const math::vec2r lame = this->u_lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
   real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
   real W = 2 * mu + lambda;
   auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
   auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
-  problem_sparse.A_ = math::kronecker_identity<dim>(full_laplacian);
-  problem_sparse.A_.makeCompressed();
-  this->mesh_->FilterMatrixFull(problem_sparse.A_);
+  math::spmatr A = math::kronecker_identity<dim>(full_laplacian);
+  this->mesh_->FilterMatrixFull(A);
+  solver_->SetProblem(std::move(A)).Compute();
   // solver_->SetOptions({{"max_iter", 20}});
-  solver_->Analyse(problem_sparse);
 }
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
@@ -52,12 +50,9 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep(real dt
       UpdateSolverLaplace();
     }
   } else if (strategy_ == LbfgsStrategy::kHard) {
-    math::LinsysProblem_Sparse problem_sparse;
-    problem_sparse.A_ = this->Hessian(this->du_inertia_);
-    problem_sparse.A_.makeCompressed();
-
-    this->mesh_->FilterMatrixFull(problem_sparse.A_);
-    solver_->Analyse(problem_sparse);
+    auto A = this->Hessian(this->du_inertia_);
+    this->mesh_->FilterMatrixFull(A);
+    solver_->SetProblem(std::move(A)).Compute();
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {  // Test this idea:
     auto A = this->Hessian(this->du_inertia_);
     auto eigsys = math::eig(A.toDense());
@@ -127,7 +122,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
-template <idx dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Opt &option) {
+template <idx dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
   utils::extract_enum(option, "lbfgs_strategy", strategy_);
   utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver",
                                                                             solver_);
@@ -138,7 +133,7 @@ template <idx dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Op
   TimeStepperBase<dim>::SetOptions(option);
 }
 
-template <idx dim> utils::Opt Timestepper_QuasiNewton<dim>::GetOptions() const {
+template <idx dim> utils::Options Timestepper_QuasiNewton<dim>::GetOptions() const {
   auto option = TimeStepperBase<dim>::GetOptions();
   option["lbfgs_strategy"] = utils::reflect_name(strategy_).value();
   option["lbfgs_opt"] = optimizer_.GetOptions();

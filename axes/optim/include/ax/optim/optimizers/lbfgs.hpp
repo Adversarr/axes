@@ -19,9 +19,9 @@ public:
 
   OptimizerKind GetKind() const override { return OptimizerKind::kLbfgs; }
 
-  void SetOptions(utils::Opt const& options) override;
+  void SetOptions(utils::Options const& options) override;
 
-  utils::Opt GetOptions() const override;
+  utils::Options GetOptions() const override;
 
   idx history_size_{20};
 

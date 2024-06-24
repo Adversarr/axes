@@ -1,18 +1,20 @@
 #pragma once
 #include "ax/math/linsys/sparse.hpp"
+#include <Eigen/IterativeLinearSolvers>
 
 namespace ax::math {
 
 class SparseSolver_LeastSquaresConjugateGradient : public SparseSolverBase {
 public:
-  void Analyse(LinsysProblem_Sparse const &problem) override;
+  void AnalyzePattern() override;
+  void Factorize() override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0) override;
+  LinsysSolveResult Solve(vecxr const &b, vecxr const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kLeastSquaresConjugateGradient; }
 
 private:
-  Eigen::LeastSquaresConjugateGradient<sp_matxxr> solver_;
+  Eigen::LeastSquaresConjugateGradient<spmatr> solver_;
 };
 
 }  // namespace ax::math

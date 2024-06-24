@@ -27,11 +27,11 @@ int main(int argc, char** argv) {
   n = absl::GetFlag(FLAGS_dof);
 
   /************************* SECT: Optimizer Options *************************/
-  utils::Opt opt{
+  utils::Options opt{
     {"verbose", idx(absl::GetFlag(FLAGS_verbose))},
     {"max_iter", idx(200)},
     {"linesearch", "kBacktracking"},
-    {"linesearch_opt", utils::Opt{
+    {"linesearch_opt", utils::Options{
       {"required_descent_rate", real(1e-4)},
     }}
   };
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
       }
       A_sparse.push_back({i, i, real(10.0)});
     }
-    math::sp_matxxr A2{n, n};
+    math::spmatr A2{n, n};
     b.setRandom(n);
     A2.setFromTriplets(A_sparse.begin(), A_sparse.end());
     A2.makeCompressed();

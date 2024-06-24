@@ -54,8 +54,8 @@ public:
   void SetDx(real dx);
 
   // Derived from Tunable
-  virtual void SetOptions(utils::Opt const& option);
-  virtual utils::Opt GetOptions() const;
+  virtual void SetOptions(utils::Options const& option);
+  virtual utils::Options GetOptions() const;
 
 private:
   // Problem definition

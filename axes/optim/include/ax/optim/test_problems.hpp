@@ -22,11 +22,11 @@ private:
 
 class SparseLeastSquareProblem : public OptProblem {
 public:
-  SparseLeastSquareProblem(math::sp_matxxr const& A, math::vecxr const& b);
+  SparseLeastSquareProblem(math::spmatr const& A, math::vecxr const& b);
 
   math::vecxr Optimal(math::vecxr const& x0);
 private:
-  math::sp_matxxr A_;
+  math::spmatr A_;
   math::vecxr b_;
 };
 

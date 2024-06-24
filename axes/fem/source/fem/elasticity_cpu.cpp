@@ -246,7 +246,7 @@ template <idx dim> void ElasticityComputeBase<dim>::RecomputeRestPose() {
   hessian_on_elements_.resize(n_elem);
 }
 
-template <idx dim> math::sp_matxxr ElasticityComputeBase<dim>::GatherHessian(
+template <idx dim> math::spmatr ElasticityComputeBase<dim>::GatherHessian(
     List<elasticity::HessianTensor<dim>> const& hessian) const {
   auto coo = dg_thv_p1<dim>(*mesh_, hessian, rinv_);
   return math::make_sparse_matrix(mesh_->GetNumVertices() * dim, mesh_->GetNumVertices() * dim,
@@ -284,12 +284,12 @@ math::fieldr<dim> ElasticityComputeBase<dim>::ComputeStressAndGather(math::field
 }
 
 template <idx dim>
-math::sp_matxxr ElasticityComputeBase<dim>::ComputeHessianAndGather(math::vec2r const& u_lame) {
+math::spmatr ElasticityComputeBase<dim>::ComputeHessianAndGather(math::vec2r const& u_lame) {
   return GatherHessian(Hessian(u_lame));
 }
 
 template <idx dim>
-math::sp_matxxr ElasticityComputeBase<dim>::ComputeHessianAndGather(math::field2r const& lame) {
+math::spmatr ElasticityComputeBase<dim>::ComputeHessianAndGather(math::field2r const& lame) {
   return GatherHessian(Hessian(lame));
 }
 

@@ -192,9 +192,9 @@ public:
 
   void FilterMatrixFull(math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 
-  void FilterMatrixFull(math::sp_matxxr& mat) const;
+  void FilterMatrixFull(math::spmatr& mat) const;
 
-  void FilterMatrixDof(idx dof, math::sp_matxxr& mat) const;
+  void FilterMatrixDof(idx dof, math::spmatr& mat) const;
 
   void FilterMatrixDof(idx dif, math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 

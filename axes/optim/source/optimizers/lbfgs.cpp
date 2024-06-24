@@ -51,7 +51,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
   math::vecxr y_new(n_dof);
   math::vecxr x_old = x;
 
-  math::sp_matxxr sp_hessian;
+  math::spmatr sp_hessian;
   bool const check_approx_quality
       = check_approx_quality_ && problem_.HasSparseHessian() && approx_solve_;
   if (!check_approx_quality && check_approx_quality_) {
@@ -61,14 +61,9 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
 
   auto check_quality
       = [&](std::string name, math::vecxr const& residual, math::vecxr const& approx) {
-          math::LinsysProblem_Sparse sp;
-          sp.A_ = sp_hessian;
-          sp.b_ = residual;
-          sp.converge_residual_ = [&](math::vecxr const& x, math::vecxr const& g) {
-            return problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, g) < tol_grad_;
-          };
           math::SparseSolver_ConjugateGradient cg;
-          auto result = cg.SolveProblem(sp, {});
+          cg.SetProblem(sp_hessian).Compute();
+          auto result = cg.Solve(residual, approx);
           if (!result.converged_) {
             AX_LOG(ERROR) << name << ": CG failed to converge for check quality.";
             return;
@@ -192,7 +187,7 @@ Optimizer_Lbfgs::Optimizer_Lbfgs() {
   SetApproxSolve(approx_solve_default);
 }
 
-void Optimizer_Lbfgs::SetOptions(utils::Opt const& options) {
+void Optimizer_Lbfgs::SetOptions(utils::Options const& options) {
   OptimizerBase::SetOptions(options);
   AX_SYNC_OPT_IF(options, idx, history_size) {
     AX_THROW_IF_LT(history_size_, 0, "History size should be positive");
@@ -203,8 +198,8 @@ void Optimizer_Lbfgs::SetOptions(utils::Opt const& options) {
   OptimizerBase::SetOptions(options);
 }
 
-utils::Opt Optimizer_Lbfgs::GetOptions() const {
-  utils::Opt opt = OptimizerBase::GetOptions();
+utils::Options Optimizer_Lbfgs::GetOptions() const {
+  utils::Options opt = OptimizerBase::GetOptions();
   opt["history_size"] = history_size_;
   opt["linesearch"] = utils::reflect_name(linesearch_->GetKind()).value();
   opt["linesearch_opt"] = linesearch_->GetOptions();

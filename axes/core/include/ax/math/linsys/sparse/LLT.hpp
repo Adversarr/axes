@@ -1,18 +1,20 @@
 #pragma once
 #include "ax/math/linsys/sparse.hpp"
+#include <Eigen/SparseCholesky>
 
 namespace ax::math {
 
 class SparseSolver_LLT : public SparseSolverBase {
 public:
-  void Analyse(LinsysProblem_Sparse const &problem) override;
+  void AnalyzePattern() override;
+  void Factorize() override;
 
-  result_type Solve(vecxr const &b, vecxr const &x0) override;
+  LinsysSolveResult Solve(vecxr const &b, vecxr const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kLLT; }
 
 private:
-  Eigen::SimplicialLLT<sp_matxxr> solver_;
+  Eigen::SimplicialLLT<spmatr> solver_;
 };
 
 }  // namespace ax::math

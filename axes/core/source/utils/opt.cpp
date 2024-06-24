@@ -4,8 +4,8 @@
 
 namespace ax::utils {
 
-utils::Opt Tunable::GetOptions() const { return {}; }
+utils::Options Tunable::GetOptions() const { return {}; }
 
-void Tunable::SetOptions(utils::Opt const&) {}
+void Tunable::SetOptions(utils::Options const&) {}
 
 }  // namespace ax::utils

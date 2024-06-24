@@ -141,12 +141,12 @@ public:
     b = b * (1.0 / ((*n - 1) * (*n - 1)));
 
     // SECT: Solve the linear system:
-    sp_matxxr A(*n * *n, *n * *n);
+    spmatr A(*n * *n, *n * *n);
     A.setFromTriplets(coef_no_dirichlet.begin(), coef_no_dirichlet.end());
     A.makeCompressed();
     SparseSolver_LDLT ldlt;
-    LinsysProblem_Sparse problem(A, b);
-    auto solution = ldlt.SolveProblem(problem);
+    ldlt.SetProblem(A).Compute();
+    auto solution = ldlt.Solve(b, {});
     vecxr x = solution.solution_;
     math::matxxr solution_field(*n, *n);
     for (idx i = 0; i < *n; ++i) {

@@ -131,11 +131,8 @@ void Dijkstra::Step(idx steps) {
     }
   }
 
-  LinsysProblem_Sparse linsys;
-  linsys.A_ = make_sparse_matrix(3 * n_vert, 3 * n_vert, coef);
   SparseSolver_LDLT ldlt;
-  ldlt.Analyse(linsys);
-
+  ldlt.SetProblem(make_sparse_matrix(3 * n_vert, 3 * n_vert, coef)).Compute();
 
   // Do Local global
   for (idx i = 0; i < steps; ++i) {

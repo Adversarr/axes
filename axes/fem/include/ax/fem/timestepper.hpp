@@ -36,8 +36,8 @@ public:
   SPtr<TriMesh<dim>> &GetMeshPtr() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
   TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
-  virtual void SetOptions(const utils::Opt &option) override;
-  virtual utils::Opt GetOptions() const override;
+  virtual void SetOptions(const utils::Options &option) override;
+  virtual utils::Options GetOptions() const override;
 
   // External force getter/setter
   math::fieldr<dim> const &GetExternalAcceleration() const { return ext_accel_; }
@@ -58,8 +58,8 @@ public:
   // SECT: Density: Will update the mass matrices.
   void SetDensity(real density);
   void SetDensity(math::field1r const &density);
-  math::sp_matxxr const &GetMassMatrix() const { return mass_matrix_; }
-  math::sp_matxxr const &GetMassMatrixOriginal() const { return mass_matrix_original_; }
+  math::spmatr const &GetMassMatrix() const { return mass_matrix_; }
+  math::spmatr const &GetMassMatrixOriginal() const { return mass_matrix_original_; }
 
   // SECT: Lame:
   void SetYoungs(real youngs) {
@@ -98,8 +98,8 @@ public:
   math::fieldr<dim> GetElasticForce(math::fieldr<dim> const &x) const;
   math::fieldr<dim> Gradient(math::fieldr<dim> const &du) const;
   math::vecxr GradientFlat(math::vecxr const &du_flat) const;
-  math::sp_matxxr GetStiffnessMatrix(math::fieldr<dim> const &x, bool project = false) const;
-  math::sp_matxxr Hessian(math::fieldr<dim> const &du) const;
+  math::spmatr GetStiffnessMatrix(math::fieldr<dim> const &x, bool project = false) const;
+  math::spmatr Hessian(math::fieldr<dim> const &du) const;
 
   real ResidualNorm(math::fieldr<dim> const &grad) const;
   real L2Residual(math::fieldr<dim> const &grad) const;
@@ -128,8 +128,8 @@ protected:
 
   // runtime parameters.
   math::vec2r u_lame_;
-  math::sp_matxxr mass_matrix_;
-  math::sp_matxxr mass_matrix_original_;
+  math::spmatr mass_matrix_;
+  math::spmatr mass_matrix_original_;
   real dt_{1e-3};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
   real abs_tol_grad_;  // Dynamically set according to rel_tol_grad.

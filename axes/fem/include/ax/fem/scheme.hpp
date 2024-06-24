@@ -17,10 +17,10 @@ public:
 
   void SetDeltaT(real dt) { dt_ = dt; }
 
-  virtual math::sp_matxxr ComposeHessian(math::sp_matxxr const& M, math::sp_matxxr const& K) const
+  virtual math::spmatr ComposeHessian(math::spmatr const& M, math::spmatr const& K) const
       = 0;
 
-  virtual math::fieldr<dim> ComposeGradient(math::sp_matxxr const& M,
+  virtual math::fieldr<dim> ComposeGradient(math::spmatr const& M,
                                             math::fieldr<dim> const& u_next,
                                             math::fieldr<dim> const& internal_force,
                                             math::fieldr<dim> const& precomputed) const
@@ -28,7 +28,7 @@ public:
 
   virtual real ComposeEnergy(real inertia_term, real stiffness_term) const = 0;
 
-  virtual math::fieldr<dim> Precomputed(math::sp_matxxr const& M,
+  virtual math::fieldr<dim> Precomputed(math::spmatr const& M,
                                         math::fieldr<dim> const& u_current,
                                         math::fieldr<dim> const& u_old,
                                         math::fieldr<dim> const& v_current,

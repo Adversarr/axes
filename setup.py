@@ -19,6 +19,14 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
+def check_clang():
+    try:
+        # 尝试运行 'clang --version' 命令来检查 Clang 是否安装
+        result = subprocess.run(['clang', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.returncode == 0
+    except OSError:
+        # 如果命令不存在，可能是 Clang 没有安装
+        return False
 
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
@@ -59,6 +67,8 @@ class CMakeBuild(build_ext):
         if "CMAKE_ARGS" in os.environ:
             cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
 
+        if check_clang():
+            cmake_args += ["-DCMAKE_CXX_COMPILER=clang++", "-DCMAKE_C_COMPILER=clang"]
         if self.compiler.compiler_type != "msvc":
             # Using Ninja-build since it a) is available as a wheel and b)
             # multithreads automatically. MSVC would require all variables be

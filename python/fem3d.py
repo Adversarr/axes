@@ -8,6 +8,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 pyax.init()
+pyax.set_log_level('warning')
 
 mesh = fem.make_mesh_3d()
 # E = np.array([0, 1, 2, 3], dtype=np.int64).reshape(-1, 1)
@@ -30,17 +31,30 @@ opt = pyax.JsonObject({
 print(opt)
 stepper.SetOptions(opt)
 
+moving_bc = []
+
 for i in range(V.shape[1]):
     x = V[:, i]
     if x[0] > 4.9:
         mesh.MarkDirichletBoundary(i, 0, x[0])
         mesh.MarkDirichletBoundary(i, 1, x[1])
         mesh.MarkDirichletBoundary(i, 2, x[2])
+    elif x[0] < -4.9:
+        moving_bc.append([i, x])
+        mesh.MarkDirichletBoundary(i, 0, x[0])
+        mesh.MarkDirichletBoundary(i, 1, x[1])
+        mesh.MarkDirichletBoundary(i, 2, x[2])
+
+rotate_around_x = np.array([
+    [1, 0, 0],
+    [0, np.cos(0.03 / 4), -np.sin(0.03 / 4)],
+    [0, np.sin(0.03 / 4), np.cos(0.03 / 4)]
+    ])
+
 
 stepper.BeginSimulation(0.01)
 
 def draw_all_elements():
-    elements = E
     vertices = stepper.GetPosition()
     x = vertices[0, :]
     y = vertices[1, :]
@@ -51,10 +65,19 @@ def draw_all_elements():
     ax.set_ylim([-5, 2])
     ax.set_zlim([-5, 5])
 
+
 while True:
     draw_all_elements()
     plt.pause(0.01)
     ax.clear()
+
+    for id, (i, x) in enumerate(moving_bc):
+        x = rotate_around_x @ x
+        moving_bc[id][1] = x
+        mesh.MarkDirichletBoundary(i, 0, x[0])
+        mesh.MarkDirichletBoundary(i, 1, x[1])
+        mesh.MarkDirichletBoundary(i, 2, x[2])
+
     stepper.BeginTimestep(0.01)
     stepper.SolveTimestep()
     stepper.EndTimestep()

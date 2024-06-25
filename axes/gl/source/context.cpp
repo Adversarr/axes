@@ -18,7 +18,6 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-
 #include <imgui_node_editor.h>
 
 #include "ax/core/echo.hpp"
@@ -31,6 +30,7 @@ using math::cast;
 
 struct Context::Impl {
   bool has_setuped_{false};
+  bool acknowledged_should_shutdown_{false};
   List<UPtr<RenderBase>> renderers_;
 
   Window window_;
@@ -59,8 +59,13 @@ struct Context::Impl {
   bool is_mouse_button_pressed_ = false;
   bool is_context_window_open_{false};
   math::vec2r prev_cursor_pos_;
-
   float mouse_sensitivity_{1.0f};
+
+  std::vector<entt::connection> connections_;
+
+  void OnContextShouldShutdown(ContextShouldShutdownEvent const&) {
+    acknowledged_should_shutdown_ = true;
+  }
 
   void OnKey(const KeyboardEvent& evt);
 
@@ -155,8 +160,7 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
     dy *= mouse_sensitivity_;
 
     if (is_pressing_meta_key_) {
-      camera_.Rotate(cast<f32>(dx * 0.3f), 
-                     cast<f32>(dy * 0.3f));
+      camera_.Rotate(cast<f32>(dx * 0.3f), cast<f32>(dy * 0.3f));
     }
 
     if (is_pressing_shft_key_) {
@@ -178,13 +182,10 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       auto up = camera_.GetUp();
       auto right = camera_.GetRight();
 
-      math::mat3f rx
-          = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
-      math::mat3f ry
-          = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
+      math::mat3f rx = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
+      math::mat3f ry = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
 
       model_.topLeftCorner<3, 3>() *= (rx * ry).cast<f32>();
-
 
       // model_rotate_x_ += static_cast<f32>(dx);
       // model_rotate_y_ += static_cast<f32>(dy);
@@ -208,8 +209,6 @@ void Context::Impl::OnMouse(const MouseButtonEvent& evt) {
 }
 
 void Context::Impl::OnUiRender(UiRenderEvent const&) {
-  auto w = ImGui::GetIO().DisplaySize.x;
-  auto h = ImGui::GetIO().DisplaySize.y;
   if (!is_context_window_open_) {
     return;
   }
@@ -253,7 +252,8 @@ void Context::Impl::UpdateLight() {
   if (render_light_) {
     auto& mesh = add_or_replace_component<gl::Mesh>(light_entity_);
     auto cube = geo::cube(0.03);
-    mesh.vertices_ = cube.vertices_; mesh.indices_ = mesh.indices_;
+    mesh.vertices_ = cube.vertices_;
+    mesh.indices_ = mesh.indices_;
     math::each(mesh.vertices_) += light_.position_.cast<f64>();
     mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
     mesh.use_lighting_ = false;
@@ -299,11 +299,13 @@ Context::Context() {
   impl_->light_entity_ = cmpt::create_named_entity("SceneLight");
 
   /* SECT: Listen on Signals */
-  connect<KeyboardEvent, &Impl::OnKey>(*impl_);
-  connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_);
-  connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_);
-  connect<MouseButtonEvent, &Impl::OnMouse>(*impl_);
-  connect<UiRenderEvent, &Impl::OnUiRender>(*impl_);
+  impl_->connections_.emplace_back(
+      connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
+  impl_->connections_.emplace_back(connect<KeyboardEvent, &Impl::OnKey>(*impl_));
+  impl_->connections_.emplace_back(connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_));
+  impl_->connections_.emplace_back(connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_));
+  impl_->connections_.emplace_back(connect<MouseButtonEvent, &Impl::OnMouse>(*impl_));
+  impl_->connections_.emplace_back(connect<UiRenderEvent, &Impl::OnUiRender>(*impl_));
 
   /* SECT: Setup ImGUI */
   IMGUI_CHECKVERSION();
@@ -327,6 +329,10 @@ Context::Context() {
 }
 
 Context::~Context() {
+  for (auto& c : impl_->connections_) {
+    c.release();
+  }
+
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImPlot::DestroyContext();
@@ -389,6 +395,10 @@ Status Context::TickRender() {
   AXGL_CALLR(glFlush());
   impl_->window_.SwapBuffers();
   AX_RETURN_OK();
+}
+
+bool Context::ShouldClose() const {
+  return impl_->acknowledged_should_shutdown_;
 }
 
 void Context::AppendEntityRenderer(UPtr<RenderBase> renderer) {

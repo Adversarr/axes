@@ -144,6 +144,7 @@ protected:
 
 private:
   bool has_time_step_begin_;
+  bool has_initialized_;
 
   template <template <idx> class ElasticModelTemplate,
             template <idx, template <idx> class> class Compute = ElasticityCompute_CPU>

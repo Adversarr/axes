@@ -2,12 +2,14 @@
 
 #include "ax/utils/common.hpp"
 #include "camera.hpp"
+#include "events.hpp"  // IWYU pragma: export
 #include "light.hpp"
 #include "render_base.hpp"
 #include "window.hpp"
-#include "events.hpp" // IWYU pragma: export
 
 namespace ax::gl {
+
+struct ContextShouldShutdownEvent {};
 
 class Context {
 public:
@@ -22,6 +24,7 @@ public:
   /****************************** Methods ******************************/
   Status TickLogic();
   Status TickRender();
+  bool ShouldClose() const;
 
   /**
    * Add a custom renderer to the render pipeline.

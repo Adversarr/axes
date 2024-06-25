@@ -17,18 +17,18 @@ public:
 
   ~ElasticityCompute_GPU();
 
-  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type);
-  void RecomputeRestPose();
-  virtual void SetLame(math::vec2r const& u_lame) final;
-  virtual void SetLame(math::field2r const& e_lame) final;
+  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void RecomputeRestPose() final;
+  void SetLame(math::vec2r const& u_lame) final;
+  void SetLame(math::field2r const& e_lame) final;
 
-  virtual void UpdateEnergy();
-  virtual void UpdateStress();
-  virtual void UpdateHessian(bool projection);
+  void UpdateEnergy() final;
+  void UpdateStress() final;
+  void UpdateHessian(bool projection) final;
 
-  virtual void GatherEnergyToVertices();
-  virtual void GatherStressToVertices();
-  virtual void GatherHessianToVertices();
+  void GatherEnergyToVertices() final;
+  void GatherStressToVertices() final;
+  void GatherHessianToVertices() final;
 
   elem_hessian_t const& GetHessianOnElements() final;
   vert_hessian_t const& GetHessianOnVertices() final;
@@ -36,12 +36,6 @@ public:
   vert_stress_t const& GetStressOnVertices() final;
   math::field1r const& GetEnergyOnElements() final;
   math::field1r const& GetEnergyOnVertices() final;
-  math::field1r Energy(math::field2r const& lame);
-  math::field1r Energy(math::vec2r const& lame);
-  List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame);
-  List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame);
-  List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame);
-  List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame);
 
 private:
   struct Impl;

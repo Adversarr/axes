@@ -276,6 +276,9 @@ void bind_core_init(pybind11::module &m) {
       throw std::invalid_argument("Invalid log level: " + lvl);
     }
   });
+
+  /************************* SECT: automatic clean up *************************/
+  m.add_object("_clean_up_automatic", py::capsule(&clean_up));
 }
 
 void bind_core_math(py::module &m) {

@@ -136,7 +136,9 @@ template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::sp_coeff_list
 }
 
 template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_zero) const {
-  AX_CHECK(inout.rows() == GetNumVertices() * n_dof_per_vertex_) << "Invalid size.";
+  if (inout.size() != dirichlet_boundary_mask_.cols() * n_dof_per_vertex_) {
+    throw std::invalid_argument("Invalid shape.");
+  }
   inout.array() *= dirichlet_boundary_mask_.reshaped().array();
   if (!set_zero) {
     inout += boundary_values_.reshaped();
@@ -144,7 +146,11 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
 }
 
 template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool set_zero) const {
-  AX_CHECK(inout.cols() == GetNumVertices()) << "Invalid size.";
+  if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
+    AX_LOG(ERROR) << "Invalid shape: " << inout.rows() << "x" << inout.cols() << " != "
+                  << dirichlet_boundary_mask_.rows() << "x" << dirichlet_boundary_mask_.cols();
+    throw std::invalid_argument("Invalid shape.");
+  }
   inout.array() *= dirichlet_boundary_mask_.array();
   if (!set_zero) {
     inout += boundary_values_;

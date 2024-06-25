@@ -50,6 +50,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     // Initialize the solution vector.
     math::vecxr x = x0;
     if (x.size() != A.cols()) {
+      AX_THROW_IF_NE(x.size(), 0, "Invalid initial guess size");
       x.resize(A.cols());
       x.setZero();
     }

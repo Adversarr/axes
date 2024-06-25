@@ -46,26 +46,6 @@ public:
   virtual math::field1r const& GetEnergyOnElements() { return energy_on_elements_; }
   virtual math::field1r const& GetEnergyOnVertices() { return energy_on_vertices_; }
 
-  // SECT: Old APIs.
-  virtual math::field1r GatherEnergy(math::field1r const& element_values) const;
-  virtual math::fieldr<dim> GatherStress(List<elasticity::StressTensor<dim>> const& stress) const;
-  virtual math::spmatr GatherHessian(List<elasticity::HessianTensor<dim>> const& hessian) const;
-  virtual math::field1r ComputeEnergyAndGather(math::vec2r const& u_lame);
-  virtual math::field1r ComputeEnergyAndGather(math::field2r const& lame);
-  virtual math::fieldr<dim> ComputeStressAndGather(math::vec2r const& u_lame);
-  virtual math::fieldr<dim> ComputeStressAndGather(math::field2r const& lame);
-  virtual math::spmatr ComputeHessianAndGather(math::vec2r const& u_lame);
-  virtual math::spmatr ComputeHessianAndGather(math::field2r const& lame);
-
-  virtual math::field1r Energy(math::vec2r const& u_lame) = 0;
-  virtual math::field1r Energy(math::field2r const& lame) = 0;
-
-  virtual List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame) = 0;
-  virtual List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame) = 0;
-
-  virtual List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame) = 0;
-  virtual List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame) = 0;
-
 protected:
   SPtr<TriMesh<dim>> mesh_;
   elasticity::DeformationGradientCache<dim> rinv_;
@@ -101,27 +81,20 @@ public:
   ElasticityCompute_CPU(SPtr<TriMesh<dim>> mesh);
   ~ElasticityCompute_CPU() override;
 
-  virtual void UpdateEnergy();
-  virtual void UpdateStress();
-  virtual void UpdateHessian(bool projection);
+  void UpdateEnergy() final;
+  void UpdateStress() final;
+  void UpdateHessian(bool projection) final;
 
-  virtual void GatherEnergyToVertices();
-  virtual void GatherStressToVertices();
-  virtual void GatherHessianToVertices();
-    
-  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type);
-  void RecomputeRestPose();
-  math::field1r Energy(math::field2r const& lame);
-  math::field1r Energy(math::vec2r const& lame);
-  List<elasticity::StressTensor<dim>> Stress(math::vec2r const& u_lame);
-  List<elasticity::StressTensor<dim>> Stress(math::field2r const& lame);
-  List<elasticity::HessianTensor<dim>> Hessian(math::field2r const& lame);
-  List<elasticity::HessianTensor<dim>> Hessian(math::vec2r const& u_lame);
+  void GatherEnergyToVertices() final;
+  void GatherStressToVertices() final;
+  void GatherHessianToVertices() final;
+  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void RecomputeRestPose() final;
 
 protected:
   List<math::decomp::SvdResult<dim, real>> svd_results_;
   elasticity::DeformationGradientList<dim> deformation_gradient_;
-  struct TbbPartitioners; ///< include tbb in CUDA will cause error, so we have to put it here.
+  struct TbbPartitioners;  ///< include tbb in CUDA will cause error, so we have to put it here.
   std::unique_ptr<TbbPartitioners> partitioner_impl_;
 };
 

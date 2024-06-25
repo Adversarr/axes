@@ -30,8 +30,9 @@ ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 3, "Num of division.");
 ABSL_FLAG(bool, flip_yz, false, "flip yz");
 ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
-ABSL_FLAG(std::string, elast, "stable_neohookean", "Hyperelasticity model, nh=Neohookean arap=Arap");
-ABSL_FLAG(std::string, optim, "liu", "optimizer newton 'naive' or 'liu'");
+ABSL_FLAG(std::string, elast, "stable_neohookean",
+          "Hyperelasticity model, nh=Neohookean arap=Arap");
+ABSL_FLAG(std::string, optim, "newton", "optimizer newton 'naive' or 'liu'");
 ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
 ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
 ABSL_FLAG(std::string, lbfgs, "laplacian", "naive, laplacian, hard");
@@ -68,8 +69,9 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
   ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
-  auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
+  ts->GetElasticity().UpdateEnergy();
+  ts->GetElasticity().GatherEnergyToVertices();
+  auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
 
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
@@ -247,9 +249,9 @@ int main(int argc, char** argv) {
   auto vet = math::read_npy_v10_real(vet_file);
   auto cube = geo::tet_cube(0.5, 10 * nx, nx, nx);
   cube.vertices_.row(0) *= 10;
-  // input_mesh.indices_ = tet->transpose();
-  // input_mesh.vertices_ = vet->transpose();
-  input_mesh = cube;
+  input_mesh.indices_ = tet.transpose();
+  input_mesh.vertices_ = vet.transpose();
+  // input_mesh = cube;
 
   if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
@@ -275,10 +277,8 @@ int main(int argc, char** argv) {
   ts->SetPoissonRatio(0.45);
 
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
-  if (auto opt = absl::GetFlag(FLAGS_optopo); opt) {
-    auto [p, ip] = fem::optimize_topology<3>(input_mesh.indices_, input_mesh.vertices_.cols());
-    ts->GetMesh()->ApplyPermutation(p, ip);
-  }
+  ts->GetMesh()->SetNumDofPerVertex(3);
+  ts->GetMesh()->ResetAllBoundaries();
 
   input_mesh.vertices_ = ts->GetMesh()->GetVertices();
   input_mesh.indices_ = ts->GetMesh()->GetElements();
@@ -301,8 +301,6 @@ int main(int argc, char** argv) {
   }
 
   ts->SetDensity(1e3);
-  AX_CHECK_OK(ts->Initialize());
-
   ts->SetupElasticity(absl::GetFlag(FLAGS_elast),
 #ifdef AX_HAS_CUDA
                       absl::GetFlag(FLAGS_device)
@@ -310,6 +308,7 @@ int main(int argc, char** argv) {
                       "cpu"
 #endif
   );
+  AX_CHECK_OK(ts->Initialize());
 
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 

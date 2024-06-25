@@ -1,12 +1,14 @@
 #include "binding.hpp"
 
+#include <pybind11/eigen.h>
+#include <pybind11/functional.h>
+#include <pybind11/stl.h>
+
 #include "ax/core/entt.hpp"
+#include "ax/core/init.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
-#include <pybind11/stl.h>
-#include <pybind11/functional.h>
-#include <pybind11/eigen.h>
 
 using namespace ax;
 using namespace ax::gl;
@@ -40,7 +42,6 @@ static void tick_once() {
   tick_render();
 }
 
-
 static void bind_gl_context(py::module& m) {
   m.def("init", py::overload_cast<bool>(&gl::init), py::arg("is_registering") = true)
       .def("enter_main_loop", &gl::enter_main_loop);
@@ -56,6 +57,7 @@ static void bind_gl_context(py::module& m) {
     static std::once_flag flag;
     std::call_once(flag, []() {
       connect<gl::UiRenderEvent, &ui_callback>();
+      add_clean_up_hook("Remove UI Callbacks from python", []() { pyui_callbacks.clear(); });
     });
   });
 
@@ -71,6 +73,12 @@ static void bind_gl_context(py::module& m) {
   m.def("tick_logic", &tick_logic);
   m.def("tick_render", &tick_render);
   m.def("tick_once", &tick_once);
+  m.def("emit_shutdown", []() { emit(ContextShouldShutdownEvent{}); });
+  m.def("should_close", []() {
+    auto& ctx = get_resource<Context>();
+    auto& win = ctx.GetWindow();
+    return ctx.ShouldClose() || win.ShouldClose();
+  });
 }
 
 void bind_gl_mesh(py::module& m) {

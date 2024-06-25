@@ -29,7 +29,7 @@ UPtr<entt::registry> registry_p;
 UPtr<entt::dispatcher> dispatcher_p;
 
 struct Hook {
-  const char* name_;
+  const std::string name_;
   std::function<void()> call_;
 };
 
@@ -96,8 +96,9 @@ void clean_up() {
       AX_LOG(FATAL) << "CleanUp-hook [" << name << "] failed: " << e.what();
     }
   }
-  registry_p->clear();
   clean_up_hooks.clear();
+  registry_p.reset();
+  dispatcher_p.reset();
 }
 
 void add_init_hook(const char* name, std::function<void()> f) { init_hooks.push_back({name, f}); }

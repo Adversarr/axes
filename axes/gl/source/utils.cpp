@@ -28,7 +28,8 @@ void init(int argc, char** argv) {
 
 Status enter_main_loop() {
   auto& c = get_resource<Context>();
-  while (!c.GetWindow().ShouldClose()) {
+  auto& w = c.GetWindow();
+  while (!(c.ShouldClose() || w.ShouldClose())) {
     AX_RETURN_NOTOK(c.TickLogic());
     AX_RETURN_NOTOK(c.TickRender());
   }

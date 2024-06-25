@@ -19,27 +19,37 @@ template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
   mesh_ = std::move(mesh);
   mesh_->SetNumDofPerVertex(dim);
+
+  has_initialized_ = false;
+  has_time_step_begin_ = false;
 }
 
 template <idx dim> Status TimeStepperBase<dim>::Initialize() {
-  AX_THROW_IF_NULLPTR(mesh_);
-  if (! elasticity_) {
+  AX_THROW_IF_TRUE(has_initialized_, "TimeStepper has already been initialized.");
+  AX_THROW_IF_NULLPTR(mesh_, "Mesh is not set.");
+  if (!elasticity_) {
+    AX_LOG(WARNING) << "Elasticity not set, use: " << elasticity_name_ << " device: " << device_;
     SetupElasticity(elasticity_name_, device_);
   }
 
   idx n_vert = mesh_->GetNumVertices();
+  // state variables
   u_.setZero(dim, n_vert);
   u_back_ = u_;
-  du_ = u_;
-  du_inertia_ = u_;
-  velocity_.setZero(dim, n_vert);
-  velocity_back_ = velocity_;
-  ext_accel_.setZero(dim, n_vert);
+  velocity_back_ = velocity_ = u_;
+  ext_accel_ = u_;
+
+  // solve results
+  du_ = u_inertia_ = du_inertia_ = u_;
 
   if (mass_matrix_.size() == 0) {
     AX_LOG(WARNING) << "Mass matrix is not set, use density uniformly = " << density_;
     SetDensity(density_);
   }
+  has_initialized_ = true;
+
+  elasticity_->RecomputeRestPose();
+  elasticity_->SetLame(u_lame_);
   AX_RETURN_OK();
 }
 
@@ -183,7 +193,6 @@ template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real) {
   AX_THROW_IF_NULLPTR(mesh_);
   AX_THROW_IF_NULLPTR(elasticity_);
   AX_THROW_IF_NULLPTR(integration_scheme_);
-  elasticity_->RecomputeRestPose();
   return;
 }
 
@@ -244,9 +253,9 @@ template <idx dim> real TimeStepperBase<dim>::Energy(math::fieldr<dim> const& u)
   elasticity_->Update(x_new, ElasticityUpdateLevel::kEnergy);
   elasticity_->UpdateEnergy();
   real stiffness = elasticity_->GetEnergyOnElements().sum();
-  math::fieldr<dim> duu = u - u_inertia_;
-  math::fieldr<dim> Mdx = 0.5 * duu * mass_matrix_original_;
-  real inertia = (duu.array() * Mdx.array()).sum();
+  math::fieldr<dim> du = u - u_inertia_;
+  math::fieldr<dim> Mdu = 0.5 * du * mass_matrix_original_;
+  real inertia = (du.array() * Mdu.array()).sum();
   return integration_scheme_->ComposeEnergy(inertia, stiffness);
 }
 
@@ -265,12 +274,14 @@ math::fieldr<dim> TimeStepperBase<dim>::Gradient(math::fieldr<dim> const& u_cur)
 
 template <idx dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr const& u_cur) const {
   idx n_vert = mesh_->GetNumVertices();
-  return Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
+  auto g = Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
+  return g;
 }
 
 template <idx dim>
 math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u, bool project) const {
   math::fieldr<dim> x_new = u + mesh_->GetVertices();
+  math::fieldr<dim> du = u - u_;
   elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
@@ -284,19 +295,23 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
   optim::OptProblem problem;
   auto n_vert = mesh_->GetNumVertices();
   problem
-      .SetEnergy([this, n_vert](math::vecxr const& du) -> real {
+      .SetEnergy([&, n_vert](math::vecxr const& du) -> real {
         return Energy(du.reshaped(dim, n_vert) + u_);
       })
-      .SetGrad(
-          [this](math::vecxr const& du) -> math::vecxr { return GradientFlat(du + u_.reshaped()); })
-      .SetSparseHessian([this, n_vert](math::vecxr const& du) -> math::spmatr {
-        return Hessian(du.reshaped(dim, n_vert) + u_);
+      .SetGrad([&](math::vecxr const& du) -> math::vecxr {
+        math::vecxr g = GradientFlat(du + u_.reshaped());
+        return g;
+      })
+      .SetSparseHessian([&, n_vert](math::vecxr const& du) -> math::spmatr {
+        auto H = Hessian(du.reshaped(dim, n_vert) + u_);
+        return H;
       })
       .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {
         return ResidualNorm(grad.reshaped(dim, n_vert)) / abs_tol_grad_;
       })
-      .SetConvergeVar([this](const math::vecxr& du_back, const math::vecxr& du) -> real {
-        return ResidualNorm(du_back - du);
+      .SetConvergeVar([this, n_vert](const math::vecxr& du_back, const math::vecxr& du) -> real {
+        math::fieldr<dim> ddu_flat = (du_back - du).reshaped(dim, n_vert);
+        return ResidualNorm(ddu_flat);
       });
 
   if (record_trajectory_) {

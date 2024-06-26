@@ -7,6 +7,7 @@ find_package(Boost REQUIRED COMPONENTS json)
 find_package(ZLIB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS json)
 find_package(OpenVDB REQUIRED)
+find_package(CHOLMOD REQUIRED)
 
 if (AX_ENABLE_OPENMP)
     find_package(OpenMP)
@@ -72,6 +73,7 @@ target_link_libraries(axes_core
     Blosc::blosc
     ZLIB::ZLIB
     Boost::json
+    SuiteSparse::CHOLMOD
 )
 
 if (AX_ENABLE_CUDA)

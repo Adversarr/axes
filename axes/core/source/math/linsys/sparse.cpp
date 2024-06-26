@@ -3,6 +3,7 @@
 #include "ax/math/linsys/sparse/BiCGSTAB.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/math/linsys/sparse/LLT.hpp"
 #include "ax/math/linsys/sparse/LU.hpp"
 #include "ax/math/linsys/sparse/LeastSquaresConjugateGradient.hpp"
@@ -26,6 +27,10 @@ UPtr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
       return std::make_unique<SparseSolver_LeastSquaresConjugateGradient>();
     case SparseSolverKind::kBiCGSTAB:
       return std::make_unique<SparseSolver_BiCGSTAB>();
+
+      // SECT: CHOLMOD
+    case SparseSolverKind::kCholmod:
+      return std::make_unique<SparseSolver_Cholmod>();
     default:
       return nullptr;
   }

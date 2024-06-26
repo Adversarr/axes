@@ -10,7 +10,7 @@ namespace ax::fem {
 
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Initialize());
-  solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kLDLT);
+  solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
   AX_RETURN_OK();
 }
 

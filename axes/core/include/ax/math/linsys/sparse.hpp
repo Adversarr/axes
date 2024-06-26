@@ -1,14 +1,14 @@
 #pragma once
 
 #include "ax/math/linsys/preconditioner.hpp"
-#include "ax/utils/enum_refl.hpp"
 #include "ax/math/sparse.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "common.hpp"
 
 namespace ax::math {
 
 BOOST_DEFINE_FIXED_ENUM_CLASS(SparseSolverKind, idx, kLDLT, kLLT, kLU, kQR, kConjugateGradient,
-                              kLeastSquaresConjugateGradient, kBiCGSTAB)
+                              kLeastSquaresConjugateGradient, kBiCGSTAB, kCholmod);
 
 class SparseSolverBase : public utils::Tunable {
 public:

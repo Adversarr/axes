@@ -72,8 +72,9 @@ TEST_CASE("Solve Non-Invertible") {
     CHECK(solver != nullptr);
     try {
       solver->SetProblem(A).Compute();
-      CHECK(false);
+      auto result = solver->Solve(b);
     } catch (std::exception const &e) {
+      CHECK(false);
     }
   }
 }
@@ -90,7 +91,8 @@ TEST_CASE("Sparse LU") {
   vecxr b = A * x;
   ax::SPtr<LinsysProblem_Sparse> problem = make_sparse_problem(A);
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
-                    SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT}) {
+                    SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
+                    SparseSolverKind::kCholmod}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     solver->SetProblem(problem).Compute();

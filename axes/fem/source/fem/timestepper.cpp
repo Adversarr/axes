@@ -54,6 +54,8 @@ template <idx dim> Status TimeStepperBase<dim>::Initialize() {
 }
 
 template <idx dim> void TimeStepperBase<dim>::SetOptions(utils::Options const& opt) {
+  AX_THROW_IF_TRUE(has_initialized_, "Cannot set options after initialization.");
+
   AX_SYNC_OPT_IF(opt, real, rel_tol_grad) {
     AX_THROW_IF_LT(rel_tol_grad_, 1e-6, "The relative tol grad is too small");
   }

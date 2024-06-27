@@ -20,16 +20,16 @@ mesh.SetNumDofPerVertex(3)
 mesh.SetMesh(E, V)
 
 stepper = fem.make_timestepper_3d(mesh)
-stepper.Initialize()
-stepper.SetExternalAccelerationUniform(np.array([0, 0, -9.8]))
 opt = pyax.JsonObject({
     "elasticity": "stable_neohookean",
-    "device": "gpu",
+    "device": "cpu",
     "youngs": 1e7,
     "poisson_ratio": 0.45
     })
 print(opt)
 stepper.SetOptions(opt)
+stepper.Initialize()
+stepper.SetExternalAccelerationUniform(np.array([0, 0, -9.8]))
 
 moving_bc = []
 

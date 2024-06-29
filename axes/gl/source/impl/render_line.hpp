@@ -36,12 +36,12 @@ class LineRenderer final : public RenderBase {
 public:
   LineRenderer();
   virtual ~LineRenderer();
-  virtual Status TickRender();
-  virtual Status TickLogic();
-  virtual Status Erase(Entity entity);
+  virtual Status TickRender() override;
+  virtual Status TickLogic() override;
+  virtual Status Erase(Entity entity) override;
   void RenderGui() final;
-  virtual Status Setup();
-  virtual Status CleanUp();
+  virtual Status Setup() override;
+  virtual Status CleanUp() override;
 
 private:
   Program prog_;

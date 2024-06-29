@@ -9,12 +9,11 @@ namespace ax::optim {
 class Linesearch_Wofle : public LinesearchBase {
 public:
   virtual ~Linesearch_Wofle() = default;
-  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const;
-  virtual LineSearchKind GetKind() const;
-  virtual void SetOptions(utils::Options const& options);
-  virtual utils::Options GetOptions() const;
-
-
+  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad,
+                             math::vecxr const& dir) const override;
+  virtual LineSearchKind GetKind() const override;
+  virtual void SetOptions(utils::Options const& options) override;
+  virtual utils::Options GetOptions() const override;
 
   // Typical value for Newton's method:
   real initial_step_length_ = 1.0;

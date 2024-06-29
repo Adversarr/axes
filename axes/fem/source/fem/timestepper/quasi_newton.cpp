@@ -20,7 +20,8 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   // If you are using stable neohookean, you should bias the lambda and mu:
   real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
   real W = 2 * mu + lambda;
-  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(W);
+  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}();
+  L *= W;
   auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
   math::spmatr A = math::kronecker_identity<dim>(full_laplacian);
   this->mesh_->FilterMatrixFull(A);

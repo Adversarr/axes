@@ -3,6 +3,7 @@
 #include "ax/core/echo.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/math/sparse.hpp"
+#include "ax/core/echo.hpp"
 
 namespace ax::fem {
 
@@ -271,6 +272,36 @@ template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumVertices() const noex
 
 template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumElements() const noexcept {
   return elements_.cols();
+}
+
+
+template <idx dim>
+AX_FORCE_INLINE real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
+  AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
+  return boundary_values_(dof, i);
+}
+
+template <idx dim>
+AX_FORCE_INLINE bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
+  AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
+  return dirichlet_boundary_mask_(dof, i) == 0;
+}
+
+template <idx dim>
+typename TriMesh<dim>::vertex_list_t const& TriMesh<dim>::GetVertices() const noexcept {
+  return vertices_;
+}
+
+template <idx dim>
+typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const noexcept {
+  return elements_;
+}
+
+template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
+  AX_DCHECK(0 <= i && i < vertices_.size()) << "Index out of range.";
+  vertices_.col(i) = vertex;
 }
 
 }  // namespace ax::fem

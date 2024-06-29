@@ -105,7 +105,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
 
     if (available_history > 0) {
       // SECT: Limited Memory BFGS: Loop over history 1
-      AX_TIMEIT("Two Loop");
+      // AX_TIMEIT("Two Loop");
       for (idx i = available_history - 1; i >= 0; i--) {
         idx rotate_id = (iter + i) % available_history;
         auto const& si = S.col(rotate_id);

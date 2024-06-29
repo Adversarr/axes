@@ -37,28 +37,15 @@ template <idx dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices)
   vertices_ = vertices;
 }
 
-template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
-  AX_DCHECK(0 <= i && i < vertices_.size()) << "Index out of range.";
-  vertices_.col(i) = vertex;
-}
-
-template <idx dim>
-auto TriMesh<dim>::GetVertices() const noexcept -> TriMesh<dim>::vertex_list_t const& {
-  return vertices_;
-}
-
-template <idx dim>
-typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const noexcept {
-  return elements_;
-}
-
 template <idx dim> math::vecxr TriMesh<dim>::GetVerticesFlattened() const noexcept {
   math::vecxr vertices_flattened(vertices_.size());
-  for (idx i = 0; i < vertices_.cols(); ++i) {
-    for (idx j = 0; j < dim; ++j) {
-      vertices_flattened[i * dim + j] = vertices_(j, i);
-    }
-  }
+  // for (idx i = 0; i < vertices_.cols(); ++i) {
+  //   for (idx j = 0; j < dim; ++j) {
+  //     vertices_flattened[i * dim + j] = vertices_(j, i);
+  //   }
+  // }
+  size_t n_dof = static_cast<size_t>(vertices_.size());
+  memcpy(vertices_flattened.data(), vertices_.data(), n_dof * sizeof(real));
   return vertices_flattened;
 }
 
@@ -79,18 +66,6 @@ template <idx dim> void TriMesh<dim>::MarkDirichletBoundary(idx i, idx dof, cons
 template <idx dim> void TriMesh<dim>::ResetAllBoundaries() {
   boundary_values_.setZero(n_dof_per_vertex_, vertices_.cols());
   dirichlet_boundary_mask_.setOnes(n_dof_per_vertex_, vertices_.cols());
-}
-
-template <idx dim> real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
-  AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
-  return boundary_values_(dof, i);
-}
-
-template <idx dim> bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
-  AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
-  return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
 template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input,
@@ -147,8 +122,9 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
 
 template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool set_zero) const {
   if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
-    AX_LOG(ERROR) << "Invalid shape: " << inout.rows() << "x" << inout.cols() << " != "
-                  << dirichlet_boundary_mask_.rows() << "x" << dirichlet_boundary_mask_.cols();
+    AX_LOG(ERROR) << "Invalid shape: " << inout.rows() << "x" << inout.cols()
+                  << " != " << dirichlet_boundary_mask_.rows() << "x"
+                  << dirichlet_boundary_mask_.cols();
     throw std::invalid_argument("Invalid shape.");
   }
   inout.array() *= dirichlet_boundary_mask_.array();
@@ -158,27 +134,41 @@ template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool
 }
 
 template <idx dim> void TriMesh<dim>::FilterMatrixFull(math::spmatr& mat) const {
-  math::sp_coeff_list coo;
   for (idx i = 0; i < mat.outerSize(); ++i) {
     for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
-      coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
+      idx row_id = it.row() / n_dof_per_vertex_;
+      idx row_dof = it.row() % n_dof_per_vertex_;
+      idx col_id = it.col() / n_dof_per_vertex_;
+      idx col_dof = it.col() % n_dof_per_vertex_;
+      if (IsDirichletBoundary(row_id, row_dof) || IsDirichletBoundary(col_id, col_dof)) {
+        it.valueRef() = (it.row() == it.col()) ? 1 : 0;
+      }
     }
   }
-  math::sp_coeff_list coo_filtered;
-  FilterMatrixFull(coo, coo_filtered);
-  mat = math::make_sparse_matrix(dim * GetNumVertices(), dim * GetNumVertices(), coo_filtered);
+
+  mat.prune(0, 0);
 }
 
 template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::spmatr& mat) const {
-  math::sp_coeff_list coo;
+  // math::sp_coeff_list coo;
+  // for (idx i = 0; i < mat.outerSize(); ++i) {
+  //   for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
+  //     coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
+  //   }
+  // }
+  // math::sp_coeff_list coo_filtered;
+  // FilterMatrixDof(d, coo, coo_filtered);
+  // mat = math::make_sparse_matrix(GetNumVertices(), GetNumVertices(), coo_filtered);
+
   for (idx i = 0; i < mat.outerSize(); ++i) {
     for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
-      coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
+      if (IsDirichletBoundary(it.row(), d) || IsDirichletBoundary(it.col(), d)) {
+        it.valueRef() = (it.row() == it.col()) ? 1 : 0;
+      }
     }
   }
-  math::sp_coeff_list coo_filtered;
-  FilterMatrixDof(d, coo, coo_filtered);
-  mat = math::make_sparse_matrix(GetNumVertices(), GetNumVertices(), coo_filtered);
+
+  mat.prune(0, 0);
 }
 
 template <idx dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {

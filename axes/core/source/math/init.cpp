@@ -9,7 +9,7 @@ void init_parallel(int nT) {
 #ifdef AX_HAS_OPENMP
   AX_LOG(INFO) << "Initializing the Eigen Parallel";
   Eigen::initParallel();
-  Eigen::setNbThreads(nT > 0 ? nT : std::thread::hardware_concurrency());
+  Eigen::setNbThreads(nT > 0 ? nT : static_cast<int>(std::thread::hardware_concurrency()));
   AX_LOG(INFO) << "Eigen Parallel initialized with " << Eigen::nbThreads() << " threads.";
 #endif
 }

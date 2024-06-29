@@ -11,6 +11,7 @@
 #include "ax/components/name.hpp"
 #include "ax/core/echo.hpp"  // IWYU pragma: export
 #include "ax/core/init.hpp"
+#include "ax/utils/asset.hpp"
 #include "ax/math/linsys/sparse.hpp"
 #include "ax/math/sparse.hpp"
 
@@ -171,6 +172,13 @@ void bind_core_init(pybind11::module &m) {
         parser.finish();
         return parser.release().as_object();
       }))
+      .def("keys", [](boost::json::object &obj) {
+        std::vector<std::string> keys;
+        for (auto &kv : obj) {
+          keys.push_back(kv.key().data());
+        }
+        return keys;
+      })
       .def(py::init(&convert_dict_to_json))
       .def("__getitem__",
            [](boost::json::object &obj, std::string const &key) -> boost::json::value & {
@@ -281,6 +289,12 @@ void bind_core_init(pybind11::module &m) {
   m.add_object("_clean_up_automatic", py::capsule(&clean_up));
 }
 
+static void bind_utils(py::module & u) {
+  u.def("get_asset", &ax::utils::get_asset)
+   .def("get_root_dir", &ax::utils::get_root_dir)
+   .def("get_asset_dir", &ax::utils::get_asset_dir);
+}
+
 void bind_core_math(py::module &m) {
   /************************* SECT: sparse matrix manipulation *************************/
   using namespace ax;
@@ -336,6 +350,9 @@ void bind_core_math(py::module &m) {
 void bind_core_module(py::module &m) {
   bind_core_init(m);
   bind_core_math(m);
+
+  auto u = m.def_submodule("utils");
+  bind_utils(u);
 }
 
 }  // namespace axb

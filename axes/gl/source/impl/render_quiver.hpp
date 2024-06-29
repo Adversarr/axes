@@ -25,12 +25,12 @@ class QuiverRenderer final : public RenderBase {
 public:
   QuiverRenderer();
   virtual ~QuiverRenderer();
-  virtual Status TickRender();
-  virtual Status TickLogic();
+  virtual Status TickRender() override;
+  virtual Status TickLogic() override;
   void RenderGui() final;
-  virtual Status Erase(Entity entity);
-  virtual Status Setup();
-  virtual Status CleanUp();
+  virtual Status Erase(Entity entity) override;
+  virtual Status Setup() override;
+  virtual Status CleanUp() override;
 private:
   Program prog_;
 };

@@ -17,8 +17,10 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
   LinsysSolveResult Solve(vecxr const& b, vecxr const& x0) override;
-
   int FactorizeOnce();
+
+  void SetOptions(utils::Options const& opt) override;
+  utils::Options GetOptions() const override;
 
 private:
   struct Impl;

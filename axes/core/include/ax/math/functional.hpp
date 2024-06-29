@@ -46,7 +46,12 @@ AX_HOST_DEVICE AX_FORCE_INLINE Scalar radians(Scalar degree) {
     return std::op(x);                                              \
   }
 
-IMPLEMENT_UNARY_STL(abs)
+template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
+AX_HOST_DEVICE AX_FORCE_INLINE Scalar abs(Scalar x) {
+  return std::fabs(x);
+}
+
+
 IMPLEMENT_UNARY_STL(sin)
 IMPLEMENT_UNARY_STL(cos)
 IMPLEMENT_UNARY_STL(tan)

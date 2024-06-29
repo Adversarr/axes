@@ -14,6 +14,11 @@ static math::matr<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real 
       result(i, j) = E.Integrate_F_F(i, j) * density;
     }
   }
+
+  // NOTE: Make positive definite.
+  auto [eigen_vectors, eigen_values] = math::eig(result);
+  eigen_values = eigen_values.cwiseMax(0);
+  result = eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
   return result;
 }
 

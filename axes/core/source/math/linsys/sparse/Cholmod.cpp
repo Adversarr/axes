@@ -1,6 +1,7 @@
 #include "ax/math/linsys/sparse/Cholmod.hpp"
 
 #include <cholmod.h>
+#include "ax/utils/opt.hpp"
 
 namespace ax::math {
 
@@ -176,9 +177,9 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
   b_chol.dtype = CHOLMOD_DOUBLE;
   // cholmod_l_solve(CHOLMOD_A, impl_->factor, &b_chol, &impl_->common);
   cholmod_dense* result = nullptr;
-  auto& ywork = impl_->Ywork, &ework = impl_->Ework;
-  cholmod_l_solve2(CHOLMOD_A, impl_->factor, &b_chol, nullptr, 
-      &result, nullptr, &ywork, &ework, &impl_->common);
+  auto &ywork = impl_->Ywork, &ework = impl_->Ework;
+  cholmod_l_solve2(CHOLMOD_A, impl_->factor, &b_chol, nullptr, &result, nullptr, &ywork, &ework,
+                   &impl_->common);
 
   if (result == nullptr) {
     throw std::runtime_error("Cholmod::Solve Failed");
@@ -189,6 +190,28 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
   cholmod_l_free_dense(&result, &impl_->common);
   res.converged_ = true;
   return res;
+}
+
+void SparseSolver_Cholmod::SetOptions(utils::Options const& opt) {
+  auto [has_kind, kind] = utils::extract_enum<CholmodSupernodalKind>(opt, "supernodal_kind");
+  if (has_kind) {
+    if (! kind) {
+      throw std::invalid_argument("Cholmod::SetOptions: invalid supernodal_kind");
+    }
+    supernodal_kind_ = *kind;
+  }
+
+  AX_SYNC_OPT(opt, bool, verbose);
+  AX_SYNC_OPT(opt, bool, check);
+  SparseSolverBase::SetOptions(opt);
+}
+
+utils::Options SparseSolver_Cholmod::GetOptions() const {
+  utils::Options opt = SparseSolverBase::GetOptions();
+  opt["supernodal_kind"] = utils::reflect_name(supernodal_kind_).value();
+  opt["verbose"] = verbose_;
+  opt["check"] = check_;
+  return opt;
 }
 
 }  // namespace ax::math

@@ -3,7 +3,10 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 
+#include "ax/fem/laplace_matrix.hpp"
+#include "ax/fem/mass_matrix.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
+#include "ax/fem/timestepper/quasi_newton.hpp"
 
 namespace py = pybind11;
 using namespace ax;
@@ -13,10 +16,14 @@ namespace axb {
 void bind_naive_optim(py::module& m) {
   m.def(
       "make_timestepper_3d",
-      [](std::shared_ptr<TriMesh<3>> m) -> std::shared_ptr<TimeStepperBase<3>> {
-        return std::make_shared<Timestepper_NaiveOptim<3>>(m);
+      [](std::shared_ptr<TriMesh<3>> m, std::string name) -> std::shared_ptr<TimeStepperBase<3>> {
+        if (name == "quasi_newton") {
+          return std::make_unique<Timestepper_QuasiNewton<3>>(m);
+        } else {
+          return std::make_unique<Timestepper_NaiveOptim<3>>(m);
+        }
       },
-      py::arg("trimesh"));
+      py::arg("trimesh"), py::arg("method") = "naive_optim");
 
   m.def("make_mesh_3d",
         []() -> std::shared_ptr<TriMesh<3>> { return std::make_shared<TriMesh<3>>(); });
@@ -89,7 +96,37 @@ void bind_naive_optim(py::module& m) {
 
   tsb3.def("Energy", &TimeStepperBase<3>::Energy, py::arg("u"))
       .def("Gradient", &TimeStepperBase<3>::Gradient, py::arg("u"))
-      .def("Hessian", &TimeStepperBase<3>::Hessian, py::arg("u"), py::arg("project") = true);
+      .def("Hessian", &TimeStepperBase<3>::Hessian, py::arg("u"), py::arg("project") = true)
+      .def("GradientFlat", &TimeStepperBase<3>::GradientFlat, py::arg("u_flat"));
+
+  tsb3.def("GetLastTrajectory", &TimeStepperBase<3>::GetLastTrajectory)
+      .def("GetLastEnergy", &TimeStepperBase<3>::GetLastEnergy);
+
+  m.def("compute_mass_matrix_uniform", [](SPtr<TriMesh<3>> tm, real density) -> math::spmatr {
+    AX_THROW_IF_NULL(tm);
+    MassMatrixCompute<3> mmc(*tm);
+    return mmc(density);
+  });
+
+  m.def("compute_mass_matrix",
+        [](SPtr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+          AX_THROW_IF_NULL(tm);
+          MassMatrixCompute<3> mmc(*tm);
+          return mmc(density);
+        });
+
+  m.def("compute_laplace_matrix_uniform", [](SPtr<TriMesh<3>> tm, real density) -> math::spmatr {
+    AX_THROW_IF_NULL(tm);
+    LaplaceMatrixCompute<3> mmc(*tm);
+    return mmc(density);
+  });
+
+  m.def("compute_laplace_matrix",
+        [](SPtr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+          AX_THROW_IF_NULL(tm);
+          LaplaceMatrixCompute<3> mmc(*tm);
+          return mmc(density);
+        });
 }
 
 void bind_fem_module(py::module& m) {

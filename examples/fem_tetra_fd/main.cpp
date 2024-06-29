@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
   // Apply Random Rotation:
   // math::mat3r R = Eigen::AngleAxis(math::pi<> / 4, math::vec3r::UnitX()).toRotationMatrix();
   // original_vertices = R * original_vertices;
+  mesh->SetNumDofPerVertex(1);
   mesh->SetMesh(indices, original_vertices);
 
   // Elasticity and Deformation.
@@ -59,9 +60,17 @@ int main(int argc, char** argv) {
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
 
   // Compute Gradient by Finite Difference:
-  real e0 = elast.Energy(lame).sum();
-  auto stress = elast.GatherStress(elast.Stress(lame));  // There is, and only is one tetra
-  auto stiffness = elast.GatherHessian(elast.Hessian(lame)).toDense();
+  elast.Update(mesh->GetVertices(), kE);
+  elast.UpdateEnergy();
+  real e0 = elast.GetEnergyOnElements().sum();
+  elast.UpdateStress();
+  elast.GatherStressToVertices();
+  auto stress = elast.GetStressOnVertices();
+  // auto stiffness = elast.GatherHessian(elast.Hessian(lame)).toDense();
+  elast.UpdateHessian(false);
+  elast.GatherHessianToVertices();
+  auto stiffness = elast.GetHessianOnVertices().toDense();
+
   std::cout << "EnergyImpl: " << e0 << std::endl;  // Should be zero.
   std::cout << "StressImpl:\n" << stress << std::endl;
   std::cout << "=======================================================================\n"
@@ -74,7 +83,8 @@ int main(int argc, char** argv) {
         vertices_p(d, i) += delta_d;
         elast.Update(vertices_p, kE);
         // EnergyImpl:
-        real e_p = elast.Energy(lame).sum();
+        elast.UpdateEnergy();
+        real e_p = elast.GetEnergyOnElements().sum();
 
         // Compute the slope:
         real slope = (e_p - e0) / delta_d;
@@ -103,16 +113,19 @@ int main(int argc, char** argv) {
             math::fieldr<DIM> vertices_id = original_vertices;
             vertices_id(d, i) += delta_id;
             elast.Update(vertices_id, kE);
-            real e_id = elast.Energy(lame).sum();
+            elast.UpdateEnergy();
+            real e_id = elast.GetEnergyOnElements().sum();
             for (real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
               math::fieldr<DIM> vertices_id_jk = vertices_id;
               vertices_id_jk(k, j) += delta_jk;
               elast.Update(vertices_id_jk, kE);
-              real e_id_jk = elast.Energy(lame).sum();
+              elast.UpdateEnergy();
+              real e_id_jk = elast.GetEnergyOnElements().sum();
               math::fieldr<DIM> vertices_jk = original_vertices;
               vertices_jk(k, j) += delta_jk;
               elast.Update(vertices_jk, kE);
-              real e_jk = elast.Energy(lame).sum();
+              elast.UpdateEnergy();
+              real e_jk = elast.GetEnergyOnElements().sum();
               real hessian = (e_id_jk - e_id - e_jk + e0) / (delta_jk * delta_id);
               if (std::abs(hessian - stiffness(i * DIM + d, j * DIM + k)) < clothest) {
                 clothest = std::abs(hessian - stiffness(i * DIM + d, j * DIM + k));

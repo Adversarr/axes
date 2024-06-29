@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
   std::cout << "min z: " << vertices.row(2).minCoeff() << " max z: " << vertices.row(2).maxCoeff()
             << std::endl;
 
+  pmesh->SetNumDofPerVertex(1);
   pmesh->SetMesh(elements, vertices);
 
   for (auto const& i : dirichlet) {
@@ -128,7 +129,7 @@ int main(int argc, char** argv) {
     math::vec3r x2 = vertices.col(e[2]);
     math::vec3r x3 = vertices.col(e[3]);
     real volume = (x1 - x0).cross(x2 - x0).dot(x3 - x0);
-    volume = abs(volume) / 6.0;
+    volume = fabs(volume) / 6.0;
 
     for (auto const& i : e) {
       math::vec3r xi = vertices.col(i);

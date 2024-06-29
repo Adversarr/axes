@@ -86,6 +86,12 @@ public:
   virtual void EndTimestep(math::fieldr<dim> const &du);
   // Solve the timestep
   optim::OptProblem AssembleProblem() const;
+  void RecomputeInitialGuess(
+      math::fieldr<dim> const& u,
+      math::fieldr<dim> const& u_back,
+      math::fieldr<dim> const& velocity,
+      math::fieldr<dim> const& velocity_back,
+      math::fieldr<dim> const& ext_accel);
   math::fieldr<dim> const &GetInitialGuess() const { return du_inertia_; }
   math::fieldr<dim> const &GetSolution() const { return du_; }
   virtual void SolveTimestep();
@@ -143,8 +149,10 @@ protected:
   std::vector<real> last_energy_;
 
 private:
-  bool has_time_step_begin_;
-  bool has_initialized_;
+  UPtr<ElasticityComputeBase<dim>> elasticity_cpu_check_;
+  bool has_time_step_begin_{false};
+  bool has_initialized_{false};
+  bool check_with_cpu_{false};
 
   template <template <idx> class ElasticModelTemplate,
             template <idx, template <idx> class> class Compute = ElasticityCompute_CPU>

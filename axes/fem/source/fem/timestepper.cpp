@@ -140,8 +140,8 @@ void TimeStepperBase<dim>::SetupElasticity(std::string name, std::string device)
   DeclareElasticity("linear", elasticity::Linear);
   DeclareElasticity("isotropic_arap", elasticity::IsotropicARAP);
   DeclareElasticity("neohookean_bw", elasticity::NeoHookeanBW);
-  DeclareElasticity("stable_neohookean", elasticity::StableNeoHookean);
   DeclareElasticity("stvk", elasticity::StVK);
+  DeclareElasticity("stable_neohookean", elasticity::StableNeoHookean);
   throw InvalidArgument("Elasticity model" + name + " not found.");
 }
 
@@ -205,19 +205,20 @@ template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
   idx n_vert = mesh_->GetNumVertices();
 
   integration_scheme_->SetDeltaT(dt);
-  du_inertia_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
-                                                 velocity_back_, ext_accel_);
-  u_inertia_ = u_ + du_inertia_;
-  mesh_->FilterField(du_inertia_, true);
-  mesh_->FilterField(du_, true);
-  auto V = GetPosition();
-  // For the Dirichlet BCs in inertia term, directly set the displacement.
-  for (auto [i, d] : utils::multi_iota(n_vert, dim)) {
-    if (mesh_->IsDirichletBoundary(i, d)) {
-      du_inertia_(d, i) = mesh_->GetBoundaryValue(i, d) - V(d, i);
-    }
-  }
-  du_ = du_inertia_;
+  // du_inertia_ = integration_scheme_->Precomputed(mass_matrix_original_, u_, u_back_, velocity_,
+  //                                                velocity_back_, ext_accel_);
+  // u_inertia_ = u_ + du_inertia_;
+  // mesh_->FilterField(du_inertia_, true);
+  // mesh_->FilterField(du_, true);
+  // auto V = GetPosition();
+  // // For the Dirichlet BCs in inertia term, directly set the displacement.
+  // for (auto [i, d] : utils::multi_iota(n_vert, dim)) {
+  //   if (mesh_->IsDirichletBoundary(i, d)) {
+  //     du_inertia_(d, i) = mesh_->GetBoundaryValue(i, d) - V(d, i);
+  //   }
+  // }
+  // du_ = du_inertia_;
+  RecomputeInitialGuess(u_, u_back_, velocity_, velocity_back_, ext_accel_);
 
   // TODO: Lame parameters should be set uniformly or per element.
   elasticity_->SetLame(u_lame_);
@@ -287,7 +288,7 @@ math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u, bool proj
   elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
-  auto stiffness = elasticity_->GetHessianOnVertices();
+  auto const& stiffness = elasticity_->GetHessianOnVertices();
   auto H = integration_scheme_->ComposeHessian(mass_matrix_, stiffness);
   mesh_->FilterMatrixFull(H);
   return H;
@@ -305,7 +306,7 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
         return g;
       })
       .SetSparseHessian([&, n_vert](math::vecxr const& du) -> math::spmatr {
-        auto H = Hessian(du.reshaped(dim, n_vert) + u_);
+        auto H = Hessian(du.reshaped(dim, n_vert) + u_, true);
         return H;
       })
       .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {
@@ -323,11 +324,35 @@ template <idx dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() con
         self->last_trajectory_.clear();
         self->last_energy_.clear();
       }
-      self->last_trajectory_.push_back(x.reshaped(dim, mesh_->GetNumVertices()));
+      math::fieldr<dim> du = x.reshaped(dim, mesh_->GetNumVertices());
+      self->last_trajectory_.push_back(u_ + du);
       self->last_energy_.push_back(energy);
     });
   }
   return problem;
+}
+
+template <idx dim> void TimeStepperBase<dim>::RecomputeInitialGuess(math::fieldr<dim> const& u,
+                                                                    math::fieldr<dim> const& u_back,
+                                                                    math::fieldr<dim> const& velocity,
+                                                                    math::fieldr<dim> const& velocity_back,
+                                                                    math::fieldr<dim> const& ext_accel) {
+  idx n_vert = mesh_->GetNumVertices();
+  du_inertia_ = integration_scheme_->Precomputed(mass_matrix_original_, u, u_back, velocity,
+                                                 velocity_back, ext_accel);
+  u_inertia_ = u_ + du_inertia_;
+
+
+  mesh_->FilterField(du_inertia_, true);
+  mesh_->FilterField(du_, true);
+  auto V = GetPosition();
+  // For the Dirichlet BCs in inertia term, directly set the displacement.
+  for (auto [i, d] : utils::multi_iota(n_vert, dim)) {
+    if (mesh_->IsDirichletBoundary(i, d)) {
+      du_inertia_(d, i) = mesh_->GetBoundaryValue(i, d) - V(d, i);
+    }
+  }
+  du_ = du_inertia_;
 }
 
 template <idx dim> real TimeStepperBase<dim>::ResidualNorm(math::fieldr<dim> const& grad) const {

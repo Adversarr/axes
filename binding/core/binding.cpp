@@ -18,7 +18,9 @@
 namespace py = pybind11;
 using namespace ax;
 
-std::optional<boost::json::value> convert_to_value(py::handle const &src) {
+static boost::json::object convert_dict_to_json(py::dict const &dict);
+
+static std::optional<boost::json::value> convert_to_value(py::handle const &src) {
   /* Extract PyObject from handle */
   boost::json::value value;
   PyObject *source = src.ptr();
@@ -43,8 +45,29 @@ std::optional<boost::json::value> convert_to_value(py::handle const &src) {
     return value;
   }
   PyErr_Clear();
+
+  if (PyDict_Check(source)) {
+    return convert_dict_to_json(py::reinterpret_borrow<py::dict>(source));
+  }
+  PyErr_Clear();
+
   return std::nullopt;
 }
+
+static boost::json::object convert_dict_to_json(py::dict const &dict) {
+  boost::json::object obj;
+  for (auto [k, v] : dict) {
+    auto key = k.cast<std::string>();
+    auto val = convert_to_value(v);
+    if (val) {
+      obj[key] = *val;
+    } else {
+      throw std::runtime_error("Unsupported type in dict: " + key);
+    }
+  }
+  return obj;
+}
+
 
 namespace PYBIND11_NAMESPACE {
 namespace detail {
@@ -113,20 +136,6 @@ std::vector<char *> &convert_argv(std::vector<std::string> const &argv) {
 std::string get_default_float_type() { return "float64"; }
 
 std::string get_default_int_type() { return "int64"; }
-
-static boost::json::object convert_dict_to_json(py::dict const &dict) {
-  boost::json::object obj;
-  for (auto [k, v] : dict) {
-    auto key = k.cast<std::string>();
-    auto val = convert_to_value(v);
-    if (val) {
-      obj[key] = *val;
-    } else {
-      throw std::runtime_error("Unsupported type in dict: " + key);
-    }
-  }
-  return obj;
-}
 
 void bind_core_init(pybind11::module &m) {
   m.def("get_default_float_type", &get_default_float_type)

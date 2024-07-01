@@ -2,6 +2,7 @@
 
 #include <exception>
 
+#include "ax/core/entt.hpp"
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/utils/opt.hpp"
@@ -10,7 +11,9 @@ namespace ax::fem {
 
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Initialize());
-  solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
+  if (!solver_) {
+    solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
+  }
   AX_RETURN_OK();
 }
 
@@ -18,7 +21,8 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   this->integration_scheme_->SetDeltaT(dt_back_);
   const math::vec2r lame = this->u_lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
-  real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+  // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+  real lambda = lame[0], mu = lame[1];
   real W = 2 * mu + lambda;
   auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}();
   L *= W;
@@ -27,6 +31,18 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   this->mesh_->FilterMatrixFull(A);
   solver_->SetProblem(std::move(A)).Compute();
   // solver_->SetOptions({{"max_iter", 20}});
+}
+
+template <idx dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
+  this->integration_scheme_->SetDeltaT(dt_back_);
+  const math::vec2r lame = this->u_lame_;
+  real lambda = lame[0], mu = lame[1];
+  real W = 2 * mu + lambda;
+  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}();
+  L *= W;
+  auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
+  this->mesh_->FilterMatrixDof(0, full_laplacian);
+  return full_laplacian;
 }
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
@@ -54,11 +70,8 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep(real dt
     auto A = this->Hessian(this->du_inertia_);
     this->mesh_->FilterMatrixFull(A);
     solver_->SetProblem(std::move(A)).Compute();
-  } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {  // Test this idea:
-    auto A = this->Hessian(this->du_inertia_);
-    auto eigsys = math::eig(A.toDense());
-    eigvec = eigsys.first;
-    eigval = eigsys.second;
+  } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
+    AX_LOG_FIRST_N(INFO, 1) << "You are using the experimental mode!!!";
   }
 }
 
@@ -81,24 +94,43 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
           return std::move(approx.solution_);
         });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer_.SetApproxSolve([&](math::vecxr const &g, math::vecxr const &,
-                                  math::vecxr const &) -> math::vecxr {
-      // decompose g to eigensystem:
-      math::vecxr g_eig = eigvec.transpose() * g;
-      math::vecxr to_divide = eigval;
-      for (auto i = 0; i < to_divide.size(); ++i) {
-        // add a random positive number to test the robustness of the approximation.
-        auto &v = to_divide[i];
-        // real ratio = 0.65; // 30
-        // real ratio = std::lerp(0.1, 1, 1 - static_cast<real>(i) / to_divide.size()); // 39
-        real ratio
-            = std::lerp(0.3, 0.8, static_cast<real>(i) / to_divide.size());  // smaller, but similar
-        v *= std::pow(10, std::lerp(-ratio, ratio, std::rand() / (real)RAND_MAX));
-      }
-      math::vecxr approx_eig = g_eig.array() / to_divide.array();
-      math::vecxr ret = eigvec * approx_eig;
-      return ret;
-    });
+    optimizer_.SetApproxSolve(
+        [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
+          auto *cmpt = try_get_resource<SparseInverseApproximator>();
+          AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
+          auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
+            // compute At A x + delta * x
+            auto const &[A, delta, _] = *cmpt;
+            return A * (A.transpose() * v).eval() + delta * v;
+          };
+          if (sk.size() == 0 || yk.size() == 0) {
+            // First time called.
+            this->GetMesh()->FilterMatrixFull(cmpt->A_);
+            return apply(gk);
+          }
+
+          if (!(cmpt->require_check_secant_)) {
+            return apply(gk);
+          }
+
+          // NOTE: Our original implementation in python
+          // Hyk = self.apply_LDLT(y[-1])
+          // gamma_Hsy = np.dot(y[-1], s[-1]) / (np.dot(y[-1], Hyk) + epsilon)
+          // LDLT_q = self.apply_LDLT(q)
+          // r = gamma_Hsy * LDLT_q
+          // ---------------------------------------------------------------------
+          // Derivation: Estimiate the secant equation coefficient
+          // ---------------------------------------------------------------------
+          // 1. Traditional. Estimate the 1 rank approximation of H0.
+          // gamma_LSy = (np.dot(s[-1], y[-1]) / (np.dot(y[-1], y[-1]) + epsilon))
+          // print(f'LSy: {gamma_LSy}')
+          // 2. Ours. Estimate the approximation of H0, but with a different scale.
+          // Secant equation: yk = Hk * sk
+          //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
+          //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
+          real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
+          return gamma_Hsy * apply(gk);
+        });
   }
 
   auto problem = this->AssembleProblem();
@@ -109,6 +141,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
     AX_LOG(ERROR) << "Timestep solve failed: " << e.what();
     return;
   }
+
   // SECT: Check the convergency result.
   if (result.converged_grad_) {
     AX_LOG(INFO) << "LBFGS iteration converged: gradient";

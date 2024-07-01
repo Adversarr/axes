@@ -189,7 +189,8 @@ math::fieldr<dim> TimeStepperBase<dim>::GetElasticForce(math::fieldr<dim> const&
   return elasticity_->GetStressOnVertices();
 }
 
-template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real) {
+template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real dt) {
+  this->dt_ = dt;
   has_time_step_begin_ = false;
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
   AX_THROW_IF_NULLPTR(mesh_);
@@ -199,6 +200,7 @@ template <idx dim> void TimeStepperBase<dim>::BeginSimulation(real) {
 }
 
 template <idx dim> void TimeStepperBase<dim>::BeginTimestep(real dt) {
+  this->dt_ = dt;
   if (has_time_step_begin_) {
     throw LogicError("Timestep has already begun. Call EndTimestep before starting a new one.");
   }

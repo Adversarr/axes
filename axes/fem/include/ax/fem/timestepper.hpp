@@ -27,7 +27,7 @@ template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
   TimeStepperBase(SPtr<TriMesh<dim>> mesh);
-  AX_DECLARE_CONSTRUCTOR(TimeStepperBase, default, default);
+  AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
   virtual ~TimeStepperBase() = default;
 
   // Common Data Accessors

@@ -33,4 +33,5 @@ protected:
   LbfgsHessianApproximator approx_solve_;
 
 };
+
 }  // namespace ax::optim

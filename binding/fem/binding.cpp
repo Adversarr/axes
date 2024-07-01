@@ -3,6 +3,7 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 
+#include "ax/core/entt.hpp"
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/fem/mass_matrix.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
@@ -127,11 +128,71 @@ void bind_naive_optim(py::module& m) {
           LaplaceMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
+  m.def("yp_to_lame", [](real youngs, real poisson) -> math::vec2r {
+    return elasticity::compute_lame(youngs, poisson);
+  });
+}
+
+void bind_experiment(py::module& m) {
+  m.def("set_sparse_inverse_approximator",
+        [](math::spmatr A, real eig_modification, bool require_check_secant) {
+          auto &sia = ensure_resource<SparseInverseApproximator>();
+          sia.A_ = A;
+          sia.eig_modification_ = eig_modification;
+          sia.require_check_secant_ = require_check_secant;
+        });
+  m.def("apply_sparse_inverse_approximator",
+        [](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
+          auto* cmpt = try_get_resource<SparseInverseApproximator>();
+          AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
+          auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
+            // compute At A x + delta * x
+            auto const& [A, delta, _] = *cmpt;
+            return A * (A.transpose() * v).eval() + delta * v;
+          };
+          if (sk.size() == 0 || yk.size() == 0) {
+            // First time called.
+            return apply(gk);
+          }
+
+          if (!(cmpt->require_check_secant_)) {
+            return apply(gk);
+          }
+
+          // NOTE: Our original implementation in python
+          // Hyk = self.apply_LDLT(y[-1])
+          // gamma_Hsy = np.dot(y[-1], s[-1]) / (np.dot(y[-1], Hyk) + epsilon)
+          // LDLT_q = self.apply_LDLT(q)
+          // r = gamma_Hsy * LDLT_q
+          // ---------------------------------------------------------------------
+          // Derivation: Estimiate the secant equation coefficient
+          // ---------------------------------------------------------------------
+          // 1. Traditional. Estimate the 1 rank approximation of H0.
+          // gamma_LSy = (np.dot(s[-1], y[-1]) / (np.dot(y[-1], y[-1]) + epsilon))
+          // print(f'LSy: {gamma_LSy}')
+          // 2. Ours. Estimate the approximation of H0, but with a different scale.
+          // Secant equation: yk = Hk * sk
+          //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
+          //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
+          real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
+          AX_LOG(INFO) << "gamma_Hsy: " << gamma_Hsy;
+          return gamma_Hsy * apply(gk);
+        });
+
+  m.def("extract_hessian_inverse", [](SPtr<TimeStepperBase<3>> tsb) -> math::spmatr {
+      try {
+        auto * qn = dynamic_cast<Timestepper_QuasiNewton<3>*>(tsb.get());
+        return qn->GetLaplacianAsApproximation();
+      } catch (std::exception& e) {
+        throw std::runtime_error("Not a QuasiNewton timestepper!");
+      }
+  });
 }
 
 void bind_fem_module(py::module& m) {
   py::module fem = m.def_submodule("fem");
   bind_naive_optim(fem);
+  bind_experiment(fem);
 }
 
 }  // namespace axb

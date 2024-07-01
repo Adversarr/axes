@@ -36,7 +36,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
   math::vecxr grad = problem_.EvalGrad(x);
   real f_iter = problem_.EvalEnergy(x);
 
-  idx iter = 0;
+  idx iter = 0, history_in_use = 0;
   bool converged = false;
   bool converge_grad = false;
   bool converge_var = false;
@@ -84,7 +84,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
                     << "  grad: " << grad.transpose();
     }
 
-    AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns Infinite number!");
+    AX_THROW_IF_FALSE(math::isfinite(f_iter), "LBFGS: Energy function returns Infinite number!");
 
     // SECT: Check convergence
     converge_grad = problem_.HasConvergeGrad() && problem_.EvalConvergeGrad(x, grad) < tol_grad_;
@@ -98,7 +98,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
     // SECT: LBFGS Two Loop
     math::vecxr q = grad;
     math::vecxr r = q;
-    idx const available_history = std::min(iter, history_size_);
+    idx const available_history = std::min(history_in_use, history_size_);
     if (check_approx_quality) {
       sp_hessian = problem_.EvalSparseHessian(x);
     }
@@ -107,7 +107,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
       // SECT: Limited Memory BFGS: Loop over history 1
       // AX_TIMEIT("Two Loop");
       for (idx i = available_history - 1; i >= 0; i--) {
-        idx rotate_id = (iter + i) % available_history;
+        idx rotate_id = (history_in_use + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
         real rho_i = rho[rotate_id];
@@ -115,7 +115,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
         q.noalias() -= alpha_i * yi;
       }
       // SECT: Central step
-      idx rotate_id = (iter + available_history - 1) % available_history;
+      idx rotate_id = (history_in_use + available_history - 1) % available_history;
       auto const& sback = S.col(rotate_id);
       auto const& yback = Y.col(rotate_id);
       r = approx_solve_(q, sback, yback);
@@ -126,7 +126,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
 
       // SECT: Limited Memory BFGS: Loop over history 2
       for (idx i = 0; i < available_history; i++) {
-        idx rotate_id = (iter + i) % available_history;
+        idx rotate_id = (history_in_use + i) % available_history;
         auto const& si = S.col(rotate_id);
         auto const& yi = Y.col(rotate_id);
         real beta = rho[rotate_id] * yi.dot(r);
@@ -134,33 +134,51 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
       }
     } else if (approx_solve_) {
       r = approx_solve_(r, math::vecxr(), math::vecxr());
-
       if (check_approx_quality) {
         check_quality("Approx", q, r);
       }
     }
-
     if (check_approx_quality) {
       check_quality("Whole BFGS", q, r);
     }
-
     math::vecxr dir = -r;
 
-    AX_THROW_IF_TRUE(math::dot(dir, grad) >= real(0),
-                     "Direction is not descent: " + std::to_string(math::dot(dir, grad)));
-    // SECT: Line search
-    auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
+    real const d_dot_grad = math::dot(dir, grad);
+    AX_THROW_IF_TRUE(
+        d_dot_grad >= real(0),
+        "L-BFGS: Direction may not descent: value=" + std::to_string(math::dot(dir, grad))
+            + " log10=" + std::to_string(std::log10(d_dot_grad)) + " iter=" + std::to_string(iter));
 
-    s_new.noalias() = ls_result.x_opt_ - x;
-    g_new.noalias() = problem_.EvalGrad(ls_result.x_opt_);
+    // SECT: Line search
+    math::vecxr x_opt;
+    real f_opt;
+    try {
+      auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
+      x_opt = std::move(ls_result.x_opt_);
+      f_opt = ls_result.f_opt_;
+    } catch (...) {
+      std::throw_with_nested(std::runtime_error("LBFGS: Line search failed."));
+    }
+    s_new.noalias() = x_opt - x;
+    g_new.noalias() = problem_.EvalGrad(x_opt);
     y_new.noalias() = g_new - grad;
 
-    f_iter = ls_result.f_opt_;
+    f_iter = f_opt;
     std::swap(x, x_old);
-    x = std::move(ls_result.x_opt_);
+    x = std::move(x_opt);
     S.col(iter % history_size_) = s_new;
     Y.col(iter % history_size_) = y_new;
-    rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19);
+    real rho_current = (rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19));
+    if (rho_current <= 0) {
+      // Last History is not available, discard it in memory
+      AX_LOG(WARNING)
+          << "LBFGS: rho is not positive: " << rho_current << "history_in_use=" << history_in_use
+          << " the problem is too stiff or the inverse approximation is bad."
+          << " Consider use a better linesearch to guarantee the strong wolfe condition.";
+    } else {
+      // Last History is available.
+      history_in_use++;
+    }
     grad.swap(g_new);
     iter++;
   }

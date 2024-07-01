@@ -25,11 +25,21 @@ public:
 
   optim::Optimizer_Lbfgs& GetOptimizer() { return optimizer_; }
 
+  math::spmatr GetLaplacianAsApproximation() const;
+
 protected:
   real dt_back_ = -1;
   SPtr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_ = LbfgsStrategy::kNaive;
   optim::Optimizer_Lbfgs optimizer_;
+
+  math::spmatr static_inverse_approximation_;
+};
+
+struct SparseInverseApproximator {
+  math::spmatr A_;
+  real eig_modification_{0.};
+  bool require_check_secant_{false};
 };
 
 }  // namespace ax::fem

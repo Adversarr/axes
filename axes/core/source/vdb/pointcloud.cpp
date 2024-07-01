@@ -6,7 +6,7 @@ namespace ax::vdb {
 
 PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_per_voxel) {
   List<openvdb::Vec3R> positions;
-  positions.reserve(position.cols());
+  positions.reserve(static_cast<size_t>(position.cols()));
   for (auto p : math::each(position)) {
     positions.push_back(openvdb::Vec3R(p.x(), p.y(), p.z()));
   }
@@ -14,7 +14,7 @@ PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_p
 
   openvdb::points::PointAttributeVector<openvdb::Vec3R> position_wrapper(positions);
   if (voxel_size <= 0) {
-    voxel_size = openvdb::points::computeVoxelSize(position_wrapper, point_per_voxel);
+    voxel_size = openvdb::points::computeVoxelSize(position_wrapper, static_cast<uint32_t>(point_per_voxel));
     AX_LOG(INFO) << "Voxel Size: " << voxel_size;
   }
 
@@ -30,9 +30,9 @@ PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_p
 }
 
 Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r const& field) {
-  idx cnt = field.cols();
+  size_t cnt = static_cast<size_t>(field.cols());
   List<openvdb::Vec3R> values;
-  values.reserve(cnt);
+  values.reserve(static_cast<size_t>(cnt));
   for (auto v : math::each(field)) {
     values.push_back(openvdb::Vec3R(v.x(), v.y(), v.z()));
   }
@@ -54,7 +54,7 @@ Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r
 }
 
 Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3r const& field) {
-  idx cnt = field.cols();
+  size_t cnt = static_cast<size_t>(field.cols());
   List<openvdb::Vec3R> values;
   values.reserve(cnt);
   for (auto v : math::each(field)) {
@@ -79,7 +79,7 @@ Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3
 
 
 RealGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field1r const& field) {
-  idx cnt = field.cols();
+  size_t cnt = static_cast<size_t>(field.cols());
   List<real> values;
   values.reserve(cnt);
   for (auto v : math::each(field)) {

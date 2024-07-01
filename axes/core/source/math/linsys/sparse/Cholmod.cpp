@@ -85,9 +85,9 @@ void SparseSolver_Cholmod::AnalyzePattern() {
   idx const rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
   std::vector<idx> rowvec, colvec;
   std::vector<real> valvec;
-  rowvec.reserve((nnz - rows) / 2 + rows);
-  colvec.reserve((nnz - rows) / 2 + rows);
-  valvec.reserve((nnz - rows) / 2 + rows);
+  rowvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
+  colvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
+  valvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   for (idx i = 0; i < cols; ++i) {
     for (spmatr::InnerIterator it(A, i); it; ++it) {
       if (it.row() <= it.col()) {
@@ -99,8 +99,8 @@ void SparseSolver_Cholmod::AnalyzePattern() {
   }
 
   cholmod_triplet chol_trips;
-  chol_trips.nrow = rows;
-  chol_trips.ncol = cols;
+  chol_trips.nrow = static_cast<size_t>(rows);
+  chol_trips.ncol = static_cast<size_t>(cols);
   chol_trips.nnz = valvec.size();
   chol_trips.i = rowvec.data();
   chol_trips.j = colvec.data();
@@ -111,7 +111,7 @@ void SparseSolver_Cholmod::AnalyzePattern() {
   chol_trips.dtype = CHOLMOD_DOUBLE;
 
   // Transfer to cholmod_sparse
-  A_chol = cholmod_l_triplet_to_sparse(&chol_trips, nnz, &common);
+  A_chol = cholmod_l_triplet_to_sparse(&chol_trips, static_cast<size_t>(nnz), &common);
   if (check_) {
     cholmod_l_check_sparse(A_chol, &common);
   }
@@ -168,10 +168,10 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
   AX_THROW_IF_NULL(impl_->factor, "Factorize must be called before Solve");
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Solve");
   cholmod_dense b_chol;
-  b_chol.nrow = b.size();
+  b_chol.nrow = static_cast<size_t>(b.size());
   b_chol.ncol = 1;
-  b_chol.nzmax = b.size();
-  b_chol.d = b.size();
+  b_chol.nzmax = static_cast<size_t>(b.size());
+  b_chol.d = static_cast<size_t>(b.size());
   b_chol.x = const_cast<real*>(b.data());
   b_chol.xtype = CHOLMOD_REAL;
   b_chol.dtype = CHOLMOD_DOUBLE;
@@ -185,7 +185,7 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
     throw std::runtime_error("Cholmod::Solve Failed");
   }
 
-  LinsysSolveResult res(result->nrow);
+  LinsysSolveResult res(static_cast<idx>(result->nrow));
   memcpy(res.solution_.data(), result->x, result->nrow * sizeof(real));
   cholmod_l_free_dense(&result, &impl_->common);
   res.converged_ = true;

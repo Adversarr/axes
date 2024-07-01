@@ -2,7 +2,6 @@
 
 #include <fstream>
 
-#include "ax/utils/status.hpp"
 #include "ax/core/excepts.hpp"
 
 namespace ax::utils {
@@ -10,9 +9,13 @@ namespace ax::utils {
 List<char> load_istream_raw(std::istream& is) {
   List<char> buffer;
   is.seekg(0, std::ios::end);
-  buffer.resize(is.tellg());
+  auto end = is.tellg();
+  if (end <= 0) {
+    throw std::runtime_error("Failed to read file: end < 0");
+  }
+  buffer.resize(static_cast<size_t>(end));
   is.seekg(0, std::ios::beg);
-  is.read(buffer.data(), buffer.size());
+  is.read(buffer.data(), end);
   return buffer;
 }
 

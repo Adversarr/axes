@@ -77,11 +77,11 @@ Status write_npy_v10(std::ostream& out, const real* p, size_t write_length, size
   }
   header_stream << ")}";
   std::string header = header_stream.str();
-  header_len = header.length();
+  header_len = static_cast<uint16_t>(header.length());
 
   out.write(reinterpret_cast<char*>(&header_len), 2);
   out.write(header.c_str(), header_len);
-  out.write(reinterpret_cast<const char*>(p), write_length * sizeof(real));
+  out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(real)));
 
   if (!out.good()) {
     return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
@@ -117,11 +117,11 @@ Status write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_
   }
   header_stream << ")}";
   std::string header = header_stream.str();
-  header_len = header.length();
+  header_len = static_cast<uint16_t>(header.length());
 
   out.write(reinterpret_cast<char*>(&header_len), 2);
   out.write(header.c_str(), header_len);
-  out.write(reinterpret_cast<const char*>(p), write_length * sizeof(idx));
+  out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(idx)));
 
   if (!out.good()) {
     return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
@@ -135,7 +135,7 @@ Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec) {
     return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
   }
 
-  return write_npy_v10(out, vec.data(), vec.size(), 0, 0, vec.size());
+  return write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0, static_cast<size_t>(vec.size()));
 }
 
 Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
@@ -145,14 +145,15 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
   }
 
   List<real> data;
-  data.reserve(mat.cols() * mat.rows());
+  data.reserve(static_cast<size_t>(mat.cols() * mat.rows()));
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {
       data.push_back(mat(j, i));
     }
   }
 
-  return write_npy_v10(out, data.data(), mat.size(), 0, mat.rows(), mat.cols());
+  return write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
+                       static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
 }
 
 Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
@@ -162,14 +163,15 @@ Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
   }
 
   List<idx> data;
-  data.reserve(mat.cols() * mat.rows());
+  data.reserve(static_cast<size_t>(mat.cols() * mat.rows()));
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {
       data.push_back(mat(j, i));
     }
   }
 
-  return write_npy_v10(out, data.data(), mat.size(), 0, mat.rows(), mat.cols());
+  return write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
+                       static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
 }
 
 struct Header {
@@ -187,7 +189,7 @@ struct Header {
     auto consume_until = [&ss](char target) -> bool {
       char c;
       bool status = false;
-      while ((status = (bool)(ss >> c))) {
+      while ((status = static_cast<bool>(ss >> c))) {
         if (c == target) {
           break;
         }
@@ -198,11 +200,11 @@ struct Header {
       return utils::InvalidArgumentError("The header is not a valid dictionary.");
     }
 
-    while (ss >> c) {
+    while ((ss >> c)) {
       std::string key;
       std::string val;
       if (c == '\'') {
-        while (ss >> c) {
+        while ((ss >> c)) {
           if (c == '\'') {
             break;
           }
@@ -346,7 +348,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           float val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (real)val;
+          mat(j, i) = static_cast<real>(val);
         }
       }
     } else {
@@ -354,7 +356,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (idx i = 0; i < cols; ++i) {
           float val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (real)val;
+          mat(j, i) = static_cast<real>(val);
         }
       }
     }
@@ -364,7 +366,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           double val;
           in.read(reinterpret_cast<char*>(&val), 8);
-          mat(j, i) = (real)val;
+          mat(j, i) = static_cast<real>(val);
         }
       }
     } else {
@@ -374,7 +376,7 @@ math::matxxr read_npy_v10_real(std::string path) {
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
             throw RuntimeError("Invalid npy file.");
           }
-          mat(j, i) = (real)val;
+          mat(j, i) = static_cast<real>(val);
         }
       }
     }
@@ -437,7 +439,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           int val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (idx)val;
+          mat(j, i) = static_cast<idx>(val);
         }
       }
     } else {
@@ -445,7 +447,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
         for (idx i = 0; i < cols; ++i) {
           int val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = (idx)val;
+          mat(j, i) = static_cast<idx>(val);
         }
       }
     }
@@ -455,7 +457,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
         for (idx j = 0; j < rows; ++j) {
           int64_t val;
           in.read(reinterpret_cast<char*>(&val), 8);
-          mat(j, i) = (idx)val;
+          mat(j, i) = static_cast<idx>(val);
         }
       }
     } else {
@@ -465,7 +467,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
             throw RuntimeError("Invalid npy file.");
           }
-          mat(j, i) = (idx)val;
+          mat(j, i) = static_cast<idx>(val);
         }
       }
     }
@@ -538,7 +540,7 @@ spmatr read_sparse_matrix(std::string path) {
     throw RuntimeError("The file is not a valid MatrixMarket file.");
   }
   sp_coeff_list triplets;
-  triplets.reserve(nonzeros);
+  triplets.reserve(static_cast<size_t>(nonzeros));
   for (int i = 0; i < nonzeros; ++i) {
     if (!in.getline(line, 1024)) {
       throw RuntimeError("The file is not a valid MatrixMarket file.");

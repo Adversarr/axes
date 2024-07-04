@@ -109,7 +109,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
     TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose) {
   DeformationGradientCache<dim> cache;
   idx n_elem = mesh.GetNumElements();
-  cache.resize(n_elem);
+  cache.resize(static_cast<size_t>(n_elem));
 
   for (idx i = 0; i < n_elem; ++i) {
     matr<dim, dim> rest_local;
@@ -118,7 +118,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
     for (idx I = 1; I <= dim; ++I) {
       rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
     }
-    cache[i] = rest_local.inverse();
+    cache[static_cast<size_t>(i)] = rest_local.inverse();
   }
   if (!check_cache<dim>(cache)) {
     AX_LOG(ERROR) << "Mesh Cache computation failed! Please check the input mesh.";
@@ -130,19 +130,20 @@ template <idx dim>
 static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
                                           DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
-  DeformationGradientList<dim> dg(n_elem);
+  DeformationGradientList<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
   tbb::parallel_for(
       tbb::blocked_range<idx>(0, n_elem, 50000 / (dim * dim)),
       [&](tbb::blocked_range<idx> const& r) {
         for (idx i = r.begin(); i < r.end(); ++i) {
+          size_t const si = static_cast<size_t>(i);
           math::matr<dim, dim> Ds;
           math::veci<dim + 1> element = mesh.GetElement(i);
           math::vecr<dim> local_zero = pose.col(element.x());
           for (idx I = 1; I <= dim; ++I) {
             Ds.col(I - 1) = pose.col(element[I]) - local_zero;
           }
-          dg[i] = Ds * Dm_inv[i];
+          dg[si] = Ds * Dm_inv[si];
         }
       },
       ap);
@@ -160,8 +161,8 @@ typename TriMesh<dim>::vertex_list_t dg_tsv_p1(TriMesh<dim> const& mesh,
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {
     // For P1 Element, the force on is easy to compute.
     const auto& ijk = mesh.GetElement(i);
-    const auto& stress_i = stress[i];
-    math::matr<dim, dim> R = cache[i];
+    const auto& stress_i = stress[static_cast<size_t>(i)];
+    math::matr<dim, dim> R = cache[static_cast<size_t>(i)];
     math::matr<dim, dim> f123 = stress_i * R.transpose();
     for (idx I = 1; I <= dim; ++I) {
       result.col(ijk[I]) += f123.col(I - 1);
@@ -176,21 +177,24 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
                               List<elasticity::HessianTensor<dim>> const& hessian,
                               DeformationGradientCache<dim> const& cache) {
   math::sp_coeff_list coo;
-  coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
-  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(mesh.GetNumElements());
+  size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
+  size_t nE = static_cast<size_t>(mesh.GetNumElements());
+  coo.reserve(total);
+  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(nE);
   tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
                     [&](tbb::blocked_range<idx> const& r) {
                       for (idx i = r.begin(); i < r.end(); ++i) {
-                        const auto& H_i = hessian[i];
-                        math::matr<dim, dim> R = cache[i];
+                        size_t si = static_cast<size_t>(i);
+                        const auto& H_i = hessian[si];
+                        math::matr<dim, dim> R = cache[si];
                         math::matr<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
-                        per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+                        per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
                       }
                     });
 
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {
     const auto& ijk = mesh.GetElement(i);
-    const auto& H = per_element_hessian[i];
+    const auto& H = per_element_hessian[static_cast<size_t>(i)];
     for (auto [I, J, Di, Dj] : utils::multi_iota(dim + 1, dim + 1, dim, dim)) {
       idx i_idx = ijk[I];
       idx j_idx = ijk[J];
@@ -223,7 +227,7 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
   for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
-    real v = coef / math::det(deformation_gradient_cache_[i]);
+    real v = coef / math::det(deformation_gradient_cache_[static_cast<size_t>(i)]);
     if (v < 0) {
       AX_LOG(WARNING) << "Negative Volume detected!" << i << ": "
                       << mesh_.GetElement(i).transpose();
@@ -262,7 +266,7 @@ template <idx dim> math::field1r dg_tev_p1(TriMesh<dim> const& mesh_, math::fiel
 
 template <idx dim> math::field1r Deformation<dim>::EnergyToVertices(math::field1r const& e) const {
   idx n_element = mesh_.GetNumElements();
-  size_t e_size = e.size();
+  size_t e_size = static_cast<size_t>(e.size());
   AX_CHECK_EQ(e_size, n_element) << "#energy != #element";
   return dg_tev_p1<dim>(mesh_, e);
 }

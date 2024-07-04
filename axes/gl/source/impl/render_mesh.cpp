@@ -117,7 +117,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   use_global_model_ = mesh.use_global_model_;
   AX_CHECK(mesh.colors_.cols() >= mesh.vertices_.cols());
   /****************************** Prepare Buffer Data ******************************/
-  vertices_.reserve(mesh.vertices_.size());
+  vertices_.reserve(static_cast<size_t>(mesh.vertices_.size()));
   auto normals = mesh.normals_;
   if (normals.cols() < mesh.vertices_.cols()) {
     AX_DLOG(WARNING) << "Mesh Normal not set. Compute automatically";
@@ -135,7 +135,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
     vertices_.push_back(vertex);
   }
 
-  indices_.reserve(mesh.indices_.size());
+  indices_.reserve(static_cast<size_t>(mesh.indices_.size()));
   for (idx i = 0; i < mesh.indices_.cols(); i++) {
     auto index = mesh.indices_.col(i);
     indices_.push_back(math::cast<ui32>(index.x()));
@@ -145,7 +145,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
 
   if (mesh.instance_offset_.cols() > 0) {
     AX_CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
-    instances_.reserve(mesh.instance_offset_.size());
+    instances_.reserve(static_cast<size_t>(mesh.instance_offset_.size()));
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);

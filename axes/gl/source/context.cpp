@@ -182,8 +182,8 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       auto up = camera_.GetUp();
       auto right = camera_.GetRight();
 
-      math::mat3f rx = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
-      math::mat3f ry = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
+      math::mat3f rx = Eigen::AngleAxis<f32>(static_cast<f32>(dy), right).toRotationMatrix();
+      math::mat3f ry = Eigen::AngleAxis<f32>(static_cast<f32>(-dx), up).toRotationMatrix();
 
       model_.topLeftCorner<3, 3>() *= (rx * ry).cast<f32>();
 
@@ -311,15 +311,16 @@ Context::Context() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
-  AX_CHECK(ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)impl_->window_.GetWindowInternal(), true))
+  AX_CHECK(ImGui_ImplGlfw_InitForOpenGL(
+      static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true))
       << "Failed to Initialize ImGUI_GLFW";
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
   AX_CHECK(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG)) << "Failed to Initialize ImGUI_OpenGL3";
   auto fb_scale = impl_->window_.GetFrameBufferScale();
-  ImGui::GetIO().DisplayFramebufferScale.x = fb_scale.x();
-  ImGui::GetIO().DisplayFramebufferScale.y = fb_scale.y();
+  ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
+  ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
 
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());

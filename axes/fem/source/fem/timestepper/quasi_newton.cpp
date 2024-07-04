@@ -100,7 +100,9 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
           AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
           auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
             // compute At A x + delta * x
-            auto const &[A, delta, _] = *cmpt;
+            // auto const &[A, delta, _] = *cmpt;
+            auto const& A = cmpt->A_;
+            auto const& delta = cmpt->eig_modification_;
             return A * (A.transpose() * v).eval() + delta * v;
           };
           if (sk.size() == 0 || yk.size() == 0) {

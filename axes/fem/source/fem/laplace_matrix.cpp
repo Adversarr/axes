@@ -6,7 +6,8 @@ namespace ax::fem {
 
 template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
   math::sp_coeff_list l_coef;
-  l_coef.reserve(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
+  auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
+  l_coef.reserve(total);
   idx nE = mesh_.GetNumElements();
   for (idx i = 0; i < nE; ++i) {
     math::veci<dim + 1> elem = mesh_.GetElement(i);
@@ -51,13 +52,14 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
 
 template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::field1r const& W) {
   math::sp_coeff_list l_coef;
-  l_coef.reserve(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
+  auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
+  l_coef.reserve(total);
   idx nE = mesh_.GetNumElements();
   for (idx iElem = 0; iElem < nE; ++iElem) {
     math::veci<dim + 1> elem = mesh_.GetElement(iElem);
     std::array<math::vecr<dim>, dim + 1> vert;
     for (idx i = 0; i <= dim; ++i) {
-      vert[i] = mesh_.GetVertex(elem[i]);
+      vert[static_cast<size_t>(i)] = mesh_.GetVertex(elem[i]);
     }
     elements::P1Element<dim> E(vert);
     for (idx i = 0; i <= dim; ++i) {

@@ -88,7 +88,7 @@ Status QuiverRenderer::CleanUp() {
 }
 
 QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
-  vertices_.resize(quiver.positions_.cols() * 2);
+  vertices_.resize(static_cast<size_t>(quiver.positions_.cols() * 2));
   for (auto i = 0; i < quiver.positions_.cols(); ++i) {
     auto position = quiver.positions_.col(i);
     auto color = quiver.colors_.col(i);
@@ -98,12 +98,13 @@ QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
     }
     auto end = position + direction * quiver.scale_;
 
-    vertices_[i * 2].position_ = glm::vec3(position.x(), position.y(), position.z());
-    vertices_[i * 2].color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+    size_t cur = static_cast<size_t>(i * 2), cur_next = static_cast<size_t>(i * 2 + 1);
+    vertices_[cur].position_ = glm::vec3(position.x(), position.y(), position.z());
+    vertices_[cur].color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
 
-    vertices_[i * 2 + 1].position_ = glm::vec3(end.x(), end.y(), end.z());
-    vertices_[i * 2 + 1].color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
-    vertices_[i * 2 + 1].color_ *= quiver.head_ratio_;
+    vertices_[cur_next].position_ = glm::vec3(end.x(), end.y(), end.z());
+    vertices_[cur_next].color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
+    vertices_[cur_next].color_ *= quiver.head_ratio_;
   }
 
   AX_ASSIGN_OR_DIE(vao, Vao::Create());
@@ -134,11 +135,11 @@ QuiverRenderData::~QuiverRenderData() {}
 void QuiverRenderer::RenderGui() {
   if (ImGui::TreeNode("QuiverRenderer")) {
     for (auto [ent, quiver] : view_component<QuiverRenderData>().each()) {
-      ImGui::PushID(entt::to_integral(ent));
+      ImGui::PushID(static_cast<int>(entt::to_integral(ent)));
       ImGui::Checkbox("Enable", &quiver.enable_);
       ImGui::PopID();
       ImGui::SameLine();
-      ImGui::Text("Entity: %d, #v=%ld", entt::to_integral(ent), quiver.vertices_.size());
+      ImGui::Text("Entity: %d, #v=%ld", static_cast<int>(entt::to_integral(ent)), quiver.vertices_.size());
 
       auto* name = try_get_component<cmpt::Name>(ent);
       if (name != nullptr) {

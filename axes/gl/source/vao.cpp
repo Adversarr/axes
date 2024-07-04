@@ -81,12 +81,12 @@ Buffer& Vao::GetIndexBuffer() { return index_buffer_; }
 
 Buffer& Vao::GetInstanceBuffer() { return instance_buffer_; }
 
-Status Vao::DrawArrays(PrimitiveType type, int first, int count) {
+Status Vao::DrawArrays(PrimitiveType type, size_t first, size_t count) {
   AXGL_CALLR(glDrawArrays(static_cast<GLenum>(type), first, count));
   AX_RETURN_OK();
 }
 
-Status Vao::DrawElements(PrimitiveType type, int count, Type index_type, int offset) {
+Status Vao::DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset) {
   if (!index_buffer_) {
     return utils::InvalidArgumentError("Index buffer is not set");
   }
@@ -95,8 +95,8 @@ Status Vao::DrawElements(PrimitiveType type, int count, Type index_type, int off
   AX_RETURN_OK();
 }
 
-Status Vao::DrawElementsInstanced(PrimitiveType type, int count, Type index_type, int offset,
-                                  int instance_count) {
+Status Vao::DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
+                                  size_t instance_count) {
   if (!index_buffer_) {
     return utils::InvalidArgumentError("Index buffer is not set");
   }

@@ -40,10 +40,10 @@ public:
 
   /****************************** Draw Calls ******************************/
 
-  Status DrawArrays(PrimitiveType type, int first, int count);
-  Status DrawElements(PrimitiveType type, int count, Type index_type, int offset);
-  Status DrawElementsInstanced(PrimitiveType type, int count, Type index_type, int offset,
-                               int instance_count);
+  Status DrawArrays(PrimitiveType type, size_t first, size_t count);
+  Status DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset);
+  Status DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
+                               size_t instance_count);
 
 private:
   Buffer index_buffer_;

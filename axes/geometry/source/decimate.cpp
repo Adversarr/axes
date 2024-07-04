@@ -16,7 +16,7 @@ struct EdgeCollapseCost {
 MeshDecimator::MeshDecimator(HalfedgeMesh* mesh) : mesh_(mesh), target_count_(mesh->NVertices()) {}
 
 MeshDecimator& MeshDecimator::SetRatio(real ratio) {
-  return SetTargetCount(ratio * real(mesh_->NVertices()));
+  return SetTargetCount(static_cast<idx>(ratio * real(mesh_->NVertices())));
 }
 
 MeshDecimator& MeshDecimator::SetTargetCount(idx count) {

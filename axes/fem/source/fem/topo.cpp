@@ -23,11 +23,12 @@ std::pair<List<idx>, List<idx>> optimize_topology(math::fieldi<dim + 1> const& t
 
   // Create a graph from the topology.
 
-  Graph G(n_vert);
+  Graph G(static_cast<size_t>(n_vert));
   for (auto const& elem : math::each(topo)) {
     for (idx i = 0; i < dim + 1; i++) {
       for (idx j = i + 1; j < dim + 1; j++) {
-        boost::add_edge(elem(i), elem(j), G);
+        size_t ei = static_cast<size_t>(elem(i)), ej = static_cast<size_t>(elem(j));
+        boost::add_edge(ei, ej, G);
       }
     }
   }
@@ -35,7 +36,9 @@ std::pair<List<idx>, List<idx>> optimize_topology(math::fieldi<dim + 1> const& t
   graph_traits<Graph>::vertex_iterator ui, ui_end;
 
   property_map<Graph, vertex_degree_t>::type deg = get(vertex_degree, G);
-  for (boost::tie(ui, ui_end) = vertices(G); ui != ui_end; ++ui) deg[*ui] = degree(*ui, G);
+  for (boost::tie(ui, ui_end) = vertices(G); ui != ui_end; ++ui) {
+    deg[*ui] = degree(*ui, G);
+  }
 
   property_map<Graph, vertex_index_t>::type index_map = get(vertex_index, G);
 

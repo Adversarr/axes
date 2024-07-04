@@ -17,13 +17,13 @@ void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& 
 
   idx nV = GetNumVertices(), nE = GetNumElements();
   v_e_map_.clear();
-  v_e_map_.resize(nV);
+  v_e_map_.resize(static_cast<size_t>(nV));
   for (idx i = 0; i < nE; ++i) {
     auto const& ijk = GetElement(i);
     for (idx d = 0; d < dim + 1; ++d) {
       auto iV = ijk[d];
       ElementPositionPair en_pair{i, d};
-      v_e_map_[iV].push_back(en_pair);
+      v_e_map_[static_cast<size_t>(iV)].push_back(en_pair);
     }
   }
 
@@ -196,12 +196,12 @@ template <idx dim> void TriMesh<dim>::ApplyPermutation(std::vector<idx> const& p
   vertex_list_t vertices_new(vertices_.rows(), vertices_.cols());
   for (idx i = 0; i < elements_.cols(); ++i) {
     for (idx j = 0; j < elements_.rows(); ++j) {
-      elements_new(j, i) = perm[elements_(j, i)];
+      elements_new(j, i) = perm[static_cast<size_t>(elements_(j, i))];
     }
   }
   for (idx i = 0; i < vertices_.cols(); ++i) {
     for (idx j = 0; j < vertices_.rows(); ++j) {
-      vertices_new(j, i) = vertices_(j, inverse_perm[i]);
+      vertices_new(j, i) = vertices_(j, inverse_perm[static_cast<size_t>(i)]);
     }
   }
   SetMesh(elements_new, vertices_new);

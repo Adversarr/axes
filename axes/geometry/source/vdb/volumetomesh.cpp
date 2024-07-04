@@ -7,7 +7,7 @@ namespace ax::vdb {
 struct VolumeToMesh::Impl {
   openvdb::tools::VolumeToMesh algo_;
   Impl(real isovalue, real adaptivity, bool relaxDisorientedTriangles)
-      : algo_(isovalue, adaptivity, relaxDisorientedTriangles){};
+      : algo_(isovalue, adaptivity, relaxDisorientedTriangles) {};
 };
 
 VolumeToMesh::VolumeToMesh(real isovalue, real adaptivity, bool relaxDisorientedTriangles) {
@@ -42,12 +42,13 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
 
   math::field3r vertices(3, points.size());
   for (size_t i = 0; i < points.size(); ++i) {
-    vertices.col(i) = math::vec3r(points[i].x(), points[i].y(), points[i].z());
+    vertices.col(static_cast<idx>(i)) = math::vec3r(points[i].x(), points[i].y(), points[i].z());
   }
 
   math::field3i indices(3, triangles.size());
   for (size_t i = 0; i < triangles.size(); ++i) {
-    indices.col(i) = math::vec3i(triangles[i].x(), triangles[i].y(), triangles[i].z());
+    indices.col(static_cast<idx>(i))
+        = math::vec3i(triangles[i].x(), triangles[i].y(), triangles[i].z());
   }
 
   return {vertices, indices};

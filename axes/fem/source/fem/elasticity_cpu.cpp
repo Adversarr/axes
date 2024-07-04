@@ -217,7 +217,7 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
 }
 
 template <idx dim> ElasticityComputeBase<dim>::ElasticityComputeBase(SPtr<TriMesh<dim>> mesh)
-    : mesh_(mesh), rinv_(mesh->GetNumElements()) {}
+    : mesh_(mesh), rinv_(static_cast<size_t>(mesh->GetNumElements())) {}
 
 template <idx dim> void ElasticityComputeBase<dim>::SetMesh(const MeshPtr& mesh) {
   this->mesh_ = mesh;
@@ -231,9 +231,9 @@ template <idx dim> void ElasticityComputeBase<dim>::RecomputeRestPose() {
 
   energy_on_elements_.resize(1, n_elem);
   energy_on_vertices_.resize(1, n_vert);
-  stress_on_elements_.resize(n_elem);
+  stress_on_elements_.resize(static_cast<size_t>(n_elem));
   stress_on_vertices_.resize(dim, n_vert);
-  hessian_on_elements_.resize(n_elem);
+  hessian_on_elements_.resize(static_cast<size_t>(n_elem));
 }
 
 template <idx dim> void ElasticityComputeBase<dim>::SetLame(math::vec2r const& u_lame) {
@@ -262,9 +262,10 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
         ElasticModel model;
         math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
-          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          auto si = static_cast<size_t>(i);
+          elasticity::DeformationGradient<dim> const& F = dg_l[si];
           model.SetLame(this->lame_.col(i));
-          element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[i] : tomb)
+          element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[si] : tomb)
                               * this->rest_volume_(i);
         }
       },
@@ -284,10 +285,11 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
         ElasticModel model;
         math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
-          elasticity::DeformationGradient<dim> const& F = dg_l[i];
+          size_t si = static_cast<size_t>(i);
+          elasticity::DeformationGradient<dim> const& F = dg_l[si];
           model.SetLame(lame.col(i));
-          stress[i] = model.Stress(F, stress_requires_svd ? this->svd_results_[i] : tomb)
-                      * this->rest_volume_(i);
+          stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si] : tomb)
+                       * this->rest_volume_(i);
         }
       },
       this->partitioner_impl_->s_ap);
@@ -306,12 +308,13 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
         ElasticModel model;
         math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
+          size_t si = static_cast<size_t>(i);
           model.SetLame(lame.col(i));
-          elasticity::DeformationGradient<dim> const& F = dg_l[i];
-          hessian[i] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[i]) : tomb)
+          elasticity::DeformationGradient<dim> const& F = dg_l[si];
+          hessian[si] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[si]) : tomb)
                        * this->rest_volume_(i);
           if (projection) {
-            hessian[i] = optim::project_spd_by_eigvals<dim * dim>(hessian[i], 1e-4);
+            hessian[si] = optim::project_spd_by_eigvals<dim * dim>(hessian[si], 1e-4);
           }
         }
       },
@@ -343,9 +346,10 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherStressToVertices() 
   // TODO: With Vertex->Element Map, the parallel is possible.
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {
     // For P1 Element, the force on is easy to compute.
+    auto const si = static_cast<size_t>(i);
     const auto& ijk = mesh.GetElement(i);
-    const auto& stress_i = stress[i];
-    math::matr<dim, dim> R = cache[i];
+    const auto& stress_i = stress[static_cast<size_t>(si)];
+    math::matr<dim, dim> R = cache[static_cast<size_t>(si)];
     math::matr<dim, dim> f123 = stress_i * R.transpose();
     for (idx I = 1; I <= dim; ++I) {
       result.col(ijk[I]) += f123.col(I - 1);
@@ -361,21 +365,24 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
   auto const& mesh = *(this->mesh_);
   auto const& cache = this->rinv_;
   auto const& hessian = this->hessian_on_elements_;
-  coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
-  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(mesh.GetNumElements());
+  size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
+  size_t nE = static_cast<size_t>(mesh.GetNumElements());
+  coo.reserve(total);
+  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(nE);
   tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
                     [&](tbb::blocked_range<idx> const& r) {
                       for (idx i = r.begin(); i < r.end(); ++i) {
-                        const auto& H_i = hessian[i];
-                        math::matr<dim, dim> R = cache[i];
+                        size_t const si = static_cast<size_t>(i);
+                        const auto& H_i = hessian[si];
+                        math::matr<dim, dim> R = cache[si];
                         math::matr<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
-                        per_element_hessian[i] = pfpx.transpose() * H_i * pfpx;
+                        per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
                       }
                     });
 
   for (idx i = 0; i < mesh.GetNumElements(); ++i) {
     const auto& ijk = mesh.GetElement(i);
-    const auto& H = per_element_hessian[i];
+    const auto& H = per_element_hessian[static_cast<size_t>(i)];
     for (auto [I, J, Di, Dj] : utils::multi_iota(dim + 1, dim + 1, dim, dim)) {
       idx i_idx = ijk[I];
       idx j_idx = ijk[J];
@@ -396,8 +403,8 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
   idx const n_elem = this->mesh_->GetNumElements();
   auto& dg_l = this->deformation_gradient_;
   auto& svd_results_ = this->svd_results_;
-  dg_l.resize(n_elem);
-  svd_results_.resize(n_elem);
+  dg_l.resize(static_cast<size_t>(n_elem));
+  svd_results_.resize(static_cast<size_t>(n_elem));
   bool const need_svd
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)
         || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::kStress)
@@ -408,16 +415,17 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
       [&](const tbb::blocked_range<idx>& r) {
         AX_FEM_COMPUTE_SVD_ALGORITHM<dim, real> svd;
         for (idx i = r.begin(); i < r.end(); ++i) {
+          auto const si = static_cast<size_t>(i);
           math::matr<dim, dim> Ds;
           math::veci<dim + 1> element = this->mesh_->GetElement(i);
           math::vecr<dim> local_zero = pose.col(element.x());
           for (idx I = 1; I <= dim; ++I) {
             Ds.col(I - 1) = pose.col(element[I]) - local_zero;
           }
-          dg_l[i] = Ds * this->rinv_[i];
+          dg_l[si] = Ds * this->rinv_[si];
           if (need_svd) {
-            svd_results_[i] = svd.Solve(dg_l[i]);
-            math::decomp::svd_remove_rotation(svd_results_[i]);
+            svd_results_[si] = svd.Solve(dg_l[si]);
+            math::decomp::svd_remove_rotation(svd_results_[si]);
           }
         }
       },
@@ -429,7 +437,7 @@ template <idx dim, template <idx> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   auto const& rest_pose = this->mesh_->GetVertices();
   idx const n_elem = this->mesh_->GetNumElements();
-  this->rinv_.reserve(n_elem);
+  this->rinv_.reserve(static_cast<size_t>(n_elem));
   real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
   using namespace math;
   for (idx i = 0; i < n_elem; ++i) {
@@ -439,12 +447,12 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
     for (idx I = 1; I <= dim; ++I) {
       rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
     }
-    this->rinv_[i] = rest_local.inverse();
+    this->rinv_[static_cast<size_t>(i)] = rest_local.inverse();
   }
   // There exist an efficient approximation to compute the volume:
   this->rest_volume_.resize(1, n_elem);
   for (idx i = 0; i < n_elem; ++i) {
-    real v = coef / math::det(this->rinv_[i]);
+    real v = coef / math::det(this->rinv_[static_cast<size_t>(i)]);
     this->rest_volume_(0, i) = abs(v);
   }
 

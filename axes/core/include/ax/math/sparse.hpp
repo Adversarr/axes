@@ -38,7 +38,7 @@ template <idx dim> spmatr kronecker_identity(spmatr A) {
   idx const rows = A.rows() * dim;
   idx const cols = A.cols() * dim;
   sp_coeff_list coeff_list;
-  coeff_list.reserve(A.nonZeros() * dim);
+  coeff_list.reserve(static_cast<size_t>(A.nonZeros()) * dim);
   for (idx k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       for (idx i = 0; i < dim; ++i) {

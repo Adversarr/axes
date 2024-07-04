@@ -34,6 +34,8 @@ public:
 
   AX_HOST_DEVICE ElasticityBase() = default;
 
+  virtual ~ElasticityBase() = default;
+
   AX_HOST_DEVICE AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
                               math::decomp::SvdResult<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->EnergyImpl(F, svdr);

@@ -27,7 +27,7 @@ template <idx dim> math::spmatr MassMatrixCompute<dim>::operator()(real density)
   for (auto const& ijk : mesh_) {
     std::array<math::vecr<dim>, dim + 1> vert;
     for (idx i = 0; i <= dim; ++i) {
-      vert[i] = mesh_.GetVertex(ijk[i]);
+      vert[static_cast<size_t>(i)] = mesh_.GetVertex(ijk[i]);
     }
     elements::P1Element<dim> E(vert);
     auto element_mass = p1_e<dim>(E, density);
@@ -47,7 +47,7 @@ math::spmatr MassMatrixCompute<dim>::operator()(math::field1r const& density) {
     const auto& ijk = mesh_.GetElement(i);
     std::array<math::vecr<dim>, dim + 1> vert;
     for (idx i = 0; i <= dim; ++i) {
-      vert[i] = mesh_.GetVertex(ijk[i]);
+      vert[static_cast<size_t>(i)] = mesh_.GetVertex(ijk[i]);
     }
     elements::P1Element<dim> E(vert);
     math::matr<dim + 1, dim + 1> element_mass;

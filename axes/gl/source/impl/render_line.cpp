@@ -99,7 +99,7 @@ LineRenderer::~LineRenderer() {
 LineRenderData::LineRenderData(const Lines& lines) {
   use_global_model_ = lines.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
-  vertices_.reserve(lines.vertices_.size());
+  vertices_.reserve(static_cast<size_t>(lines.vertices_.size()));
   for (idx i = 0; i < lines.vertices_.cols(); i++) {
     LineRenderVertexData vertex;
     auto position = lines.vertices_.col(i);
@@ -110,7 +110,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
     vertices_.push_back(vertex);
   }
 
-  indices_.reserve(lines.indices_.size());
+  indices_.reserve(static_cast<size_t>(lines.indices_.size()));
   for (idx i = 0; i < lines.indices_.cols(); i++) {
     auto index = lines.indices_.col(i);
     indices_.push_back(math::cast<ui32>(index.x()));
@@ -118,7 +118,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
   }
   bool has_instance = lines.instance_offset_.size() > 0;
   if (has_instance) {
-    instance_data_.reserve(lines.instance_offset_.cols());
+    instance_data_.reserve(static_cast<size_t>(lines.instance_offset_.cols()));
     for (idx i = 0; i < lines.instance_offset_.cols(); i++) {
       LineInstanceData instance;
       auto offset = lines.instance_offset_.col(i);

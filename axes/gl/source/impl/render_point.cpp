@@ -102,7 +102,7 @@ PointRenderer::~PointRenderer() {
 PointRenderData::PointRenderData(const Points& point) {
   use_global_model_ = point.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
-  vertices_.reserve(point.vertices_.size());
+  vertices_.reserve(static_cast<size_t>(point.vertices_.size()));
   for (idx i = 0; i < point.vertices_.cols(); i++) {
     PointRenderVertexData vertex;
     auto position = point.vertices_.col(i);
@@ -132,7 +132,7 @@ PointRenderData::PointRenderData(const Points& point) {
     }
   }
 
-  point_size_ = (f32)point.point_size_;
+  point_size_ = static_cast<f32>(point.point_size_);
 
   AX_DLOG(INFO) << "PointRenderData created: #v=" << vertices_.size();
 }
@@ -142,12 +142,12 @@ PointRenderData::~PointRenderData() {}
 void PointRenderer::RenderGui() {
   if (ImGui::TreeNode("PointRenderer")) {
     for (auto [ent, point_data] : view_component<PointRenderData>().each()) {
-      ImGui::PushID(entt::to_integral(ent));
+      ImGui::PushID(static_cast<int>(entt::to_integral(ent)));
       ImGui::Checkbox("Enable", &point_data.enable_);
       ImGui::PopID();
 
       ImGui::SameLine();
-      ImGui::Text("Entity: %d, #v=%ld", entt::to_integral(ent), point_data.vertices_.size());
+      ImGui::Text("Entity: %d, #v=%ld", static_cast<int>(entt::to_integral(ent)), point_data.vertices_.size());
       auto* name = try_get_component<cmpt::Name>(ent);
       if (name != nullptr) {
         ImGui::SameLine();

@@ -23,8 +23,8 @@ math::field2i get_edges(math::field3i const& triangles) {
 
   math::field2i edges_field(2, end - edges.begin());
   for (idx i = 0; i < edges_field.cols(); ++i) {
-    edges_field(0, i) = std::get<0>(edges[i]);
-    edges_field(1, i) = std::get<1>(edges[i]);
+    edges_field(0, i) = std::get<0>(edges[static_cast<size_t>(i)]);
+    edges_field(1, i) = std::get<1>(edges[static_cast<size_t>(i)]);
   }
   return edges_field;
 }

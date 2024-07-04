@@ -49,9 +49,11 @@ public:
    * SECT: Constant APIs.
    *************************/
   math::fieldr<dim> const &GetDisplacement() const { return u_; }
+  math::fieldr<dim> const& GetLastDisplacement() const { return u_back_; }
   math::fieldr<dim> const &GetNextDisplacementDelta() const { return du_; }
   math::fieldr<dim> const &GetVelocity() const { return velocity_; }
   math::fieldr<dim> GetPosition() const { return u_ + mesh_->GetVertices(); }
+  math::fieldr<dim> GetLastPosition() const { return u_back_ + mesh_->GetVertices(); }
 
   // SECT: Density: Will update the mass matrices.
   void SetDensity(real density);

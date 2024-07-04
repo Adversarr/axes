@@ -73,6 +73,8 @@ void bind_naive_optim(py::module& m) {
       .def("SetDensity", py::overload_cast<math::field1r const&>(&TimeStepperBase<3>::SetDensity))
       .def("GetMesh", &TimeStepperBase<3>::GetMesh)
       .def("GetOptions", &TimeStepperBase<3>::GetOptions)
+      .def("GetLastPosition", &TimeStepperBase<3>::GetLastPosition)
+      .def("GetLastDisplacement", &TimeStepperBase<3>::GetLastDisplacement)
       .def("GetPosition", &TimeStepperBase<3>::GetPosition)
       .def("GetVelocity", &TimeStepperBase<3>::GetVelocity)
       .def("GetMassMatrix", &TimeStepperBase<3>::GetMassMatrix)
@@ -135,20 +137,28 @@ void bind_naive_optim(py::module& m) {
 
 void bind_experiment(py::module& m) {
   m.def("set_sparse_inverse_approximator",
-        [](math::spmatr A, real eig_modification, bool require_check_secant) {
+        [](math::spmatr A, math::vecxr precond, real eig_modification, bool require_check_secant) {
           auto &sia = ensure_resource<SparseInverseApproximator>();
           sia.A_ = A;
+          sia.precond_ = precond;
           sia.eig_modification_ = eig_modification;
           sia.require_check_secant_ = require_check_secant;
         });
+
   m.def("apply_sparse_inverse_approximator",
         [](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
           auto* cmpt = try_get_resource<SparseInverseApproximator>();
           AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
           auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
             // compute At A x + delta * x
-            auto const& [A, delta, _] = *cmpt;
-            return A * (A.transpose() * v).eval() + delta * v;
+            auto const& A = cmpt->A_;
+            auto const& delta = cmpt->eig_modification_;
+            auto const& precond = cmpt->precond_;
+            math::vecxr At_v = A.transpose() * v;
+            if (precond.size() > 0) {
+              At_v = precond.cwiseProduct(At_v);
+            }
+            return A * At_v + delta * v;
           };
           if (sk.size() == 0 || yk.size() == 0) {
             // First time called.

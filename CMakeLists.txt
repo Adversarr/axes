@@ -44,15 +44,7 @@ if (WIN32)
     add_definitions(-DNOMINMAX -D_USE_MATH_DEFINES)
 endif()
 
-if (AX_NO_WARNING)  # Use our customized warning flags
-    set(AX_OLD_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-all -Wno-cpp -Wno-deprecated-declarations -Wno-enum-compare -Wno-ignored-attributes -Wno-extra -Wreturn-type -Wmissing-declarations -Wnon-virtual-dtor -Wsuggest-override -Wconversion-null -Wuninitialized -Wno-format-security -Wnarrowing -Wno-maybe-uninitialized")
-    endif()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
-    endif()
-else()
+if (NOT AX_NO_WARNING)  # Use our customized warning flags
   if(MSVC)
     ax_add_cxx_compiler_flag("/W4")
   else()
@@ -128,8 +120,8 @@ if (NOT EXISTS "${AX_SDK_PATH_WITH_BUILD_TYPE}")
   message(FATAL_ERROR "AX_SDK_PATH_WITH_BUILD_TYPE does not exist: ${AX_SDK_PATH_WITH_BUILD_TYPE}")
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH "${AX_SDK_PATH_WITH_BUILD_TYPE}")
-list(APPEND CMAKE_MODULE_PATH "${AX_SDK_PATH_WITH_BUILD_TYPE}/lib/cmake/OpenVDB")
+list(PREPEND CMAKE_PREFIX_PATH "${AX_SDK_PATH_WITH_BUILD_TYPE}")
+list(PREPEND CMAKE_MODULE_PATH "${AX_SDK_PATH_WITH_BUILD_TYPE}/lib/cmake/OpenVDB")
 set(libigl_ROOT "${CMAKE_PREFIX_PATH}/lib/cmake/igl")
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
@@ -182,6 +174,8 @@ endif()
 
 # Default Asset Directory.
 set(AX_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+# Disable LTO:
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
 ##############################################################################################
 # Now, declare the library and executables.

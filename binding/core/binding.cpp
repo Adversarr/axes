@@ -317,6 +317,10 @@ void bind_core_math(py::module &m) {
                                        std::vector<real> const &)>(&math::make_sparse_matrix),
           py::arg("rows"), py::arg("cols"), py::arg("row"), py::arg("col"), py::arg("val"));
 
+  m.def("field_flatten", [](const math::matxxr & field) -> math::vecxr {
+    return field.reshaped();
+  });
+
   /************************* SECT: Sparse Solver *************************/
   py::class_<math::SparseSolverBase, UPtr<math::SparseSolverBase>>(m, "SparseSolverBase")
       .def("SetProblem",

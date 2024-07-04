@@ -22,7 +22,7 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
 
     constexpr real volume_of_unit_simplex = dim == 2 ? 0.5 : 1.0 / 6.0;
     real const volume = abs(C.determinant()) * volume_of_unit_simplex;
-    C = C.inverse();
+    C = C.inverse().eval();
 
     math::matr<dim + 1, dim + 1> L_dense_local;
     for (idx i = 0; i <= dim; ++i) {

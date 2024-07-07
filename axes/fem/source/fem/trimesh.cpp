@@ -120,6 +120,12 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
   }
 }
 
+template <idx dim>
+void TriMesh<dim>::SetNumDofPerVertex(idx n_dof_per_vertex) noexcept {
+  n_dof_per_vertex_ = n_dof_per_vertex;
+  ResetAllBoundaries();
+}
+
 template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool set_zero) const {
   if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
     AX_LOG(ERROR) << "Invalid shape: " << inout.rows() << "x" << inout.cols()

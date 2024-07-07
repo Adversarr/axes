@@ -202,7 +202,7 @@ public:
 
   void FilterField(math::fieldr<dim>& inout, bool set_zero = false) const;
 
-  void SetNumDofPerVertex(idx n_dof_per_vertex) noexcept { n_dof_per_vertex_ = n_dof_per_vertex; }
+  void SetNumDofPerVertex(idx n_dof_per_vertex) noexcept;
 
   idx GetNumDofPerVertex() const noexcept { return n_dof_per_vertex_; }
 

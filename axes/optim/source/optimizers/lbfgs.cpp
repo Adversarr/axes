@@ -144,10 +144,10 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
     math::vecxr dir = -r;
 
     real const d_dot_grad = math::dot(dir, grad);
-    AX_THROW_IF_TRUE(
-        d_dot_grad >= real(0),
-        "L-BFGS: Direction may not descent: value=" + std::to_string(math::dot(dir, grad))
-            + " log10=" + std::to_string(std::log10(d_dot_grad)) + " iter=" + std::to_string(iter));
+    if (d_dot_grad >= real(0)) {
+        AX_LOG(ERROR) << "L-BFGS: Direction may not descent: value=" << d_dot_grad << "Early break!";
+        break;
+    }
 
     // SECT: Line search
     math::vecxr x_opt;

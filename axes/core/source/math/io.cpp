@@ -138,6 +138,15 @@ Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec) {
   return write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0, static_cast<size_t>(vec.size()));
 }
 
+Status write_npy_v10(std::string path, const vec<idx, Eigen::Dynamic>& vec) {
+  std::ofstream out(path, std::ios::binary);
+  if (!out.is_open()) {
+    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+  }
+
+  return write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0, static_cast<size_t>(vec.size()));
+}
+
 Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {

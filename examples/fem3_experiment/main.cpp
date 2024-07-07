@@ -15,7 +15,9 @@
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
+#include "ax/math/io.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/utils/asset.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
 ABSL_FLAG(int, N, 2, "Num of division.");
@@ -37,6 +39,30 @@ int scene;
 
 UPtr<fem::TimeStepperBase<3>> ts;
 
+real KL_div(math::matxxr sigma_P, math::matxxr sigma_Q) {
+  auto [eigvec_P, eigval_P] = math::eig(sigma_P);
+  auto [eigvec_Q, eigval_Q] = math::eig(sigma_Q);
+  real logdet_P_over_Q = 0;
+  for (auto i : utils::iota(eigval_P.size())) {
+    logdet_P_over_Q += log(eigval_P(i) / (eigval_Q(i) + math::epsilon<>));
+  }
+
+  math::matxxr inv_P = sigma_P.inverse();
+  real KL = 0.5 * (inv_P * sigma_Q).trace() - 0.5 * 3 + 0.5 * logdet_P_over_Q;
+  return KL;
+}
+
+real KL_symmetric(math::matxxr sigma_P, math::matxxr sigma_Q) {
+  math::matxxr inv_P = sigma_P.inverse(), inv_Q = sigma_Q.inverse();
+  real KL = 0.5 * (inv_P * sigma_Q).trace() + 0.5 * (inv_Q * sigma_P).trace() - 3;
+  return KL;
+}
+
+real cond(math::matxxr A) {
+  auto [eig, eigval] = math::eig(A);
+  return eigval.maxCoeff() / eigval.minCoeff();
+}
+
 void update_rendering() {
   auto& mesh = get_component<gl::Mesh>(out);
   if (mesh.indices_.size() == 0) {
@@ -54,9 +80,10 @@ void update_rendering() {
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
 
-  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
-  auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
+  ts->GetElasticity().Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::kEnergy);
+  ts->GetElasticity().UpdateEnergy();
+  ts->GetElasticity().GatherEnergyToVertices();
+  auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
@@ -72,6 +99,124 @@ math::vecxr cs_dist_eigen, eval, l2_dist_eigen, relative_l2_dist_eigen;
 math::vecxr cs_dist_invs, l2_dist_invs, relative_l2_dist_invs;
 math::vecxr cs_dist_units, l2_dist_units, relative_l2_dist_units;
 math::vecxr cs_dist_randoms, l2_dist_randoms, relative_l2_dist_randoms;
+math::field3r u0, u1;
+
+void update_eigen_evaluation() {
+  idx const dofs = ts->GetMesh()->GetNumVertices() * 3;
+  math::vecxr dx = (u1 - u0).reshaped();
+  ts->GetMesh()->FilterVector(dx, true);
+  // stiffness:
+  // find the eigen values of K
+  math::spmatr A = ts->Hessian(u1);
+  hyper_solver->SetProblem(A).Compute();
+
+  auto [vec, val] = math::eig(A.toDense());
+  // Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> es(K, M);
+  // auto vec = es.eigenvectors();
+  // auto val = es.eigenvalues();
+  // Decompose dx into the eigenvectors of K
+
+  static int distance_measurement = 0;  // 0 => l2, 1 => cosine_similarity
+
+  auto cosine_similarity
+      = [](const math::vecxr& a, const math::vecxr& b) { return a.dot(b) / (a.norm() * b.norm()); };
+
+  auto l2 = [](const math::vecxr& a, const math::vecxr& b) { return math::norm(a - b) / a.size(); };
+
+  auto relative_l2
+      = [l2](const math::vecxr& a, const math::vecxr& b) { return l2(a, b) / math::norm(b); };
+
+  cs_dist_eigen.resize(val.size());
+  l2_dist_eigen.resize(val.size());
+  relative_l2_dist_eigen.resize(val.size());
+  for (auto i : utils::iota(val.size())) {
+    math::vecxr laplacian_applied = laplacian * vec.col(i);
+    math::vecxr stiffness_applied = A * vec.col(i);
+    l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied);
+    cs_dist_eigen(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+    relative_l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied) / val(i);
+  }
+
+  relative_l2_dist_eigen /= relative_l2_dist_eigen.maxCoeff();
+
+  cs_dist_invs.resize(val.size());
+  l2_dist_invs.resize(val.size());
+  relative_l2_dist_invs.resize(val.size());
+  idx const nDof = ts->GetMesh()->GetNumVertices() * 3;
+  math::matxxr A_inverse = A.toDense().inverse();
+  std::tie(vec, val) = math::eig(A_inverse);
+  for (auto i : utils::iota(val.size())) {
+    math::vecxr evec = math::normalized(vec.col(i));
+    auto laplacian_applied = laplacian_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
+
+    l2_dist_invs(i) = l2(laplacian_applied, stiffness_applied);
+    cs_dist_invs(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+    relative_l2_dist_invs(i) = relative_l2(laplacian_applied, stiffness_applied);
+  }
+
+  cs_dist_units.resize(val.size());
+  l2_dist_units.resize(val.size());
+  relative_l2_dist_units.resize(val.size());
+  for (auto i : utils::iota(val.size())) {
+    math::vecxr unit_i = math::vecxr::Zero(val.size());
+    unit_i(i) = 1;
+    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+
+    l2_dist_units(i) = l2(laplacian_applied, stiffness_applied);
+    cs_dist_units(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+    relative_l2_dist_units(i) = relative_l2(laplacian_applied, stiffness_applied);
+  }
+
+  cs_dist_randoms.resize(val.size());
+  l2_dist_randoms.resize(val.size());
+  relative_l2_dist_randoms.resize(val.size());
+  for (auto i : utils::iota(val.size())) {
+    math::vecxr unit_i = math::vecxr::Zero(val.size());
+    unit_i.setRandom().normalize();
+    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+
+    l2_dist_randoms(i) = l2(laplacian_applied, stiffness_applied);
+    cs_dist_randoms(i) = cosine_similarity(laplacian_applied, stiffness_applied);
+    relative_l2_dist_randoms(i) = relative_l2(laplacian_applied, stiffness_applied);
+  }
+  eval = val * dt * dt;
+
+  std::cout << "Average cs for eigen: " << cs_dist_eigen.mean() << std::endl;
+  std::cout << "Average l2 for eigen: " << l2_dist_eigen.mean() << std::endl;
+  std::cout << "Average rl for eigen: " << relative_l2_dist_eigen.mean() << std::endl;
+  std::cout << "Average cs for inv: " << cs_dist_invs.mean() << std::endl;
+  std::cout << "Average l2 for inv: " << l2_dist_invs.mean() << std::endl;
+  std::cout << "Average rl for inv: " << relative_l2_dist_invs.mean() << std::endl;
+  std::cout << "Average cs for unit: " << cs_dist_units.mean() << std::endl;
+  std::cout << "Average l2 for unit: " << l2_dist_units.mean() << std::endl;
+  std::cout << "Average rl for unit: " << relative_l2_dist_units.mean() << std::endl;
+  std::cout << "Average cs for random: " << cs_dist_randoms.mean() << std::endl;
+  std::cout << "Average l2 for random: " << l2_dist_randoms.mean() << std::endl;
+  std::cout << "Average rl for random: " << relative_l2_dist_randoms.mean() << std::endl;
+}
+
+void update_KL_div() {
+  auto u = ts->GetDisplacement();
+  math::matxxr K = ts->Hessian(u, true).toDense();
+  math::matxxr L = laplacian.toDense();
+  math::matxxr I = math::matxxr::Identity(K.rows(), K.cols());
+
+  std::cout << "KL(K, L)" << KL_div(K, L) << std::endl;
+  std::cout << "KL(L, K)" << KL_div(L, K) << std::endl;
+  std::cout << "KL(K, I)" << KL_div(K, I) << std::endl;
+  std::cout << "KL(I, K)" << KL_div(I, K) << std::endl;
+
+  std::cout << "KL_symmetric(K, L)" << KL_symmetric(K, L) << std::endl;
+  std::cout << "KL_symmetric(L, K)" << KL_symmetric(L, K) << std::endl;
+  std::cout << "KL_symmetric(K, I)" << KL_symmetric(K, I) << std::endl;
+  std::cout << "KL_symmetric(I, K)" << KL_symmetric(I, K) << std::endl;
+
+  std::cout << "cond(L^-1 K)" << cond(L.inverse() * K) << std::endl;
+  std::cout << "cond(K)" << cond(K) << std::endl;
+}
 
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM");
@@ -79,98 +224,16 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::InputFloat("dt", &dt);
   ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(),
               ts->GetMesh()->GetNumVertices());
+
+  static bool enab_KL = false;
   if (ImGui::Button("Step") || running) {
     ts->BeginTimestep(dt);
-    math::field3r u0 = ts->GetPosition();
+    u0 = ts->GetPosition();
     ts->SolveTimestep();
-    math::field3r u1 = ts->GetSolution();
+    u1 = ts->GetSolution();
     ts->EndTimestep();
 
     auto const& trajectory = ts->GetLastTrajectory();
-
-    idx const dofs = ts->GetMesh()->GetNumVertices() * 3;
-    math::vecxr dx = (u1 - u0).reshaped();
-    ts->GetMesh()->FilterVector(dx, true);
-    // stiffness:
-    // find the eigen values of K
-    math::spmatr A = ts->Hessian(u1);
-    hyper_solver->SetProblem(A).Compute();
-
-    auto [vec, val] = math::eig(A.toDense());
-    // Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> es(K, M);
-    // auto vec = es.eigenvectors();
-    // auto val = es.eigenvalues();
-    // Decompose dx into the eigenvectors of K
-
-    static int distance_measurement = 0;  // 0 => l2, 1 => cosine_similarity
-
-    auto cosine_similarity = [](const math::vecxr& a, const math::vecxr& b) {
-      return a.dot(b) / (a.norm() * b.norm());
-    };
-
-    auto l2
-        = [](const math::vecxr& a, const math::vecxr& b) { return math::norm(a - b) / a.size(); };
-
-    auto relative_l2
-        = [l2](const math::vecxr& a, const math::vecxr& b) { return l2(a, b) / math::norm(b); };
-
-    cs_dist_eigen.resize(val.size());
-    l2_dist_eigen.resize(val.size());
-    relative_l2_dist_eigen.resize(val.size());
-    for (auto i : utils::iota(val.size())) {
-      math::vecxr laplacian_applied = laplacian * vec.col(i);
-      math::vecxr stiffness_applied = A * vec.col(i);
-      l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied);
-      cs_dist_eigen(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-      relative_l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied) / val(i);
-    }
-
-    relative_l2_dist_eigen /= relative_l2_dist_eigen.maxCoeff();
-
-    cs_dist_invs.resize(val.size());
-    l2_dist_invs.resize(val.size());
-    relative_l2_dist_invs.resize(val.size());
-    idx const nDof = ts->GetMesh()->GetNumVertices() * 3;
-    math::matxxr A_inverse = A.toDense().inverse();
-    std::tie(vec, val) = math::eig(A_inverse);
-    for (auto i : utils::iota(val.size())) {
-      math::vecxr evec = math::normalized(vec.col(i));
-      auto laplacian_applied = laplacian_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
-      auto stiffness_applied = hyper_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
-
-      l2_dist_invs(i) = l2(laplacian_applied, stiffness_applied);
-      cs_dist_invs(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-      relative_l2_dist_invs(i) = relative_l2(laplacian_applied, stiffness_applied);
-    }
-
-    cs_dist_units.resize(val.size());
-    l2_dist_units.resize(val.size());
-    relative_l2_dist_units.resize(val.size());
-    for (auto i : utils::iota(val.size())) {
-      math::vecxr unit_i = math::vecxr::Zero(val.size());
-      unit_i(i) = 1;
-      auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-      auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-
-      l2_dist_units(i) = l2(laplacian_applied, stiffness_applied);
-      cs_dist_units(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-      relative_l2_dist_units(i) = relative_l2(laplacian_applied, stiffness_applied);
-    }
-
-    cs_dist_randoms.resize(val.size());
-    l2_dist_randoms.resize(val.size());
-    relative_l2_dist_randoms.resize(val.size());
-    for (auto i : utils::iota(val.size())) {
-      math::vecxr unit_i = math::vecxr::Zero(val.size());
-      unit_i.setRandom().normalize();
-      auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-      auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-
-      l2_dist_randoms(i) = l2(laplacian_applied, stiffness_applied);
-      cs_dist_randoms(i) = cosine_similarity(laplacian_applied, stiffness_applied);
-      relative_l2_dist_randoms(i) = relative_l2(laplacian_applied, stiffness_applied);
-    }
-    eval = val * dt * dt;
 
     update_rendering();
 
@@ -191,18 +254,9 @@ void ui_callback(gl::UiRenderEvent) {
       }
     }
 
-    std::cout << "Average cs for eigen: " << cs_dist_eigen.mean() << std::endl;
-    std::cout << "Average l2 for eigen: " << l2_dist_eigen.mean() << std::endl;
-    std::cout << "Average rl for eigen: " << relative_l2_dist_eigen.mean() << std::endl;
-    std::cout << "Average cs for inv: " << cs_dist_invs.mean() << std::endl;
-    std::cout << "Average l2 for inv: " << l2_dist_invs.mean() << std::endl;
-    std::cout << "Average rl for inv: " << relative_l2_dist_invs.mean() << std::endl;
-    std::cout << "Average cs for unit: " << cs_dist_units.mean() << std::endl;
-    std::cout << "Average l2 for unit: " << l2_dist_units.mean() << std::endl;
-    std::cout << "Average rl for unit: " << relative_l2_dist_units.mean() << std::endl;
-    std::cout << "Average cs for random: " << cs_dist_randoms.mean() << std::endl;
-    std::cout << "Average l2 for random: " << l2_dist_randoms.mean() << std::endl;
-    std::cout << "Average rl for random: " << relative_l2_dist_randoms.mean() << std::endl;
+    if (ImGui::Checkbox("Enable KL", &enab_KL); enab_KL) {
+      update_KL_div();
+    }
   }
 
   if (ImPlot::BeginPlot("eig")) {
@@ -256,10 +310,14 @@ int main(int argc, char** argv) {
   lame = fem::elasticity::compute_lame(poisson, youngs);
   nx = absl::GetFlag(FLAGS_N);
 
-  auto cube = geo::tet_cube(0.5, nx * 4, nx, nx);
-  input_mesh.vertices_ = std::move(cube.vertices_);
-  input_mesh.indices_ = std::move(cube.indices_);
-  input_mesh.vertices_.row(0) *= 4;
+  std::string tet_file, vet_file, resolution = "low";
+  tet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_elements.npy");
+  vet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_vertices.npy");
+
+  auto tet = math::read_npy_v10_idx(tet_file);
+  auto vet = math::read_npy_v10_real(vet_file);
+  input_mesh.indices_ = tet.transpose();
+  input_mesh.vertices_ = vet.transpose();
 
   ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_unique<fem::TriMesh<3>>());
   ts->SetYoungs(youngs);
@@ -269,13 +327,10 @@ int main(int argc, char** argv) {
   auto m = ts->GetMesh();
   for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
-    if (abs(position.x()) > 1.9) {
-      // Mark as dirichlet bc.
-      if (scene == SCENE_TWIST || position.x() > 1.9) {
-        m->MarkDirichletBoundary(i, 0, position.x());
-        m->MarkDirichletBoundary(i, 1, position.y());
-        m->MarkDirichletBoundary(i, 2, position.z());
-      }
+    if (position.x() > 4.9) {
+      m->MarkDirichletBoundary(i, 0, position.x());
+      m->MarkDirichletBoundary(i, 1, position.y());
+      m->MarkDirichletBoundary(i, 2, position.z());
     }
   }
 

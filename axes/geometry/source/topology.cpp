@@ -29,6 +29,31 @@ math::field2i get_edges(math::field3i const& triangles) {
   return edges_field;
 }
 
+math::field2i get_edges(math::field4i const& tetrahedrons) {
+  List<utils::DupTuple<idx, 2>> edges;
+  edges.reserve(static_cast<size_t>(tetrahedrons.cols() * 6));
+  for (idx i = 0; i < tetrahedrons.cols(); ++i) {
+    for (idx j = 0; j < 4; ++j) {
+      for (idx k = j + 1; k < 4; ++k) {
+        idx a = tetrahedrons(j, i);
+        idx b = tetrahedrons(k, i);
+        if (a > b) std::swap(a, b);
+        edges.emplace_back(a, b);
+      }
+    }
+  }
+
+  std::sort(edges.begin(), edges.end());
+  auto end = std::unique_copy(edges.begin(), edges.end(), edges.begin());
+
+  math::field2i edges_field(2, end - edges.begin());
+  for (idx i = 0; i < edges_field.cols(); ++i) {
+    edges_field(0, i) = std::get<0>(edges[static_cast<size_t>(i)]);
+    edges_field(1, i) = std::get<1>(edges[static_cast<size_t>(i)]);
+  }
+  return edges_field;
+}
+
 math::field2i get_boundary_edges(math::field3i const& triangles) {
   List<utils::DupTuple<idx, 2>> edges;
 

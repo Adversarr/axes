@@ -22,6 +22,8 @@ public:
   void SetOptions(utils::Options const& opt) override;
   utils::Options GetOptions() const override;
 
+  math::matxxr Inverse() const;
+
 private:
   struct Impl;
   UPtr<Impl> impl_;

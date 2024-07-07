@@ -13,3 +13,5 @@ build*
 sdk
 __pycache__
 NodeEditor.json
+output
+

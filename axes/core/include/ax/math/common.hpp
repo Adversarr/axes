@@ -963,7 +963,7 @@ template <typename Derived> AX_FORCE_INLINE void transpose_(DBr<Derived> mat) no
 /****************************** reshape ******************************/
 
 /**
- * @brief Reshape a matrix.
+ * @brief Reshape a matrix: This could cause runtime cost.
  *
  * @tparam Derived The derived type of the matrix.
  * @param mat The matrix to be reshaped.
@@ -973,7 +973,9 @@ template <typename Derived> AX_FORCE_INLINE void transpose_(DBr<Derived> mat) no
  */
 template <typename Derived>
 AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
-  return mat.derived().reshaped(rows, cols);
+  // NOLINTBEGIN: The first parameter is used but reported unused.
+  return mat.template reshaped<Eigen::AutoOrder>(rows, cols);
+  // NOLINTEND
 }
 
 /**
@@ -985,9 +987,24 @@ AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
  * @param mat The matrix to be reshaped.
  * @return The reshaped matrix.
  */
-template <typename Derived, idx rows, idx cols>
+template <idx rows, idx cols, typename Derived>
 AX_HOST_DEVICE AX_FORCE_INLINE auto reshape(MBcr<Derived> mat) noexcept {
   return Eigen::Reshaped<const Derived, rows, cols>(mat.derived());
+}
+
+/**
+ * @brief Reshape a matrix: will only create a reshaped view.
+ *
+ * @tparam Derived The derived type of the matrix.
+ * @tparam rows The number of rows of the reshaped matrix.
+ * @param mat The matrix to be reshaped.
+ * @param cols The number of columns of the reshaped matrix.
+ * @return The reshaped matrix.
+ */
+template <idx rows, typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE 
+Eigen::Reshaped<const Derived, rows, dynamic> reshape(MBcr<Derived> mat, idx cols) noexcept {
+  return Eigen::Reshaped<const Derived, rows, dynamic>(mat.derived(), rows, cols);
 }
 
 /****************************** flatten ******************************/

@@ -84,7 +84,7 @@ struct ElasticityCompute_GPU<dim, ElasticModelTemplate>::Impl {
   thrust::host_vector<real> energy_on_elements_cpu_;
 };
 
-#define GPU_GRAIN 128
+#define GPU_GRAIN 64
 
 template <idx dim>
 __global__ void compute_deformation_gradient(math::veci<dim + 1> const* elements,

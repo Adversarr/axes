@@ -214,4 +214,21 @@ utils::Options SparseSolver_Cholmod::GetOptions() const {
   return opt;
 }
 
+math::matxxr SparseSolver_Cholmod::Inverse() const {
+  AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Inverse");
+
+  size_t n_row = static_cast<size_t>(impl_->A->nrow);
+  auto* eye = cholmod_l_eye(n_row, n_row, CHOLMOD_REAL, &impl_->common);
+  cholmod_dense* result = cholmod_l_solve(CHOLMOD_A, impl_->factor, eye, &impl_->common);
+  if (result == nullptr) {
+    throw std::runtime_error("Cholmod::Inverse Failed");
+  }
+
+  math::matxxr res(n_row, n_row);
+  memcpy(res.data(), result->x, n_row * n_row * sizeof(real));
+  cholmod_l_free_dense(&result, &impl_->common);
+  cholmod_l_free_dense(&eye, &impl_->common);
+  return res;
+}
+
 }  // namespace ax::math

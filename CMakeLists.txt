@@ -51,7 +51,7 @@ if (NOT AX_NO_WARNING)  # Use our customized warning flags
     # ax_add_cxx_compiler_flag("-Wall -Wextra -Wno-deprecated-declarations -Wno-enum-compare")
     ax_add_cxx_compiler_flag("-Wall")
     ax_add_cxx_compiler_flag("-Wextra")
-    ax_add_cxx_compiler_flag("-Weffc++")
+    # ax_add_cxx_compiler_flag("-Weffc++") # TODO: This is too noisy.
     ax_add_cxx_compiler_flag("-Wuninitialized")
     ax_add_cxx_compiler_flag("-Wreturn-type")
     ax_add_cxx_compiler_flag("-Wconversion")

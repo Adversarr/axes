@@ -12,29 +12,27 @@ namespace ax::fem {
 template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
   AX_RETURN_NOTOK(TimeStepperBase<dim>::Initialize());
   if (!solver_) {
+    AX_LOG(INFO) << "Use default sparse solver: Cholmod.";
     solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
   }
   AX_RETURN_OK();
 }
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
-  this->integration_scheme_->SetDeltaT(dt_back_);
   const math::vec2r lame = this->u_lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
   // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
   real lambda = lame[0], mu = lame[1];
   real W = 2 * mu + lambda;
-  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}();
+  math::spmatr L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(1.0);
   L *= W;
   auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
   math::spmatr A = math::kronecker_identity<dim>(full_laplacian);
   this->mesh_->FilterMatrixFull(A);
-  solver_->SetProblem(std::move(A)).Compute();
-  // solver_->SetOptions({{"max_iter", 20}});
+  solver_->SetProblem(A).Compute();
 }
 
 template <idx dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
-  this->integration_scheme_->SetDeltaT(dt_back_);
   const math::vec2r lame = this->u_lame_;
   real lambda = lame[0], mu = lame[1];
   real W = 2 * mu + lambda;
@@ -47,26 +45,15 @@ template <idx dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsAppr
 
 template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
   TimeStepperBase<dim>::BeginSimulation(dt);
-  dt_back_ = dt;
-  if (strategy_ == LbfgsStrategy::kLaplacian && dt_back_ > 0) {
-    UpdateSolverLaplace();
-  }
+  UpdateSolverLaplace();
 }
 
 math::vecxr eigval;
 math::matxxr eigvec;
 
-template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep(real dt) {
-  TimeStepperBase<dim>::BeginTimestep(dt);
-  if (strategy_ == LbfgsStrategy::kLaplacian) {
-    if (dt_back_ != dt) {
-      dt_back_ = dt;
-      AX_LOG_FIRST_N(WARNING, 3)
-          << "Update Laplace Solver due to timestep change."
-             " (This is not recommended for LBFGS-PD because the laplace matrix will recompute.)";
-      UpdateSolverLaplace();
-    }
-  } else if (strategy_ == LbfgsStrategy::kHard) {
+template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
+  TimeStepperBase<dim>::BeginTimestep();
+  if (strategy_ == LbfgsStrategy::kHard) {
     auto A = this->Hessian(this->du_inertia_);
     this->mesh_->FilterMatrixFull(A);
     solver_->SetProblem(std::move(A)).Compute();
@@ -85,13 +72,13 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
     optimizer.SetApproxSolve(
         [&](math::vecxr const &g, math::vecxr const &, math::vecxr const &) -> math::vecxr {
           auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-          return std::move(approx.solution_);
+          return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
     optimizer.SetApproxSolve(
         [&](math::vecxr const &g, math::vecxr const &, math::vecxr const &) -> math::vecxr {
           auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-          return std::move(approx.solution_);
+          return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
     optimizer_.SetApproxSolve(
@@ -99,15 +86,13 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
           auto *cmpt = try_get_resource<SparseInverseApproximator>();
           AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
           auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
-            // compute At A x + delta * x
-            // auto const &[A, delta, _] = *cmpt;
-            auto const& A = cmpt->A_;
-            auto const& delta = cmpt->eig_modification_;
-            return A * (A.transpose() * v).eval() + delta * v;
+            auto const &A = cmpt->A_;
+            auto const &delta = cmpt->eig_modification_;
+            math::vecxr At_v = A.transpose() * v;
+            return A * At_v + delta * v;
           };
+
           if (sk.size() == 0 || yk.size() == 0) {
-            // First time called.
-            this->GetMesh()->FilterMatrixFull(cmpt->A_);
             return apply(gk);
           }
 
@@ -150,8 +135,8 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   } else if (result.converged_var_) {
     AX_LOG(INFO) << "LBFGS iteration converged: variance";
   } else {
-    AX_LOG(ERROR) << "LBFGS iteration failed to converge!";
-    throw std::runtime_error("LBFGS iteration failed to converge!");
+    AX_LOG(ERROR) << "LBFGS iteration does not converge, but early stoped.";
+    // throw std::runtime_error("LBFGS iteration failed to converge!");
   }
 
   AX_LOG(INFO) << "#Iter: " << result.n_iter_ << " iterations.";

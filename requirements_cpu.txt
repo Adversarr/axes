@@ -9,7 +9,7 @@ torch==2.3.0
 torchvision==0.18.0
 torchaudio==2.3.0
 ipython==8.25.0
-tetgen==0.6.1
+# tetgen==0.6.1
 libigl==2.5.1
 pymeshfix==0.16.1
 trimesh==4.4.1

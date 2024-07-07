@@ -10,6 +10,7 @@ Status write_npy_v10(std::ostream& out, const real* p, size_t write_length, size
 
 // Writes a vector to a file in the NPY format.
 Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec);
+Status write_npy_v10(std::string path, const vec<idx, Eigen::Dynamic>& vec);
 
 // Writes a matrix to a file in the NPY format.
 Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat);

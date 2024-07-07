@@ -3,6 +3,7 @@
 #include <Eigen/SparseCore>
 
 #include "ax/math/common.hpp"  // IWYU pragma: export
+#include "ax/math/linalg.hpp"
 
 namespace ax::math {
 
@@ -47,6 +48,35 @@ template <idx dim> spmatr kronecker_identity(spmatr A) {
     }
   }
   return make_sparse_matrix(rows, cols, coeff_list);
+}
+
+template <typename Fn>
+AX_FORCE_INLINE void spmatr_for_each(spmatr const& A, Fn&& fn) {
+  for (idx k = 0; k < A.outerSize(); ++k) {
+    for (spmatr::InnerIterator it(A, k); it; ++it) {
+      fn(it.row(), it.col(), it.valueRef());
+    }
+  }
+}
+
+AX_FORCE_INLINE real norm(spmatr const& A, math::l1_t) {
+  real norm = 0;
+  real row_sum = 0;
+  idx last_row = -1;
+  spmatr_for_each(A, [&](idx row, idx, real val) {
+    if (row != last_row) {
+      norm = std::max(norm, row_sum);
+      row_sum = 0;
+      last_row = row;
+    }
+    row_sum += std::abs(val);
+  });
+  norm = std::max(norm, row_sum);
+  return norm;
+}
+
+AX_FORCE_INLINE real norm(spmatr const& A, math::l2_t) {
+  return A.norm();
 }
 
 }  // namespace ax::math

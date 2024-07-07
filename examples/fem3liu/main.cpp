@@ -68,16 +68,18 @@ void update_rendering() {
   lines.vertices_ = mesh.vertices_;
   lines.flush_ = true;
   lines.colors_.topRows<3>().setZero();
-  ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
-  ts->GetElasticity().UpdateEnergy();
-  ts->GetElasticity().GatherEnergyToVertices();
-  auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
+  auto &elast = ts->GetElasticity();
+  elast.Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::kEnergy);
+  elast.UpdateEnergy();
+  elast.GatherEnergyToVertices();
+  auto e_per_vert = elast.GetEnergyOnVertices();
 
-  static real m = 0, M = 0;
+  real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
+  std::cout << "Energy: " << m << " " << M << std::endl;
 
-  gl::Colormap cmap(m, M);
+  gl::Colormap cmap((m), (M));
   mesh.colors_.topRows<3>() = cmap(e_per_vert);
 }
 
@@ -189,7 +191,7 @@ void ui_callback(gl::UiRenderEvent) {
     }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    ts->BeginTimestep(dt);
+    ts->BeginTimestep();
     ts->SolveTimestep();
     ts->EndTimestep();
     auto time_end = ax::utils::GetCurrentTimeNanos();
@@ -238,8 +240,10 @@ int main(int argc, char** argv) {
 
   lame = fem::elasticity::compute_lame(absl::GetFlag(FLAGS_youngs), 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
-    tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
-    vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+    // tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
+    // vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+    tet_file = utils::get_asset("/mesh/npy/beam_mid_res_elements.npy");
+    vet_file = utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy");
   } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     tet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");

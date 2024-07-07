@@ -3,6 +3,7 @@
 namespace ax::geo {
 
 math::field2i get_edges(math::field3i const& triangles);
+math::field2i get_edges(math::field4i const& tetrahedrons);
 
 math::field2i get_boundary_edges(math::field3i const& triangles);
 

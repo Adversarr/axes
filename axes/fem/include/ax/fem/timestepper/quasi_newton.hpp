@@ -17,7 +17,7 @@ public:
 
   // Override the defaults.
   void BeginSimulation(real dt) final;
-  void BeginTimestep(real dt) final;
+  void BeginTimestep() final;
   void SolveTimestep() final;
 
   void SetOptions(const utils::Options& option) override;
@@ -28,7 +28,6 @@ public:
   math::spmatr GetLaplacianAsApproximation() const;
 
 protected:
-  real dt_back_ = -1;
   SPtr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_ = LbfgsStrategy::kNaive;
   optim::Optimizer_Lbfgs optimizer_;

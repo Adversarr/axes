@@ -86,8 +86,8 @@ void bind_naive_optim(py::module& m) {
   tsb3.def("SetupElasticity", [](TimeStepperBase<3>& t, std::string name,
                                  std::string device) { t.SetupElasticity(name, device); })
       .def("Initialize", &TimeStepperBase<3>::Initialize)
-      .def("BeginSimulation", &TimeStepperBase<3>::BeginSimulation, py::arg("dt") = -1)
-      .def("BeginTimestep", &TimeStepperBase<3>::BeginTimestep, py::arg("dt"))
+      .def("BeginSimulation", &TimeStepperBase<3>::BeginSimulation, py::arg("dt"))
+      .def("BeginTimestep", &TimeStepperBase<3>::BeginTimestep)
       .def("EndTimestep", py::overload_cast<>(&TimeStepperBase<3>::EndTimestep))
       .def("EndTimestep",
            py::overload_cast<math::fieldr<3> const&>(&TimeStepperBase<3>::EndTimestep))
@@ -143,6 +143,7 @@ void bind_experiment(py::module& m) {
           sia.precond_ = precond;
           sia.eig_modification_ = eig_modification;
           sia.require_check_secant_ = require_check_secant;
+          sia.A_.makeCompressed();
         });
 
   m.def("apply_sparse_inverse_approximator",

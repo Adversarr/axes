@@ -124,6 +124,30 @@ TetraMesh tet_cube(real half_size, idx nx, idx ny, idx nz) {
         idx idx101 = (i + 1) * ny * nz + j * nz + k + 1;
         idx idx011 = i * ny * nz + (j + 1) * nz + k + 1;
         idx idx111 = (i + 1) * ny * nz + (j + 1) * nz + k + 1;
+        if (i % 2 == 1) {
+          // Flip in x direction:
+          std::swap(idx000, idx100);
+          std::swap(idx010, idx110);
+          std::swap(idx001, idx101);
+          std::swap(idx011, idx111);
+        }
+
+        if (j % 2 == 1) {
+          // Flip in y direction:
+          std::swap(idx000, idx010);
+          std::swap(idx100, idx110);
+          std::swap(idx001, idx011);
+          std::swap(idx101, idx111);
+        }
+
+        if (k % 2 == 1) {
+          // Flip in z direction:
+          std::swap(idx000, idx001);
+          std::swap(idx100, idx101);
+          std::swap(idx010, idx011);
+          std::swap(idx110, idx111);
+        }
+
         elements.col(id++) = vec4i{idx000, idx100, idx010, idx001};
         elements.col(id++) = vec4i{idx010, idx100, idx110, idx111};
         elements.col(id++) = vec4i{idx100, idx010, idx001, idx111};

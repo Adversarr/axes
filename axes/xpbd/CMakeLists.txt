@@ -16,6 +16,7 @@ target_include_directories(axes_xpbd
 
 target_link_libraries(axes_xpbd
   PUBLIC
+    axes_geometry
     axes_optim
 )
 

@@ -77,6 +77,49 @@ math::field2i get_boundary_edges(math::field3i const& triangles) {
   return boundary_edges;
 }
 
+math::field2i get_boundary_edges(math::field3r const&, math::field4i const& tetrahedrons) {
+  std::set<std::tuple<idx, idx, idx>> triangles;
+  auto put_triangle = [&](idx a, idx b, idx c) {
+    if (a > b) std::swap(a, b);
+    if (a > c) std::swap(a, c);
+    if (b > c) std::swap(b, c);
+    if (triangles.find({a, b, c}) != triangles.end()) {
+      triangles.erase({a, b, c});
+    } else {
+      triangles.insert({a, b, c});
+    }
+  };
+
+  for (idx i = 0; i < tetrahedrons.cols(); ++i) {
+    put_triangle(tetrahedrons(0, i), tetrahedrons(1, i), tetrahedrons(2, i));
+    put_triangle(tetrahedrons(0, i), tetrahedrons(1, i), tetrahedrons(3, i));
+    put_triangle(tetrahedrons(0, i), tetrahedrons(2, i), tetrahedrons(3, i));
+    put_triangle(tetrahedrons(1, i), tetrahedrons(2, i), tetrahedrons(3, i));
+  }
+
+  std::set<std::pair<idx, idx>> edges;
+  auto put_edge = [&](idx a, idx b) {
+    if (a > b) std::swap(a, b);
+    edges.insert({a, b});
+  };
+
+  for (auto const& [a, b, c] : triangles) {
+    put_edge(a, b);
+    put_edge(b, c);
+    put_edge(c, a);
+  }
+
+  math::field2i boundary_edges(2, edges.size());
+  idx i = 0;
+  for (auto const& [a, b] : edges) {
+    boundary_edges(0, i) = a;
+    boundary_edges(1, i) = b;
+    ++i;
+  }
+
+  return boundary_edges;
+}
+
 math::field3i get_boundary_triangles(math::field3r const& vertices, 
   math::field4i const& tetrahedrons) {
   List<utils::DupTuple<idx, 3>> triangles;

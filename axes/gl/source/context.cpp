@@ -46,7 +46,7 @@ struct Context::Impl {
   entt::entity axis_entity_;
   entt::entity light_entity_;
 
-  bool render_axis_{false};
+  bool render_axis_{true};
   bool render_light_{false};
 
   bool update_light_{true};

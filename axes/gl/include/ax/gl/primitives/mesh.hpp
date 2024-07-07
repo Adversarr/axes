@@ -11,6 +11,7 @@ public:
   math::field3i indices_;
 
   math::field3r instance_offset_;
+  math::field3r instance_scale_;
   math::field4r instance_color_;
 
   void Flush();

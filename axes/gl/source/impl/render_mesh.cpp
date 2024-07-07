@@ -144,18 +144,34 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   if (mesh.instance_offset_.cols() > 0) {
-    AX_CHECK(mesh.instance_color_.cols() >= mesh.instance_offset_.cols());
-    instances_.reserve(static_cast<size_t>(mesh.instance_offset_.size()));
+    instances_.reserve(static_cast<size_t>(mesh.instance_offset_.cols()));
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);
-      auto color_offset = mesh.instance_color_.col(i);
       instance.position_offset_
           = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
-      instance.color_offset_
-          = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      if (i < mesh.instance_color_.cols()) {
+        auto color_offset = mesh.instance_color_.col(i);
+        instance.color_offset_
+            = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+      } else {
+        instance.color_offset_ = glm::vec4(0, 0, 0, 0);
+      }
+
+      if (i < mesh.instance_scale_.cols()) {
+        instance.scale_ = glm::make_vec3(mesh.instance_scale_.col(i).data());
+      } else {
+        instance.scale_ = glm::one<glm::vec3>();
+      }
+
       instances_.push_back(instance);
     }
+  } else {
+    MeshInstanceData single;
+    single.color_offset_ = glm::zero<glm::vec4>();
+    single.position_offset_ = glm::zero<glm::vec4>();
+    single.scale_ = glm::one<glm::vec4>();
+    instances_.push_back(single);
   }
 
   /****************************** Construct VAO ******************************/
@@ -196,8 +212,12 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
         AX_CHECK_OK(vao_.EnableAttrib(4));
         AX_CHECK_OK(vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData),
                                           sizeof(glm::vec3)));
+
+        AX_CHECK_OK(vao_.EnableAttrib(5));
+        AX_CHECK_OK(vao_.SetAttribPointer(5, 3, Type::kFloat, false, sizeof(MeshInstanceData), offsetof(MeshInstanceData, scale_)));
         AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
         AX_CHECK_OK(vao_.SetAttribDivisor(4, 1));
+        AX_CHECK_OK(vao_.SetAttribDivisor(5, 1));
       }
     }
     AX_CHECK_OK(vao_.GetIndexBuffer().Bind());

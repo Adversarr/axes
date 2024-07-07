@@ -8,6 +8,7 @@ layout(location = 2) in vec3 normal;
 // NOTE: Instancing
 layout(location = 3) in vec3 position_offset_;
 layout(location = 4) in vec4 color_offset_;
+layout(location = 5) in vec3 scale_;
 
 out vec3 fragPos;
 out vec3 fragNormal;
@@ -22,7 +23,12 @@ uniform mat4 projection;
 void main() {
   fragNormal = mat3(transpose(inverse(model))) * normal;
   flatFragNormal = fragNormal;
-  fragPos = vec3(model * vec4(position_offset_ + position, 1.0));
+  vec3 real_position;
+  real_position.x = position.x * scale_.x;
+  real_position.y = position.y * scale_.y;
+  real_position.z = position.z * scale_.z;
+
+  fragPos = vec3(model * vec4(position_offset_ + real_position, 1.0));
   vec4 raw_color = color_offset_ + color;
   flatFragColor = raw_color;
   fragColor = raw_color;

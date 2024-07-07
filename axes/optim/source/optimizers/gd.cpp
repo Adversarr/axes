@@ -21,6 +21,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
 
   real energy = problem.EvalEnergy(x);
   math::vecxr grad, x_old = x;
+  real last_step_length = 1;
   bool converged_grad = false;
   bool converged_var = false;
   idx iter = 0;
@@ -32,8 +33,12 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
                                                           : math::inf<real>;
     real evalcv = (iter > 0 && problem.HasConvergeVar()) ? problem.EvalConvergeVar(x, x_old)
                                                          : math::inf<real>;
+
     converged_grad = evalcg < tol_grad_;
     converged_var = evalcv < tol_var_;
+    if (iter > 1) {
+      converged_var |= (x - x_old).norm() < tol_var_ * last_step_length;
+    }
     if (verbose_) {
       AX_LOG(INFO) << "Gradient Descent iter " << iter << std::endl
                    << "  f: " << energy << std::endl
@@ -53,6 +58,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
     if (linesearch_) {
       auto lsr = linesearch_->Optimize(problem, x, grad, dir);
       x = lsr.x_opt_;
+      last_step_length = lsr.step_length_;
     } else {
       x.noalias() += dir * lr_;
       if (problem.HasProximator()) {

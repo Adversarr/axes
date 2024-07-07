@@ -12,9 +12,15 @@ public:
 
   OptimizerKind GetKind() const final { return OptimizerKind::kFista; }
 
+  void SetMonotonic(bool monotonic) { monotonic_ = monotonic; }
+
+  mutable std::vector<real> tk_;
+
 private:
   real lr_{1};
-  real shrink_rate_{0.5};
+  real shrink_rate_{0.8};
+
+  bool monotonic_{false};
 };
 
 }  // namespace ax::optim

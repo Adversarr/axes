@@ -1,8 +1,8 @@
-function(axes_add_example name deps)
+macro(axes_add_example name)
   file(GLOB_RECURSE sources "${name}/*.cpp" "${name}/*.cu")
   add_executable(${name} ${sources})
-  target_link_libraries(${name} PUBLIC ${deps})
-endfunction(axes_add_example)
+  target_link_libraries(${name} PUBLIC ${ARGN})
+endmacro(axes_add_example)
 
 axes_add_example(empty "axes_core")
 if (AX_ENABLE_CUDA)
@@ -35,6 +35,7 @@ axes_add_example(fem_tetra_fd "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
 axes_add_example(fem3_experiment "axes_fem;axes_gl")
 axes_add_example(rom_experimental "axes_fem;axes_graph")
+axes_add_example(fem_spai "axes_fem;axes_gl")
 
 # Homework for Nonlinear Numerical PDE:
 axes_add_example(char_burgers axes_gl)

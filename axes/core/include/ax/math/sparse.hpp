@@ -51,13 +51,23 @@ template <idx dim> spmatr kronecker_identity(spmatr A) {
 }
 
 template <typename Fn>
-AX_FORCE_INLINE void spmatr_for_each(spmatr const& A, Fn&& fn) {
+AX_FORCE_INLINE void spmatr_for_each(spmatr & A, Fn&& fn) {
   for (idx k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
     }
   }
 }
+
+template <typename Fn>
+AX_FORCE_INLINE void spmatr_for_each(const spmatr & A, Fn&& fn) {
+  for (idx k = 0; k < A.outerSize(); ++k) {
+    for (spmatr::InnerIterator it(A, k); it; ++it) {
+      fn(it.row(), it.col(), it.valueRef());
+    }
+  }
+}
+
 
 AX_FORCE_INLINE real norm(spmatr const& A, math::l1_t) {
   real norm = 0;

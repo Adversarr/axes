@@ -85,6 +85,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
         [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
           auto *cmpt = try_get_resource<SparseInverseApproximator>();
           AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
+          return cmpt->A_ * gk;
           auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
             auto const &A = cmpt->A_;
             auto const &delta = cmpt->eig_modification_;

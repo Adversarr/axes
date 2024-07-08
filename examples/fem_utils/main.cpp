@@ -48,11 +48,7 @@ public:
     }
     auto mesh = std::make_unique<TriMesh<3>>();
 
-    auto s = mesh->SetMesh(*tetras, *vertices);
-    if (!s.ok()) {
-      return s;
-    }
-
+    mesh->SetMesh(*tetras, *vertices);
     add_or_replace_component<UPtr<TriMesh<3>>>(*entity, std::move(mesh));
     AX_RETURN_OK();
   }

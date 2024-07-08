@@ -60,8 +60,8 @@ void update_rendering() {
   lines.colors_.topRows<3>().setZero();
 
   ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
-  auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
+  ts->GetElasticity().GatherEnergyToVertices();
+  auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
@@ -98,7 +98,7 @@ void ui_callback(gl::UiRenderEvent) {
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
     static idx frame = 0;
-    ts->BeginTimestep(dt);
+    ts->BeginTimestep();
     ts->SolveTimestep();
     ts->EndTimestep();
     auto time_end = ax::utils::GetCurrentTimeNanos();
@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
   ts->SetExternalAccelerationUniform(math::vec3r::UnitY() * -9.8);
   std::cout << ts->GetOptions() << std::endl;
   ts->SetDensity(1e3);
-  ts->BeginSimulation();
+  ts->BeginSimulation(dt);
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);

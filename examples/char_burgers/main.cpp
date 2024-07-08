@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 
   std::string export_file = absl::GetFlag(FLAGS_export_file);
   AX_LOG(INFO) << "Exporting the result to " << export_file;
-  AX_CHECK_OK(math::write_npy_v10(export_file, u_x_t)) << "Failed to write to " << export_file;
+  (math::write_npy_v10(export_file, u_x_t));
 
   clean_up();
   return 0;

@@ -227,7 +227,7 @@ void ui_callback(gl::UiRenderEvent) {
 
   static bool enab_KL = false;
   if (ImGui::Button("Step") || running) {
-    ts->BeginTimestep(dt);
+    ts->BeginTimestep();
     u0 = ts->GetPosition();
     ts->SolveTimestep();
     u1 = ts->GetSolution();

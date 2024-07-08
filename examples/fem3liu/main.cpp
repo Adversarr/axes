@@ -240,10 +240,10 @@ int main(int argc, char** argv) {
 
   lame = fem::elasticity::compute_lame(absl::GetFlag(FLAGS_youngs), 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
-    // tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
-    // vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
-    tet_file = utils::get_asset("/mesh/npy/beam_mid_res_elements.npy");
-    vet_file = utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy");
+    tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
+    vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
+    // tet_file = utils::get_asset("/mesh/npy/beam_mid_res_elements.npy");
+    // vet_file = utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy");
   } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     tet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");

@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
   std::string path;
   path = "u" + std::to_string(Nx) + "_" + std::to_string(idx(10*T)) + ".npy";
 
-  AX_CHECK_OK(math::write_npy_v10(path, u_x_t));
+  (math::write_npy_v10(path, u_x_t));
 
   ax::clean_up();
   return 0;

@@ -97,7 +97,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     global_problem_.A_ = math::make_sparse_matrix(2 * n_vertex, 2 * n_vertex, coeff_list);
     // AX_LOG(INFO) << problem.A_.toDense().determinant();
   }  
-  global_solver_->Analyse(global_problem_);
+  global_solver_->SetProblem(global_problem_.A_).Compute();
 }
 
 void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> solver) {
@@ -106,7 +106,7 @@ void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> sol
 
 ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
   global_solver_ = std::move(solver);
-  global_solver_->Analyse(global_problem_);
+  global_solver_->SetProblem(global_problem_.A_).Compute();
   AX_RETURN_OK();
 }
 

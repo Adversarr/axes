@@ -18,6 +18,7 @@
 
 ABSL_FLAG(std::string, resolution, "low", "low, mid, high");
 ABSL_FLAG(int, prolongation, 1, "Prolongation level");
+ABSL_FLAG(std::string, strategy, "kReservedForExperimental", "");
 
 using namespace ax;
 Entity out;
@@ -76,6 +77,17 @@ void ui_callback(gl::UiRenderEvent) {
   if (ImGui::Button("Step") || running) {
     const auto& vert = ts->GetMesh()->GetVertices();
     auto time_start = ax::utils::GetCurrentTimeNanos();
+    for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+      math::vec3r position = input_mesh.vertices_.col(i);
+      if (position.x()> 4.9) {
+        position.x() += dt * frame; 
+        ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
+        ts->GetMesh()->MarkDirichletBoundary(i, 1, position.y());
+        ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());
+      }
+    }
+    ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
+
 
     ts->BeginTimestep();
     setup_spai();
@@ -120,19 +132,20 @@ int main(int argc, char** argv) {
   input_mesh.vertices_ = vet.transpose();
 
   ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
-  ts->SetOptions({{"lbfgs_strategy", "kReservedForExperimental"}, {"record_trajectory", true}});
+  std::string strategy = absl::GetFlag(FLAGS_strategy);
+  ts->SetOptions({{"lbfgs_strategy", strategy}, {"record_trajectory", true}});
   ts->SetYoungs(1e7);
   ts->SetPoissonRatio(0.45);
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   ts->GetMesh()->SetNumDofPerVertex(3);
   ts->SetDensity(1e3);
-  ts->SetupElasticity("stable_neohookean", "gpu");
+  ts->SetupElasticity("stable_neohookean", "cpu");
   AX_CHECK_OK(ts->Initialize());
 
   /************************* SECT: Setup Boundaries *************************/
   for (auto i : utils::iota(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
-    if (position.x() > 4.9) {
+    if (abs(position.x())> 4.9) {
       ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
       ts->GetMesh()->MarkDirichletBoundary(i, 1, position.y());
       ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());

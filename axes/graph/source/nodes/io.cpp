@@ -224,10 +224,7 @@ public:
     if (!fname.ends_with(".npy")) {
       fname += ".npy";
     }
-    auto status = math ::write_npy_v10(fname, out);
-    if (!status.ok()) {
-      return status;
-    }
+    math::write_npy_v10(fname, out);
     return ::ax ::utils ::OkStatus();
   }
 };
@@ -258,10 +255,7 @@ public:
     if (!fname.ends_with(".npy")) {
       fname += ".npy";
     }
-    auto status = math ::write_npy_v10(fname, out);
-    if (!status.ok()) {
-      return status;
-    }
+    math::write_npy_v10(fname, out);
     return ::ax ::utils ::OkStatus();
   }
 };
@@ -413,10 +407,7 @@ public:
     if (matrix == nullptr) {
       return utils::FailedPreconditionError("Matrix is not set");
     }
-    auto status = math::write_sparse_matrix(*file, *matrix);
-    if (!status.ok()) {
-      return status;
-    }
+    math::write_sparse_matrix(*file, *matrix);
     AX_RETURN_OK();
   }
 };

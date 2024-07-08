@@ -3,8 +3,6 @@
 #include <fstream>
 
 #include "ax/core/excepts.hpp"
-#include "ax/core/status.hpp"
-#include "ax/utils/status.hpp"
 
 char numpy_magic_code[] = "\x93NUMPY";
 
@@ -49,10 +47,10 @@ figure out the number of bytes by multiplying the number of elements given by th
 shape=() means there is 1 element) by dtype.itemsize.
 */
 
-Status write_npy_v10(std::ostream& out, const real* p, size_t write_length, size_t f, size_t i,
-                     size_t j) {
+void write_npy_v10(std::ostream& out, const real* p, size_t write_length, size_t f, size_t i,
+                   size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
-    return Status{StatusCode::kInvalidArgument, "The write length is not correct."};
+    throw std::runtime_error("The write length is not correct.");
   }
   out.write(numpy_magic_code, 6);
   uint8_t major = 1;
@@ -84,15 +82,16 @@ Status write_npy_v10(std::ostream& out, const real* p, size_t write_length, size
   out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(real)));
 
   if (!out.good()) {
-    return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
+    // return void{voidCode::kUnavailable, "Failed to write to the ostream properly."};
+    throw std::runtime_error("Failed to write to the ostream properly.");
   }
-  AX_RETURN_OK();
 }
 
-Status write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t f, size_t i,
-                     size_t j) {
+void write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t f, size_t i,
+                   size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
-    return Status{StatusCode::kInvalidArgument, "The write length is not correct."};
+    // return void{voidCode::kInvalidArgument, "The write length is not correct."};
+    throw std::runtime_error("The write length is not correct.");
   }
   out.write(numpy_magic_code, 6);
   uint8_t major = 1;
@@ -124,33 +123,38 @@ Status write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_
   out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(idx)));
 
   if (!out.good()) {
-    return Status{StatusCode::kUnavailable, "Failed to write to the ostream properly."};
+    // return void{voidCode::kUnavailable, "Failed to write to the ostream properly."};
+    throw std::runtime_error("Failed to write to the ostream properly.");
   }
-  AX_RETURN_OK();
 }
 
-Status write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec) {
+void write_npy_v10(std::string path, const vec<real, Eigen::Dynamic>& vec) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
-    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+    // return void{voidCode::kInvalidArgument, "Failed to open the file."};
+    throw std::runtime_error("Failed to open the file.");
   }
 
-  return write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0, static_cast<size_t>(vec.size()));
+  write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0,
+                static_cast<size_t>(vec.size()));
 }
 
-Status write_npy_v10(std::string path, const vec<idx, Eigen::Dynamic>& vec) {
+void write_npy_v10(std::string path, const vec<idx, Eigen::Dynamic>& vec) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
-    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+    // return void{voidCode::kInvalidArgument, "Failed to open the file."};
+    throw std::runtime_error("Failed to open the file: " + path);
   }
 
-  return write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0, static_cast<size_t>(vec.size()));
+  write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0,
+                static_cast<size_t>(vec.size()));
 }
 
-Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
+void write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
-    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+    // void{voidCode::kInvalidArgument, "Failed to open the file."};
+    throw std::runtime_error("Failed to open the file.");
   }
 
   List<real> data;
@@ -161,14 +165,15 @@ Status write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
     }
   }
 
-  return write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
-                       static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
+  write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
+                static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
 }
 
-Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
+void write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
-    return Status{StatusCode::kInvalidArgument, "Failed to open the file."};
+    // return void{voidCode::kInvalidArgument, "Failed to open the file."};
+    throw std::runtime_error("Failed to open the file: " + path);
   }
 
   List<idx> data;
@@ -179,17 +184,18 @@ Status write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
     }
   }
 
-  return write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
-                       static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
+  write_npy_v10(out, data.data(), static_cast<size_t>(mat.size()), 0,
+                static_cast<size_t>(mat.rows()), static_cast<size_t>(mat.cols()));
 }
 
 struct Header {
   std::string descr;
   bool fortran_order = false;
   std::vector<idx> shape;
-  Status parse(const std::string& header) {
+  void parse(const std::string& header) {
     if (header.empty()) {
-      return Status{StatusCode::kInvalidArgument, "The header is empty."};
+      // return void{voidCode::kInvalidArgument, "The header is empty."};
+      throw std::runtime_error("The header is empty.");
     }
 
     std::stringstream ss(header);
@@ -206,7 +212,8 @@ struct Header {
       return status;
     };
     if (!consume_until('{')) {
-      return utils::InvalidArgumentError("The header is not a valid dictionary.");
+      // return utils::InvalidArgumentError("The header is not a valid dictionary.");
+      throw std::runtime_error("The header is not a valid dictionary.");
     }
 
     while ((ss >> c)) {
@@ -226,11 +233,13 @@ struct Header {
       }
 
       if (!consume_until(':')) {
-        return utils::InvalidArgumentError("The header is not a valid dictionary.");
+        // return utils::InvalidArgumentError("The header is not a valid dictionary.");
+        throw std::runtime_error("The header is not a valid dictionary.");
       }
       if (key == "descr") {
         if (!consume_until('\'')) {
-          return utils::InvalidArgumentError("The descr key is not a string.");
+          // return utils::InvalidArgumentError("The descr key is not a string.");
+          throw std::runtime_error("The descr key is not a string.");
         }
         while (ss >> c) {
           if (c == '\'') {
@@ -247,7 +256,8 @@ struct Header {
           }
         }
         if (c != 'T' && c != 'F') {
-          return utils::InvalidArgumentError("The fortran_order key is not a boolean.");
+          // return utils::InvalidArgumentError("The fortran_order key is not a boolean.");
+          throw std::runtime_error("The fortran_order key is not a boolean.");
         }
         fortran_order = c == 'T';
         // std::cout << "Fortran Order: " << fortran_order << std::endl;
@@ -300,7 +310,6 @@ struct Header {
         }
       }
     }
-    AX_RETURN_OK();
   }
 };
 
@@ -332,10 +341,7 @@ math::matxxr read_npy_v10_real(std::string path) {
   }
   // Read the data
   Header header_obj;
-  if (auto s = header_obj.parse(header); !s.ok()) {
-    throw RuntimeError("The file is not a valid NPY file. (Header Parse Failed)");
-  }
-
+  header_obj.parse(header);
   if (header_obj.shape.size() > 2) {
     throw RuntimeError("dim > 2 is not supported");
   }
@@ -423,10 +429,7 @@ math::matxxi read_npy_v10_idx(std::string path) {
   }
   // Read the data
   Header header_obj;
-  if (auto s = header_obj.parse(header); !s.ok()) {
-    throw RuntimeError("The file is not a valid NPY file. (Header Parse Failed)");
-  }
-
+  header_obj.parse(header);
   if (header_obj.shape.size() > 2) {
     throw RuntimeError("dim > 2 is not supported");
   }
@@ -486,10 +489,10 @@ math::matxxi read_npy_v10_idx(std::string path) {
   return mat;
 }
 
-Status write_sparse_matrix(std::string path, const spmatr& mat) {
+void write_sparse_matrix(std::string path, const spmatr& mat) {
   std::ofstream out(path);
   if (!out.is_open()) {
-    return utils::NotFoundError("Failed to open the file. " + path);
+    throw std::runtime_error("Failed to open the file. " + path);
   }
 
   out << R"(%%MatrixMarket matrix coordinate real general
@@ -522,7 +525,6 @@ Status write_sparse_matrix(std::string path, const spmatr& mat) {
       out << it.row() + 1 << " " << it.col() + 1 << " " << it.value() << "\n";
     }
   }
-  AX_RETURN_OK();
 }
 
 spmatr read_sparse_matrix(std::string path) {
@@ -562,7 +564,7 @@ spmatr read_sparse_matrix(std::string path) {
     }
     triplets.push_back({r - 1, c - 1, val});
   }
-  return math::make_sparse_matrix(rows, cols, triplets);
+  math::make_sparse_matrix(rows, cols, triplets);
 }
 
 }  // namespace ax::math

@@ -64,8 +64,9 @@ void update_rendering() {
 
   ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), 
       fem::ElasticityUpdateLevel::kEnergy);
-  auto e_per_elem = ts->GetElasticity().Energy(lame);
-  auto e_per_vert = ts->GetElasticity().GatherEnergy(e_per_elem);
+  ts->GetElasticity().UpdateEnergy();
+  ts->GetElasticity().GatherEnergyToVertices();
+  auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
   static real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();

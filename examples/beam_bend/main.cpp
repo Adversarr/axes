@@ -125,28 +125,28 @@ void write_into_seps() {
       X.col(i) = uk[i];
     }
     X.transposeInPlace();
-    AX_CHECK_OK(math::write_npy_v10(dest + "/uk_" + std::to_string(cnt) + ".npy", X));
+    (math::write_npy_v10(dest + "/uk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
     for (idx i = 0; i < seperation; ++i) {
       X.col(i) = gk[i];
     }
     X.transposeInPlace();
-    AX_CHECK_OK(math::write_npy_v10(dest + "/gk_" + std::to_string(cnt) + ".npy", X));
+    (math::write_npy_v10(dest + "/gk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
     for (idx i = 0; i < seperation; ++i) {
       X.col(i) = sk[i];
     }
     X.transposeInPlace();
-    AX_CHECK_OK(math::write_npy_v10(dest + "/sk_" + std::to_string(cnt) + ".npy", X));
+    (math::write_npy_v10(dest + "/sk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
     for (idx i = 0; i < seperation; ++i) {
       X.col(i) = inertia[i];
     }
     X.transposeInPlace();
-    AX_CHECK_OK(math::write_npy_v10(dest + "/inertia_" + std::to_string(cnt) + ".npy", X));
+    (math::write_npy_v10(dest + "/inertia_" + std::to_string(cnt) + ".npy", X));
 
     uk.clear();
     gk.clear();
@@ -245,15 +245,15 @@ int main(int argc, char** argv) {
 
   math::matxxr V = input_mesh.vertices_.transpose();
   math::matxxi E = input_mesh.indices_.transpose();
-  AX_CHECK_OK(math::write_npy_v10(dest + "/vertices.npy", V));
-  AX_CHECK_OK(math::write_npy_v10(dest + "/elements.npy", E));
+  (math::write_npy_v10(dest + "/vertices.npy", V));
+  (math::write_npy_v10(dest + "/elements.npy", E));
   math::vecxr bc_mask = ts->GetMesh()->GetDirichletBoundaryMask().row(0).transpose();
-  AX_CHECK_OK(math::write_npy_v10(dest + "/bc_masks.npy", bc_mask));
+  (math::write_npy_v10(dest + "/bc_masks.npy", bc_mask));
   math::vecxi node_type = (1 - bc_mask.array()).cast<idx>();
-  AX_CHECK_OK(math::write_npy_v10(dest + "/node_types.npy", node_type));
+  (math::write_npy_v10(dest + "/node_types.npy", node_type));
   math::vecxr mass
       = ts->GetMassMatrixOriginal() * math::vecxr::Ones(ts->GetMesh()->GetNumVertices());
-  AX_CHECK_OK(math::write_npy_v10(dest + "/mass.npy", mass));
+  (math::write_npy_v10(dest + "/mass.npy", mass));
   ts->BeginSimulation(dt);
   auto L = ts->GetLaplacianAsApproximation();
 
@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
     auto solver = math::SparseSolver_Cholmod();
     solver.SetProblem(L).Compute();
     math::matxxr inv = solver.Inverse();
-    AX_CHECK_OK(math::write_npy_v10(dest + "/laplacian.npy", inv));
+    (math::write_npy_v10(dest + "/laplacian.npy", inv));
   }
 
   {

@@ -48,7 +48,7 @@ void render_aabb() {
   for (auto const& [k, v]: collision_info) {
     std::cout << "CollisionType: " << utils::reflect_name(k).value_or("Unknown?") << std::endl;
     for (auto const& info: v) {
-      std::cout << "- " << info.vv_a_ << " " << info.vv_b_ << std::endl;
+      std::cout << "- " << info.a_ << " " << info.b_ << std::endl;
     }
   }
 }

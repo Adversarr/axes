@@ -355,7 +355,7 @@ int main(int argc, char** argv) {
   uxt.row(Nx) = uxt.row(0);  // apply the periodic boundary condition
 
   std::string path = "u" + std::to_string(Nx) + "_" + std::to_string(idx(10 * T)) + ".npy";
-  AX_CHECK_OK(math::write_npy_v10(path, uxt));
+  (math::write_npy_v10(path, uxt));
 
   ax::clean_up();
   return 0;

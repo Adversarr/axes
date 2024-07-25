@@ -157,7 +157,7 @@ Checks: '-*,
 
 CheckOptions:
   - key: readability-identifier-naming.ClassMethodIgnoredRegexp
-    value "(begin|end)"
+    value: "(begin|end)"
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
   - key: readability-identifier-naming.EnumCase

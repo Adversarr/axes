@@ -123,6 +123,10 @@ template <typename T> bool remove_component(Entity entity) {
   return 0 < global_registry().remove<T>(entity);
 }
 
+template <typename T, typename Fn> decltype(auto) update_component(Entity ent, Fn&& fn) {
+  return global_registry().patch<T>(ent, std::forward<Fn>(fn));
+}
+
 /****************************** Resource ******************************/
 
 /**

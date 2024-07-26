@@ -33,53 +33,22 @@ AX_DEFINE_STDEXCEPT(out_of_range);
 
 }  // namespace ax
 
-#define AX_THROW_IF_LT(lhs, rhs, ...)                                                            \
-  do {                                                                                           \
-    if ((lhs) < (rhs)) throw ::std::runtime_error(#lhs " < " #rhs __VA_OPT__(": ") __VA_ARGS__); \
+#define AX_THROW_IF(cond, msgfmt, ...)                                   \
+  do {                                                                   \
+    if (!(cond)) {                                                       \
+      throw ::ax::make_runtime_error(msgfmt __VA_OPT__(, ) __VA_ARGS__); \
+    }                                                                    \
   } while (0)
-#define AX_THROW_IF_GT(lhs, rhs, ...)                                                            \
-  do {                                                                                           \
-    if ((lhs) > (rhs)) throw ::std::runtime_error(#lhs " > " #rhs __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_LE(lhs, rhs, ...)                                                              \
-  do {                                                                                             \
-    if ((lhs) <= (rhs)) throw ::std::runtime_error(#lhs " <= " #rhs __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_GE(lhs, rhs, ...)                                                              \
-  do {                                                                                             \
-    if ((lhs) >= (rhs)) throw ::std::runtime_error(#lhs " >= " #rhs __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_EQ(lhs, rhs, ...)                                                              \
-  do {                                                                                             \
-    if ((lhs) == (rhs)) throw ::std::runtime_error(#lhs " == " #rhs __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_NE(lhs, rhs, ...)                                                              \
-  do {                                                                                             \
-    if ((lhs) != (rhs)) throw ::std::runtime_error(#lhs " != " #rhs __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_NULL(ptr, ...)                                                        \
-  do {                                                                                    \
-    if (!(ptr)) throw ::std::runtime_error(#ptr " is null" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_NOT_NULL(ptr, ...)                                                       \
-  do {                                                                                       \
-    if ((ptr)) throw ::std::runtime_error(#ptr " is not null" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_FALSE(cond, ...)                                                         \
-  do {                                                                                       \
-    if (!(cond)) throw ::std::runtime_error(#cond " is false" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_TRUE(cond, ...)                                                        \
-  do {                                                                                     \
-    if ((cond)) throw ::std::runtime_error(#cond " is true" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_NULLPTR(ptr, ...)                                              \
-  do {                                                                             \
-    if ((ptr) == nullptr)                                                          \
-      throw ::std::runtime_error(#ptr " is nullptr" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
-#define AX_THROW_IF_NOT_NULLPTR(ptr, ...)                                              \
-  do {                                                                                 \
-    if ((ptr) != nullptr)                                                              \
-      throw ::std::runtime_error(#ptr " is not nullptr" __VA_OPT__(": ") __VA_ARGS__); \
-  } while (0)
+
+#define AX_THROW_IF_LT(lhs, rhs, ...) AX_THROW_IF((lhs) < (rhs), #lhs " < " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_GT(lhs, rhs, ...) AX_THROW_IF((lhs) > (rhs), #lhs " > " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_LE(lhs, rhs, ...) AX_THROW_IF((lhs) <= (rhs), #lhs " <= " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_GE(lhs, rhs, ...) AX_THROW_IF((lhs) >= (rhs), #lhs " >= " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_EQ(lhs, rhs, ...) AX_THROW_IF((lhs) == (rhs), #lhs " == " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_NE(lhs, rhs, ...) AX_THROW_IF((lhs) != (rhs), #lhs " != " #rhs ": " __VA_ARGS__)
+#define AX_THROW_IF_NULL(ptr, ...)    AX_THROW_IF((ptr) == nullptr, #ptr " is nullptr" ": " __VA_ARGS__)
+#define AX_THROW_IF_NOT_NULL(ptr, ...) AX_THROW_IF((ptr) != nullptr, #ptr " is not nullptr" ": " __VA_ARGS__)
+#define AX_THROW_IF_FALSE(cond, ...) AX_THROW_IF(!(cond), #cond " is false" ": " __VA_ARGS__)
+#define AX_THROW_IF_TRUE(cond, ...) AX_THROW_IF((cond), #cond " is true" ": " __VA_ARGS__)
+#define AX_THROW_IF_NULLPTR(ptr, ...) AX_THROW_IF_NULL(ptr, __VA_ARGS__)
+#define AX_THROW_IF_NOT_NULLPTR(ptr, ...) AX_THROW_IF_NOT_NULL(ptr, __VA_ARGS__)

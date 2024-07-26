@@ -57,17 +57,17 @@ char json_out_path[64] = "blueprint.json";
 
 static void run_once();
 
-UPtr<GraphExecutorBase>& ensure_executor() {
+std::unique_ptr<GraphExecutorBase>& ensure_executor() {
   auto &g = ensure_resource<Graph>();
-  if (auto* ptr = try_get_resource<UPtr<GraphExecutorBase>>()) {
+  if (auto* ptr = try_get_resource<std::unique_ptr<GraphExecutorBase>>()) {
     if_likely (&(ptr->get()->GetGraph()) == &g) {
       return *ptr;
     } else {
-      erase_resource<UPtr<GraphExecutorBase>>();
-      return add_resource<UPtr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+      erase_resource<std::unique_ptr<GraphExecutorBase>>();
+      return add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     }
   } else {
-    auto &r = add_resource<UPtr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    auto &r = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     return r;
   }
 }

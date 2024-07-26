@@ -7,8 +7,5 @@
 #include <memory>
 
 namespace ax {
-template <typename T> using List=std::vector<T>;
-template <typename T> using UPtr=std::unique_ptr<T>;
-template <typename T> using Ptr=T*;
-template <typename T> using SPtr=std::shared_ptr<T>;
+
 }

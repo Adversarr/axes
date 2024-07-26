@@ -11,7 +11,7 @@
 #include <string>
 
 namespace ax::graph {
-using NodeConstructor = std::function<UPtr<NodeBase>(NodeDescriptor const*, idx)>;
+using NodeConstructor = std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*, idx)>;
 
 namespace details {
 
@@ -45,7 +45,7 @@ class NodeDescriptorFactory {
 public:
   static_assert(std::is_base_of_v<NodeBase, T>, "T must be derived from NodeBase");
   NodeDescriptorFactory() : descriptor_(typeid(T)) {
-    descriptor_.ctor_ = [](NodeDescriptor const* descript, idx id) -> UPtr<NodeBase> {
+    descriptor_.ctor_ = [](NodeDescriptor const* descript, idx id) -> std::unique_ptr<NodeBase> {
       return std::make_unique<T>(descript, id);
     };
   }
@@ -184,7 +184,7 @@ private:
   // factory function to be able to access the constructor, and user cannot access it.
   friend class Graph;
   // Factory
-  static UPtr<NodeBase> Create(NodeDescriptor const* descript, idx id);
+  static std::unique_ptr<NodeBase> Create(NodeDescriptor const* descript, idx id);
 
 
   NodeDescriptor const* descriptor_;

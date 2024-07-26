@@ -14,7 +14,7 @@ public:
   void ForeachTreeAABB(std::function<void(AlignedBox3 const&)> f) const;
 
 private:
-  UPtr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }

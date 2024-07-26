@@ -1,6 +1,6 @@
 #include "ax/optim/spsdm/eigenvalue.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/optim/spsdm.hpp"
 #include "ax/utils/status.hpp"

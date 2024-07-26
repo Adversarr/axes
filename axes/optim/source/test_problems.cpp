@@ -1,6 +1,6 @@
 #include "ax/optim/test_problems.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/math/functional.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/sparse.hpp"

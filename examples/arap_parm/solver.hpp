@@ -11,32 +11,32 @@ using ax::math::mat2r;
 using Parameterization = ax::math::field2r;
 using IsoCoord = ax::math::mat2r;
 
-using ax::List;
+using ax::std::vector;
 using ax::geo::SurfaceMesh;
 
 struct ParameterizationProblem {
   SurfaceMesh input_mesh_;
-  List<IsoCoord> iso_coords_;
-  List<mat2r> Li_;
-  List<vec3r> cotangent_weights_;
+  std::vector<IsoCoord> iso_coords_;
+  std::vector<mat2r> Li_;
+  std::vector<vec3r> cotangent_weights_;
   Parameterization param_;
 };
 
 class LocalSolverBase {
 public:
-  virtual List<mat2r> Optimal(ParameterizationProblem const& problem) = 0;
+  virtual std::vector<mat2r> Optimal(ParameterizationProblem const& problem) = 0;
   virtual ~LocalSolverBase() = default;
 };
 
 class ARAP final: public LocalSolverBase {
 public:
-  List<mat2r> Optimal(ParameterizationProblem const& problem) final;
+  std::vector<mat2r> Optimal(ParameterizationProblem const& problem) final;
   virtual ~ARAP() = default;
 };
 
 class ASAP final: public LocalSolverBase {
 public:
-  List<mat2r> Optimal(ParameterizationProblem const& problem) final;
+  std::vector<mat2r> Optimal(ParameterizationProblem const& problem) final;
   virtual ~ASAP() = default;
 };
 

@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <map>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/graph/node.hpp"
 
 #if WIN32
@@ -24,16 +24,16 @@ struct UuidUnderlyingInfo {
 
 struct Graph::Impl {
   // Uuid.
-  List<idx> uuid_reuse_node_, uuid_reuse_pin_, uuid_reuse_socket_;
+  std::vector<idx> uuid_reuse_node_, uuid_reuse_pin_, uuid_reuse_socket_;
   idx uuid_next_ = 0;
-  List<UuidUnderlyingInfo> uuid_info_;
+  std::vector<UuidUnderlyingInfo> uuid_info_;
   std::map<idx, idx> pin_to_node_;
   std::map<idx, std::set<idx>> node_to_sockets_;
 
   // Container for graph elements.
-  List<UPtr<NodeBase>> nodes_;
-  List<Socket> sockets_;
-  List<Payload> payloads_;
+  std::vector<std::unique_ptr<NodeBase>> nodes_;
+  std::vector<Socket> sockets_;
+  std::vector<Payload> payloads_;
 
   Impl() {
     uuid_info_.emplace_back(UuidUnderlyingInfo{kInvalid, INVALID_ID});
@@ -77,7 +77,7 @@ struct Graph::Impl {
     return id;
   }
 
-  void EmplaceNode(UPtr<NodeBase> n) {
+  void EmplaceNode(std::unique_ptr<NodeBase> n) {
     AX_DCHECK(n->id_ <= (idx)uuid_info_.size()) << "Internal Logic Error!";
     auto& uinfo = uuid_info_[n->id_];
     node_to_sockets_.insert({n->id_, std::set<idx>{}});

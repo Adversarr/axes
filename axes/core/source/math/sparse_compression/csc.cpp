@@ -1,6 +1,6 @@
 #include "ax/math/sparse_compression/csc.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
 
 namespace ax::math {

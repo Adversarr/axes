@@ -17,7 +17,7 @@ math::field2i springs;
 math::field3r vertices;
 math::field1r initial;
 math::field3r velocities;
-List<idx> fixed;
+std::vector<idx> fixed;
 
 
 math::vec3r center_of_ball;
@@ -25,7 +25,7 @@ real radius = 0.5;
 
 Entity render;
 
-UPtr<math::SparseSolverBase> solver;
+std::unique_ptr<math::SparseSolverBase> solver;
 
 void step() {
   math::field3r x = vertices + DELTA_TIME * velocities;

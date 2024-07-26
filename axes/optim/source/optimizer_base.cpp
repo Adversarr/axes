@@ -1,6 +1,6 @@
 #include "ax/optim/optimizer_base.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
@@ -8,7 +8,7 @@
 
 namespace ax::optim {
 
-UPtr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
+std::unique_ptr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
   switch (k) {
     case OptimizerKind::kNewton:
       return std::make_unique<Optimizer_Newton>();

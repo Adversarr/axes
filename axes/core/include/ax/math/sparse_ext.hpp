@@ -12,7 +12,7 @@ public:
   SparseCompressMatrixBase& operator=(math::spmatr const& A);
   virtual ~SparseCompressMatrixBase() = default;
 
-  static UPtr<SparseCompressMatrixBase> Create(SparseCompressKind kind);
+  static std::unique_ptr<SparseCompressMatrixBase> Create(SparseCompressKind kind);
 
   idx* OuterIndex() { return outer_index_.data(); }
   idx* InnerIndex() { return inner_index_.data(); }

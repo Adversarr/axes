@@ -82,7 +82,7 @@ static math::field1r dg_tev_p1(TriMesh<dim> const& mesh_, math::field1r const& e
 }
 
 template <idx dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
-    TriMesh<dim> const& mesh, List<elasticity::StressTensor<dim>> const& stress,
+    TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     elasticity::DeformationGradientCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
@@ -185,7 +185,7 @@ AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
 
 template <idx dim>
 math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
-                              List<elasticity::HessianTensor<dim>> const& hessian,
+                              std::vector<elasticity::HessianTensor<dim>> const& hessian,
                               elasticity::DeformationGradientCache<dim> const& cache) {
   math::sp_coeff_list coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
@@ -216,7 +216,7 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
   return coo;
 }
 
-template <idx dim> ElasticityComputeBase<dim>::ElasticityComputeBase(SPtr<TriMesh<dim>> mesh)
+template <idx dim> ElasticityComputeBase<dim>::ElasticityComputeBase(std::shared_ptr<TriMesh<dim>> mesh)
     : mesh_(mesh), rinv_(static_cast<size_t>(mesh->GetNumElements())) {}
 
 template <idx dim> void ElasticityComputeBase<dim>::SetMesh(const MeshPtr& mesh) {
@@ -461,7 +461,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(SPtr<TriMesh<dim>> mesh)
+ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh)
     : ElasticityComputeBase<dim>(mesh) {
   this->partitioner_impl_ = std::make_unique<TbbPartitioners>();
 }

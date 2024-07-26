@@ -77,7 +77,7 @@ void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
-  List<std::pair<idx, idx>> edges;
+  std::vector<std::pair<idx, idx>> edges;
   for (auto const& c : g.constraints_) {
     idx nC = c->GetNumConstraints();
     auto& ids = c->GetConstrainedVerticesIds();

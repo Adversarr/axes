@@ -20,7 +20,7 @@ using sp_coeff = Eigen::Triplet<real, idx>;
 /**
  * @brief Alias for a list of sparse coefficients.
  */
-using sp_coeff_list = List<sp_coeff>;
+using sp_coeff_list = std::vector<sp_coeff>;
 
 /**
  * @brief Creates a sparse matrix with the specified number of rows and columns, using the given

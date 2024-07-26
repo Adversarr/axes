@@ -1,5 +1,5 @@
 find_package(Eigen3 CONFIG REQUIRED)
-find_package(absl CONFIG REQUIRED)
+# find_package(absl CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(Blosc REQUIRED)
@@ -8,13 +8,16 @@ find_package(ZLIB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS json)
 find_package(OpenVDB REQUIRED)
 find_package(CHOLMOD REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(cxxopts REQUIRED)
 
 if (AX_ENABLE_OPENMP)
     find_package(OpenMP)
 endif()
 
 message(STATUS "==> Eigen3: ${Eigen3_DIR}")
-message(STATUS "==> absl: ${absl_DIR}")
+# message(STATUS "==> absl: ${absl_DIR}")
 message(STATUS "==> EnTT: ${EnTT_DIR}")
 message(STATUS "==> Blosc: ${Blosc_INCLUDE_DIR}")
 message(STATUS "==> range-v3: ${range-v3_DIR}")
@@ -44,28 +47,29 @@ target_include_directories(axes_core
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-set(ABSL_LIBRARIES
-  absl::btree
-  absl::check
-  absl::cleanup
-  absl::flat_hash_map
-  absl::inlined_vector
-  absl::status
-  absl::log
-  absl::log_initialize
-  absl::log_globals
-  absl::log_flags
-  absl::flags_parse
-  absl::flags_usage
-  absl::failure_signal_handler
-  absl::stacktrace
-  absl::symbolize
-  absl::statusor)
+# set(ABSL_LIBRARIES
+#   absl::btree
+#   absl::check
+#   absl::cleanup
+#   absl::flat_hash_map
+#   absl::inlined_vector
+#   absl::status
+#   absl::log
+#   absl::log_initialize
+#   absl::log_globals
+#   absl::log_flags
+#   absl::flags_parse
+#   absl::flags_usage
+#   absl::failure_signal_handler
+#   absl::stacktrace
+#   absl::symbolize
+#   absl::statusor)
 
 target_link_libraries(axes_core
   PUBLIC
     Eigen3::Eigen
-    ${ABSL_LIBRARIES}
+    # ${ABSL_LIBRARIES}
+    cxxopts::cxxopts
     EnTT::EnTT
     range-v3::range-v3
     OpenVDB::openvdb
@@ -74,6 +78,8 @@ target_link_libraries(axes_core
     ZLIB::ZLIB
     Boost::json
     SuiteSparse::CHOLMOD
+    spdlog::spdlog_header_only
+    fmt::fmt-header-only
 )
 
 if (AX_ENABLE_CUDA)

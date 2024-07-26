@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 
 namespace ax::gl::details {
 

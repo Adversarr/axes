@@ -17,7 +17,7 @@ public:
   static constexpr real default_tol_var = 1e-6;
   static constexpr real default_tol_grad = 1e-6;
   static constexpr idx default_max_iter = 100;
-  static UPtr<OptimizerBase> Create(OptimizerKind k);
+  static std::unique_ptr<OptimizerBase> Create(OptimizerKind k);
 
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase() = default;
@@ -49,9 +49,9 @@ public:
 protected:
   // void RecordTrajectory(math::vecxr const& x, math::vecxr const& grad, real energy) const;
   // void ClearTrajectory() const;
-  // mutable List<math::vecxr> x_history_;
-  // mutable List<math::vecxr> grad_history_;
-  // mutable List<real> energy_history_;
+  // mutable std::vector<math::vecxr> x_history_;
+  // mutable std::vector<math::vecxr> grad_history_;
+  // mutable std::vector<real> energy_history_;
   /****************************** Options ******************************/
   idx max_iter_{default_max_iter};
   real tol_var_{default_tol_var};

@@ -189,6 +189,15 @@
 #endif
 
 /***************************************
+       Unreachable code
+ **************************************/
+#ifdef _MSC_VER
+#  define AX_UNREACHABLE() __assume(0)
+#else
+#  define AX_UNREACHABLE() __builtin_unreachable()
+#endif
+
+/***************************************
        CUDA SUPPORT
 ***************************************/
 #if defined(AX_HAS_CUDA) && defined(__CUDACC__)

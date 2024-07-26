@@ -3,7 +3,7 @@
 #include <boost/describe/enum.hpp>
 #include <map>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"  // IWYU pragma: export
 namespace ax::geo {
 

@@ -26,22 +26,22 @@ public:
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
    *
-   * @return List of deformation gradients for each element in the mesh.
+   * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientList<dim> Forward() const;
+  elasticity::DeformationGradientstd::vector<dim> Forward() const;
 
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
    *
    * @param current current pose of vertices
-   * @return List of deformation gradients for each element in the mesh.
+   * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientList<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
+  elasticity::DeformationGradientstd::vector<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.
    *
-   * @return List of cache.
+   * @return std::vector of cache.
    */
   elasticity::DeformationGradientCache<dim> const& GetRestPoseCache() const;
 
@@ -58,7 +58,7 @@ public:
    * @return typename MeshBase<dim>::vertex_list_t 
    */
   typename TriMesh<dim>::vertex_list_t StressToVertices(
-      List<elasticity::StressTensor<dim>> const& stress) const;
+      std::vector<elasticity::StressTensor<dim>> const& stress) const;
 
   /**
    * @brief Transfer the hessian from the elements to the vertices.
@@ -66,7 +66,7 @@ public:
    * @param hessian 
    * @return math::sp_coeff_list 
    */
-  math::sp_coeff_list HessianToVertices(List<elasticity::HessianTensor<dim>> const& hessian) const;
+  math::sp_coeff_list HessianToVertices(std::vector<elasticity::HessianTensor<dim>> const& hessian) const;
 
   /**
    * @brief Transfer the stress from the elements to the vertices.
@@ -79,7 +79,7 @@ public:
   /**
    * @brief Get the rest volume list of the mesh.
    *
-   * @return List of rest volumes.
+   * @return std::vector of rest volumes.
    */
   AX_FORCE_INLINE math::field1r const& GetRestPoseVolume() const { return rest_pose_volume_; }
 

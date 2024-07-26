@@ -6,7 +6,7 @@
 #include <entt/entity/entity.hpp>
 
 #include "ax/geometry/common.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include <map>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>

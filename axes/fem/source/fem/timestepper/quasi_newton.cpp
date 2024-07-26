@@ -81,44 +81,48 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
           return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer_.SetApproxSolve(
-        [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
-          auto *cmpt = try_get_resource<SparseInverseApproximator>();
-          AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
-          return cmpt->A_ * gk;
-          auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
-            auto const &A = cmpt->A_;
-            auto const &delta = cmpt->eig_modification_;
-            math::vecxr At_v = A.transpose() * v;
-            return A * At_v + delta * v;
-          };
-
-          if (sk.size() == 0 || yk.size() == 0) {
-            return apply(gk);
-          }
-
-          if (!(cmpt->require_check_secant_)) {
-            return apply(gk);
-          }
-
-          // NOTE: Our original implementation in python
-          // Hyk = self.apply_LDLT(y[-1])
-          // gamma_Hsy = np.dot(y[-1], s[-1]) / (np.dot(y[-1], Hyk) + epsilon)
-          // LDLT_q = self.apply_LDLT(q)
-          // r = gamma_Hsy * LDLT_q
-          // ---------------------------------------------------------------------
-          // Derivation: Estimiate the secant equation coefficient
-          // ---------------------------------------------------------------------
-          // 1. Traditional. Estimate the 1 rank approximation of H0.
-          // gamma_LSy = (np.dot(s[-1], y[-1]) / (np.dot(y[-1], y[-1]) + epsilon))
-          // print(f'LSy: {gamma_LSy}')
-          // 2. Ours. Estimate the approximation of H0, but with a different scale.
-          // Secant equation: yk = Hk * sk
-          //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
-          //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
-          real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
-          return gamma_Hsy * apply(gk);
-        });
+    optimizer.SetApproxSolve([&](math::vecxr const &g, math::vecxr const &s,
+                                  math::vecxr const &y) -> math::vecxr {
+      // Addtive Schwartz on each element.
+    });
+    // optimizer_.SetApproxSolve(
+    //     [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
+    //       auto *cmpt = try_get_resource<SparseInverseApproximator>();
+    //       AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
+    //       return cmpt->A_ * gk;
+    //       auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
+    //         auto const &A = cmpt->A_;
+    //         auto const &delta = cmpt->eig_modification_;
+    //         math::vecxr At_v = A.transpose() * v;
+    //         return A * At_v + delta * v;
+    //       };
+    //
+    //       if (sk.size() == 0 || yk.size() == 0) {
+    //         return apply(gk);
+    //       }
+    //
+    //       if (!(cmpt->require_check_secant_)) {
+    //         return apply(gk);
+    //       }
+    //
+    //       // NOTE: Our original implementation in python
+    //       // Hyk = self.apply_LDLT(y[-1])
+    //       // gamma_Hsy = np.dot(y[-1], s[-1]) / (np.dot(y[-1], Hyk) + epsilon)
+    //       // LDLT_q = self.apply_LDLT(q)
+    //       // r = gamma_Hsy * LDLT_q
+    //       // ---------------------------------------------------------------------
+    //       // Derivation: Estimiate the secant equation coefficient
+    //       // ---------------------------------------------------------------------
+    //       // 1. Traditional. Estimate the 1 rank approximation of H0.
+    //       // gamma_LSy = (np.dot(s[-1], y[-1]) / (np.dot(y[-1], y[-1]) + epsilon))
+    //       // print(f'LSy: {gamma_LSy}')
+    //       // 2. Ours. Estimate the approximation of H0, but with a different scale.
+    //       // Secant equation: yk = Hk * sk
+    //       //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
+    //       //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
+    //       real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
+    //       return gamma_Hsy * apply(gk);
+    //     });
   }
 
   auto problem = this->AssembleProblem();

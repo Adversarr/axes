@@ -5,7 +5,7 @@
 #include <ax/math/common.hpp>
 #include <cmath>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/gl/context.hpp"

@@ -66,7 +66,7 @@ void bind_naive_optim(py::module& m) {
            py::arg("dof"), py::arg("value"))
       .def("SetNumDofPerVertex", &TriMesh<3>::SetNumDofPerVertex, py::arg("n"));
 
-  py::class_<TimeStepperBase<3>, SPtr<TimeStepperBase<3>>> tsb3(m, "TimeStepperBase3D");
+  py::class_<TimeStepperBase<3>, std::shared_ptr<TimeStepperBase<3>>> tsb3(m, "TimeStepperBase3D");
 
   tsb3.def("SetOptions", &TimeStepperBase<3>::SetOptions)
       .def("SetDensity", py::overload_cast<real>(&TimeStepperBase<3>::SetDensity))
@@ -105,27 +105,27 @@ void bind_naive_optim(py::module& m) {
   tsb3.def("GetLastTrajectory", &TimeStepperBase<3>::GetLastTrajectory)
       .def("GetLastEnergy", &TimeStepperBase<3>::GetLastEnergy);
 
-  m.def("compute_mass_matrix_uniform", [](SPtr<TriMesh<3>> tm, real density) -> math::spmatr {
+  m.def("compute_mass_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, real density) -> math::spmatr {
     AX_THROW_IF_NULL(tm);
     MassMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_mass_matrix",
-        [](SPtr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
           AX_THROW_IF_NULL(tm);
           MassMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
 
-  m.def("compute_laplace_matrix_uniform", [](SPtr<TriMesh<3>> tm, real density) -> math::spmatr {
+  m.def("compute_laplace_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, real density) -> math::spmatr {
     AX_THROW_IF_NULL(tm);
     LaplaceMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_laplace_matrix",
-        [](SPtr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
           AX_THROW_IF_NULL(tm);
           LaplaceMatrixCompute<3> mmc(*tm);
           return mmc(density);
@@ -190,7 +190,7 @@ void bind_experiment(py::module& m) {
           return gamma_Hsy * apply(gk);
         });
 
-  m.def("extract_hessian_inverse", [](SPtr<TimeStepperBase<3>> tsb) -> math::spmatr {
+  m.def("extract_hessian_inverse", [](std::shared_ptr<TimeStepperBase<3>> tsb) -> math::spmatr {
       try {
         auto * qn = dynamic_cast<Timestepper_QuasiNewton<3>*>(tsb.get());
         return qn->GetLaplacianAsApproximation();

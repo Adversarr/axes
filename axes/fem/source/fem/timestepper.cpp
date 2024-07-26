@@ -14,7 +14,7 @@
 
 namespace ax::fem {
 
-template <idx dim> TimeStepperBase<dim>::TimeStepperBase(SPtr<TriMesh<dim>> mesh) {
+template <idx dim> TimeStepperBase<dim>::TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh) {
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
   mesh_ = mesh;
   mesh_->SetNumDofPerVertex(dim);

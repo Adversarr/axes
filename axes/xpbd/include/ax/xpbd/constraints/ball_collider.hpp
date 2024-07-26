@@ -19,9 +19,9 @@ public:
   real radius_ = 0.9;
   real tol_ = 1e-3;
 
-  List<math::vec3r> dual_;
-  List<math::vec3r> gap_;
-  List<real> stiffness_;
+  std::vector<math::vec3r> dual_;
+  std::vector<math::vec3r> gap_;
+  std::vector<real> stiffness_;
   std::set<idx> collidings_;
   real initial_rho_ = 1e2;
   idx iteration_ = 0;

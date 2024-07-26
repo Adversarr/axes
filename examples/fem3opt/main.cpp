@@ -40,7 +40,7 @@ math::vec2r lame;
 #define SCENE_BEND 1
 int scene;
 
-UPtr<fem::TimeStepperBase<3>> ts;
+std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
   auto& mesh = get_component<gl::Mesh>(out);

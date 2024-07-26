@@ -18,7 +18,7 @@ public:
       = 0;
   virtual LineSearchKind GetKind() const = 0;
 
-  static UPtr<LinesearchBase> Create(LineSearchKind kind);
+  static std::unique_ptr<LinesearchBase> Create(LineSearchKind kind);
 
   utils::Options GetOptions() const override;
 

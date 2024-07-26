@@ -1,5 +1,5 @@
 #include "ax/math/init.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 
 #include <Eigen/Core>
 #include <thread>

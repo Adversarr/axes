@@ -37,7 +37,7 @@ std::unique_ptr<math::SparseSolverBase> laplacian_solver, hyper_solver;
 
 int scene;
 
-UPtr<fem::TimeStepperBase<3>> ts;
+std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 real KL_div(math::matxxr sigma_P, math::matxxr sigma_Q) {
   auto [eigvec_P, eigval_P] = math::eig(sigma_P);

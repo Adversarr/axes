@@ -1,6 +1,6 @@
 #include <absl/flags/flag.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/geometry/io.hpp"

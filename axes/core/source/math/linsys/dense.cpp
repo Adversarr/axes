@@ -12,7 +12,7 @@
 #include "ax/math/linsys/dense/PartialPivLU.hpp"
 namespace ax::math {
 
-UPtr<DenseSolverBase> DenseSolverBase::Create(DenseSolverKind kind) {
+std::unique_ptr<DenseSolverBase> DenseSolverBase::Create(DenseSolverKind kind) {
   switch (kind) {
     case DenseSolverKind::kLDLT:
       return std::make_unique<DenseSolver_LDLT>();

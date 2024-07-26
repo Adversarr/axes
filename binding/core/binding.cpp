@@ -9,7 +9,7 @@
 #include <boost/json/stream_parser.hpp>
 
 #include "ax/components/name.hpp"
-#include "ax/core/echo.hpp"  // IWYU pragma: export
+#include "ax/core/logging.hpp"  // IWYU pragma: export
 #include "ax/core/init.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/math/linsys/sparse.hpp"
@@ -322,9 +322,9 @@ void bind_core_math(py::module &m) {
   });
 
   /************************* SECT: Sparse Solver *************************/
-  py::class_<math::SparseSolverBase, UPtr<math::SparseSolverBase>>(m, "SparseSolverBase")
+  py::class_<math::SparseSolverBase, std::unique_ptr<math::SparseSolverBase>>(m, "SparseSolverBase")
       .def("SetProblem",
-           py::overload_cast<SPtr<math::LinsysProblem_Sparse>>(&math::SparseSolverBase::SetProblem))
+           py::overload_cast<std::shared_ptr<math::LinsysProblem_Sparse>>(&math::SparseSolverBase::SetProblem))
       .def("SetProblem",
            py::overload_cast<math::spmatr const &>(&math::SparseSolverBase::SetProblem))
       .def("AnalyzePattern", &math::SparseSolverBase::AnalyzePattern)
@@ -351,7 +351,7 @@ void bind_core_math(py::module &m) {
       .def_readonly("converged", &math::LinsysSolveResult::converged_)
       .def_readonly("solution", &math::LinsysSolveResult::solution_);
 
-  m.def("make_sparse_solver", [](std::string solver_name) -> UPtr<math::SparseSolverBase> {
+  m.def("make_sparse_solver", [](std::string solver_name) -> std::unique_ptr<math::SparseSolverBase> {
     auto solver_kind = utils::reflect_enum<math::SparseSolverKind>(solver_name);
     if (!solver_kind) {
       throw std::runtime_error("Invalid solver name: " + solver_name);

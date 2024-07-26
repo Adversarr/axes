@@ -8,14 +8,14 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = List<math::matr<dim, dim>>;
+  using elem_stress_t = std::vector<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
+  using elem_hessian_t = std::vector<math::matr<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
-  using MeshPtr = SPtr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   ElasticityCompute_GPU(MeshPtr const& mesh);
 
-  ~ElasticityCompute_GPU();
+  ~ElasticityCompute_GPU() override;
 
   bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
@@ -39,7 +39,7 @@ public:
 
 private:
   struct Impl;
-  UPtr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
   // NOTE: Currently, GPU does not support SVD decomposition.
 };
 

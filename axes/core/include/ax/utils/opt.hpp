@@ -7,7 +7,19 @@
 #include "ax/core/common.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/utils/enum_refl.hpp"
-#include "ax/utils/status.hpp"
+
+namespace fmt {
+template <> struct formatter<boost::json::string> {
+  template <typename ParseContext> constexpr auto parse(ParseContext& ctx) /* NOLINT */ {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(boost::json::string const& obj, FormatContext& ctx) /* NOLINT */ {
+    return format_to(ctx.out(), "{}", obj.c_str());
+  }
+};
+}  // namespace fmt
 
 namespace ax::utils {
 
@@ -34,7 +46,7 @@ public:
    *
    * @return The current options.
    */
-  virtual utils::Options GetOptions() const;
+  AX_NODISCARD virtual utils::Options GetOptions() const;
 };
 
 /**
@@ -60,14 +72,9 @@ template <typename T> struct SyncToFieldHelper {
         value.SetOptions(it->value().as_object());
         return true;
       } else {
-        // return utils::InvalidArgumentError("Expect [" + std::string(name)
-        //                                    + "] to be an json-object.");
-        throw RuntimeError("Expect [" + std::string(name) + "] to be an json-object.");
+        throw std::invalid_argument("Expect [" + std::string(name) + "] to be an json-object.");
       }
     } else {
-      // return utils::InvalidArgumentError(std::string("Expected [") + name + std::string("] to
-      // be")
-      //                                   + typeid(T).name());
       return false;
     }
   }
@@ -76,7 +83,6 @@ template <typename T> struct SyncToFieldHelper {
 template <> struct SyncToFieldHelper<idx> {
   bool Apply(idx& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
-      // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
     } else {
       idx old_val = value;
@@ -85,9 +91,7 @@ template <> struct SyncToFieldHelper<idx> {
       } else if (it->value().is_uint64()) {
         value = static_cast<idx>(it->value().as_uint64());
       } else {
-        // return utils::InvalidArgumentError("Expect [" + std::string(name)
-        //                                    + "] to be a int or uint.");
-        throw RuntimeError("Expect [" + std::string(name) + "] to be a int or uint.");
+        throw std::invalid_argument("Expect [" + std::string(name) + "] to be a int or uint.");
       }
       return old_val != value;
     }
@@ -97,7 +101,6 @@ template <> struct SyncToFieldHelper<idx> {
 template <> struct SyncToFieldHelper<real> {
   bool Apply(real& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
-      // return utils::InvalidArgumentError(std::string("Expected [") + name + "] not found");
       return false;
     } else {
       real old_val = value;
@@ -108,9 +111,8 @@ template <> struct SyncToFieldHelper<real> {
       } else if (it->value().is_uint64()) {
         value = static_cast<real>(it->value().as_uint64());
       } else {
-        // return utils::InvalidArgumentError("Expect [" + std::string(name)
-        //                                           + "] to be a double, int or uint.");
-        throw RuntimeError("Expect [" + std::string(name) + "] to be a double, int or uint.");
+        throw std::invalid_argument("Expect [" + std::string(name)
+                                    + "] to be a double, int or uint.");
       }
       return old_val != value;
     }
@@ -129,7 +131,7 @@ template <> struct SyncToFieldHelper<std::string> {
       } else {
         // return utils::InvalidArgumentError("Expect [" + std::string(name)
         //                                                + "] to be a string.");
-        throw RuntimeError("Expect [" + std::string(name) + "] to be a string.");
+        throw std::invalid_argument("Expect [" + std::string(name) + "] to be a string.");
       }
       return old_val != value;
     }
@@ -150,7 +152,7 @@ template <> struct SyncToFieldHelper<bool> {
       } else if (it->value().is_uint64()) {
         value = it->value().as_uint64() != 0;
       } else {
-        throw RuntimeError("Expect [" + std::string(name) + "] to be a bool.");
+        throw std::invalid_argument("Expect [" + std::string(name) + "] to be a bool.");
       }
       return old_val != value;
     }
@@ -223,8 +225,7 @@ auto extract_and_create(utils::Options const& opt, const char* key) {
     if (kind) {
       return Factory::Create(kind.value());
     } else {
-      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
-                                  + std::string(opt.at(key).as_string()));
+      throw make_invalid_argument("Invalid {} option: {}", key, opt.at(key).as_string());
     }
   }
 }
@@ -237,42 +238,39 @@ bool extract_and_create(utils::Options const& opt, const char* key, Ptr& ptr) {
       ptr = Factory::Create(kind.value());
       return true;
     } else {
-      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
-                                  + std::string(opt.at(key).as_string()));
+      throw make_invalid_argument("Invalid \"{}\" option: {}", key, opt.at(key).as_string());
     }
   }
   return false;
 }
 
-template <typename Kind>
-bool extract_enum(utils::Options const& opt, const char* key, Kind& kind) {
+template <typename Kind> bool extract_enum(utils::Options const& opt, const char* key, Kind& kind) {
   auto [has_key, _kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (_kind) {
       kind = _kind.value();
       return true;
     } else {
-      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
-                                  + std::string(opt.at(key).as_string()));
+      throw make_invalid_argument("Invalid \"{}\" option: {}", key,
+                                  std::string(opt.at(key).as_string()));
     }
   }
   return false;
 }
 
-template <typename Kind>
-auto extract_enum_force(utils::Options const& opt, const char* key) {
+template <typename Kind> auto extract_enum_force(utils::Options const& opt, const char* key) {
   auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
   if (has_key) {
     if (kind) {
       return kind.value();
     } else {
-      throw std::invalid_argument("Invalid \"" + std::string(key) + "\" option: "
-                                  + std::string(opt.at(key).as_string()));
+      throw make_invalid_argument("Invalid \"{}\" option: {}", key, opt.at(key).as_string());
     }
   }
 }
 
 #define AX_SYNC_OPT(opt, type, var) ax::utils::sync_from_opt<type>(var##_, (opt), #var)
+
 #define AX_SYNC_OPT_IF(opt, type, var) if (AX_SYNC_OPT(opt, type, var))
 
 #define AX_SYNC_OPT_FACTORY(opt, type, var, name, factory)                         \
@@ -280,10 +278,10 @@ auto extract_enum_force(utils::Options const& opt, const char* key) {
     auto [has_##name, _kind_##name] = ax::utils::extract_enum<type>((opt), #name); \
     if (has_##name) {                                                              \
       if (_kind_##name) {                                                          \
-        var = factory::Create(_kind_##name.value());                               \
+        (var) = factory::Create(_kind_##name.value());                             \
       } else {                                                                     \
-        throw std::invalid_argument("Invalid \"" #name "\" option: "               \
-                                    + std::string((opt).at(#name).as_string()));   \
+        throw make_invalid_argument("Invalid \"{}\" option: {}", #name,            \
+                                    (opt).at(#name).as_string());                  \
       }                                                                            \
     }                                                                              \
   } while (false)
@@ -293,10 +291,10 @@ auto extract_enum_force(utils::Options const& opt, const char* key) {
     auto [has_##name, _enum_##name] = ax::utils::extract_enum<type>((opt), #name); \
     if (has_##name) {                                                              \
       if (_enum_##name) {                                                          \
-        var = (_enum_##name).value();                                              \
+        (var) = (_enum_##name).value();                                            \
       } else {                                                                     \
-        throw std::invalid_argument("Invalid \"" #name "\" option: "               \
-                                    + std::string((opt).at(#var).as_string()));    \
+        throw make_invalid_argument("Invalid \"{}\" option: {}", #name,            \
+                                    (opt).at(#name).as_string());                  \
       }                                                                            \
     }                                                                              \
   } while (false)

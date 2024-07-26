@@ -7,7 +7,7 @@
 
 namespace ax::math {
 
-UPtr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
+std::unique_ptr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
   switch (kind) {
     case ax::math::PreconditionerKind::kIdentity:
       return std::make_unique<Preconditioner_Identity>();
@@ -22,7 +22,7 @@ UPtr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
   }
 }
 
-PreconditionerBase& PreconditionerBase::SetProblem(SPtr<LinsysProblem_Sparse> problem) {
+PreconditionerBase& PreconditionerBase::SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem) {
   cached_problem_ = std::move(problem);
   return *this;
 }

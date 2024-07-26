@@ -16,7 +16,7 @@ struct PointRenderVertexData {
 };
 
 struct PointRenderData {
-  List<PointRenderVertexData> vertices_;
+  std::vector<PointRenderVertexData> vertices_;
 
   f32 point_size_{1.0};
 

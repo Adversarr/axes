@@ -3,7 +3,7 @@
 #include <queue>
 #include <set>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/geometry/halfedge.hpp"
 #include "ax/math/approx.hpp"
 

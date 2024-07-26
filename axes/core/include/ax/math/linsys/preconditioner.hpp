@@ -12,21 +12,21 @@ BOOST_DEFINE_FIXED_ENUM_CLASS(PreconditionerKind, idx, kIdentity, kDiagonal, kIn
 
 class PreconditionerBase : public utils::Tunable {
 public:
-  static UPtr<PreconditionerBase> Create(PreconditionerKind kind);
+  static std::unique_ptr<PreconditionerBase> Create(PreconditionerKind kind);
   virtual ~PreconditionerBase() = default;
 
   virtual void AnalyzePattern() = 0;
   virtual void Factorize() = 0;
   virtual vecxr Solve(vecxr const& b) = 0;
 
-  PreconditionerBase& SetProblem(SPtr<LinsysProblem_Sparse> problem);
+  PreconditionerBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
 
   virtual PreconditionerKind GetKind() const = 0;
 
   void Compute();
 
 protected:
-  SPtr<LinsysProblem_Sparse> cached_problem_{nullptr};
+  std::shared_ptr<LinsysProblem_Sparse> cached_problem_{nullptr};
 };
 
 }  // namespace ax::math

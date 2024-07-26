@@ -17,7 +17,7 @@
  */
 
 #pragma once
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/math/common.hpp"
 
 namespace ax::fem::elements {

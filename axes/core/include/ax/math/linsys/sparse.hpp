@@ -14,7 +14,7 @@ class SparseSolverBase : public utils::Tunable {
 public:
   SparseSolverBase();
   virtual ~SparseSolverBase() = default;
-  static UPtr<SparseSolverBase> Create(SparseSolverKind kind);
+  static std::unique_ptr<SparseSolverBase> Create(SparseSolverKind kind);
   virtual SparseSolverKind GetKind() const = 0;
 
   /************************* SECT: Setup the solver *************************/
@@ -23,7 +23,7 @@ public:
    *
    * @param preconditioner
    */
-  void SetPreconditioner(UPtr<PreconditionerBase> preconditioner);
+  void SetPreconditioner(std::unique_ptr<PreconditionerBase> preconditioner);
 
   /**
    * @brief Set the Problem object
@@ -31,14 +31,14 @@ public:
    * @param problem
    * @return
    */
-  SparseSolverBase& SetProblem(SPtr<LinsysProblem_Sparse> problem);
+  SparseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
   SparseSolverBase& SetProblem(spmatr const& A);
   SparseSolverBase& SetProblem(spmatr&& A);
 
   /**
    * @brief Get the Problem object
    */
-  SPtr<LinsysProblem_Sparse> const& GetProblem() const;
+  std::shared_ptr<LinsysProblem_Sparse> const& GetProblem() const;
 
   /************************* SECT: Solving the linear system *************************/
   /**
@@ -67,8 +67,8 @@ public:
   }
 
 protected:
-  SPtr<LinsysProblem_Sparse> cached_problem_{nullptr};
-  UPtr<PreconditionerBase> preconditioner_{nullptr};
+  std::shared_ptr<LinsysProblem_Sparse> cached_problem_{nullptr};
+  std::unique_ptr<PreconditionerBase> preconditioner_{nullptr};
 };
 
 }  // namespace ax::math

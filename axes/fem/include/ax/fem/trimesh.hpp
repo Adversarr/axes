@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/math/sparse.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 
 namespace ax::fem {
 

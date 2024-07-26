@@ -13,7 +13,7 @@ public:
 
   virtual TimestepSchemeKind GetKind() const = 0;
 
-  static UPtr<TimestepSchemeBase<dim>> Create(TimestepSchemeKind kind);
+  static std::unique_ptr<TimestepSchemeBase<dim>> Create(TimestepSchemeKind kind);
 
   void SetDeltaT(real dt) { dt_ = dt; }
 

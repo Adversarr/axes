@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "core/echo.hpp"
+#include "core/logging.hpp"
 #include "core/status.hpp"
 #include "math/common.hpp"
 #include "math/functional.hpp"

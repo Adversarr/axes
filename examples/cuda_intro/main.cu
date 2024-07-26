@@ -5,11 +5,15 @@
 #include <thrust/host_vector.h>
 #include <thrust/sequence.h>
 #include <thrust/zip_function.h>
-#include <cstdio>
+
+#include <ax/core/init.hpp>
 #include <complex>
+#include <cstdio>
 template <typename T> auto arg(T x) { return std::arg(x); }
 
 #include "ax/math/common.hpp"
+#include "ax/core/status.hpp"
+
 using namespace ax;
 using namespace ax::math;
 
@@ -21,8 +25,9 @@ __global__ void GpuAddKernel(const int num, real* x, real* y) {
     for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
 }
 
-int main() {
+int main(int argc, char** argv) {
   // Test whether cuda is available.
+  init(argc, argv);
   int count;
   cudaError_t err = cudaGetDeviceCount(&count);
   if (err == cudaErrorNoDevice) {

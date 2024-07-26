@@ -29,7 +29,7 @@ public:
 
 protected:
   bool check_approx_quality_{false};
-  UPtr<LinesearchBase> linesearch_;
+  std::unique_ptr<LinesearchBase> linesearch_;
   LbfgsHessianApproximator approx_solve_;
 
 };

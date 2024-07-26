@@ -1,5 +1,5 @@
 #pragma once
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/math/common.hpp"
 #include "ax/math/functional.hpp"
 #include "ax/math/ndrange.hpp"
@@ -29,7 +29,7 @@ constexpr staggered_t staggered;
  */
 template <idx D, typename T> class Lattice {
 public:
-  using Container = List<T>;
+  using Container = std::vector<T>;
 
   explicit Lattice(veci<D> const& shape, cell_center_t = cell_center)
       : shape_(shape), is_staggered_(false) {

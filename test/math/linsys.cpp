@@ -89,7 +89,7 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   vecxr x = vecxr::Ones(2);
   vecxr b = A * x;
-  ax::SPtr<LinsysProblem_Sparse> problem = make_sparse_problem(A);
+  ax::std::shared_ptr<LinsysProblem_Sparse> problem = make_sparse_problem(A);
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
                     SparseSolverKind::kCholmod}) {

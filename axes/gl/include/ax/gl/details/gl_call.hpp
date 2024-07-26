@@ -1,6 +1,6 @@
 #include <glad/glad.h>  // IWYU pragma: export
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/utils/common.hpp"  // IWYU pragma: export
 #include "ax/utils/status.hpp"
 

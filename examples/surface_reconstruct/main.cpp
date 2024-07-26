@@ -7,7 +7,7 @@
 #include <ax/gl/utils.hpp>
 
 #include "ax/components/name.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/geometry/io.hpp"

@@ -1,5 +1,5 @@
 #include "ax/gl/primitives/height_field.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/geometry/grid.hpp"
 #include "ax/geometry/normal.hpp"
 #include "ax/gl/colormap.hpp"

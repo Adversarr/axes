@@ -17,10 +17,10 @@ public:
   void UpdatePositionConsensus() override;
 
   real tol_ = 1e-2; ///< Tolerance for the collision detection. cannnot be too small for stability.
-  List<math::matr<3, 4>> dual_;
-  List<math::matr<3, 4>> gap_;
-  List<math::matr<3, 4>> origin_;
-  List<real> stiffness_;
+  std::vector<math::matr<3, 4>> dual_;
+  std::vector<math::matr<3, 4>> gap_;
+  std::vector<math::matr<3, 4>> origin_;
+  std::vector<real> stiffness_;
   std::map<std::pair<idx, idx>, idx> collidings_;
   std::map<std::pair<idx, idx>, idx> colliding_map_;
   std::map<idx, idx> global_to_local_;

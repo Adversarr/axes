@@ -1,11 +1,11 @@
 #include "ax/vdb/pointcloud.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include <openvdb/points/PointRasterizeTrilinear.h>
 
 namespace ax::vdb {
 
 PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_per_voxel) {
-  List<openvdb::Vec3R> positions;
+  std::vector<openvdb::Vec3R> positions;
   positions.reserve(static_cast<size_t>(position.cols()));
   for (auto p : math::each(position)) {
     positions.push_back(openvdb::Vec3R(p.x(), p.y(), p.z()));
@@ -31,7 +31,7 @@ PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_p
 
 Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
-  List<openvdb::Vec3R> values;
+  std::vector<openvdb::Vec3R> values;
   values.reserve(static_cast<size_t>(cnt));
   for (auto v : math::each(field)) {
     values.push_back(openvdb::Vec3R(v.x(), v.y(), v.z()));
@@ -55,7 +55,7 @@ Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r
 
 Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3r const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
-  List<openvdb::Vec3R> values;
+  std::vector<openvdb::Vec3R> values;
   values.reserve(cnt);
   for (auto v : math::each(field)) {
     values.push_back(openvdb::Vec3R(v.x(), v.y(), v.z()));
@@ -80,7 +80,7 @@ Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3
 
 RealGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field1r const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
-  List<real> values;
+  std::vector<real> values;
   values.reserve(cnt);
   for (auto v : math::each(field)) {
     values.push_back(v.x());

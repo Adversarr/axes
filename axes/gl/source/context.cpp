@@ -20,7 +20,7 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_node_editor.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/gl/config.hpp"
 #include "ax/gl/details/gl_call.hpp"
 
@@ -31,7 +31,7 @@ using math::cast;
 struct Context::Impl {
   bool has_setuped_{false};
   bool acknowledged_should_shutdown_{false};
-  List<UPtr<RenderBase>> renderers_;
+  std::vector<std::unique_ptr<RenderBase>> renderers_;
 
   Window window_;
   Camera camera_;
@@ -298,7 +298,7 @@ Context::Context() {
   impl_->axis_entity_ = cmpt::create_named_entity("SceneAxis");
   impl_->light_entity_ = cmpt::create_named_entity("SceneLight");
 
-  /* SECT: Listen on Signals */
+  /* SECT: std::vectoren on Signals */
   impl_->connections_.emplace_back(
       connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
   impl_->connections_.emplace_back(connect<KeyboardEvent, &Impl::OnKey>(*impl_));
@@ -402,7 +402,7 @@ bool Context::ShouldClose() const {
   return impl_->acknowledged_should_shutdown_;
 }
 
-void Context::AppendEntityRenderer(UPtr<RenderBase> renderer) {
+void Context::AppendEntityRenderer(std::unique_ptr<RenderBase> renderer) {
   impl_->renderers_.push_back(std::move(renderer));
 }
 

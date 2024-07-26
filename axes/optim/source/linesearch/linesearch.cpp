@@ -3,7 +3,7 @@
 
 namespace ax::optim {
 
-UPtr<LinesearchBase> LinesearchBase::Create(LineSearchKind kind) {
+std::unique_ptr<LinesearchBase> LinesearchBase::Create(LineSearchKind kind) {
   switch (kind) {
     case LineSearchKind::kBacktracking:
       return std::make_unique<Linesearch_Backtracking>();

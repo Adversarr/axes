@@ -3,7 +3,7 @@
 #include "ax/optim/spsdm/eigenvalue.hpp"
 namespace ax::optim {
 
-UPtr<SpsdModificationBase> SpsdModificationBase::Create(SpsdModificationKind kind) {
+std::unique_ptr<SpsdModificationBase> SpsdModificationBase::Create(SpsdModificationKind kind) {
   switch (kind) {
     case SpsdModificationKind::kEigenvalue:
       return std::make_unique<EigenvalueModification>();

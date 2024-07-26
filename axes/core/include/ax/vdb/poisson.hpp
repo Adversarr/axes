@@ -15,7 +15,7 @@ public:
 
   virtual ~PoissonSolverBase() = default;
 
-  static UPtr<PoissonSolverBase> Create(PoissonSolverKind kind);
+  static std::unique_ptr<PoissonSolverBase> Create(PoissonSolverKind kind);
 
   void SetBoundaryCondition(BcFunc boundary_condition);
 protected:

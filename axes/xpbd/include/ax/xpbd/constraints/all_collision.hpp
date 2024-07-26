@@ -32,10 +32,10 @@ public:
   real tol_ = 1e-2;  ///< Tolerance for the collision detection. cannnot be too small for stability.
   using I2 = std::pair<idx, idx>;
 
-  List<math::matr<3, 4>> dual_;
-  List<math::matr<3, 4>> gap_;
-  List<math::matr<3, 4>> origin_;
-  List<real> stiffness_;
+  std::vector<math::matr<3, 4>> dual_;
+  std::vector<math::matr<3, 4>> gap_;
+  std::vector<math::matr<3, 4>> origin_;
+  std::vector<real> stiffness_;
   std::set<I2> vt_, ee_;
   std::map<idx, idx> global_to_local_;
   std::set<idx> colliding_vertices_;

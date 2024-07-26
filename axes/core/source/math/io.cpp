@@ -157,7 +157,7 @@ void write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat) {
     throw std::runtime_error("Failed to open the file.");
   }
 
-  List<real> data;
+  std::vector<real> data;
   data.reserve(static_cast<size_t>(mat.cols() * mat.rows()));
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {
@@ -176,7 +176,7 @@ void write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat) {
     throw std::runtime_error("Failed to open the file: " + path);
   }
 
-  List<idx> data;
+  std::vector<idx> data;
   data.reserve(static_cast<size_t>(mat.cols() * mat.rows()));
   for (idx j = 0; j < mat.rows(); ++j) {
     for (idx i = 0; i < mat.cols(); ++i) {

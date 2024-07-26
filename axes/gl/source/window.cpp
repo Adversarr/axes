@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/gl/config.hpp"
 
 namespace ax::gl {

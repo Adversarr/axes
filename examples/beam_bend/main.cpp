@@ -30,7 +30,7 @@ geo::TetraMesh input_mesh;
 math::vec2r lame;
 std::string dest;
 
-UPtr<fem::Timestepper_QuasiNewton<3>> ts;
+std::unique_ptr<fem::Timestepper_QuasiNewton<3>> ts;
 
 void update_rendering() {
   auto& mesh = get_component<gl::Mesh>(out);
@@ -67,7 +67,7 @@ math::vecxr fps;
 bool disable_original;
 
 std::vector<math::vecxr> uk, gk, sk, inertia;
-UPtr<math::SparseSolverBase> solver;
+std::unique_ptr<math::SparseSolverBase> solver;
 
 void put_into_data() {
   auto const& traj = ts->GetLastTrajectory();

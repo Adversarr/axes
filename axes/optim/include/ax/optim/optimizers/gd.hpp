@@ -17,14 +17,14 @@ public:
 
   void SetProximator(std::function<math::vecxr(math::vecxr const&, real)> proximator);
 
-  void SetLineSearch(UPtr<LinesearchBase> linesearch);
+  void SetLineSearch(std::unique_ptr<LinesearchBase> linesearch);
 
   void SetOptions(const utils::Options &options) override;
 
   utils::Options GetOptions() const override;
 
 private:
-  UPtr<LinesearchBase> linesearch_;
+  std::unique_ptr<LinesearchBase> linesearch_;
   real lr_;
 };
 

@@ -462,7 +462,7 @@ public:
     AX_RETURN_OK();
   }
 
-  List<gl::Mesh> meshes;
+  std::vector<gl::Mesh> meshes;
 
   Entity ent_created;
 };

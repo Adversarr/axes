@@ -4,7 +4,7 @@
 #include <ax/math/common.hpp>
 #include <cmath>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/math/functional.hpp"
@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
   AX_LOG(INFO) << "CFL: " << cfl();
 
   // Do the algorithm.
-  List<math::vecxr> final_result_list;
+  std::vector<math::vecxr> final_result_list;
   /* 1. Setup the initial data */
   current = math::field1r(Nx);
   for (idx i = 0; i < Nx; ++i) {

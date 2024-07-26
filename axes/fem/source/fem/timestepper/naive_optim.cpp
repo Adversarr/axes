@@ -10,7 +10,7 @@
 
 namespace ax::fem {
 
-template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(SPtr<TriMesh<dim>> mesh)
+template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh)
     : ax::fem::TimeStepperBase<dim>(mesh) {
   optimizer_ = std::make_unique<optim::Optimizer_Newton>();
 }

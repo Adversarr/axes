@@ -15,7 +15,7 @@ BOOST_DEFINE_FIXED_ENUM_CLASS(SpsdModificationKind, idx,
 class SpsdModificationBase : public utils::Tunable {
 public:
   virtual ~SpsdModificationBase() = default;
-  UPtr<SpsdModificationBase> Create(SpsdModificationKind kind);
+  std::unique_ptr<SpsdModificationBase> Create(SpsdModificationKind kind);
 
   virtual math::matxxr Modify(math::matxxr const& A) = 0;
 

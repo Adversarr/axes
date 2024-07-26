@@ -42,7 +42,7 @@ math::vec2r lame;
 #define SCENE_BEND 1
 int scene;
 
-UPtr<fem::TimeStepperBase<3>> ts;
+std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 
 void update_rendering() {
@@ -185,8 +185,8 @@ int main(int argc, char** argv) {
 // #include "ax/utils/asset.hpp"
 // using namespace ax;
 
-// SPtr<fem::TriMesh<3>> mesh;
-// UPtr<fem::ElasticityComputeBase<3>> elast;  
+// std::shared_ptr<fem::TriMesh<3>> mesh;
+// std::unique_ptr<fem::ElasticityComputeBase<3>> elast;  
 
 // ABSL_FLAG(std::string, mesh, "tet_cube", "mesh name");
 

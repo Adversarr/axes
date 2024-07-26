@@ -1,7 +1,7 @@
 #include "ax/graph/payload.hpp"
 #include "ax/core/entt.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 
 namespace ax::graph {

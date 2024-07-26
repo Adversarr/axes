@@ -21,11 +21,11 @@ struct LinsysProblem_Dense {
   LinsysProblem_Dense() = default;
 };
 
-AX_FORCE_INLINE UPtr<LinsysProblem_Dense> make_dense_problem(matxxr const& A) {
+AX_FORCE_INLINE std::unique_ptr<LinsysProblem_Dense> make_dense_problem(matxxr const& A) {
   return std::make_unique<LinsysProblem_Dense>(A);
 }
 
-AX_FORCE_INLINE UPtr<LinsysProblem_Dense> make_dense_problem(matxxr&& A) {
+AX_FORCE_INLINE std::unique_ptr<LinsysProblem_Dense> make_dense_problem(matxxr&& A) {
   return std::make_unique<LinsysProblem_Dense>(std::move(A));
 }
 
@@ -49,11 +49,11 @@ struct LinsysProblem_Sparse {
   LinsysProblem_Sparse() = default;
 };
 
-AX_FORCE_INLINE UPtr<LinsysProblem_Sparse> make_sparse_problem(spmatr const& A) {
+AX_FORCE_INLINE std::unique_ptr<LinsysProblem_Sparse> make_sparse_problem(spmatr const& A) {
   return std::make_unique<LinsysProblem_Sparse>(A);
 }
 
-AX_FORCE_INLINE UPtr<LinsysProblem_Sparse> make_sparse_problem(spmatr&& A) {
+AX_FORCE_INLINE std::unique_ptr<LinsysProblem_Sparse> make_sparse_problem(spmatr&& A) {
   return std::make_unique<LinsysProblem_Sparse>(std::move(A));
 }
 

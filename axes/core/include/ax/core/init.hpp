@@ -1,8 +1,12 @@
 #pragma once
 
+#include <spdlog/fwd.h>
+
+#include <cxxopts.hpp>
 #include <functional>
-#include <absl/flags/flag.h> // IWYU pragma: exprt
-#include "common.hpp"
+
+#include "common.hpp"  // IWYU pragma: export
+
 namespace ax {
 
 /**
@@ -16,6 +20,8 @@ namespace ax {
  */
 void init(int argc, char** argv);
 void init();
+cxxopts::Options& get_program_options();
+cxxopts::ParseResult& get_parse_result();
 
 /**
  * @brief Clean up the core module.
@@ -48,5 +54,7 @@ void add_init_hook(const char* name, std::function<void()> f);
 void add_clean_up_hook(const char* name, std::function<void()> f);
 
 const char* get_program_path();
+
+std::shared_ptr<spdlog::logger> get_logger();
 
 }  // namespace ax

@@ -1,7 +1,7 @@
 #include <ax/gl/utils.hpp>
 #include <ax/gl/primitives/mesh.hpp>
 #include <ax/gl/primitives/lines.hpp>
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include <ax/geometry/common.hpp>
 #include <ax/geometry/io.hpp>
 #include <ax/utils/asset.hpp>

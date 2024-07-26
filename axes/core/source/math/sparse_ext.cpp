@@ -3,7 +3,7 @@
 
 namespace ax::math {
 
-UPtr<SparseCompressMatrixBase> SparseCompressMatrixBase::Create(SparseCompressKind kind) {
+std::unique_ptr<SparseCompressMatrixBase> SparseCompressMatrixBase::Create(SparseCompressKind kind) {
   switch (kind) {
     case SparseCompressKind::kCsc:
       return std::make_unique<SparseCompressMatrix_CSC>();

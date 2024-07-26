@@ -46,7 +46,7 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh.flush_ = true;
-  SPtr<fem::TriMesh<3>> mesh = std::make_shared<fem::TriMesh<3>>();
+  std::shared_ptr<fem::TriMesh<3>> mesh = std::make_shared<fem::TriMesh<3>>();
   mesh->SetMesh(F, V);
   fem::ElasticityCompute_CPU<3, fem::elasticity::NeoHookeanBW> elast(mesh);
   elast.SetLame(lame);

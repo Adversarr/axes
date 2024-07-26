@@ -9,7 +9,7 @@ void PoissonSolverBase::SetBoundaryCondition(BcFunc boundary_condition) {
   boundary_condition_ = boundary_condition;
 }
 
-UPtr<PoissonSolverBase> PoissonSolverBase::Create(PoissonSolverKind kind) {
+std::unique_ptr<PoissonSolverBase> PoissonSolverBase::Create(PoissonSolverKind kind) {
   switch (kind) {
     case PoissonSolverKind::kVdb:
       return std::make_unique<VdbPoissonSolver>();

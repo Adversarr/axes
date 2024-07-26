@@ -184,8 +184,8 @@ Status ParameterizationSolver::Solve(idx max_iter) {
   AX_RETURN_OK();
 }
 
-List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) { 
-  List<mat2r> result;
+std::vector<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) { 
+  std::vector<mat2r> result;
   // ARAP: use SVD decomposition.
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);
@@ -213,8 +213,8 @@ List<mat2r> ARAP::Optimal(ParameterizationProblem const& problem) {
   return result;
 }
 
-List<mat2r> ASAP::Optimal(ParameterizationProblem const& problem) {
-  List<mat2r> result;
+std::vector<mat2r> ASAP::Optimal(ParameterizationProblem const& problem) {
+  std::vector<mat2r> result;
   // ASAP: use SVD decomposition.
   idx n_triangle = problem.iso_coords_.size();
   result.resize(n_triangle);

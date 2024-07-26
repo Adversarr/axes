@@ -2,7 +2,7 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/utils/status.hpp"
 
@@ -55,7 +55,7 @@ NodeDescriptor const* get_node_descriptor(const char* name) {
 
 }  // namespace details
 
-UPtr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
+std::unique_ptr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
   auto& cmap = details::ensure_wrapper().desc_;
   auto it = cmap.find(descript->name_);
   if (it != cmap.end()) {

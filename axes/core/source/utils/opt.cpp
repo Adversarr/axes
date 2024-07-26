@@ -1,6 +1,6 @@
 #include "ax/utils/opt.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 
 namespace ax::utils {
 

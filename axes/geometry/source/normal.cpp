@@ -4,7 +4,7 @@
 
 #include "ax/geometry/common.hpp"
 #include <igl/per_vertex_normals.h>
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 namespace ax::geo {
 
 math::field3r normal_per_face(math::field3r const& vertices, math::field3i const& indices) {

@@ -26,12 +26,12 @@ BOOST_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 template <idx dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase(SPtr<TriMesh<dim>> mesh);
+  TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
   virtual ~TimeStepperBase() = default;
 
   // Common Data Accessors
-  SPtr<TriMesh<dim>> GetMesh() { return mesh_; }
+  std::shared_ptr<TriMesh<dim>> GetMesh() { return mesh_; }
   ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
   TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
   virtual void SetOptions(const utils::Options &option) override;
@@ -121,9 +121,9 @@ public:
 
 protected:
   /************************* SECT: Common Data *************************/
-  SPtr<TriMesh<dim>> mesh_;
-  UPtr<ElasticityComputeBase<dim>> elasticity_;
-  UPtr<TimestepSchemeBase<dim>> integration_scheme_;
+  std::shared_ptr<TriMesh<dim>> mesh_;
+  std::unique_ptr<ElasticityComputeBase<dim>> elasticity_;
+  std::unique_ptr<TimestepSchemeBase<dim>> integration_scheme_;
 
   // This is a little bit tricky, we need to store the name of the elasticity model
   std::string elasticity_name_{"stable_neohookean"}, device_{"cpu"};

@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "ax/core/common.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/init.hpp"
 #include "ax/math/io.hpp"
 #include "ax/optim/common.hpp"
@@ -22,7 +22,7 @@
 using namespace ax;
 using namespace math;
 using namespace optim;
-UPtr<OptimizerBase> optimizer;
+std::unique_ptr<OptimizerBase> optimizer;
 
 ABSL_FLAG(std::string, optimizer, "prox_grad", "Optimizer to use");
 ABSL_FLAG(bool, verbose, false, "Verbose mode");

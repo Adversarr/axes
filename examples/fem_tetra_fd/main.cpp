@@ -12,7 +12,7 @@ using namespace ax;
 
 constexpr idx DIM = 3;
 
-SPtr<fem::TriMesh<DIM>> mesh;
+std::shared_ptr<fem::TriMesh<DIM>> mesh;
 auto kE = fem::ElasticityUpdateLevel::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);

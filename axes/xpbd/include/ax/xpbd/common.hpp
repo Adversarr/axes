@@ -49,7 +49,7 @@ struct ConstraintSolution {
  */
 class ConstraintBase : utils::Tunable {
 public:
-  static UPtr<ConstraintBase> Create(ConstraintKind kind);
+  static std::unique_ptr<ConstraintBase> Create(ConstraintKind kind);
   virtual ConstraintKind GetKind() const = 0;
 
   // Update dual variable
@@ -71,17 +71,17 @@ public:
   idx GetNumConstrainedVertices() const { return constrained_vertices_ids_.size(); }
   idx GetNumConstraints() const { return constraint_mapping_.Entries().size(); }
   ConstraintMap const& GetConstraintMapping() const { return constraint_mapping_; }
-  List<idx> const& GetConstrainedVerticesIds() const { return constrained_vertices_ids_; }
+  std::vector<idx> const& GetConstrainedVerticesIds() const { return constrained_vertices_ids_; }
 
 protected:
-  List<idx> constrained_vertices_ids_;
-  List<math::vec3r> constrained_vertices_position_;
+  std::vector<idx> constrained_vertices_ids_;
+  std::vector<math::vec3r> constrained_vertices_position_;
 
   // rows=#v per constraint,
   // we always assume, to compute the dual variable, always [1] + [2] + ... + [n-1] - [n]
   // if rows=1, then we assume the dual is [1], just the identity of the only vertex
   ConstraintMap constraint_mapping_;  ///< Local constraint map, each index is local.
-  List<real> rho_;                  ///< Local weighting.
+  std::vector<real> rho_;                  ///< Local weighting.
   real rho_global_;                  ///< Global weighting.
   real primal_tolerance_{1e-7};      ///< Tolerance for primal
 };
@@ -100,8 +100,8 @@ public:
   math::field1r mass_;
 
   // For Collision Detectors.
-  List<math::vec3i> faces_;
-  List<math::vec2i> edges_;
+  std::vector<math::vec3i> faces_;
+  std::vector<math::vec2i> edges_;
   geo::BroadPhaseResult potential_collisions_;
 
   // High level meta.
@@ -114,7 +114,7 @@ public:
   real dual_primal_ratio_{1.5};     ///< Ratio for dual-primal, rho /= ratio.
 
   // Constraints.
-  List<UPtr<ConstraintBase>> constraints_;
+  std::vector<std::unique_ptr<ConstraintBase>> constraints_;
 };
 
 GlobalServer& ensure_server();

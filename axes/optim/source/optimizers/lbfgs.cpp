@@ -1,6 +1,6 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"

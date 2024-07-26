@@ -27,11 +27,11 @@ BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, idx,
 /****************************** Implement ******************************/
 class DenseSolverBase : public utils::Tunable {
 public:
-  static UPtr<DenseSolverBase> Create(DenseSolverKind kind);
+  static std::unique_ptr<DenseSolverBase> Create(DenseSolverKind kind);
 
   virtual ~DenseSolverBase() = default;
 
-  DenseSolverBase& SetProblem(SPtr<LinsysProblem_Dense> problem) {
+  DenseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Dense> problem) {
     cached_problem_ = std::move(problem);
     return *this;
   }
@@ -50,7 +50,7 @@ public:
 
 
 protected:
-  SPtr<LinsysProblem_Dense> cached_problem_;
+  std::shared_ptr<LinsysProblem_Dense> cached_problem_;
 };
 
 }  // namespace ax::math

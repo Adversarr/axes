@@ -79,7 +79,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
   return result;
 }
 
-void ax::optim::Optimizer_GradientDescent::SetLineSearch(UPtr<LinesearchBase> linesearch) {
+void ax::optim::Optimizer_GradientDescent::SetLineSearch(std::unique_ptr<LinesearchBase> linesearch) {
   linesearch_ = std::move(linesearch);
 }
 

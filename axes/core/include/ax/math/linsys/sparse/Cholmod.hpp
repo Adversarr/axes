@@ -26,7 +26,7 @@ public:
 
 private:
   struct Impl;
-  UPtr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
 
   CholmodSupernodalKind supernodal_kind_ = CholmodSupernodalKind::kAuto;
   bool verbose_{false};

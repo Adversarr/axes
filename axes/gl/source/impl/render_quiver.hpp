@@ -13,7 +13,7 @@ struct QuiverRenderVertexData {
 };
 
 struct QuiverRenderData {
-  List<QuiverRenderVertexData> vertices_;
+  std::vector<QuiverRenderVertexData> vertices_;
   Vao vao_;
   bool enable_{true};
   bool use_global_model_{true};

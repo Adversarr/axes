@@ -6,8 +6,8 @@
 
 namespace ax::utils {
 
-List<char> load_istream_raw(std::istream& is) {
-  List<char> buffer;
+std::vector<char> load_istream_raw(std::istream& is) {
+  std::vector<char> buffer;
   is.seekg(0, std::ios::end);
   auto end = is.tellg();
   if (end <= 0) {
@@ -19,7 +19,7 @@ List<char> load_istream_raw(std::istream& is) {
   return buffer;
 }
 
-List<char> load_file_raw(std::string_view file_name) {
+std::vector<char> load_file_raw(std::string_view file_name) {
   std::ifstream file(file_name.data(), std::ios::binary);
   AX_THROW_IF_FALSE(file.is_open(), "Failed to open file: " + std::string(file_name));
   return load_istream_raw(file);

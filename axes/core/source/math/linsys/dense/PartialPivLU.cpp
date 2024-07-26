@@ -1,6 +1,6 @@
 #include "ax/math/linsys/dense/PartialPivLU.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/utils/status.hpp"
 
 namespace ax::math {

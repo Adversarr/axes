@@ -1,7 +1,7 @@
 #include <absl/flags/declare.h>
 #include <absl/flags/flag.h>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/init.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/math/common.hpp"

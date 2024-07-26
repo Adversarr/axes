@@ -15,7 +15,7 @@ struct PathItem {
   idx which_;
 };
 
-using Path = List<PathItem>;
+using Path = std::vector<PathItem>;
 
 class Dijkstra {
 public:
@@ -26,7 +26,7 @@ public:
 private:
   geo::SurfaceMesh mesh_;
 
-  List<List<idx>> adj_list_;
+  std::vector<std::vector<idx>> adj_list_;
 };
 
 

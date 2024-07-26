@@ -5,7 +5,7 @@
 
 #include <ax/gl/utils.hpp>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/geometry/decimate.hpp"
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
     wf.instance_color_.setOnes();
   }
   geo::HalfedgeMesh he_mesh(vertices, indices);
-  List<geo::HalfedgeEdge*> edge_to_collapse;
+  std::vector<geo::HalfedgeEdge*> edge_to_collapse;
   AX_CHECK(he_mesh.CheckOk()) << "The mesh is not a manifold.";
 
   auto& mesh = add_component<gl::Mesh>(mesh_ent);

@@ -6,7 +6,7 @@ namespace ax::fem {
 
 template <idx dim> class Timestepper_NaiveOptim : public TimeStepperBase<dim> {
 public:
-  Timestepper_NaiveOptim(SPtr<TriMesh<dim>> mesh);
+  Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh);
   virtual ~Timestepper_NaiveOptim() = default;
   void SolveTimestep() final;
 
@@ -14,7 +14,7 @@ public:
   utils::Options GetOptions() const final;
 
 private:
-  UPtr<optim::OptimizerBase> optimizer_;
+  std::unique_ptr<optim::OptimizerBase> optimizer_;
 };
 
 }  // namespace ax::fem

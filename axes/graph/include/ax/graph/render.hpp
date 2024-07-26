@@ -6,7 +6,7 @@ namespace ax::graph {
 
 struct GraphRendererOptions {};
 
-UPtr<GraphExecutorBase>& ensure_executor();
+std::unique_ptr<GraphExecutorBase>& ensure_executor();
 
 /**
  * @brief Install the renderer for the graph editor.

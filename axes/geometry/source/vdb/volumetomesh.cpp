@@ -17,19 +17,19 @@ VolumeToMesh::VolumeToMesh(real isovalue, real adaptivity, bool relaxDisoriented
 VolumeToMesh::~VolumeToMesh() = default;
 
 geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
-  List<openvdb::Vec3s> points;
-  List<openvdb::Vec3I> triangles;
-  List<openvdb::Vec4I> quads;
+  std::vector<openvdb::Vec3s> points;
+  std::vector<openvdb::Vec3I> triangles;
+  std::vector<openvdb::Vec4I> quads;
   auto& mesher = impl_->algo_;
 
   mesher(*tree);
 
-  for (size_t i = 0; i < mesher.pointListSize(); ++i) {
-    points.push_back(mesher.pointList()[i]);
+  for (size_t i = 0; i < mesher.pointstd::vectorSize(); ++i) {
+    points.push_back(mesher.pointstd::vector()[i]);
   }
 
-  for (size_t i = 0; i < mesher.polygonPoolListSize(); ++i) {
-    auto& polygon_list = mesher.polygonPoolList()[i];
+  for (size_t i = 0; i < mesher.polygonPoolstd::vectorSize(); ++i) {
+    auto& polygon_list = mesher.polygonPoolstd::vector()[i];
     for (size_t j = 0; j < polygon_list.numTriangles(); ++j) {
       triangles.push_back(polygon_list.triangle(j));
     }

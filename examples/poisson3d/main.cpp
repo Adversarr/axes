@@ -64,7 +64,7 @@ void print_basic_test_case() {
   math::field4i elements(4, 1);
   elements.col(0) = vec4i{0, 1, 2, 3};
 
-  SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
+  std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   pmesh->SetMesh(elements, vertices);
 
   math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
   vertices = vertices.array() * 0.5 + 0.5;
   idx const nVertices = vertices.cols();
 
-  SPtr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
+  std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   std::set<int> dirichlet;
   for (auto i : utils::iota(nVertices)) {
     // [0, 1] x [0, 1] x [0, 1]

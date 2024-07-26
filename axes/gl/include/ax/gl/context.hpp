@@ -30,7 +30,7 @@ public:
    * Add a custom renderer to the render pipeline.
    * @param renderer RenderBase
    */
-  void AppendEntityRenderer(UPtr<RenderBase> renderer);
+  void AppendEntityRenderer(std::unique_ptr<RenderBase> renderer);
 
   Window& GetWindow();
   Camera& GetCamera();
@@ -41,7 +41,7 @@ public:
   void SetGlobalModelMatrix(math::mat4f const& value);
 
 private:
-  UPtr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 Context& get_context();

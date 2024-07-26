@@ -10,13 +10,13 @@
 using namespace ax::math;
 
 struct Problem {
-  List<math::mat3r> Ri;
-  List<List<idx>> neighbours;
-  List<List<math::vec3r>> Di;
-  List<List<math::vec3r>> Di0;
+  std::vector<math::mat3r> Ri;
+  std::vector<std::vector<idx>> neighbours;
+  std::vector<std::vector<math::vec3r>> Di;
+  std::vector<std::vector<math::vec3r>> Di0;
   math::field3r ni;
-  List<real> ai;
-  List<List<real>> Wi;
+  std::vector<real> ai;
+  std::vector<std::vector<real>> Wi;
 };
 
 vec3r shrinkage(const vec3r& v, real kappa) {

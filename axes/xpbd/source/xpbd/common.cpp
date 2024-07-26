@@ -19,7 +19,7 @@ namespace ax::xpbd {
 void ConstraintBase::OnAttach() const {}
 void ConstraintBase::OnDetach() const {}
 
-UPtr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
+std::unique_ptr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
   switch (kind) {
     // TODO: Implement these classes
     case ConstraintKind::kInertia:

@@ -1,6 +1,6 @@
 #include "ax/optim/optimizers/newton.hpp"
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"

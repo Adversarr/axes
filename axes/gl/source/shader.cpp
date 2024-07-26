@@ -21,7 +21,7 @@ StatusOr<Shader> Shader::CompileSource(const char* source, ShaderType type) {
   if (!success) {
     GLint log_length;
     glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
-    List<GLchar> info_log(static_cast<size_t>(log_length));
+    std::vector<GLchar> info_log(static_cast<size_t>(log_length));
     glGetShaderInfoLog(shader_id, log_length, nullptr, info_log.data());
     return utils::InvalidArgumentError(info_log.data());
   }
@@ -30,7 +30,7 @@ StatusOr<Shader> Shader::CompileSource(const char* source, ShaderType type) {
 }
 
 StatusOr<Shader> Shader::CompileFile(std::string_view file_path, ShaderType type) {
-  List<char> buffer = utils::load_file_raw(file_path);
+  std::vector<char> buffer = utils::load_file_raw(file_path);
   buffer.push_back(0);
   return Shader::CompileSource(reinterpret_cast<const char*>(buffer.data()), type);
 }

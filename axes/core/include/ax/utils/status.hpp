@@ -1,5 +1,5 @@
 #pragma once
-#include "ax/core/echo.hpp"    // IWYU pragma: export
+#include "ax/core/logging.hpp"    // IWYU pragma: export
 #include "ax/core/status.hpp"  // IWYU pragma: export
 
 namespace ax::utils {

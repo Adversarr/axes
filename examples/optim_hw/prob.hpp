@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "ax/core/config.hpp"
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/math/common.hpp"
 #include "ax/math/linalg.hpp"

@@ -140,7 +140,7 @@ public:
   TreeNode const* parent_;
   idx const depth_;
   BroadPhase_FlatOctree::Impl const* impl_;
-  std::array<UPtr<TreeNode>, 8> children_;  ///< child nodes
+  std::array<std::unique_ptr<TreeNode>, 8> children_;  ///< child nodes
   std::vector<idx> colliders_;              ///< for those collider cannot be divided further
 
   TreeNode(TreeNode&& other) : aabb_(other.aabb_), parent_(other.parent_), depth_(other.depth_), impl_(other.impl_) {

@@ -127,10 +127,10 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
 }
 
 template <idx dim>
-static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
+static DeformationGradientstd::vector<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
                                           DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
-  DeformationGradientList<dim> dg(static_cast<size_t>(n_elem));
+  DeformationGradientstd::vector<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
   tbb::parallel_for(
       tbb::blocked_range<idx>(0, n_elem, 50000 / (dim * dim)),
@@ -153,7 +153,7 @@ static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> 
 
 template <idx dim>
 typename TriMesh<dim>::vertex_list_t dg_tsv_p1(TriMesh<dim> const& mesh,
-                                               List<elasticity::StressTensor<dim>> const& stress,
+                                               std::vector<elasticity::StressTensor<dim>> const& stress,
                                                DeformationGradientCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
@@ -174,7 +174,7 @@ typename TriMesh<dim>::vertex_list_t dg_tsv_p1(TriMesh<dim> const& mesh,
 
 template <idx dim>
 math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
-                              List<elasticity::HessianTensor<dim>> const& hessian,
+                              std::vector<elasticity::HessianTensor<dim>> const& hessian,
                               DeformationGradientCache<dim> const& cache) {
   math::sp_coeff_list coo;
   size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
@@ -236,11 +236,11 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   }
 }
 
-template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
+template <idx dim> DeformationGradientstd::vector<dim> Deformation<dim>::Forward() const {
   return Forward(mesh_.GetVertices());
 }
 
-template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward(
+template <idx dim> DeformationGradientstd::vector<dim> Deformation<dim>::Forward(
     typename TriMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }
@@ -272,7 +272,7 @@ template <idx dim> math::field1r Deformation<dim>::EnergyToVertices(math::field1
 }
 
 template <idx dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
-    List<elasticity::StressTensor<dim>> const& stress) const {
+    std::vector<elasticity::StressTensor<dim>> const& stress) const {
   idx n_element = mesh_.GetNumElements();
   size_t stress_size = stress.size();
   AX_CHECK_EQ(stress_size, n_element) << "#stress != #element";
@@ -280,7 +280,7 @@ template <idx dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::Stress
 }
 
 template <idx dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
-    List<elasticity::HessianTensor<dim>> const& hessian) const {
+    std::vector<elasticity::HessianTensor<dim>> const& hessian) const {
   return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
 }
 

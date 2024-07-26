@@ -26,7 +26,7 @@ auto arg(T x) { return std::arg(x); }
 #include "ax/fem/elasticity_gpu.cuh"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/decomp/svd/svd_cuda.cuh"
-#include "ax/utils/time.hpp"
+// #include "ax/utils/time.hpp"
 
 
 namespace ax {
@@ -688,7 +688,7 @@ math::fieldr<dim> const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetSt
   return cpu;
 }
 
-template <idx dim, template <idx> class ElasticModelTemplate> List<math::matr<dim, dim>> const&
+template <idx dim, template <idx> class ElasticModelTemplate> std::vector<math::matr<dim, dim>> const&
 ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnElements() {
   auto& gpu = impl_->stress_on_elements_;
   auto& cpu = this->stress_on_elements_;
@@ -697,7 +697,7 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnElements() {
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-List<math::matr<dim * dim, dim * dim>> const&
+std::vector<math::matr<dim * dim, dim * dim>> const&
 ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
   auto& gpu = impl_->hessian_on_elements_;
   auto& cpu = this->hessian_on_elements_;

@@ -11,7 +11,7 @@
 
 namespace ax::math {
 
-UPtr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
+std::unique_ptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
   switch (kind) {
     case SparseSolverKind::kLDLT:
       return std::make_unique<SparseSolver_LDLT>();
@@ -38,7 +38,7 @@ UPtr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
 
 SparseSolverBase::SparseSolverBase() {}
 
-SparseSolverBase& SparseSolverBase::SetProblem(SPtr<LinsysProblem_Sparse> problem) {
+SparseSolverBase& SparseSolverBase::SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem) {
   cached_problem_ = std::move(problem);
   return *this;
 }
@@ -55,8 +55,8 @@ SparseSolverBase& SparseSolverBase::SetProblem(spmatr const& A) {
 SparseSolverBase& SparseSolverBase::SetProblem(spmatr&& A) {
   return SetProblem(make_sparse_problem(std::move(A)));
 }
-SPtr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const { return cached_problem_; }
-void SparseSolverBase::SetPreconditioner(UPtr<PreconditionerBase> preconditioner) {
+std::shared_ptr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const { return cached_problem_; }
+void SparseSolverBase::SetPreconditioner(std::unique_ptr<PreconditionerBase> preconditioner) {
   preconditioner_ = std::move(preconditioner);
 }
 }  // namespace ax::math

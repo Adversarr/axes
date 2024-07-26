@@ -8,7 +8,7 @@
 namespace ax::fem {
 
 template <idx dim>
-std::pair<List<idx>, List<idx>> optimize_topology(math::fieldi<dim + 1> const& topo, idx n_vert) {
+std::pair<std::vector<idx>, std::vector<idx>> optimize_topology(math::fieldi<dim + 1> const& topo, idx n_vert) {
   using namespace boost;
   using namespace std;
   typedef adjacency_list<
@@ -56,15 +56,15 @@ std::pair<List<idx>, List<idx>> optimize_topology(math::fieldi<dim + 1> const& t
     for (size_type c = 0; c != inv_perm.size(); ++c) perm[index_map[inv_perm[c]]] = c;
   }
 
-  List<idx> p, ip;
+  std::vector<idx> p, ip;
   p.assign(perm.begin(), perm.end());
   ip.assign(inv_perm.begin(), inv_perm.end());
 
   return {p, ip};
 }
 
-template std::pair<List<idx>, List<idx>> optimize_topology<1>(math::fieldi<2> const&, idx);
-template std::pair<List<idx>, List<idx>> optimize_topology<2>(math::fieldi<3> const&, idx);
-template std::pair<List<idx>, List<idx>> optimize_topology<3>(math::fieldi<4> const&, idx);
+template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<1>(math::fieldi<2> const&, idx);
+template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<2>(math::fieldi<3> const&, idx);
+template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<3>(math::fieldi<4> const&, idx);
 
 }  // namespace ax::fem

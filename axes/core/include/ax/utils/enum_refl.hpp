@@ -37,8 +37,8 @@ template <typename Enum> std::optional<Enum> reflect_enum(std::string const& nam
  * @tparam Enum The enum type.
  * @return A vector containing the names of all enum values.
  */
-template <typename Enum> List<std::string> reflect_names() {
-  static List<std::string> names;
+template <typename Enum> std::vector<std::string> reflect_names() {
+  static std::vector<std::string> names;
   if (names.empty()) {
     boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>(
         [&](auto D) { names.push_back(D.name); });
@@ -68,7 +68,7 @@ template <typename Enum> std::optional<std::string> reflect_name(Enum val) {
  * @param name The name of the enum value.
  * @return A unique pointer to the created object, or nullptr if the enum value is invalid.
  */
-template <typename Enum, typename T> UPtr<T> reflect_create(std::string_view name) {
+template <typename Enum, typename T> std::unique_ptr<T> reflect_create(std::string_view name) {
   std::optional<Enum> val = reflect_enum<Enum>(name);
   if (!val.has_value()) {
     return nullptr;

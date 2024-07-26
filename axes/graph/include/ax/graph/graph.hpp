@@ -62,7 +62,7 @@ public:
   void EnsurePayloads();
 private:
   struct Impl;
-  UPtr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace ax::graph

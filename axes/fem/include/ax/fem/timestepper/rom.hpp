@@ -6,7 +6,7 @@ namespace ax::fem {
 template<idx dim>
 class TimeStepper_ROM : public TimeStepperBase<dim> {
 public:
-  TimeStepper_ROM(SPtr<TriMesh<dim>> mesh): TimeStepperBase<dim>(mesh) {}
+  TimeStepper_ROM(std::shared_ptr<TriMesh<dim>> mesh): TimeStepperBase<dim>(mesh) {}
 
   // Status Step(real dt) final;
 

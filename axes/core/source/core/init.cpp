@@ -1,126 +1,145 @@
 #include "ax/core/init.hpp"
 
-#include <absl/debugging/failure_signal_handler.h>
-#include <absl/debugging/symbolize.h>
-#include <absl/flags/parse.h>
-#include <absl/log/die_if_null.h>
-#include <absl/log/globals.h>
-#include <absl/log/initialize.h>
-#include <absl/log/log.h>
+#include <algorithm>
 #include <openvdb/openvdb.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 #include <Eigen/Core>
+#include <cxxopts.hpp>
 
-#include "ax/core/echo.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/math/init.hpp"
 #include "ax/utils/common.hpp"
 #include "ax/utils/status.hpp"
 #include "ax/utils/time.hpp"
 
-ABSL_FLAG(int, n_eigen_threads, -1,
-          "Number of eigen parallelism: negative for disable, 0 for hardware cocurrency, positive "
-          "for specific number of threads.");
+// ABSL_FLAG(int, n_eigen_threads, -1,
+//           "Number of eigen parallelism: negative for disable, 0 for hardware cocurrency, positive
+//           " "for specific number of threads.");
 
 namespace ax {
 
 /****************************** GLOBAL VARS ******************************/
-UPtr<entt::registry> registry_p;
-UPtr<entt::dispatcher> dispatcher_p;
-
+std::unique_ptr<entt::registry> g_registry;
+std::unique_ptr<entt::dispatcher> g_dispatcher;
 struct Hook {
   const std::string name_;
   std::function<void()> call_;
 };
+std::vector<Hook> g_init_hooks;
+std::vector<Hook> g_cleanup_hook;
 
-List<Hook> init_hooks;
-List<Hook> clean_up_hooks;
+std::string program_path = "UNKNOWN";
+std::string logger_name = "ax";
+cxxopts::ParseResult parse_result;
 
-const char* program_path = nullptr;
+const char* get_program_path() { return program_path.c_str(); }
 
-const char* get_program_path() { return program_path; }
+cxxopts::Options& get_program_options() {
+  static cxxopts::Options opt("axes", "libaxes internal");
+  return opt;
+}
+cxxopts::ParseResult& get_parse_result() {
+  return parse_result;
+}
 
 /****************************** Implementation ******************************/
 
 void init(int argc, char** argv) {
+  /****************************** Flags ******************************/
+  auto& opt = get_program_options();
+  opt.add_options()("num_eigen_threads", "Parallelism of Eigen library.",
+                    cxxopts::value<int>()->default_value("0"));
   if (argc > 0) {
-    /****************************** Flags ******************************/
-    absl::ParseCommandLine(argc, argv);
     /****************************** Install the debuggers ******************************/
-    absl::InitializeSymbolizer(argv[0]);
     program_path = argv[0];
-    absl::FailureSignalHandlerOptions failure_signal_handler{};
-    absl::InstallFailureSignalHandler(failure_signal_handler);
-  } else {
-    std::cerr << "Program path is not available: failure signal handler is not installed."
-              << std::endl;
   }
-
-  add_clean_up_hook("Show Timers", []() { erase_resource<utils::TimerRegistry>(); });
-
   init();
 }
 
+std::shared_ptr<spdlog::logger> get_logger() {
+  auto logger = spdlog::get(logger_name);
+  if (!logger) {
+    logger = spdlog::stdout_color_mt(logger_name);
+    logger->set_level(spdlog::level::info);
+    spdlog::set_default_logger(logger);
+    SPDLOG_DEBUG("Initialized spdlog");
+  }
+  return logger;
+}
+
 void init() {
-  absl::InitializeLog();
-  // absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
-  // absl::SetStderrThreshold(absl::LogSeverity::kInfo);
+  add_clean_up_hook("Show Timers", []() { erase_resource<utils::TimerRegistry>(); });
+  get_logger();  // trigger the logger initialization
   /****************************** Setup Entt Registry ******************************/
-  registry_p = std::make_unique<entt::registry>();
-  dispatcher_p = std::make_unique<entt::dispatcher>();
+  g_registry = std::make_unique<entt::registry>();
+  g_dispatcher = std::make_unique<entt::dispatcher>();
 
   /****************************** Vdb ******************************/
   openvdb::initialize();
-  int nT = absl::GetFlag(FLAGS_n_eigen_threads);
-  math::init_parallel(nT);
-  AX_LOG(INFO) << "Eigen SIMD instruction sets: " << Eigen::SimdInstructionSetsInUse();
+  int num_threads = get_parse_result()["num_eigen_threads"].as<int>();
+  math::init_parallel(num_threads);
+  AX_INFO("Initialized Eigen with {} threads", Eigen::nbThreads());
 
-  /****************************** Run all the hooks ******************************/
-  for (auto [name, call] : init_hooks) {
-    AX_LOG(INFO) << "Run init-hook [" << name << "]";
+  // 3. Run all the hooks
+  for (auto&& [name, call] : g_init_hooks) {
+    AX_INFO("Run init-hook [{}]", name);
     try {
       call();
     } catch (const std::exception& e) {
-      AX_LOG(FATAL) << "Init-hook [" << name << "] failed: " << e.what();
+      AX_CRITICAL("Init-hook [{}] failed: {}", name, e.what());
     }
   }
-  init_hooks.clear();
+  g_init_hooks.clear();
 }
 
 void clean_up() {
-  for (auto [name, call] : clean_up_hooks) {
-    AX_LOG(INFO) << "Run clean-up-hook [" << name << "]";
+  // 1. Run all the clean up hooks in reverse order.
+  std::for_each(g_cleanup_hook.rbegin(), g_cleanup_hook.rend(), [](auto const& hook) {
+    AX_INFO("Run clean-up-hook [{}]", hook.name_);
     try {
-      call();
+      hook.call_();
     } catch (const std::exception& e) {
-      AX_LOG(FATAL) << "CleanUp-hook [" << name << "] failed: " << e.what();
+      AX_CRITICAL("Clean up hook [{}] run failed: {}", hook.name_, e.what());
     }
-  }
-  clean_up_hooks.clear();
-  registry_p.reset();
-  dispatcher_p.reset();
+  });
+  g_cleanup_hook.clear();
+
+  // 2. Destroy all the resources.
+  g_registry.reset();
+  g_dispatcher.reset();
+  spdlog::drop_all();
 }
 
-void add_init_hook(const char* name, std::function<void()> f) { init_hooks.push_back({name, f}); }
-
-void add_clean_up_hook(const char* name, std::function<void()> f) {
-  // Check if the callback is already in the list.
-  for (auto& [n, _] : clean_up_hooks) {
+void add_init_hook(const char* name, std::function<void()> f) {
+  for (auto const& [n, _] : g_init_hooks) {
     if (n == name) {
       return;
     }
   }
-  clean_up_hooks.push_back({name, f});
+  g_init_hooks.push_back({name, f});
+}
+
+void add_clean_up_hook(const char* name, std::function<void()> f) {
+  // Check if the callback is already in the list.
+  for (auto const& [n, _] : g_cleanup_hook) {
+    if (n == name) {
+      return;
+    }
+  }
+  g_cleanup_hook.push_back({name, f});
 }
 
 entt::registry& global_registry() {
-  AX_DCHECK(registry_p != nullptr) << "Registry is not initialized.";
-  return *registry_p;
+  AX_DCHECK(g_registry != nullptr, "Registry is not initialized.");
+  return *g_registry;
 }
 
 entt::dispatcher& global_dispatcher() {
-  AX_DCHECK(dispatcher_p != nullptr) << "Registry is not initialized.";
-  return *dispatcher_p;
+  AX_DCHECK(g_dispatcher != nullptr, "Dispatcher is not initialized.");
+  return *g_dispatcher;
 }
 
 }  // namespace ax

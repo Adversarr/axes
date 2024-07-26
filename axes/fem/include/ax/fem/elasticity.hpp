@@ -14,13 +14,13 @@ AX_DECLARE_ENUM(ElasticityUpdateLevel){kEnergy, kStress, kHessian};
  */
 template <idx dim> class ElasticityComputeBase {
 public:
-  using elem_stress_t = List<math::matr<dim, dim>>;
+  using elem_stress_t = std::vector<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
+  using elem_hessian_t = std::vector<math::matr<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
-  using MeshPtr = SPtr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
 
-  explicit ElasticityComputeBase(SPtr<TriMesh<dim>> mesh);
+  explicit ElasticityComputeBase(std::shared_ptr<TriMesh<dim>> mesh);
   virtual ~ElasticityComputeBase() = default;
 
   void SetMesh(MeshPtr const& mesh);
@@ -47,7 +47,7 @@ public:
   virtual math::field1r const& GetEnergyOnVertices() { return energy_on_vertices_; }
 
 protected:
-  SPtr<TriMesh<dim>> mesh_;
+  std::shared_ptr<TriMesh<dim>> mesh_;
   elasticity::DeformationGradientCache<dim> rinv_;
   math::field1r rest_volume_;
   math::field2r lame_;
@@ -71,14 +71,14 @@ template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCo
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = List<math::matr<dim, dim>>;
+  using elem_stress_t = std::vector<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = List<math::matr<dim * dim, dim * dim>>;
+  using elem_hessian_t = std::vector<math::matr<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
-  using MeshPtr = SPtr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  ElasticityCompute_CPU(SPtr<TriMesh<dim>> mesh);
+  ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh);
   ~ElasticityCompute_CPU() override;
 
   void UpdateEnergy() final;
@@ -92,8 +92,8 @@ public:
   void RecomputeRestPose() final;
 
 protected:
-  List<math::decomp::SvdResult<dim, real>> svd_results_;
-  elasticity::DeformationGradientList<dim> deformation_gradient_;
+  std::vector<math::decomp::SvdResult<dim, real>> svd_results_;
+  elasticity::DeformationGradientstd::vector<dim> deformation_gradient_;
   struct TbbPartitioners;  ///< include tbb in CUDA will cause error, so we have to put it here.
   std::unique_ptr<TbbPartitioners> partitioner_impl_;
 };

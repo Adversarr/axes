@@ -21,9 +21,9 @@ struct LineInstanceData {
 };
 
 struct LineRenderData {
-  List<LineRenderVertexData> vertices_;
-  List<LineInstanceData> instance_data_;
-  List<GLuint> indices_;
+  std::vector<LineRenderVertexData> vertices_;
+  std::vector<LineInstanceData> instance_data_;
+  std::vector<GLuint> indices_;
 
   Vao vao_;
   bool enable_{true};

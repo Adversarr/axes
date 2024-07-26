@@ -28,7 +28,7 @@ public:
   math::spmatr GetLaplacianAsApproximation() const;
 
 protected:
-  SPtr<math::SparseSolverBase> solver_;
+  std::shared_ptr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_ = LbfgsStrategy::kNaive;
   optim::Optimizer_Lbfgs optimizer_;
 

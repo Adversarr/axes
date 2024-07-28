@@ -22,8 +22,8 @@ public:
   ~Context();
 
   /****************************** Methods ******************************/
-  Status TickLogic();
-  Status TickRender();
+  void TickLogic();
+  void TickRender();
   bool ShouldClose() const;
 
   /**

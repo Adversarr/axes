@@ -2,11 +2,12 @@
 
 #include <glad/glad.h>
 
+#include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
 
 namespace ax::gl::details {
 
-std::string error_code_to_string(GLenum error_code) {
+std::string to_string(GLenum error_code) {
   switch (error_code) {
     case GL_NO_ERROR:
       return "GL_NO_ERROR";
@@ -31,16 +32,16 @@ std::string error_code_to_string(GLenum error_code) {
 
 void clear_error() {
   for (GLenum error_code = glGetError(); error_code != GL_NO_ERROR; error_code = glGetError()) {
-   AX_LOG(WARNING) << "Ignore OpenGL error:" << error_code_to_string(error_code);
+    AX_ERROR("OpenGL error ignored: {}", to_string(error_code));
   }
 }
 
-Status fetch_error() {
+void fetch_error(const char* expr, const char* file, int line) {
   GLenum error_code = glGetError();
-  if (error_code == GL_NO_ERROR) {
-    return utils::OkStatus();
+  if (error_code != GL_NO_ERROR) {
+    throw make_runtime_error("OpenGL error: {}, \nOccur at {}:{}\ncommand={}", to_string(error_code), file,
+                             line, expr);
   }
-  return utils::InvalidArgumentError(error_code_to_string(error_code));
 }
 
 }  // namespace ax::gl::details

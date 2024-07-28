@@ -30,9 +30,8 @@ void SparseSolver_ConjugateGradient::Factorize() {
 
 LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
   spmatr const &A = cached_problem_->A_;
-  AX_THROW_IF_NE(
-      b.size(), A.rows(),
-      "Invalid rhs vector: b" + std::to_string(b.size()) + " != A" + std::to_string(A.rows()));
+  AX_THROW_IF_NE(b.size(), A.rows(), "Invalid rhs vector size: {} != {} (b, A)", b.size(),
+                 A.rows());
   if (!preconditioner_) {
     vecxr x;
     if (x0.size() > 0) {
@@ -104,9 +103,6 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
   }
 
   AX_SYNC_OPT_IF(opt, real, tol) {
-    // if (tol_ < 0) {
-    //   return utils::InvalidArgumentError("tol must be non-negative");
-    // }
     AX_THROW_IF_LT(tol_, 0, "tol must be non-negative");
     solver_.setTolerance(tol_);
   }
@@ -116,20 +112,12 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
     if (it->value().is_string()) {
       std::string name = it->value().as_string().c_str();
       auto kind = utils::reflect_enum<PreconditionerKind>(name);
-      // if (!kind) {
-      //   return utils::InvalidArgumentError("Invalid preconditioner kind: "
-      //                                      + std::string(it->value().as_string().c_str()));
-      // }
-      AX_THROW_IF_NULL(kind, "Invalid preconditioner kind: " + name);
+      AX_THROW_IF_NULL(kind, "Invalid preconditioner kind: {}", name);
       pk = kind.value();
       preconditioner_ = PreconditionerBase::Create(pk);
-      // if (!preconditioner_) {
-      //   return utils::FailedPreconditionError("Failed to create preconditioner: " + name);
-      // }
-      AX_THROW_IF_NULLPTR(preconditioner_, "Failed to create preconditioner: " + name);
+      AX_THROW_IF_NULLPTR(preconditioner_, "Failed to create preconditioner: {}", name);
     } else {
-      // return utils::InvalidArgumentError("Expect value under 'preconditioner' to be a string.");
-      throw RuntimeError("Expect value under 'preconditioner' to be a string.");
+      throw make_runtime_error("Expect value under 'preconditioner' to be a string.");
     }
   }
 
@@ -149,8 +137,8 @@ utils::Options SparseSolver_ConjugateGradient::GetOptions() const {
   if (preconditioner_) {
     auto name = utils::reflect_name(preconditioner_->GetKind());
     if (!name) {
-      AX_LOG(FATAL) << "Invalid preconditioner kind: "
-                    << static_cast<idx>(preconditioner_->GetKind());
+      throw make_runtime_error("Invalid preconditioner kind: {}",
+                               static_cast<idx>(preconditioner_->GetKind()));
     }
     opt.insert_or_assign("preconditioner", name.value());
     opt.insert_or_assign("preconditioner_opt", preconditioner_->GetOptions());

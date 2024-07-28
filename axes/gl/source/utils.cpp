@@ -7,7 +7,6 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::gl {
 
@@ -26,14 +25,13 @@ void init(int argc, char** argv) {
   ::ax::init(argc, argv);
 }
 
-Status enter_main_loop() {
+void enter_main_loop() {
   auto& c = get_resource<Context>();
   auto& w = c.GetWindow();
   while (!(c.ShouldClose() || w.ShouldClose())) {
-    AX_RETURN_NOTOK(c.TickLogic());
-    AX_RETURN_NOTOK(c.TickRender());
+    c.TickLogic();
+    c.TickRender();
   }
-  AX_RETURN_OK();
 }
 
 }  // namespace ax::gl

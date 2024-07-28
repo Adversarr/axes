@@ -17,18 +17,24 @@
 #include "ax/gl/window.hpp"
 #include "ax/utils/time.hpp"
 
-ABSL_FLAG(bool, echo, false, "Echo events");
-ABSL_FLAG(bool, rotate, false, "Rotate the cube");
+#include "ax/math/formatting.hpp"
+
 
 using namespace ax;
 
 struct Echo {
-  void WSize(const gl::WindowSizeEvent& evt) const { AX_LOG(INFO) << "Window size: " << math::transpose(evt.size_); }
+  void WSize(const gl::WindowSizeEvent& evt) const {
+    // AX_LOG(INFO) << "Window size: " << math::transpose(evt.size_);
+    AX_INFO("Window size: {}", evt.size_);
+  }
 
-  void WPos(const gl::WindowPosEvent& evt) const { AX_LOG(INFO) << "Window pos: " << math::transpose(evt.pos_); }
+  void WPos(const gl::WindowPosEvent& evt) const { 
+    // AX_LOG(INFO) << "Window pos: " << math::transpose(evt.pos_);
+    AX_INFO("Window pos: {}", evt.pos_);
+  }
 
   void Key(const gl::KeyboardEvent& evt) const {
-   AX_LOG(INFO) << "Key: " << evt.key_ << std::endl << "Action: " << evt.action_;
+    AX_INFO("Key: {} Action: {}", evt.key_, evt.action_);
   }
 };
 
@@ -96,12 +102,10 @@ int main(int argc, char** argv) {
   auto& ctx = add_resource<gl::Context>();
 
   // SECT: Connect the echo events if the flag is set
-  if (absl::GetFlag(FLAGS_echo)) {
-    auto& echo = add_resource<Echo>();
-    connect<gl::WindowSizeEvent, &Echo::WSize>(echo);
-    connect<gl::WindowPosEvent, &Echo::WPos>(echo);
-    connect<gl::KeyboardEvent, &Echo::Key>(echo);
-  }
+  auto& echo = add_resource<Echo>();
+  connect<gl::WindowSizeEvent, &Echo::WSize>(echo);
+  connect<gl::WindowPosEvent, &Echo::WPos>(echo);
+  connect<gl::KeyboardEvent, &Echo::Key>(echo);
 
   // SECT: Connect the ui rendering test function to UiRenderEvent
   connect<gl::UiRenderEvent, &render_ui_dummy>();
@@ -120,7 +124,7 @@ int main(int argc, char** argv) {
 
   // SECT: Main Loop
   auto& win = ctx.GetWindow();
-  i64 start = utils::GetCurrentTimeNanos();
+  i64 start = utils::get_current_time_nanos();
 
   ctx.GetCamera().SetProjectionMode(true);
   mesh.use_lighting_ = true;
@@ -136,13 +140,13 @@ int main(int argc, char** argv) {
   quiver.colors_.row(1).setConstant(0.3);
 
 
-  bool rotate = absl::GetFlag(FLAGS_rotate);
+  bool rotate = true;
 
   while (!win.ShouldClose()) {
-    AX_CHECK_OK(ctx.TickLogic());
-    AX_CHECK_OK(ctx.TickRender());
+    ctx.TickLogic();
+    ctx.TickRender();
 
-    i64 current = utils::GetCurrentTimeNanos();
+    i64 current = utils::get_current_time_nanos();
     real dt = (current - start) / 1.0e9;
     if (rotate) {
       math::mat4r model = geo::rotate_y(dt * 0.3);

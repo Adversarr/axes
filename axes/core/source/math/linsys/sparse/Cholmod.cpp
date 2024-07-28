@@ -1,6 +1,7 @@
 #include "ax/math/linsys/sparse/Cholmod.hpp"
 
 #include <cholmod.h>
+#include "ax/core/logging.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::math {
@@ -149,7 +150,7 @@ void SparseSolver_Cholmod::Factorize() {
   if (status == CHOLMOD_NOT_POSDEF) {
     if (supernodal_kind_ != CholmodSupernodalKind::kSimplicial) {
       // Retry with simplicial
-      AX_LOG(WARNING) << "Cholmod failed to factorize with supernodal, retry with simplicial";
+      AX_WARN("Cholmod failed to factorize with supernodal, retry with simplicial");
     } else {
       throw std::runtime_error("Cholmod::Factorize failed");
     }

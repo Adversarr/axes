@@ -1,4 +1,5 @@
 #include "ax/math/linsys/sparse/LeastSquaresConjugateGradient.hpp"
+#include "ax/core/logging.hpp"
 
 namespace ax::math {
 
@@ -30,8 +31,10 @@ LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(vecxr const 
     impl.l2_err_ = solver_.error();
     return impl;
   } else {
-    AX_CHECK(false) << "This branch have not been implemented yet";
+    AX_CHECK(false, "This branch have not been implemented yet");
   }
+
+  AX_UNREACHABLE();
 }
 
 }  // namespace ax::math

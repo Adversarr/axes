@@ -9,6 +9,8 @@
 #include "ax/math/functional.hpp"
 #include "ax/math/linalg.hpp"
 
+using namespace std;
+
 namespace ax::gl {
 
 Camera::Camera() : use_perspective_(true), yaw_(0.0f), pitch_(0.0f), fov_(45.0f) {

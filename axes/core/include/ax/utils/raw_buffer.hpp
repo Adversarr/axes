@@ -1,6 +1,5 @@
 #pragma once
 #include <istream>
-#include "ax/core/status.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/core/common.hpp"
 

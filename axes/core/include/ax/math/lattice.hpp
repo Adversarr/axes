@@ -191,15 +191,18 @@ public:
   }
 
 private:
+
+  AX_FORCE_INLINE void CheckInRange(veci<D> const& sub) const {
+    if (is_staggered_) {
+      AX_DCHECK(IsSubValid(sub, staggered), "sub {}, shape {}", sub, shape_);
+    } else {
+      AX_DCHECK(IsSubValid(sub, cell_center), "sub {}, shape {}", sub, shape_);
+    }
+  }
+
   AX_FORCE_INLINE idx sub2ind(veci<D> const& strides, veci<D> const& sub) const {
     // Check if sub is within the shape.
-    AX_DCHECK(sub.minCoeff() >= 0)
-        << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
-    AX_DCHECK(is_staggered_ || (sub.array() < shape_.array()).all())
-        << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
-    AX_DCHECK(!is_staggered_ || (sub.array() <= shape_.array()).all())
-        << "sub: " << sub.transpose() << ", shape: " << shape_.transpose();
-
+    CheckInRange(sub);
     return (sub.dot(strides));
   }
 
@@ -245,7 +248,6 @@ template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D
       result += lattice(math::imod<D>(off_sub + lattice.Shape(), lattice.Shape())) * weight;
     } else {
       result += default_value * weight;
-      std::cout << "default value: " << default_value << std::endl;
     }
   }
   return result;

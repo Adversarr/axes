@@ -67,4 +67,8 @@ template <typename A, typename B> constexpr bool same_rows_v = rows_v<A> == rows
 template <typename A, typename B> constexpr bool same_cols_v = cols_v<A> == cols_v<B>;
 template <typename A, typename B> constexpr bool same_shape_v = same_rows_v<A, B> && same_cols_v<A, B>;
 
+template <typename A>
+struct is_support_operator_add : std::false_type {};
+
+
 }  // namespace ax::math

@@ -1,7 +1,6 @@
 #pragma once
 #include <glad/glad.h>
 
-#include "ax/core/status.hpp"
 #include "ax/utils/common.hpp"
 #include "details/gl_types.hpp"
 
@@ -21,20 +20,20 @@ public:
   Buffer& operator=(Buffer&& other) noexcept;
 
   /****************************** Creation ******************************/
-  static StatusOr<Buffer> Create(BufferBindingType type, BufferUsage usage);
-  static StatusOr<Buffer> CreateIndexBuffer(BufferUsage usage);
-  static StatusOr<Buffer> CreateVertexBuffer(BufferUsage usage);
+  static Buffer Create(BufferBindingType type, BufferUsage usage);
+  static Buffer CreateIndexBuffer(BufferUsage usage);
+  static Buffer CreateVertexBuffer(BufferUsage usage);
 
   /****************************** Method ******************************/
   operator bool() const;
 
-  Status Bind();
-  Status Unbind();
-  Status Write(const void* data, size_t size);
+  void Bind();
+  void Unbind();
+  void Write(const void* data, size_t size);
 
-  template <typename V> Status Write(V&& data);
+  template <typename V> void Write(V&& data);
 
-  Status WriteSub(const void* data, size_t size, size_t offset);
+  void WriteSub(const void* data, size_t size, size_t offset);
 
 private:
   GLuint id_;
@@ -42,7 +41,7 @@ private:
   BufferUsage usage_;
 };
 
-template <typename V> Status Buffer::Write(V&& data) {
+template <typename V> void Buffer::Write(V&& data) {
   size_t elem_size = sizeof(std::remove_reference_t<decltype(*std::data(std::forward<V>(data)))>);
   return Write(std::data(std::forward<V>(data)), std::size(std::forward<V>(data)) * elem_size);
 }

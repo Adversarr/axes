@@ -10,12 +10,12 @@ PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_p
   for (auto p : math::each(position)) {
     positions.push_back(openvdb::Vec3R(p.x(), p.y(), p.z()));
   }
-  AX_CHECK(point_per_voxel > 0) << "points_per_voxel must be greater than 0";
+  AX_CHECK(point_per_voxel > 0, "points_per_voxel must be greater than 0");
 
   openvdb::points::PointAttributeVector<openvdb::Vec3R> position_wrapper(positions);
   if (voxel_size <= 0) {
     voxel_size = openvdb::points::computeVoxelSize(position_wrapper, static_cast<uint32_t>(point_per_voxel));
-    AX_LOG(INFO) << "Voxel Size: " << voxel_size;
+    AX_INFO("Voxel Size: {}", voxel_size);
   }
 
   transform_ = openvdb::math::Transform::createLinearTransform(voxel_size);

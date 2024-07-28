@@ -16,18 +16,18 @@ public:
   Vao& operator=(Vao&& other) noexcept;
   AX_DECLARE_COPY_CTOR(Vao, delete);
 
-  static StatusOr<Vao> Create();
+  static Vao Create();
 
   /****************************** Methods ******************************/
   operator bool() const;
 
-  Status Bind();
-  Status Unbind();
+  void Bind();
+  void Unbind();
 
   /****************************** Attribute Setters ******************************/
-  Status EnableAttrib(int index);
-  Status SetAttribPointer(int index, int size, Type type, bool normalized, int stride, size_t offset);
-  Status SetAttribDivisor(int index, int divisor);
+  void EnableAttrib(int index);
+  void SetAttribPointer(int index, int size, Type type, bool normalized, int stride, size_t offset);
+  void SetAttribDivisor(int index, int divisor);
 
   /****************************** Buffer ******************************/
   Buffer& SetIndexBuffer(Buffer&& buffer);
@@ -40,9 +40,9 @@ public:
 
   /****************************** Draw Calls ******************************/
 
-  Status DrawArrays(PrimitiveType type, size_t first, size_t count);
-  Status DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset);
-  Status DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
+  void DrawArrays(PrimitiveType type, size_t first, size_t count);
+  void DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset);
+  void DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
                                size_t instance_count);
 
 private:

@@ -1,24 +1,28 @@
 #pragma once
-#include <absl/time/clock.h>
-#include <absl/time/time.h>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "ax/core/entt.hpp"
 
 namespace ax::utils {
 
-/****************************** Classes ******************************/
-using absl::Duration;
-using absl::Time;
+using std::this_thread::sleep_for;  // Duration -> void
+using clock_t = std::chrono::steady_clock;
+using duration_t = typename clock_t::duration;
+using time_point_t = typename clock_t::time_point;
 
-using absl::Microseconds;
-using absl::Milliseconds;
-using absl::Nanoseconds;
-using absl::Seconds;
+using nanoseconds = std::chrono::nanoseconds;
+using microseconds = std::chrono::microseconds;
+using milliseconds = std::chrono::milliseconds;
+using seconds = std::chrono::seconds;
 
-/****************************** Methods ******************************/
-using absl::GetCurrentTimeNanos;  // void -> int64
-using absl::Now;                  // void -> Time
-using absl::SleepFor;             // Duration -> void
+time_point_t now() { return clock_t::now(); }
+
+int64_t get_current_time_nanos() {
+  auto current = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<nanoseconds>(current.time_since_epoch()).count();
+}
 
 class TimerRegistry {
 public:
@@ -31,11 +35,11 @@ public:
   }
 
   struct Desc {
-    Duration total_;
+    duration_t total_;
     idx cnt_ = 0;
   };
 
-  inline void AddDuration(const char* name, Duration duration) {
+  inline void AddDuration(const char* name, duration_t duration) {
     if (total_durations_.find(name) == total_durations_.end()) {
       auto [it, _] = total_durations_.emplace(name, Desc{});
       it->second.total_ = duration;
@@ -54,16 +58,16 @@ private:
 // Use RAII to measure time
 class Timer {
 public:
-  inline Timer(const char* name, bool en = true) : name_(name), en_(en) {
+  explicit inline Timer(const char* name, bool en = true) : name_(name), en_(en) {
     if (en_) {
-      start_time_ = absl::Now();
+      start_time_ = now();
     }
   }
 
   inline ~Timer() {
     if (en_) {
-      absl::Duration duration = absl::Now() - start_time_;
-      if (auto reg = try_get_resource<TimerRegistry>(); reg == nullptr) {
+      duration_t duration = now() - start_time_;
+      if (auto* reg = try_get_resource<TimerRegistry>(); reg == nullptr) {
         reg = &add_resource<TimerRegistry>();
         reg->AddDuration(name_, duration);
       } else {
@@ -74,7 +78,7 @@ public:
 
 private:
   const char* name_;
-  absl::Time start_time_;
+  time_point_t start_time_;
   const bool en_;
 };
 

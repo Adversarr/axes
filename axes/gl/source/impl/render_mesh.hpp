@@ -32,19 +32,19 @@ struct MeshRenderData {
   bool use_global_model_{false};
   bool is_flat_{false};
   bool use_lighting_{false};
-  MeshRenderData(Mesh const& line);
+  explicit MeshRenderData(Mesh const& mesh);
 };
 
 class MeshRenderer final : public RenderBase {
 public:
   MeshRenderer();
   virtual ~MeshRenderer();
-  virtual Status TickRender() override;
-  virtual Status TickLogic() override;
+  virtual void TickRender() override;
+  virtual void TickLogic() override;
   void RenderGui() final;
-  virtual Status Erase(Entity entity) override;
-  virtual Status Setup() override;
-  virtual Status CleanUp() override;
+  virtual void Erase(Entity entity) override;
+  virtual void Setup() override;
+  virtual void CleanUp() override;
 
 private:
   Program prog_;

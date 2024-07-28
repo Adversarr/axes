@@ -12,7 +12,6 @@
 #include "ax/core/entt.hpp"
 #include "ax/math/init.hpp"
 #include "ax/utils/common.hpp"
-#include "ax/utils/status.hpp"
 #include "ax/utils/time.hpp"
 
 // ABSL_FLAG(int, n_eigen_threads, -1,
@@ -55,6 +54,7 @@ void init(int argc, char** argv) {
   if (argc > 0) {
     /****************************** Install the debuggers ******************************/
     program_path = argv[0];
+    parse_result = opt.parse(argc, argv);
   }
   init();
 }

@@ -194,8 +194,7 @@ inline real extract_real(boost::json::value const& v) {
 template <typename Enum>
 std::pair<bool, std::optional<Enum>> extract_enum(utils::Options const& opt, const char* name) {
   if (auto it = opt.find(name); it != opt.end()) {
-    AX_THROW_IF_FALSE(it->value().is_string(),
-                      "Expect '" + std::string(name) + "' to be a string.");
+    AX_THROW_IF_FALSE(it->value().is_string(), "Expect '{}' to be a string", std::string(name));
     return {true, utils::reflect_enum<Enum>(it->value().as_string().c_str())};
   } else {
     return {false, std::nullopt};
@@ -209,8 +208,7 @@ bool extract_tunable(utils::Options const& opt, const char* key, AnyTunable* tun
     return false;
   }
   if (auto it = opt.find(key); it != opt.end()) {
-    AX_THROW_IF_FALSE(it->value().is_object(),
-                      "Expect '" + std::string(key) + "' to be a json object");
+    AX_THROW_IF_FALSE(it->value().is_object(), "Expect '{}' to be a json object", std::string(key));
     tun->SetOptions(it->value().as_object());
     return true;
   } else {

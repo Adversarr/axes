@@ -4,9 +4,9 @@
 
 #include "ax/components/name.hpp"
 #include "ax/core/entt.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/extprim/axes.hpp"
-#include "ax/utils/status.hpp"
 #include "impl/render_line.hpp"
 #include "impl/render_mesh.hpp"
 #include "impl/render_point.hpp"
@@ -284,8 +284,7 @@ Context::Context(Context&&) noexcept = default;
 
 Context::Context() {
   impl_ = std::make_unique<Impl>();
-  int status = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
-  AX_CHECK(status) << "Failed to initialize OpenGL context";
+  AX_THROW_IF_FALSE(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)), "Failed to initialize OpenGL context");
 
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
@@ -311,13 +310,14 @@ Context::Context() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
-  AX_CHECK(ImGui_ImplGlfw_InitForOpenGL(
-      static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true))
-      << "Failed to Initialize ImGUI_GLFW";
+  AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(
+                        static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
+                    "Failed to Initialize ImGUI_Glfw");
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  AX_CHECK(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG)) << "Failed to Initialize ImGUI_OpenGL3";
+  AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG),
+                    "Failed to Initialize ImGUI_OpenGL3");
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
   ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
@@ -340,7 +340,7 @@ Context::~Context() {
   ImGui::DestroyContext();
   impl_->renderers_.clear();
   impl_.reset();
-  AX_DLOG(INFO) << "Destroy OpenGL context";
+  AX_TRACE("Destroy OpenGL context");
 }
 
 Window& Context::GetWindow() { return impl_->window_; }
@@ -349,10 +349,10 @@ Camera& Context::GetCamera() { return impl_->camera_; }
 
 /************************* SECT: Tick Logic and Tick Renderers *************************/
 
-Status Context::TickLogic() {
+void Context::TickLogic() {
   if (!impl_->has_setuped_) {
     for (auto& renderer : impl_->renderers_) {
-      AX_CHECK_OK(renderer->Setup());
+      renderer->Setup();
     }
     emit(ContextInitEvent{});
     impl_->has_setuped_ = true;
@@ -361,14 +361,13 @@ Status Context::TickLogic() {
   impl_->UpdateLight();
   impl_->UpdateAxes();
   for (auto& renderer : impl_->renderers_) {
-    AX_EVAL_RETURN_NOTOK(renderer->TickLogic());
+    renderer->TickLogic();
   }
   emit_enqueue(tick_logic_event);
   trigger_queue<TickLogicEvent>();
-  AX_RETURN_OK();
 }
 
-Status Context::TickRender() {
+void Context::TickRender() {
   // SECT: Setup OpenGL context
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
@@ -376,7 +375,7 @@ Status Context::TickRender() {
                impl_->clear_color_(3));
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& renderer : impl_->renderers_) {
-    AX_EVAL_RETURN_NOTOK(renderer->TickRender());
+    renderer->TickRender();
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -393,14 +392,11 @@ Status Context::TickRender() {
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-  AXGL_CALLR(glFlush());
+  AXGL_CALL(glFlush());
   impl_->window_.SwapBuffers();
-  AX_RETURN_OK();
 }
 
-bool Context::ShouldClose() const {
-  return impl_->acknowledged_should_shutdown_;
-}
+bool Context::ShouldClose() const { return impl_->acknowledged_should_shutdown_; }
 
 void Context::AppendEntityRenderer(std::unique_ptr<RenderBase> renderer) {
   impl_->renderers_.push_back(std::move(renderer));

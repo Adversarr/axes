@@ -1,5 +1,6 @@
 #include "ax/math/sparse.hpp"
 namespace ax::math {
+
 spmatr make_sparse_matrix(idx rows, idx cols, sp_coeff_list const& coeff_list) {
   spmatr mat(rows, cols);
   mat.setFromTriplets(coeff_list.begin(), coeff_list.end());

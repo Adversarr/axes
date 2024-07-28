@@ -4,11 +4,13 @@
 #include <entt/signal/sigh.hpp>
 
 #include "ax/core/entt.hpp"
+#include "ax/core/excepts.hpp"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
 #include "ax/core/logging.hpp"
+#include "ax/math/formatting.hpp"
 #include "ax/gl/config.hpp"
 
 namespace ax::gl {
@@ -93,7 +95,7 @@ static void mouse_button_fn(GLFWwindow* /* window */, int button, int action, in
 
 Window::Window() {
   impl_ = std::make_unique<Impl>();
-  AX_CHECK(glfwInit()) << "Failed to initialize GLFW";
+  AX_THROW_IF_TRUE(glfwInit() != GLFW_TRUE, "Failed to initialize GLFW");
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, AXGL_MAJOR_VERSION);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, AXGL_MINOR_VERSION);
@@ -103,7 +105,7 @@ Window::Window() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
   impl_->window_ = glfwCreateWindow(1280, 720, "Axes", nullptr, nullptr);
-  AX_CHECK(impl_->window_ != nullptr) << "Failed to create GLFW window";
+  AX_THROW_IF_NULLPTR(impl_->window_, "Failed to create GLFW window");
 
   glfwMakeContextCurrent(impl_->window_);
   glfwSwapInterval(1);
@@ -120,11 +122,14 @@ Window::Window() {
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
 
-  AX_DLOG(INFO) << "Window Information:" << std::endl
-                << " - Size=" << impl_->size_.transpose() << std::endl
-                << " - Pos=" << impl_->pos_.transpose() << std::endl
-                << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
-                << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
+  // AX_DLOG(INFO) << "Window Information:" << std::endl
+  //               << " - Size=" << impl_->size_.transpose() << std::endl
+  //               << " - Pos=" << impl_->pos_.transpose() << std::endl
+  //               << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
+  //               << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
+
+  AX_TRACE("Window information: size={}, pos={}, fb_size={}, fb_scale={}", impl_->size_.transpose(),
+           impl_->pos_.transpose(), impl_->fb_size_.transpose(), impl_->fb_scale_.transpose());
 
   /****************************** Install Fn ******************************/
   glfwSetWindowSizeCallback(impl_->window_, window_size_fn);
@@ -138,7 +143,7 @@ Window::Window() {
 
   /****************************** Install User Pointer ******************************/
   glfwSetWindowUserPointer(impl_->window_, impl_.get());
-  AX_DLOG(INFO) << "Window created";
+  AX_TRACE("Window created");
 }
 
 Window::~Window() {
@@ -146,7 +151,7 @@ Window::~Window() {
     glfwDestroyWindow(impl_->window_);
   }
   glfwTerminate();
-  AX_DLOG(INFO) << "Window destroyed";
+  AX_TRACE("Window destroyed");
 }
 
 /****************************** Meta Data Getters ******************************/

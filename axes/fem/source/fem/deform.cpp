@@ -127,10 +127,10 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
 }
 
 template <idx dim>
-static DeformationGradientstd::vector<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
+static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
                                           DeformationGradientCache<dim> const& Dm_inv) {
   idx n_elem = mesh.GetNumElements();
-  DeformationGradientstd::vector<dim> dg(static_cast<size_t>(n_elem));
+  DeformationGradientList<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
   tbb::parallel_for(
       tbb::blocked_range<idx>(0, n_elem, 50000 / (dim * dim)),
@@ -236,11 +236,11 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   }
 }
 
-template <idx dim> DeformationGradientstd::vector<dim> Deformation<dim>::Forward() const {
+template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
   return Forward(mesh_.GetVertices());
 }
 
-template <idx dim> DeformationGradientstd::vector<dim> Deformation<dim>::Forward(
+template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward(
     typename TriMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }

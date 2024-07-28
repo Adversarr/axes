@@ -1,7 +1,7 @@
 #pragma once
 
+#include "ax/core/excepts.hpp"
 #include "ax/geometry/common.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::geo {
 
@@ -38,13 +38,12 @@ public:
    *         If an error occurs during sampling, an error status is returned.
    */
   template <idx out_dim>
-  StatusOr<math::fieldr<out_dim>> Sample(math::fieldr<out_dim> const& input) const {
+  math::fieldr<out_dim> Sample(math::fieldr<out_dim> const& input) const {
     idx n_interp = interpolations_.cols();
     idx n_points = vertices_.cols();
     idx n_input = input.cols();
     if (n_input != n_points) {
-      return utils::InvalidArgumentError(
-          "Input must have the same number of columns as the vertices.");
+      throw make_invalid_argument("Input must have the same number of columns as the vertices.");
     }
 
     math::fieldr<out_dim> result;

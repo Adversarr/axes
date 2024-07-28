@@ -1,4 +1,5 @@
 #include "ax/gl/primitives/height_field.hpp"
+
 #include "ax/core/logging.hpp"
 #include "ax/geometry/grid.hpp"
 #include "ax/geometry/normal.hpp"
@@ -7,14 +8,16 @@
 
 namespace ax::gl {
 
-StatusOr<Mesh> make_height_field(math::vecxr const& z, idx nx, idx ny) {
+Mesh make_height_field(math::vecxr const& z, idx nx, idx ny) {
   Mesh mesh;
-  AX_CHECK(z.size() == nx * ny) << "Size mismatch";
+  AX_CHECK(z.size() == nx * ny, "Size mismatch");
   mesh.vertices_.resize(3, nx * ny);
   for (idx i = 0; i < nx; ++i) {
     for (idx j = 0; j < ny; ++j) {
-      mesh.vertices_.col(i * ny + j)
-          = math::vec3r{i / real(nx - 1), z(i * ny + j), j / real(ny - 1)};
+      real x = static_cast<real>(i) / static_cast<real>(nx - 1);
+      real y = static_cast<real>(j) / static_cast<real>(ny - 1);
+      real zi = z[i * ny + j];
+      mesh.vertices_.col(i * ny + j) = math::vec3r(x, y, zi);
     }
   }
 

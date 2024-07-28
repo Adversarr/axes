@@ -93,7 +93,7 @@ public:
 
 protected:
   std::vector<math::decomp::SvdResult<dim, real>> svd_results_;
-  elasticity::DeformationGradientstd::vector<dim> deformation_gradient_;
+  elasticity::DeformationGradientList<dim> deformation_gradient_;
   struct TbbPartitioners;  ///< include tbb in CUDA will cause error, so we have to put it here.
   std::unique_ptr<TbbPartitioners> partitioner_impl_;
 };

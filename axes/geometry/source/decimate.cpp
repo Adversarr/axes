@@ -1,5 +1,6 @@
 #include "ax/geometry/decimate.hpp"
 
+#include "ax/core/logging.hpp"
 #include "ax/math/linsys/dense/HouseholderQR.hpp"
 
 namespace ax::geo {
@@ -8,9 +9,7 @@ struct EdgeCollapseCost {
   HalfedgeEdge* edge;
   math::vec3r target_position;
   real cost;
-  bool operator<(EdgeCollapseCost const& other) const {
-    return cost > other.cost;
-  }
+  bool operator<(EdgeCollapseCost const& other) const { return cost > other.cost; }
 };
 
 MeshDecimator::MeshDecimator(HalfedgeMesh* mesh) : mesh_(mesh), target_count_(mesh->NVertices()) {}
@@ -30,7 +29,7 @@ real eval_cost(math::mat4r const& Q, math::vec3r const& position) {
   return homo.dot(Q * homo);
 }
 
-Status MeshDecimator::Run() {
+void MeshDecimator::Run() {
   std::map<HalfedgeVertex*, math::mat4r> Q_i;
   mesh_->ForeachVertex([&](HalfedgeVertex* vert) {
     math::mat4r m = math::mat4r::Zero();
@@ -61,7 +60,7 @@ Status MeshDecimator::Run() {
       math::mat4r Q_modified = math::eye<4>();
       Q_modified.topRows<3>() = Q.leftCols<3>().transpose();
       auto qr = Q_modified.colPivHouseholderQr();
-      auto solution =  qr.solve(math::vec4r{0, 0, 0, 1}).eval();
+      auto solution = qr.solve(math::vec4r{0, 0, 0, 1}).eval();
       ci.target_position = solution.head<3>();
     }
     ci.cost = eval_cost(Q, ci.target_position);
@@ -74,9 +73,10 @@ Status MeshDecimator::Run() {
   while (mesh_->NVertices() > target_count_ && !cost.empty()) {
     EdgeCollapseCost min_cost = cost.front();
 
-    AX_DLOG(INFO) << "Removing edge " << min_cost.edge << " IsBd=" << std::boolalpha << min_cost.edge->IsBoundary()
-      << ", " << min_cost.edge->pair_->IsBoundary();
-    AX_DLOG(INFO) << "Head: " << min_cost.edge->Head() << "Tail: " << min_cost.edge->Tail();
+    AX_TRACE("Removing edge {} IsBd={} {}", static_cast<void*>(min_cost.edge),
+             min_cost.edge->IsBoundary(), min_cost.edge->pair_->IsBoundary());
+    AX_TRACE("Head: {} Tail: {}", static_cast<void*>(min_cost.edge->Head()),
+             static_cast<void*>(min_cost.edge->Tail()));
 
     if (!mesh_->CheckCollapse(min_cost.edge)) {
       std::pop_heap(cost.begin(), cost.end());
@@ -88,12 +88,8 @@ Status MeshDecimator::Run() {
     HalfedgeEdge* edge_to_collapse = min_cost.edge;
     math::vec3r target_position = min_cost.target_position;
 
-    std::set<HalfedgeEdge*> edge_to_remove = {
-        edge_to_collapse,
-        edge_to_collapse->prev_,
-        edge_to_collapse->next_,
-        edge_to_collapse->pair_
-    };
+    std::set<HalfedgeEdge*> edge_to_remove = {edge_to_collapse, edge_to_collapse->prev_,
+                                              edge_to_collapse->next_, edge_to_collapse->pair_};
     if (!edge_to_collapse->pair_->IsBoundary()) {
       edge_to_remove.insert(edge_to_collapse->pair_->prev_);
       edge_to_remove.insert(edge_to_collapse->pair_->next_);
@@ -155,9 +151,8 @@ Status MeshDecimator::Run() {
     }
     std::make_heap(cost.begin(), cost.end());
 
-    AX_CHECK(mesh_->CheckOk());
+    AX_CHECK(mesh_->CheckOk(), "Mesh is not ok after collapse");
   }
-  AX_RETURN_OK();
 }
 
 MeshDecimator& MeshDecimator::SetStrategy(Strategy s) {

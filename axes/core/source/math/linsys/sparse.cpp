@@ -1,9 +1,9 @@
 #include "ax/math/linsys/sparse.hpp"
 
 #include "ax/math/linsys/sparse/BiCGSTAB.hpp"
+#include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
-#include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/math/linsys/sparse/LLT.hpp"
 #include "ax/math/linsys/sparse/LU.hpp"
 #include "ax/math/linsys/sparse/LeastSquaresConjugateGradient.hpp"
@@ -36,15 +36,15 @@ std::unique_ptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind
   }
 }
 
-SparseSolverBase::SparseSolverBase() {}
+SparseSolverBase::SparseSolverBase() = default;
 
 SparseSolverBase& SparseSolverBase::SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem) {
-  cached_problem_ = std::move(problem);
+  cached_problem_.swap(problem);
   return *this;
 }
 
 void SparseSolverBase::Compute() {
-  AX_THROW_IF_NULL(cached_problem_, "SparseSolverBase: problem is not set");
+  AX_THROW_IF_NULLPTR(cached_problem_, "SparseSolverBase: problem is not set");
   AnalyzePattern();
   Factorize();
 }
@@ -55,7 +55,9 @@ SparseSolverBase& SparseSolverBase::SetProblem(spmatr const& A) {
 SparseSolverBase& SparseSolverBase::SetProblem(spmatr&& A) {
   return SetProblem(make_sparse_problem(std::move(A)));
 }
-std::shared_ptr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const { return cached_problem_; }
+std::shared_ptr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const {
+  return cached_problem_;
+}
 void SparseSolverBase::SetPreconditioner(std::unique_ptr<PreconditionerBase> preconditioner) {
   preconditioner_ = std::move(preconditioner);
 }

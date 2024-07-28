@@ -15,10 +15,14 @@ void SparseCompressMatrix_CSC::Assign(spmatr const& A) {
   AssignSparsePattern(A);
   AssignSparsePatternUnchanged(A);
   // Check the correctness of the assignment.
-  size_t nc = static_cast<size_t>(cols_);
-  AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == inner_index_.size())
-      << outer_index_[nc] << " " << inner_index_.size();
-  AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == values_.size()) << outer_index_[nc] << " " << values_.size();
+  // size_t nc = static_cast<size_t>(cols_);
+  // // AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == inner_index_.size())
+  // //     << outer_index_[nc] << " " << inner_index_.size();
+  // // AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == values_.size()) << outer_index_[nc] << " " << values_.size();
+  // AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == inner_index_.size(), "The outer index is not correct. {} != {}, {}",
+  //           outer_index_[nc], inner_index_.size(), values_.size());
+  // AX_DCHECK(static_cast<size_t>(outer_index_[nc]) == values_.size(), "The outer index is not correct. {} != {}, {}",
+  //           outer_index_[nc], inner_index_.size(), values_.size());
 }
 
 void SparseCompressMatrix_CSC::AssignSparsePattern(spmatr const& A) {
@@ -63,16 +67,6 @@ void SparseCompressMatrix_CSC::AssignSparsePatternUnchanged(spmatr const& A) {
       size_t idx = static_cast<size_t>(outer_index_[col] + col_nnz[col]);
       values_[idx] = it.value();
       col_nnz[col]++;
-    }
-  }
-
-  // print the matrix:
-  for (size_t i = 0; i < static_cast<size_t>(cols_); ++i) {
-    std::cout << "Column " << i << std::endl;
-    std::cout << "Outer Index: " << outer_index_[i] << " " << outer_index_[i + 1] << std::endl;
-    for (size_t j = static_cast<size_t>(outer_index_[i]);
-         j < static_cast<size_t>(outer_index_[i + 1]); ++j) {
-      std::cout << "(" << inner_index_[j] << ", " << i << "): " << values_[j] << std::endl;
     }
   }
 }

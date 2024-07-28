@@ -7,65 +7,59 @@
 
 #include "ax/components/name.hpp"
 #include "ax/core/entt.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/details/gl_call.hpp"
 #include "ax/gl/helpers.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/status.hpp"
 #include "glm.hpp"
 
 namespace ax::gl {
 
-LineRenderer::LineRenderer() {}
+LineRenderer::LineRenderer() = default;
 
-Status LineRenderer::Setup() {
-  AX_ASSIGN_OR_RETURN(
-      vs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex));
-
-  AX_ASSIGN_OR_RETURN(
-      fs, Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment));
-
-  AX_EVAL_RETURN_NOTOK(prog_.Append(std::move(vs)).Append(std::move(fs)).Link());
-
+void LineRenderer::Setup() {
+  auto vs = Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex);
+  auto fs
+      = Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment);
+  prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
   global_registry().on_destroy<Lines>().connect<&LineRenderer::Erase>(*this);
-  AX_RETURN_OK();
 }
 
-Status LineRenderer::TickRender() {
-  AX_RETURN_NOTOK(prog_.Use());
+void LineRenderer::TickRender() {
+  prog_.Use();
   auto& ctx = get_resource<Context>();
   math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
   math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
   math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
   math::mat4f eye = math::eye<4, f32>();
-  AX_CHECK_OK(prog_.SetUniform("view", view));
-  AX_CHECK_OK(prog_.SetUniform("projection", projection));
+  prog_.SetUniform("view", view);
+  prog_.SetUniform("projection", projection);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   for (auto [ent, line_data] : view_component<LineRenderData>().each()) {
     if (!line_data.enable_) continue;
     if (line_data.use_global_model_) {
-      AX_CHECK_OK(prog_.SetUniform("model", model));
+      prog_.SetUniform("model", model);
     } else {
-      AX_CHECK_OK(prog_.SetUniform("model", eye));
+      prog_.SetUniform("model", eye);
     }
     if (line_data.instance_data_.size() > 0) {
-      AXGL_WITH_BINDR(line_data.vao_) {
-        AX_RETURN_NOTOK(line_data.vao_.DrawElementsInstanced(
-            PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0,
-            line_data.instance_data_.size()));
+      AXGL_WITH_BIND(line_data.vao_) {
+        line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
+                                             Type::kUnsignedInt, 0,
+                                             line_data.instance_data_.size());
       }
     } else {
-      AXGL_WITH_BINDR(line_data.vao_) {
-        AX_RETURN_NOTOK(line_data.vao_.DrawElements(
-            PrimitiveType::kLines, line_data.indices_.size(), Type::kUnsignedInt, 0));
+      AXGL_WITH_BIND(line_data.vao_) {
+        line_data.vao_.DrawElements(PrimitiveType::kLines, line_data.indices_.size(),
+                                    Type::kUnsignedInt, 0);
       }
     }
   }
   glUseProgram(0);
-  AX_RETURN_OK();
 }
 
-Status LineRenderer::TickLogic() {
+void LineRenderer::TickLogic() {
   // Replace or add LineRenderData to the entity
   for (auto [ent, lines] : view_component<Lines>().each()) {
     if (lines.flush_) {
@@ -73,26 +67,17 @@ Status LineRenderer::TickLogic() {
         remove_component<LineRenderData>(ent);
       }
       global_registry().emplace<LineRenderData>(ent, lines);
-
-      AX_DLOG(INFO) << "Flushing entity: " << entt::to_integral(ent);
     }
     lines.flush_ = false;
   }
-  AX_RETURN_OK();
 }
 
-Status LineRenderer::Erase(Entity entity) {
-  remove_component<LineRenderData>(entity);
-  AX_RETURN_OK();
-}
+void LineRenderer::Erase(Entity entity) { remove_component<LineRenderData>(entity); }
 
-Status LineRenderer::CleanUp() {
-  global_registry().clear<LineRenderData>();
-  AX_RETURN_OK();
-}
+void LineRenderer::CleanUp() { global_registry().clear<LineRenderData>(); }
 
 LineRenderer::~LineRenderer() {
-  AX_CHECK_OK(CleanUp());
+  CleanUp();
   global_registry().on_destroy<Lines>().disconnect<&LineRenderer::Erase>(*this);
 }
 
@@ -130,19 +115,18 @@ LineRenderData::LineRenderData(const Lines& lines) {
     }
   }
 
-  AX_ASSIGN_OR_DIE(vao, Vao::Create());
-  vao_ = std::move(vao);
+  vao_ = Vao::Create();
 
-  AX_ASSIGN_OR_DIE(vbo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
-  AX_ASSIGN_OR_DIE(ebo, Buffer::CreateIndexBuffer(BufferUsage::kStaticDraw));
-  AXGL_WITH_BINDC(vbo) { AX_CHECK_OK(vbo.Write(vertices_)); }
-  AXGL_WITH_BINDC(ebo) { AX_CHECK_OK(ebo.Write(indices_)); }
+  auto vbo = Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw);
+  auto ebo = Buffer::CreateIndexBuffer(BufferUsage::kStaticDraw);
+  AXGL_WITH_BIND(vbo) { vbo.Write(vertices_); }
+  AXGL_WITH_BIND(ebo) { ebo.Write(indices_); }
   vao_.SetIndexBuffer(std::move(ebo));
   vao_.SetVertexBuffer(std::move(vbo));
 
   if (has_instance) {
-    AX_ASSIGN_OR_DIE(instance_vbo, Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw));
-    AXGL_WITH_BINDC(instance_vbo) { AX_CHECK_OK(instance_vbo.Write(instance_data_)); }
+    auto instance_vbo = Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw);
+    AXGL_WITH_BIND(instance_vbo) { instance_vbo.Write(instance_data_); }
     vao_.SetInstanceBuffer(std::move(instance_vbo));
   }
 
@@ -150,32 +134,32 @@ LineRenderData::LineRenderData(const Lines& lines) {
   const size_t position_offset = offsetof(LineRenderVertexData, position_);
   const size_t color_offset = offsetof(LineRenderVertexData, color_);
 
-  AXGL_WITH_BINDC(vao_) {
-    AXGL_WITH_BINDC(vao_.GetVertexBuffer()) {
-      AX_CHECK_OK(vao_.EnableAttrib(0));
-      AX_CHECK_OK(vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset));
-      AX_CHECK_OK(vao_.EnableAttrib(1));
-      AX_CHECK_OK(vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset));
+  AXGL_WITH_BIND(vao_) {
+    AXGL_WITH_BIND(vao_.GetVertexBuffer()) {
+      vao_.EnableAttrib(0);
+      vao_.SetAttribPointer(0, 3, Type::kFloat, false, stride, position_offset);
+      vao_.EnableAttrib(1);
+      vao_.SetAttribPointer(1, 4, Type::kFloat, false, stride, color_offset);
     }
 
     if (has_instance) {
-      AXGL_WITH_BINDC(vao_.GetInstanceBuffer()) {
-        AX_CHECK_OK(vao_.EnableAttrib(2));
-        AX_CHECK_OK(vao_.SetAttribPointer(2, 3, Type::kFloat, false, sizeof(LineInstanceData), 0));
-        AX_CHECK_OK(vao_.EnableAttrib(3));
-        AX_CHECK_OK(vao_.SetAttribPointer(3, 4, Type::kFloat, false, sizeof(LineInstanceData),
-                                          sizeof(glm::vec3)));
-        AX_CHECK_OK(vao_.SetAttribDivisor(2, 1));
-        AX_CHECK_OK(vao_.SetAttribDivisor(3, 1));
+      AXGL_WITH_BIND(vao_.GetInstanceBuffer()) {
+        vao_.EnableAttrib(2);
+        vao_.SetAttribPointer(2, 3, Type::kFloat, false, sizeof(LineInstanceData), 0);
+        vao_.EnableAttrib(3);
+        vao_.SetAttribPointer(3, 4, Type::kFloat, false, sizeof(LineInstanceData),
+                              sizeof(glm::vec3));
+        vao_.SetAttribDivisor(2, 1);
+        vao_.SetAttribDivisor(3, 1);
       }
     }
-    AX_CHECK_OK(vao_.GetIndexBuffer().Bind());
+    vao_.GetIndexBuffer().Bind();
   }
 
-  AX_DLOG(INFO) << "LineRenderData created: #v=" << vertices_.size() << ", #e=" << indices_.size();
+  AX_INFO("LineRenderData created: #v={}, #e={}", vertices_.size(), indices_.size());
 }
 
-LineRenderData::~LineRenderData() {}
+LineRenderData::~LineRenderData() = default;
 
 void LineRenderer::RenderGui() {
   if (ImGui::TreeNode("LineRenderer")) {

@@ -35,7 +35,7 @@ public:
    * @brief Runs the mesh decimation algorithm.
    * @return The status of the decimation process.
    */
-  Status Run();
+  void Run();
 
   /**
    * @brief The strategy for edge collapse during decimation.

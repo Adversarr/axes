@@ -10,7 +10,6 @@ using it3 = utils::DupTuple<idx, 3>;
 
 struct BroadPhase_FlatOctree::Impl {
   Impl() = default;
-
   void BuildTree();
 
   real root_level_size_{1.0};

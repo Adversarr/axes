@@ -2,6 +2,8 @@
 
 #include <openvdb/tools/PoissonSolver.h>
 
+#include "ax/core/excepts.hpp"
+
 namespace ax::vdb {
 
 RealGridPtr VdbPoissonSolver::operator()(RealGridPtr source) {
@@ -24,9 +26,9 @@ RealGridPtr VdbPoissonSolver::operator()(RealGridPtr source) {
 }
 
 void VdbPoissonSolver::SetOptions(utils::Options const& option) {
-  AX_SYNC_OPT_IF(option, idx, max_iterations) { AX_CHECK_GT(max_iterations_, 0); }
-  AX_SYNC_OPT_IF(option, real, rel_error) { AX_CHECK_GT(rel_error_, 0); }
-  AX_SYNC_OPT_IF(option, real, abs_error) { AX_CHECK_GT(abs_error_, 0); }
+  AX_SYNC_OPT_IF(option, idx, max_iterations) { AX_THROW_IF_LT(max_iterations_, 0); }
+  AX_SYNC_OPT_IF(option, real, rel_error) { AX_THROW_IF_LT(rel_error_, 0); }
+  AX_SYNC_OPT_IF(option, real, abs_error) { AX_THROW_IF_LT(abs_error_, 0); }
 }
 
 utils::Options VdbPoissonSolver::GetOptions() const {

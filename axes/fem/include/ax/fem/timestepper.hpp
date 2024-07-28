@@ -23,7 +23,7 @@ BOOST_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 // One step of Linear solve should give you the correct result.
 // WARNING: You should not apply the base solver to solve real world problems, this implementation
 //          is only reserved for testing.
-template <idx dim> class TimeStepperBase : public utils::Tunable {
+template <int dim> class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
   TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
@@ -80,7 +80,7 @@ public:
   // Requiest the Simulator to setup basic buffers. such as deformation map, velocity.
   // WARN: After this function is called, the simulation will be considered initialized:
   // The mesh cannot change, because we use the mesh to initialize the solution buffers.
-  virtual Status Initialize();
+  virtual void Initialize();
   // acknowledge the beginning of simulation
 
   // WARN: After this function is called, the simulation will be considered started:

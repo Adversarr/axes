@@ -1,10 +1,11 @@
 #include "ax/geometry/normal.hpp"
 
+#include <igl/per_vertex_normals.h>
+
+#include "ax/core/logging.hpp"
+#include "ax/geometry/common.hpp"
 #include "ax/math/linalg.hpp"
 
-#include "ax/geometry/common.hpp"
-#include <igl/per_vertex_normals.h>
-#include "ax/core/logging.hpp"
 namespace ax::geo {
 
 math::field3r normal_per_face(math::field3r const& vertices, math::field3i const& indices) {
@@ -13,7 +14,8 @@ math::field3r normal_per_face(math::field3r const& vertices, math::field3i const
     idx ii = indices(0, i);
     idx ij = indices(1, i);
     idx ik = indices(2, i);
-    AX_CHECK(ii < vertices.cols() && ij < vertices.cols() && ik < vertices.cols());
+    AX_DCHECK(ii < vertices.cols() && ij < vertices.cols() && ik < vertices.cols(),
+              "Index out of range.", ii, ij, ik, vertices.cols());
     math::vec3r const& a = vertices.col(ii);
     math::vec3r const& b = vertices.col(ij);
     math::vec3r const& c = vertices.col(ik);

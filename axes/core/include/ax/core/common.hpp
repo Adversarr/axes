@@ -2,10 +2,7 @@
 
 #include "ax/core/config.hpp" // IWYU pragma: export
 #include "ax/core/macros.hpp" // IWYU pragma: export
-#include "ax/core/status.hpp" // IWYU pragma: export
-#include <vector>
-#include <memory>
+#include <vector> // IWYU pragma: export
+#include <memory> // IWYU pragma: export
 
-namespace ax {
-
-}
+namespace ax {}

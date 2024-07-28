@@ -28,7 +28,7 @@ public:
    *
    * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientstd::vector<dim> Forward() const;
+  elasticity::DeformationGradientList<dim> Forward() const;
 
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
@@ -36,7 +36,7 @@ public:
    * @param current current pose of vertices
    * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientstd::vector<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
+  elasticity::DeformationGradientList<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.

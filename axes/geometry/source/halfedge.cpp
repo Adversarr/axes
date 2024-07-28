@@ -3,14 +3,15 @@
 //
 #include "ax/geometry/halfedge.hpp"
 
-#include <entt/entity/entity.hpp>
-
-#include "ax/geometry/common.hpp"
-#include "ax/core/logging.hpp"
-#include <map>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/container/inlined_vector.h>
+
+#include <entt/entity/entity.hpp>
+#include <map>
+
+#include "ax/core/logging.hpp"
+#include "ax/geometry/common.hpp"
 
 namespace ax::geo {
 
@@ -83,9 +84,9 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
 
   for (auto& e : edges_) {
     if (e->next_ == nullptr) {
-      AX_DCHECK(e->IsBoundary()) << "Non-Boundary edge should have `next` initialized.";
+      AX_DCHECK(e->IsBoundary(), "Non-Boundary edge should have `next` initialized.");
       bool found = false;
-      for (auto e2 = e->pair_; e2 != e.get(); e2 = e2->prev_->pair_) {
+      for (auto *e2 = e->pair_; e2 != e.get(); e2 = e2->prev_->pair_) {
         if (e2->prev_ == nullptr) {
           e->next_ = e2;
           e2->prev_ = e.get();
@@ -93,24 +94,24 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
           break;
         }
       }
-      AX_DCHECK(found) << "No next edge found for boundary edge: " << e;
+      AX_DCHECK(found, "No next edge found for boundary edge {}", static_cast<void*>(e.get()));
     }
   }
 
   // Check all edge has pair:
   for (auto [id, e] : utils::enumerate(edges_)) {
-    AX_CHECK(e->prev_ != nullptr);
-    AX_CHECK(e->next_ != nullptr);
-    AX_CHECK(e->vertex_ != nullptr);
-    AX_CHECK(e->pair_ != nullptr);
+    AX_CHECK(e->prev_ != nullptr, "Edge {} has no prev.", static_cast<void*>(e.get()));
+    AX_CHECK(e->next_ != nullptr, "Edge {} has no next.", static_cast<void*>(e.get()));
+    AX_CHECK(e->vertex_ != nullptr, "Edge {} has no vertex.", static_cast<void*>(e.get()));
+    AX_CHECK(e->pair_ != nullptr, "Edge {} has no pair.", static_cast<void*>(e.get()));
   }
 
   for (auto [id, v] : utils::enumerate(vertices_)) {
-    AX_CHECK(v->halfedge_entry_ != nullptr);
+    AX_CHECK(v->halfedge_entry_ != nullptr, "Vertex {} has no halfedge entry.", static_cast<void*>(v.get()));
   }
 
   for (auto [id, f] : utils::enumerate(faces_)) {
-    AX_CHECK(f->halfedge_entry_ != nullptr);
+    AX_CHECK(f->halfedge_entry_ != nullptr, "Face {} has no halfedge entry.", static_cast<void*>(f.get()));
   }
 }
 
@@ -129,13 +130,7 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
     math::vec3i ijk;
     for (idx i = 0; i < 3; ++i) {
       if (auto it = vertex_map.find(e->vertex_); it == vertex_map.end()) {
-        AX_LOG(ERROR) << "Face: " << id;
-        AX_LOG(ERROR) << "Edge: " << e;
-        AX_LOG(ERROR) << "Edge->Vertex: " << e->vertex_;
-        AX_LOG(ERROR) << "Edge->Next: " << e->next_;
-        AX_LOG(ERROR) << "Edge->Prev: " << e->prev_;
-        AX_LOG(ERROR) << "Edge->Pair: " << e->pair_;
-        AX_LOG(ERROR) << "Edge->Face: " << e->face_;
+        AX_ERROR("Vertex not found in the vertex map: f{}, e{}", id, i);
       } else {
         ijk[i] = vertex_map.at(e->vertex_);
       }
@@ -179,9 +174,9 @@ void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex* vert) {
 
 #ifndef NDEBUG
   auto ite = std::find_if(edges_.begin(), edges_.end(),
-                         [vert](auto const& e) { return e->Head() == vert; });
+                          [vert](auto const& e) { return e->Head() == vert; });
   AX_DCHECK(ite == edges_.end())
-    << "After you delete the vertex, there should be no edge pointing to it." << ite->get();
+      << "After you delete the vertex, there should be no edge pointing to it." << ite->get();
 #endif
   vertices_.pop_back();
 }
@@ -201,21 +196,19 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_po
    * c--->b
    * \  /
    *  d */
-  AX_DCHECK(std::find_if(edges_.begin(), edges_.end(), [edge](const auto& e) {
-    return e.get() == edge;
-  }) != edges_.end());
+  AX_DCHECK(
+      std::find_if(edges_.begin(), edges_.end(), [edge](const auto& e) { return e.get() == edge; })
+      != edges_.end());
 
   // The vertex to collapse to
   auto head_vertex = edge->Head();
-  head_vertex->position_= target_position;
+  head_vertex->position_ = target_position;
   HalfedgeEdge* pair = edge->pair_;
   auto tail_vertex = edge->Tail();
   AX_DCHECK(head_vertex != tail_vertex);
   // Assign all c to b.
   ForeachEdgeAroundVertex(tail_vertex,
-                          [head_vertex](HalfedgeEdge* e) {
-                            e->vertex_ = head_vertex;
-                          });
+                          [head_vertex](HalfedgeEdge* e) { e->vertex_ = head_vertex; });
 
   head_vertex->halfedge_entry_ = edge->next_->pair_;
   // AX_DLOG(INFO) << "Assigning entry[" << head_vertex << "] <- " << edge->next_->pair_;
@@ -225,7 +218,8 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_po
   }
   if (!edge->pair_->IsBoundary()) {
     edge->pair_->next_->vertex_->halfedge_entry_ = edge->pair_->prev_->pair_;
-    // AX_DLOG(INFO) << "Assigning entry[" << edge->pair_->next_->vertex_ << "] <- " << edge->pair_->prev_->pair_;
+    // AX_DLOG(INFO) << "Assigning entry[" << edge->pair_->next_->vertex_ << "] <- " <<
+    // edge->pair_->prev_->pair_;
   }
 
   // Fix the pair of the edge to be removed
@@ -239,7 +233,6 @@ void HalfedgeMesh::CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_po
   } else {
     std::tie(pair->next_->prev_, pair->prev_->next_) = {pair->prev_, pair->next_};
   }
-
 
   // Do remove the edge
   if (edge->face_ != nullptr) {
@@ -297,7 +290,7 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge* edge) {
 }
 
 bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
-  // Definition. An edge ij is flippable if i and j have degree > 1, and the triangles containing 
+  // Definition. An edge ij is flippable if i and j have degree > 1, and the triangles containing
   // ij form a convex quadrilateral when laid out in the plane.
   if (edge->IsBoundary() || edge->pair_->IsBoundary()) {
     return false;
@@ -321,16 +314,19 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
   auto [a, b] = edge->HeadAndTail();
   auto c = edge->prev_->vertex_, d = edge->pair_->prev_->vertex_;
   // Convexity check.
-  auto flat_triangle_to_plane = [](math::vec3r const& a, math::vec3r const& b, math::vec3r const& c) -> math::vec2r {
-    real xb = (b-a).norm();
-    real xc = (c-a).dot(b-a) / xb;
-    real yc = sqrt((c-a).squaredNorm() - xc * xc);
+  auto flat_triangle_to_plane
+      = [](math::vec3r const& a, math::vec3r const& b, math::vec3r const& c) -> math::vec2r {
+    real xb = (b - a).norm();
+    real xc = (c - a).dot(b - a) / xb;
+    real yc = sqrt((c - a).squaredNorm() - xc * xc);
     return {xc, yc};
   };
   auto c_flat = flat_triangle_to_plane(a->position_, b->position_, c->position_);
   auto d_flat = flat_triangle_to_plane(a->position_, b->position_, d->position_);
   real xb = (a->position_ - b->position_).norm();
-  if (c_flat.y() * d_flat.y() > 0) {d_flat.y() = -d_flat.y();}
+  if (c_flat.y() * d_flat.y() > 0) {
+    d_flat.y() = -d_flat.y();
+  }
   real zero_point = d_flat.x() - (c_flat.x() - d_flat.x()) / (c_flat.y() - d_flat.y()) * d_flat.y();
   return zero_point > 0 && zero_point < xb;
 }
@@ -354,8 +350,10 @@ void HalfedgeMesh::FlipEdge(HalfedgeEdge* edge) {
   edge->pair_->prev_->next_ = edge->next_;
   edge->pair_->next_->prev_ = edge->prev_;
 
-  edge->vertex_ = c; c->halfedge_entry_ = edge;
-  edge->pair_->vertex_ = d; d->halfedge_entry_ = edge->pair_;
+  edge->vertex_ = c;
+  c->halfedge_entry_ = edge;
+  edge->pair_->vertex_ = d;
+  d->halfedge_entry_ = edge->pair_;
 
   ep_prev->prev_ = ep;
   e_next->next_ = ep;
@@ -368,7 +366,7 @@ void HalfedgeMesh::FlipEdge(HalfedgeEdge* edge) {
   ep->next_ = ep_prev;
 
   // It seems to be correct. we still check healthy...
-  AX_CHECK(CheckOk());
+  AX_DCHECK(CheckOk(), "After flipping the edge, the mesh is not healthy.");
 }
 
 HalfedgeEdge* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex* v1, HalfedgeVertex* v2) {
@@ -384,16 +382,17 @@ HalfedgeEdge* HalfedgeMesh::TryGetEdgeBetween(HalfedgeVertex* v1, HalfedgeVertex
 
 void HalfedgeMesh::ForeachEdgeAroundVertex(HalfedgeVertex* vert,
                                            std::function<void(HalfedgeEdge*)> const& fn) {
-  AX_DCHECK(std::find_if(vertices_.begin(), vertices_.end(), [vert](const auto& e) {
-      return e.get() == vert;
-    }) != vertices_.end()) << vert;
+  AX_DCHECK(std::find_if(vertices_.begin(), vertices_.end(),
+                         [vert](const auto& e) { return e.get() == vert; })
+                != vertices_.end(),
+            "Vertex {} not found in the mesh.", static_cast<void*>(vert));
   auto beg = vert->halfedge_entry_;
   idx rec_guard = 100;
   do {
     AX_DCHECK(beg != nullptr);
     fn(beg);
     beg = beg->next_->pair_;
-    AX_DCHECK(rec_guard-- > 0) << "This vertex has too many edges!";
+    AX_DCHECK(rec_guard-- > 0, "This vertex has too many edges!");
   } while (beg != vert->halfedge_entry_);
 }
 
@@ -405,7 +404,7 @@ void HalfedgeMesh::ForeachEdgeInFace(HalfedgeFace* face,
     AX_DCHECK(beg != nullptr);
     fn(beg);
     beg = beg->next_;
-    AX_DCHECK(rec_guard-- > 0) << "This face has too many edges!";
+    AX_DCHECK(rec_guard-- > 0, "This face has too many edges!");
   } while (beg != face->halfedge_entry_);
 }
 
@@ -421,39 +420,44 @@ void HalfedgeMesh::ForeachVertex(std::function<void(HalfedgeVertex*)> const& fn)
   }
 }
 
-
 bool HalfedgeMesh::CheckOk() noexcept {
-  absl::flat_hash_set<HalfedgeVertex*> vertices;
+  std::unordered_set<HalfedgeVertex*> vertices;
   for (auto const& v : vertices_) {
-    AX_CHECK(v->halfedge_entry_ != nullptr);
+    AX_CHECK(v->halfedge_entry_ != nullptr, "Vertex {} has no halfedge entry.",
+             static_cast<void*>(v.get()));
     vertices.insert(v.get());
     ForeachEdgeAroundVertex(v.get(), [&](HalfedgeEdge* e) {
-      AX_CHECK(e->vertex_ == v.get()) << "Edge: " << e << " Vertex: " << e->vertex_;
+      AX_CHECK(e->vertex_ == v.get(), "Edge: {} Vertex: {}", static_cast<void*>(e),
+               static_cast<void*>(v.get()));
     });
   }
-  absl::flat_hash_set<HalfedgeEdge*> edges;
+  std::unordered_set<HalfedgeEdge*> edges;
   for (auto const& e : edges_) {
     edges.insert(e.get());
   }
-  absl::flat_hash_set<HalfedgeFace*> faces{nullptr};
+  std::unordered_set<HalfedgeFace*> faces{nullptr};
   for (auto const& f : faces_) {
     faces.insert(f.get());
   }
   for (auto const& e : edges_) {
-    AX_CHECK(faces.contains(e->face_)) << "Edge: " << e << " Face: " << e->face_;
-    AX_CHECK(vertices.contains(e->vertex_));
-    AX_CHECK(edges.contains(e->next_));
-    AX_CHECK(edges.contains(e->prev_));
-    AX_CHECK(edges.contains(e->pair_)) << "Edge: " << e << " Pair: " << e->pair_;
-    AX_CHECK(e->pair_->pair_ == e.get());
-    AX_CHECK(e->pair_->vertex_ == e->prev_->vertex_);
+    AX_CHECK(faces.contains(e->face_), "Edge {} has no face.", static_cast<void*>(e.get()));
+    AX_CHECK(vertices.contains(e->vertex_), "Edge {} has no vertex.", static_cast<void*>(e.get()));
+    AX_CHECK(edges.contains(e->next_), "Edge {} has no next.", static_cast<void*>(e.get()));
+    AX_CHECK(edges.contains(e->prev_), "Edge {} has no prev.", static_cast<void*>(e.get()));
+    AX_CHECK(edges.contains(e->pair_), "Edge {} has no pair.", static_cast<void*>(e.get()));
+    AX_CHECK(e->pair_->pair_ == e.get(), "Edge {}'s pair is not correct.",
+             static_cast<void*>(e.get()));
+    AX_CHECK(e->pair_->vertex_ == e->prev_->vertex_, "Edge {}'s pair is not correct.",
+             static_cast<void*>(e.get()));
   }
-  
+
   for (auto const& v : vertices_) {
-    AX_CHECK(edges.contains(v->halfedge_entry_)) <<"Vertex: " << v << "Edge: " << v->halfedge_entry_;
+    AX_CHECK(vertices.contains(v->halfedge_entry_->vertex_), "Vertex: {} Edge: {}",
+             static_cast<void*>(v.get()), static_cast<void*>(v->halfedge_entry_));
   }
   for (auto const& f : faces_) {
-    AX_CHECK(edges.contains(f->halfedge_entry_)) << f->halfedge_entry_;
+    AX_CHECK(edges.contains(f->halfedge_entry_), "Face: {} Edge: {}", static_cast<void*>(f.get()),
+             static_cast<void*>(f->halfedge_entry_));
   }
   return true;
 }

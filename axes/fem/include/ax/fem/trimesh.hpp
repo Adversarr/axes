@@ -3,7 +3,6 @@
 #include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/math/sparse.hpp"
-#include "ax/core/logging.hpp"
 
 namespace ax::fem {
 
@@ -232,13 +231,13 @@ protected:
 //       a template implementation to avoid the need of defining it in the cpp file.
 // NOTE: Also, some member functions should be defined in header file to achieve inlining.
 template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::GetElement(idx i) const noexcept {
-  AX_DCHECK(i < elements_.cols()) << "Index out of bounds.";
+  AX_DCHECK(i < elements_.cols(), "Index out of bounds.");
   return elements_.col(i);
 }
 
 template <idx dim>
 AX_FORCE_INLINE typename TriMesh<dim>::vertex_t TriMesh<dim>::GetVertex(idx i) const noexcept {
-  AX_DCHECK(i < vertices_.cols()) << "Index out of bounds.";
+  AX_DCHECK(i < vertices_.cols(), "Index out of bounds.");
   return vertices_.col(i);
 }
 
@@ -274,18 +273,17 @@ template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumElements() const noex
   return elements_.cols();
 }
 
-
 template <idx dim>
 AX_FORCE_INLINE real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
-  AX_DCHECK(0 <= i && i < boundary_values_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
+  AX_DCHECK(0 <= i && i < boundary_values_.cols(), "Index out of range.");
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return boundary_values_(dof, i);
 }
 
 template <idx dim>
 AX_FORCE_INLINE bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
-  AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
+  AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols(), "Index out of range.");
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
@@ -300,7 +298,7 @@ typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const n
 }
 
 template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
-  AX_DCHECK(0 <= i && i < vertices_.size()) << "Index out of range.";
+  AX_DCHECK(0 <= i && i < vertices_.size(), "Index out of range.");
   vertices_.col(i) = vertex;
 }
 

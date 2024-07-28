@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ax/core/status.hpp"
 #include "ax/math/common.hpp"
 #include "ax/utils/common.hpp"
 #include "shader.hpp"
@@ -20,23 +19,23 @@ public:
 
   Program& Append(Shader shader);
 
-  operator bool() const;
+  explicit operator bool() const;
 
-  Status Link();
+  void Link();
 
-  Status Use();
+  void Use();
 
   /****************************** Uniform Buffer Setters ******************************/
-  Status SetUniform(const std::string& name, int value);
-  Status SetUniform(const std::string& name, float value);
+  void SetUniform(const std::string& name, int value);
+  void SetUniform(const std::string& name, float value);
 
-  Status SetUniform(const std::string& name, const math::vec2f& value);
-  Status SetUniform(const std::string& name, const math::vec3f& value);
-  Status SetUniform(const std::string& name, const math::vec4f& value);
+  void SetUniform(const std::string& name, const math::vec2f& value);
+  void SetUniform(const std::string& name, const math::vec3f& value);
+  void SetUniform(const std::string& name, const math::vec4f& value);
 
-  Status SetUniform(const std::string& name, const math::mat2f& value);
-  Status SetUniform(const std::string& name, const math::mat3f& value);
-  Status SetUniform(const std::string& name, const math::mat4f& value);
+  void SetUniform(const std::string& name, const math::mat2f& value);
+  void SetUniform(const std::string& name, const math::mat3f& value);
+  void SetUniform(const std::string& name, const math::mat4f& value);
 
   unsigned int GetId() const;
 

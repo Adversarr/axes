@@ -74,6 +74,8 @@ TEST_CASE("Solve Non-Invertible") {
       solver->SetProblem(A).Compute();
       auto result = solver->Solve(b);
     } catch (std::exception const &e) {
+      INFO(ax::utils::reflect_name(kind).value_or("Unknown"));
+      INFO(e.what());
       CHECK(false);
     }
   }
@@ -89,13 +91,12 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   vecxr x = vecxr::Ones(2);
   vecxr b = A * x;
-  ax::std::shared_ptr<LinsysProblem_Sparse> problem = make_sparse_problem(A);
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
                     SparseSolverKind::kCholmod}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
-    solver->SetProblem(problem).Compute();
+    solver->SetProblem(A).Compute();
     auto result = solver->Solve(b, {});
     CHECK(result.solution_.isApprox(x));
   }

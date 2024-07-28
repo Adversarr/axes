@@ -1,7 +1,8 @@
 #pragma once
 
-#include "./common.hpp"
 #include <random>
+
+#include "./common.hpp"
 
 #ifndef __CUDACC__
 #  include "ax/math/details/rsqrt_impl.hpp"
@@ -19,7 +20,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto sqrt(Scalar x) {
 }
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE auto rsqrt(Scalar x) {
-  return ((Scalar) 1.0) / ::sqrt(x);
+  return ((Scalar)1.0) / ::sqrt(x);
 }
 
 #else
@@ -50,7 +51,6 @@ template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE Scalar abs(Scalar x) {
   return std::fabs(x);
 }
-
 
 IMPLEMENT_UNARY_STL(sin)
 IMPLEMENT_UNARY_STL(cos)
@@ -276,10 +276,13 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto lerp(A const& a, B const& b, T const& t) {
   return (static_cast<T>(1) - t) * a + t * b;
 }
 
-template <typename Scalar=real, typename = enable_if_scalar_t<Scalar>>
+template <typename Scalar = real, typename = enable_if_scalar_t<Scalar>>
 AX_HOST AX_FORCE_INLINE auto random(Scalar low = 0, Scalar high = 1) {
-  auto const rand_int = std::rand();
-  auto const rand_scalar = static_cast<Scalar>(rand_int) / RAND_MAX;
+  std::random_device rand_dev;
+  std::default_random_engine rand_gen(rand_dev());
+  auto const rand_int = rand_gen();
+  auto const rand_range = rand_gen.max() - rand_gen.min();
+  auto const rand_scalar = static_cast<Scalar>(rand_int) / static_cast<Scalar>(rand_range);
   return low + (high - low) * rand_scalar;
 }
 

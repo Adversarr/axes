@@ -1,7 +1,6 @@
 #pragma once
 #include <glad/glad.h>
 
-#include "ax/core/status.hpp"
 #include "ax/utils/common.hpp"
 #include "details/gl_types.hpp"
 
@@ -22,14 +21,14 @@ private:
 public:
   Shader();
   // Validate the Shader
-  operator bool() const;
+  explicit operator bool() const;
 
   GLuint GetId() const;
 
   ShaderType GetType() const;
 
-  static StatusOr<Shader> CompileSource(const char* source, ShaderType type);
-  static StatusOr<Shader> CompileFile(std::string_view file_path, ShaderType type);
+  static Shader CompileSource(const char* source, ShaderType type);
+  static Shader CompileFile(std::string_view file_path, ShaderType type);
 
   /****************************** Internal Vars ******************************/
 private:

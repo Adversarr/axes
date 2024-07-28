@@ -9,29 +9,28 @@ Buffer::Buffer(GLuint id, BufferBindingType type, BufferUsage usage)
 
 Buffer::Buffer() : id_{0} {}
 
-StatusOr<Buffer> Buffer::Create(BufferBindingType type, BufferUsage usage) {
+Buffer Buffer::Create(BufferBindingType type, BufferUsage usage) {
   GLuint id;
-  AXGL_CALLR(glGenBuffers(1, &id));
+  AXGL_CALL(glGenBuffers(1, &id));
   return Buffer{id, type, usage};
 }
 
-StatusOr<Buffer> Buffer::CreateIndexBuffer(BufferUsage usage) {
+Buffer Buffer::CreateIndexBuffer(BufferUsage usage) {
   return Create(BufferBindingType::kElementArray, usage);
 }
 
-StatusOr<Buffer> Buffer::CreateVertexBuffer(BufferUsage usage) {
+Buffer Buffer::CreateVertexBuffer(BufferUsage usage) {
   return Create(BufferBindingType::kArray, usage);
 }
 
 Buffer::~Buffer() {
   if (id_) {
     glDeleteBuffers(1, &id_);
-    AX_DLOG(INFO) << "Buffer " << id_ << " deleted";
   }
 }
 
 Buffer::Buffer(Buffer&& other) noexcept : id_{other.id_}, type_(other.type_), usage_(other.usage_) {
-  other.id_ = 0;
+  other.id_ = GL_INVALID_INDEX;
 }
 
 Buffer& Buffer::operator=(Buffer&& other) noexcept {
@@ -47,24 +46,20 @@ Buffer& Buffer::operator=(Buffer&& other) noexcept {
 
 Buffer::operator bool() const { return id_ != 0; }
 
-Status Buffer::Bind() {
-  AXGL_CALLR(glBindBuffer(static_cast<GLenum>(type_), id_));
-  AX_RETURN_OK();
+void Buffer::Bind() {
+  AXGL_CALL(glBindBuffer(static_cast<GLenum>(type_), id_));
 }
 
-Status Buffer::Unbind() {
-  AXGL_CALLR(glBindBuffer(static_cast<GLenum>(type_), 0));
-  AX_RETURN_OK();
+void Buffer::Unbind() {
+  AXGL_CALL(glBindBuffer(static_cast<GLenum>(type_), 0));
 }
 
-Status Buffer::Write(const void* data, size_t size) {
-  AXGL_CALLR(glBufferData(static_cast<GLenum>(type_), size, data, static_cast<GLenum>(usage_)));
-  AX_RETURN_OK();
+void Buffer::Write(const void* data, size_t size) {
+  AXGL_CALL(glBufferData(static_cast<GLenum>(type_), size, data, static_cast<GLenum>(usage_)));
 }
 
-Status Buffer::WriteSub(const void* data, size_t size, size_t offset) {
-  AXGL_CALLR(glBufferSubData(static_cast<GLenum>(type_), offset, size, data));
-  AX_RETURN_OK();
+void Buffer::WriteSub(const void* data, size_t size, size_t offset) {
+  AXGL_CALL(glBufferSubData(static_cast<GLenum>(type_), offset, size, data));
 }
 
 }  // namespace ax::gl

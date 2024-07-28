@@ -1,7 +1,7 @@
 #include "ax/gl/vao.hpp"
 
+#include "ax/core/excepts.hpp"
 #include "ax/gl/details/gl_call.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::gl {
 
@@ -29,45 +29,33 @@ Vao& Vao::operator=(Vao&& other) noexcept {
   return *this;
 }
 
-StatusOr<Vao> Vao::Create() {
+Vao Vao::Create() {
   GLuint id;
-  AXGL_CALLR(glGenVertexArrays(1, &id));
+  AXGL_CALL(glGenVertexArrays(1, &id));
   return Vao{id};
 }
 
 Vao::~Vao() {
   if (id_) {
     glDeleteVertexArrays(1, &id_);
-    AX_DLOG(INFO) << "Vao " << id_ << " deleted";
   }
 }
 
-Status Vao::Bind() {
-  AXGL_CALLR(glBindVertexArray(id_));
-  AX_RETURN_OK();
+void Vao::Bind() { AXGL_CALL(glBindVertexArray(id_)); }
+
+void Vao::Unbind() { AXGL_CALL(glBindVertexArray(0)); }
+
+void Vao::SetAttribPointer(int index, int size, Type type, bool normalized, int stride,
+                           size_t offset) {
+  AXGL_CALL(glVertexAttribPointer(index, size, static_cast<GLenum>(type), normalized, stride,
+                                  reinterpret_cast<void*>(offset)));
 }
 
-Status Vao::Unbind() {
-  AXGL_CALLR(glBindVertexArray(0));
-  AX_RETURN_OK();
+void Vao::SetAttribDivisor(int index, int divisor) {
+  AXGL_CALL(glVertexAttribDivisor(index, divisor));
 }
 
-Status Vao::SetAttribPointer(int index, int size, Type type, bool normalized, int stride,
-                             size_t offset) {
-  AXGL_CALLR(glVertexAttribPointer(index, size, static_cast<GLenum>(type), normalized, stride,
-                                   reinterpret_cast<void*>(offset)));
-  AX_RETURN_OK();
-}
-
-Status Vao::SetAttribDivisor(int index, int divisor) {
-  AXGL_CALLR(glVertexAttribDivisor(index, divisor));
-  AX_RETURN_OK();
-}
-
-Status Vao::EnableAttrib(int index) {
-  AXGL_CALLR(glEnableVertexAttribArray(index));
-  AX_RETURN_OK();
-}
+void Vao::EnableAttrib(int index) { AXGL_CALL(glEnableVertexAttribArray(index)); }
 
 Buffer& Vao::SetIndexBuffer(Buffer&& buffer) { return index_buffer_ = std::move(buffer); }
 
@@ -81,32 +69,31 @@ Buffer& Vao::GetIndexBuffer() { return index_buffer_; }
 
 Buffer& Vao::GetInstanceBuffer() { return instance_buffer_; }
 
-Status Vao::DrawArrays(PrimitiveType type, size_t first, size_t count) {
-  AXGL_CALLR(glDrawArrays(static_cast<GLenum>(type), first, count));
-  AX_RETURN_OK();
+void Vao::DrawArrays(PrimitiveType type, size_t first, size_t count) {
+  AXGL_CALL(glDrawArrays(static_cast<GLenum>(type), first, count));
 }
 
-Status Vao::DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset) {
+void Vao::DrawElements(PrimitiveType type, size_t count, Type index_type, size_t offset) {
   if (!index_buffer_) {
-    return utils::InvalidArgumentError("Index buffer is not set");
+    throw make_logic_error("Index buffer is not set");
   }
-  AXGL_CALLR(glDrawElements(static_cast<GLenum>(type), count, static_cast<GLenum>(index_type),
-                            reinterpret_cast<void*>(offset)));
-  AX_RETURN_OK();
+
+  GLenum typ = static_cast<GLenum>(type), index_typ = static_cast<GLenum>(index_type);
+  void* off = reinterpret_cast<void*>(offset);
+  AXGL_CALL(glDrawElements(typ, count, index_typ, off));
 }
 
-Status Vao::DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
-                                  size_t instance_count) {
+void Vao::DrawElementsInstanced(PrimitiveType type, size_t count, Type index_type, size_t offset,
+                                size_t instance_count) {
   if (!index_buffer_) {
-    return utils::InvalidArgumentError("Index buffer is not set");
+    throw make_logic_error("Index buffer is not set");
   }
   if (!instance_buffer_) {
-    return utils::InvalidArgumentError("Instance buffer is not set");
+    throw make_logic_error("Instance buffer is not set");
   }
-  AXGL_CALLR(glDrawElementsInstanced(static_cast<GLenum>(type), count,
-                                     static_cast<GLenum>(index_type),
-                                     reinterpret_cast<void*>(offset), instance_count));
-  AX_RETURN_OK();
+  AXGL_CALL(glDrawElementsInstanced(static_cast<GLenum>(type), count,
+                                    static_cast<GLenum>(index_type),
+                                    reinterpret_cast<void*>(offset), instance_count));
 }
 
 }  // namespace ax::gl

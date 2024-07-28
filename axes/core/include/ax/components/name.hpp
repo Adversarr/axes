@@ -1,6 +1,8 @@
 #pragma once
 
+#include <optional>
 #include "ax/core/entt.hpp"
+
 namespace ax::cmpt {
 
 /**

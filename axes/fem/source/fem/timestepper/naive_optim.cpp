@@ -10,7 +10,8 @@
 
 namespace ax::fem {
 
-template <idx dim> Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh)
+template <idx dim>
+Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh)
     : ax::fem::TimeStepperBase<dim>(mesh) {
   optimizer_ = std::make_unique<optim::Optimizer_Newton>();
 }
@@ -26,13 +27,14 @@ template <idx dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
   try {
     result = optimizer_->Optimize(problem, this->du_inertia_.reshaped());
   } catch (const std::exception& e) {
-    AX_LOG(ERROR) << "Timestep solve failed: " << e.what();
+    AX_ERROR("Timestep solve failed: {}", e.what());
   }
   if (!(result.converged_grad_ || result.converged_var_)) {
-    AX_LOG(ERROR) << "optimizer_->failed to converge!";
+    AX_ERROR("Failed to converge!");
   }
 
-  AX_LOG(INFO) << "#Iter: " << result.n_iter_ << " iterations.";
+  AX_INFO("Converged: {}, Iterations={}", result.converged_var_ || result.converged_grad_,
+          result.n_iter_);
 
   // Set the final solution.
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());

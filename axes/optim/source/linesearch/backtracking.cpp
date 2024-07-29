@@ -1,5 +1,7 @@
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
+#include "ax/math/formatting.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 namespace ax::optim {
 
@@ -19,9 +21,7 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, math::vecxr 
   AX_THROW_IF_FALSE(math::isfinite(f0), "Invalid x0 in Line Search, Energy returns infinite number.");
   real expected_descent = grad.dot(dir);
   if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
-    AX_LOG(ERROR) << "grad: " << grad.transpose();
-    AX_LOG(ERROR) << "dir: " << dir.transpose();
-    throw RuntimeError("Invalid descent direction: df0=" + std::to_string(expected_descent));
+    throw make_runtime_error("Invalid descent direction: df0={}", expected_descent);
   }
 
   idx iter = 0;

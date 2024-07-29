@@ -3,7 +3,6 @@
 #include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/optim/spsdm.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::optim {
 
@@ -17,8 +16,8 @@ math::matxxr EigenvalueModification::Modify(math::matxxr const& A) {
     return A;
   }
 
-  for (idx i = 0; i < eigvals_mod.size(); ++i) {
-    eigvals_mod[i] = std::max(eigvals_mod[i], min_eigval_);
+  for (real & i : eigvals_mod) {
+    i = std::max(i, min_eigval_);
   }
   math::matxxr A_mod = es.eigenvectors() * eigvals_mod.asDiagonal()
                        * es.eigenvectors().transpose();
@@ -27,8 +26,7 @@ math::matxxr EigenvalueModification::Modify(math::matxxr const& A) {
 }
 
 math::spmatr EigenvalueModification::Modify(math::spmatr const& A) {
-  AX_LOG_FIRST_N(WARNING, 1) << "EigenvalueModification::Modify: "
-                             << "This method will convert sparse matrix to a dense matrix, and leading to a large memory usage.";
+  AX_WARN("EigenvalueModification::Modify: This method will convert sparse matrix to a dense matrix, and leading to a large memory usage.");
   math::matxxr A_dense = A;
   auto A_mod = Modify(A_dense);
   return A_mod.sparseView();

@@ -1,7 +1,6 @@
 #include "ax/fem/trimesh.hpp"
 
 #include "ax/core/excepts.hpp"
-#include "ax/utils/status.hpp"
 
 #ifdef AX_PLATFORM_WINDOWS
 #  undef ERROR
@@ -31,9 +30,8 @@ void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& 
 }
 
 template <idx dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
-  AX_THROW_IF_NE(vertices.cols(), vertices_.cols(),
-                 "Invalid size: " + std::to_string(vertices.cols())
-                     + " != " + std::to_string(vertices_.cols()));
+  AX_THROW_IF_NE(vertices.cols(), vertices_.cols(), "Invalid size: {} != {}", vertices.cols(),
+                 vertices_.cols());
   vertices_ = vertices;
 }
 
@@ -50,8 +48,8 @@ template <idx dim> math::vecxr TriMesh<dim>::GetVerticesFlattened() const noexce
 }
 
 template <idx dim> void TriMesh<dim>::ResetBoundary(idx i, idx dof) {
-  AX_DCHECK(0 <= i && i < vertices_.cols()) << "Index out of range.";
-  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_) << "Dof out of range.";
+  AX_DCHECK(0 <= i && i < vertices_.cols(), "Index out of range.");
+  AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   dirichlet_boundary_mask_(dof, i) = 1;
   boundary_values_(dof, i) = 0;
 }
@@ -120,17 +118,15 @@ template <idx dim> void TriMesh<dim>::FilterVector(math::vecxr& inout, bool set_
   }
 }
 
-template <idx dim>
-void TriMesh<dim>::SetNumDofPerVertex(idx n_dof_per_vertex) noexcept {
+template <idx dim> void TriMesh<dim>::SetNumDofPerVertex(idx n_dof_per_vertex) noexcept {
   n_dof_per_vertex_ = n_dof_per_vertex;
   ResetAllBoundaries();
 }
 
 template <idx dim> void TriMesh<dim>::FilterField(math::fieldr<dim>& inout, bool set_zero) const {
   if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
-    AX_LOG(ERROR) << "Invalid shape: " << inout.rows() << "x" << inout.cols()
-                  << " != " << dirichlet_boundary_mask_.rows() << "x"
-                  << dirichlet_boundary_mask_.cols();
+    AX_ERROR("Invalid Shape: {}x{} != {}x{}", inout.rows(), inout.cols(),
+             dirichlet_boundary_mask_.rows(), dirichlet_boundary_mask_.cols());
     throw std::invalid_argument("Invalid shape.");
   }
   inout.array() *= dirichlet_boundary_mask_.array();
@@ -178,7 +174,7 @@ template <idx dim> void TriMesh<dim>::FilterMatrixDof(idx d, math::spmatr& mat) 
 }
 
 template <idx dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
-  AX_CHECK(dim == 3) << "Only 3D P1Mesh is supported";
+  AX_CHECK(dim == 3, "Only 3D P1Mesh is supported");
   geo::SurfaceMesh surface;
   auto const& elem = this->elements_;
   auto const& vert = this->vertices_;

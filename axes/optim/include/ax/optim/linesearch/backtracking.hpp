@@ -1,12 +1,11 @@
 #pragma once
 #include "linesearch.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::optim {
 
 class Linesearch_Backtracking : public LinesearchBase {
 public:
-  Linesearch_Backtracking() {}
+  Linesearch_Backtracking() = default;
 
   OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const override;
 

@@ -17,9 +17,9 @@ using microseconds = std::chrono::microseconds;
 using milliseconds = std::chrono::milliseconds;
 using seconds = std::chrono::seconds;
 
-time_point_t now() { return clock_t::now(); }
+inline time_point_t now() { return clock_t::now(); }
 
-int64_t get_current_time_nanos() {
+inline int64_t get_current_time_nanos() {
   auto current = std::chrono::high_resolution_clock::now();
   return std::chrono::duration_cast<nanoseconds>(current.time_since_epoch()).count();
 }

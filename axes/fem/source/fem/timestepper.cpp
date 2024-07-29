@@ -279,8 +279,7 @@ math::fieldr<dim> TimeStepperBase<dim>::Gradient(math::fieldr<dim> const& u_cur)
 
 template <int dim> math::vecxr TimeStepperBase<dim>::GradientFlat(math::vecxr const& u_cur) const {
   idx n_vert = mesh_->GetNumVertices();
-  math::fieldr<dim> const g = Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
-  return g;
+  return Gradient(u_cur.reshaped(dim, n_vert)).reshaped();
 }
 
 template <int dim>
@@ -308,7 +307,7 @@ template <int dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() {
         return g;
       })
       .SetSparseHessian([&, n_vert](math::vecxr const& du) -> math::spmatr {
-        auto H = Hessian(du.reshaped(dim, n_vert) + u_, true);
+        math::spmatr H = Hessian(du.reshaped(dim, n_vert) + u_, true);
         return H;
       })
       .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {

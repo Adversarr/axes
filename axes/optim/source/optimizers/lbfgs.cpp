@@ -1,12 +1,12 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 
-#include "ax/core/logging.hpp"
 #include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
+#include "ax/math/formatting.hpp"
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
-#include "ax/utils/status.hpp"
 #include "ax/utils/time.hpp"
 
 namespace ax::optim {
@@ -28,7 +28,7 @@ static math::vecxr approx_solve_default(math::vecxr const& r, math::vecxr const&
 OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
-  AX_THROW_IF_LT(history_size_, 0, "Invalid history size: " + std::to_string(history_size_));
+  AX_THROW_IF_LT(history_size_, 0, "Invalid history size: {}", history_size_);
 
   // SECT: Initialize
   idx n_dof = x0.size();
@@ -55,8 +55,8 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
   bool const check_approx_quality
       = check_approx_quality_ && problem_.HasSparseHessian() && approx_solve_;
   if (!check_approx_quality && check_approx_quality_) {
-    AX_LOG(WARNING) << "Approx Hessian is not set or Hessian is not sparse, "
-                    << "Approx quality check is disabled.";
+    AX_WARN(
+        "Approx Hessian is not set or Hessian is not sparse, Approx quality check is disabled.");
   }
 
   auto check_quality
@@ -65,23 +65,21 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
           cg.SetProblem(sp_hessian).Compute();
           auto result = cg.Solve(residual, approx);
           if (!result.converged_) {
-            AX_LOG(ERROR) << name << ": CG failed to converge for check quality.";
+            // AX_LOG(ERROR) << name << ": CG failed to converge for check quality.";
+            AX_ERROR("{}: CG failed to converge for check quality.", name);
             return;
           }
           real cs = cosine_sim(approx, result.solution_);
           real l2 = (approx - result.solution_).norm();
           real rel = l2 / result.solution_.norm();
-          AX_LOG(ERROR) << name << ": cs=" << cs << "\t l2=" << l2 << "\t rel=" << rel;
+          AX_ERROR("{}: cs={} l2={} rel={}", name, cs, l2, rel);
         };
 
   while (iter < max_iter_) {
     // SECT: Verbose
     problem_.EvalVerbose(iter, x, f_iter);
     if (verbose) {
-      AX_DLOG(INFO) << "L-BFGS iter " << iter << std::endl
-                    << "  x: " << x.transpose() << std::endl
-                    << "  f: " << f_iter << std::endl
-                    << "  grad: " << grad.transpose();
+      AX_INFO("L-BFGS iter {}:\n  x: {}\n  f: {}\n  grad: {}", iter, x, f_iter, grad);
     }
 
     AX_THROW_IF_FALSE(math::isfinite(f_iter), "LBFGS: Energy function returns Infinite number!");
@@ -145,8 +143,9 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
 
     real const d_dot_grad = math::dot(dir, grad);
     if (d_dot_grad >= real(0)) {
-        AX_LOG(ERROR) << "L-BFGS: Direction may not descent: value=" << d_dot_grad << "Early break!";
-        break;
+      // AX_LOG(ERROR) << "L-BFGS: Direction may not descent: value=" << d_dot_grad << "Early break!";
+      AX_ERROR("L-BFGS: Direction may not descent: value={} Early break!", d_dot_grad);
+      break;
     }
 
     // SECT: Line search
@@ -171,10 +170,10 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
     real rho_current = (rho[iter % history_size_] = 1.0 / (math::dot(s_new, y_new) + 1e-19));
     if (rho_current <= 0) {
       // Last History is not available, discard it in memory
-      AX_LOG(WARNING)
-          << "LBFGS: rho is not positive: " << rho_current << "history_in_use=" << history_in_use
-          << " the problem is too stiff or the inverse approximation is bad."
-          << " Consider use a better linesearch to guarantee the strong wolfe condition.";
+      AX_WARN("LBFGS: rho is not positive: {} history_in_use={} the problem is too stiff or the "
+              "inverse approximation is bad. Consider use a better linesearch to guarantee the "
+              "strong wolfe condition.",
+              rho_current, history_in_use);
     } else {
       // Last History is available.
       history_in_use++;
@@ -197,7 +196,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, math::vecxr cons
 Optimizer_Lbfgs::Optimizer_Lbfgs() {
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
 
-  auto ls = reinterpret_cast<Linesearch_Backtracking*>(linesearch_.get());
+  auto *ls = reinterpret_cast<Linesearch_Backtracking*>(linesearch_.get());
   ls->required_descent_rate_ = 1e-4;
   ls->initial_step_length_ = 1.0;
   ls->step_shrink_rate_ = 0.7;
@@ -225,8 +224,8 @@ utils::Options Optimizer_Lbfgs::GetOptions() const {
   return opt;
 }
 
-void Optimizer_Lbfgs::SetApproxSolve(LbfgsHessianApproximator hessian_approximation) {
-  approx_solve_ = hessian_approximation;
+void Optimizer_Lbfgs::SetApproxSolve(LbfgsHessianApproximator approximator) {
+  approx_solve_ = approximator;
 }
 
 }  // namespace ax::optim

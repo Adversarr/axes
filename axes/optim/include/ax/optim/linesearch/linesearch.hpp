@@ -22,8 +22,7 @@ public:
 
   utils::Options GetOptions() const override;
 
-  void SetOptions(const utils::Options &option) override;
-
+  void SetOptions(const utils::Options& option) override;
 
 protected:
   idx max_iter_{100};

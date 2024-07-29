@@ -3,9 +3,12 @@
 //
 #include "ax/fem/deform.hpp"
 
+#include <fmt/ostream.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
+#include "ax/math/formatting.hpp"
+#include "ax/math/traits.hpp"
 #include "ax/utils/iota.hpp"
 
 namespace ax::fem {
@@ -16,7 +19,7 @@ template <idx dim> static bool check_cache(DeformationGradientCache<dim> const& 
   for (const auto& R_inv : cache) {
     real detR = R_inv.determinant();
     if (math::isnan(detR) || math::abs(detR) < math::epsilon<real>) {
-      AX_LOG(ERROR) << "Found Determinant of R.inv is nan, or det is nearly zero.";
+      AX_ERROR("Found Determinant of R.inv is nan, or det is nearly zero.");
       has_error = true;
     }
   }
@@ -121,7 +124,7 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
     cache[static_cast<size_t>(i)] = rest_local.inverse();
   }
   if (!check_cache<dim>(cache)) {
-    AX_LOG(ERROR) << "Mesh Cache computation failed! Please check the input mesh.";
+    AX_ERROR("Mesh Cache computation failed! Please check the input mesh.");
   }
   return cache;
 }
@@ -151,10 +154,9 @@ static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> 
   return dg;
 }
 
-template <idx dim>
-typename TriMesh<dim>::vertex_list_t dg_tsv_p1(TriMesh<dim> const& mesh,
-                                               std::vector<elasticity::StressTensor<dim>> const& stress,
-                                               DeformationGradientCache<dim> const& cache) {
+template <idx dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
+    TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
+    DeformationGradientCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
   // TODO: With Vertex->Element Map, the parallel is possible.
@@ -229,8 +231,7 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
     real v = coef / math::det(deformation_gradient_cache_[static_cast<size_t>(i)]);
     if (v < 0) {
-      AX_LOG(WARNING) << "Negative Volume detected!" << i << ": "
-                      << mesh_.GetElement(i).transpose();
+      AX_WARN("Negative volume detected: {}: {}", i, mesh_.GetElement(i).transpose());
     }
     rest_pose_volume_(0, i) = abs(v);
   }
@@ -266,16 +267,16 @@ template <idx dim> math::field1r dg_tev_p1(TriMesh<dim> const& mesh_, math::fiel
 
 template <idx dim> math::field1r Deformation<dim>::EnergyToVertices(math::field1r const& e) const {
   idx n_element = mesh_.GetNumElements();
-  size_t e_size = static_cast<size_t>(e.size());
-  AX_CHECK_EQ(e_size, n_element) << "#energy != #element";
+  idx e_size = e.size();
+  AX_CHECK(e_size == n_element, "#energy != #element");
   return dg_tev_p1<dim>(mesh_, e);
 }
 
 template <idx dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
     std::vector<elasticity::StressTensor<dim>> const& stress) const {
   idx n_element = mesh_.GetNumElements();
-  size_t stress_size = stress.size();
-  AX_CHECK_EQ(stress_size, n_element) << "#stress != #element";
+  idx stress_size = static_cast<size_t>(stress.size());
+  AX_DCHECK(stress_size == n_element, "#stress != #element");
   return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
 }
 

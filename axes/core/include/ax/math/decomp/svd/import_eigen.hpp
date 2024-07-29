@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/core/excepts.hpp"
 #include "common.hpp"
 
 namespace ax::math::decomp {
@@ -29,7 +30,7 @@ public:
   AX_FORCE_INLINE result_t Solve(mat_t const& A) const {
     Eigen::BDCSVD<mat_t> svd(A);
     if (svd.info() != Eigen::Success) {
-      return utils::InvalidArgumentError("Eigen::BDCSVD failed.");
+      throw make_invalid_argument("Eigen::BDCSVD failed.");
     }
     return SvdResult<dim, Scalar>{svd.matrixU(), svd.singularValues(), svd.matrixV()};
   }

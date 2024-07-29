@@ -88,8 +88,8 @@ namespace ax::fem {
 //   AX_RETURN_OK();
 // }
 
-template<idx dim>
-Status TimeStepper_ROM<dim>::Initialize() {
+template<int dim>
+void TimeStepper_ROM<dim>::Initialize() {
   x0_ = this->GetMesh()->GetVertices();
   return TimeStepperBase<dim>::Initialize();
 }

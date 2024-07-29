@@ -154,7 +154,8 @@ bool ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
                                                               ElasticityUpdateLevel upt) {
   auto error = cudaMemcpy(thrust::raw_pointer_cast(impl_->pose_gpu_.data()), pose.data(),
                           pose.size() * sizeof(real), cudaMemcpyHostToDevice);
-  AX_CHECK(error == cudaSuccess) << "Failed to copy pose to GPU." << cudaGetErrorString(error);
+  // AX_CHECK(error == cudaSuccess) << "Failed to copy pose to GPU." << cudaGetErrorString(error);
+  AX_CHECK(error == cudaSuccess, "Failed to copy pose to GPU: {}", cudaGetErrorString(error));
   idx n_elem = this->mesh_->GetNumElements();
   bool const need_svd
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)

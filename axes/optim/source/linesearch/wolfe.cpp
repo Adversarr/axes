@@ -7,23 +7,6 @@ namespace ax::optim {
 OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& x0,
                                      math::vecxr const& grad, math::vecxr const& dir) const {
   // SECT: Check Inputs
-  // if (initial_step_length_ <= 0) {
-  //   return utils::InvalidArgumentError("Invalid alpha_: " +
-  //   std::to_string(initial_step_length_));
-  // }
-  // if (step_shrink_rate_ <= 0 || step_shrink_rate_ >= 1) {
-  //   return utils::InvalidArgumentError("Invalid rho_: " + std::to_string(step_shrink_rate_));
-  // }
-  // if (required_descent_rate_ <= 0 || required_descent_rate_ > 1) {
-  //   return utils::InvalidArgumentError("Invalid c_: " + std::to_string(required_descent_rate_));
-  // }
-  // if (!prob.HasEnergy()) {
-  //   return utils::FailedPreconditionError("Energy function not set");
-  // }
-  // if (!prob.HasGrad()) {
-  //   return utils::FailedPreconditionError("Gradient function not set");
-  // }
-
   AX_THROW_IF_LT(initial_step_length_, 0, "Initial step length must be positive");
   AX_THROW_IF_FALSE(0 < step_shrink_rate_ && step_shrink_rate_ < 1,
                     "Step shrink rate must be in (0, 1)");
@@ -49,7 +32,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& 
   //                                         + std::to_string(expected_descent));
   // }
   AX_THROW_IF_FALSE(expected_descent >= 0 || !math::isfinite(expected_descent),
-                    "Invalid descent direction: df0=" + std::to_string(expected_descent));
+                    "Invalid descent direction: df0={}", expected_descent);
   idx iter = 0;
   math::vecxr g;
   math::vecxr x;

@@ -3,14 +3,12 @@
 
 namespace ax::fem {
 
-template<idx dim>
+template<int dim>
 class TimeStepper_ROM : public TimeStepperBase<dim> {
 public:
   TimeStepper_ROM(std::shared_ptr<TriMesh<dim>> mesh): TimeStepperBase<dim>(mesh) {}
 
-  // Status Step(real dt) final;
-
-  Status Initialize() final;
+  void Initialize() final;
 
   void SetBasis(math::matxxr const& basis) {
     basis_ = basis;

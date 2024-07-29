@@ -96,13 +96,14 @@ struct OptResult {
   // Optimal energy
   real f_opt_;
   real step_length_{1.0}; // for linesarchers.
+  // For Iterative Solver:
+  idx n_iter_;
   // Indicates whether the optimization algorithm has converged.
   bool converged_grad_{false};
   bool converged_var_{false};
   bool converged_{false};
 
-  // For Iterative Solver:
-  idx n_iter_;
+  std::string err_msg_; ///< Error message, reason for converge failure.
 
   OptResult() = default;
 

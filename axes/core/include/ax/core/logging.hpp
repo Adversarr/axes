@@ -16,12 +16,12 @@
 #define AX_ERROR(...) SPDLOG_ERROR(__VA_ARGS__)
 #define AX_CRITICAL(...) SPDLOG_CRITICAL(__VA_ARGS__)
 
-#define AX_CHECK(cond, ...)                                                                    \
-  do {                                                                                         \
-    if (!(cond)) {                                                                             \
-      AX_CRITICAL("AX_CHECK ({}) failed" __VA_OPT__(": {}"), #cond, fmt::format(__VA_ARGS__)); \
-      std::abort();                                                                            \
-    }                                                                                          \
+#define AX_CHECK(cond, msg, ...)                                                       \
+  do {                                                                                 \
+    if (!(cond)) {                                                                     \
+      AX_CRITICAL("AX_CHECK ({}) failed: " msg, #cond __VA_OPT__(,) __VA_ARGS__);      \
+      std::abort();                                                                    \
+    }                                                                                  \
   } while (false)
 
 #if (AX_IS_DEBUG)

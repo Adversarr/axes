@@ -1,6 +1,7 @@
 #include "ax/optim/optimizers/gd.hpp"
 
 #include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/math/functional.hpp"
 #include "ax/optim/common.hpp"
 
@@ -17,7 +18,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
   // }
   AX_THROW_IF_FALSE(problem.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");
-  AX_THROW_IF_LT(lr_, 0, "Invalid learning rate: " + std::to_string(lr_));
+  AX_THROW_IF_LT(lr_, 0, "Invalid learning rate: {}", lr_);
 
   real energy = problem.EvalEnergy(x);
   math::vecxr grad, x_old = x;
@@ -40,11 +41,13 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
       converged_var |= (x - x_old).norm() < tol_var_ * last_step_length;
     }
     if (verbose_) {
-      AX_LOG(INFO) << "Gradient Descent iter " << iter << std::endl
-                   << "  f: " << energy << std::endl
-                   << "  grad_norm: " << grad.norm() << std::endl
-                   << "  conv_grad: " << evalcg << std::endl
-                   << "  conv_var: " << evalcv << std::endl;
+      AX_INFO(
+          "Gradient Descent iter {}:\n"
+          "  f: {}\n"
+          "  grad_norm: {}\n"
+          "  conv_grad: {}\n"
+          "  conv_var: {}",
+          iter, energy, grad.norm(), evalcg, evalcv);
     }
 
     x_old = x;
@@ -79,7 +82,8 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
   return result;
 }
 
-void ax::optim::Optimizer_GradientDescent::SetLineSearch(std::unique_ptr<LinesearchBase> linesearch) {
+void ax::optim::Optimizer_GradientDescent::SetLineSearch(
+    std::unique_ptr<LinesearchBase> linesearch) {
   linesearch_ = std::move(linesearch);
 }
 
@@ -87,9 +91,7 @@ void ax::optim::Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_
 
 void Optimizer_GradientDescent::SetOptions(utils::Options const& opt) {
   OptimizerBase::SetOptions(opt);
-  AX_SYNC_OPT_IF(opt, real, lr) { 
-    AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive");
-  }
+  AX_SYNC_OPT_IF(opt, real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
   utils::extract_and_create<LinesearchBase, LineSearchKind>(opt, "linesearch", linesearch_);
   utils::extract_tunable(opt, "linesearch_opt", linesearch_.get());
 }
@@ -105,7 +107,4 @@ utils::Options Optimizer_GradientDescent::GetOptions() const {
   return opt;
 }
 
-OptimizerKind Optimizer_GradientDescent::GetKind() const {
-  return OptimizerKind::kGradientDescent;
-}
-
+OptimizerKind Optimizer_GradientDescent::GetKind() const { return OptimizerKind::kGradientDescent; }

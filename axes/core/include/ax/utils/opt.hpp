@@ -1,5 +1,6 @@
 #pragma once
 #include <absl/container/flat_hash_map.h>
+#include <fmt/ostream.h>
 
 #include <boost/json/object.hpp>
 #include <string>
@@ -9,16 +10,7 @@
 #include "ax/utils/enum_refl.hpp"
 
 namespace fmt {
-template <> struct formatter<boost::json::string> {
-  template <typename ParseContext> constexpr auto parse(ParseContext& ctx) /* NOLINT */ {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(boost::json::string const& obj, FormatContext& ctx) /* NOLINT */ {
-    return format_to(ctx.out(), "{}", obj.c_str());
-  }
-};
+template <> struct formatter<boost::json::string> : ostream_formatter {};
 }  // namespace fmt
 
 namespace ax::utils {

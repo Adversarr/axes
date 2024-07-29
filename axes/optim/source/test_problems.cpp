@@ -2,7 +2,6 @@
 
 #include "ax/core/logging.hpp"
 #include "ax/math/functional.hpp"
-#include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/sparse.hpp"
 #include "ax/math/linsys/sparse/QR.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
@@ -63,19 +62,16 @@ math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b_; }
 
 SparseLeastSquareProblem::SparseLeastSquareProblem(math::spmatr const& A, math::vecxr const& b)
     : A_(A), b_(b) {
-  AX_CHECK(A.rows() == A.cols());
-  AX_CHECK(A.rows() == b.rows());
+  AX_CHECK(A.rows() == A.cols(), "A must be square");
+  AX_CHECK(A.rows() == b.rows(), "A and b must have the same rows");
   SetEnergy([this](math::vecxr const& x) {
-    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
     math::vecxr residual = A_ * x - b_;
     return 0.5 * residual.dot(residual);
   });
   SetGrad([this](math::vecxr const& x) {
-    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
     return A_.transpose() * (A_ * x - b_);
   });
   SetSparseHessian([this](math::vecxr const& x) {
-    AX_CHECK(x.rows() == b_.rows()) << "x.rows() = " << x.rows() << ", b_.rows() = " << b_.rows();
     return A_.transpose() * A_;
   });
 }

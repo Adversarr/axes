@@ -9,16 +9,15 @@
 
 namespace ax::fem {
 
-template <idx dim> Status fem::Timestepper_QuasiNewton<dim>::Initialize() {
-  AX_RETURN_NOTOK(TimeStepperBase<dim>::Initialize());
+template <int dim> void fem::Timestepper_QuasiNewton<dim>::Initialize() {
+  TimeStepperBase<dim>::Initialize();
   if (!solver_) {
-    AX_LOG(INFO) << "Use default sparse solver: Cholmod.";
+    AX_WARN("Use default sparse solver: Cholmod.");
     solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
   }
-  AX_RETURN_OK();
 }
 
-template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
+template <int dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
   const math::vec2r lame = this->u_lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
   // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
@@ -32,7 +31,7 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace()
   solver_->SetProblem(A).Compute();
 }
 
-template <idx dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
+template <int dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
   const math::vec2r lame = this->u_lame_;
   real lambda = lame[0], mu = lame[1];
   real W = 2 * mu + lambda;
@@ -43,7 +42,7 @@ template <idx dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsAppr
   return full_laplacian;
 }
 
-template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
+template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
   TimeStepperBase<dim>::BeginSimulation(dt);
   UpdateSolverLaplace();
 }
@@ -51,18 +50,18 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real 
 math::vecxr eigval;
 math::matxxr eigvec;
 
-template <idx dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
+template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
   TimeStepperBase<dim>::BeginTimestep();
   if (strategy_ == LbfgsStrategy::kHard) {
     auto A = this->Hessian(this->du_inertia_);
     this->mesh_->FilterMatrixFull(A);
     solver_->SetProblem(std::move(A)).Compute();
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    AX_LOG_FIRST_N(INFO, 1) << "You are using the experimental mode!!!";
+    AX_WARN("You are using the experimental mode!");
   }
 }
 
-template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
+template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   optim::Optimizer_Lbfgs &optimizer = optimizer_;
   optimizer.SetTolGrad(this->rel_tol_grad_);
   optimizer.SetTolVar(this->tol_var_);
@@ -130,25 +129,21 @@ template <idx dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   try {
     result = optimizer.Optimize(problem, this->du_inertia_.reshaped());
   } catch (std::exception const &e) {
-    AX_LOG(ERROR) << "Timestep solve failed: " << e.what();
+    AX_ERROR("Timestep solve failed: {}", e.what());
     return;
   }
 
   // SECT: Check the convergency result.
-  if (result.converged_grad_) {
-    AX_LOG(INFO) << "LBFGS iteration converged: gradient";
-  } else if (result.converged_var_) {
-    AX_LOG(INFO) << "LBFGS iteration converged: variance";
-  } else {
-    AX_LOG(ERROR) << "LBFGS iteration does not converge, but early stoped.";
-    // throw std::runtime_error("LBFGS iteration failed to converge!");
+  if (!result.converged_) {
+    AX_ERROR("Failed to converge, early stopped!");
   }
 
-  AX_LOG(INFO) << "#Iter: " << result.n_iter_ << " iterations.";
+  AX_INFO("Converged: {}, Iterations={}", result.converged_var_ || result.converged_grad_,
+          result.n_iter_);
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
-template <idx dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
+template <int dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
   utils::extract_enum(option, "lbfgs_strategy", strategy_);
   utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver",
                                                                             solver_);
@@ -159,7 +154,7 @@ template <idx dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Op
   TimeStepperBase<dim>::SetOptions(option);
 }
 
-template <idx dim> utils::Options Timestepper_QuasiNewton<dim>::GetOptions() const {
+template <int dim> utils::Options Timestepper_QuasiNewton<dim>::GetOptions() const {
   auto option = TimeStepperBase<dim>::GetOptions();
   option["lbfgs_strategy"] = utils::reflect_name(strategy_).value();
   option["lbfgs_opt"] = optimizer_.GetOptions();

@@ -30,7 +30,7 @@ void SparseSolver_ConjugateGradient::Factorize() {
 
 LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
   spmatr const &A = cached_problem_->A_;
-  AX_THROW_IF_NE(b.size(), A.rows(), "Invalid rhs vector size: {} != {} (b, A)", b.size(),
+  AX_THROW_IF_NE(b.rows(), A.rows(), "Invalid rhs vector size: {} != {} (b, A)", b.rows(),
                  A.rows());
   if (!preconditioner_) {
     vecxr x;

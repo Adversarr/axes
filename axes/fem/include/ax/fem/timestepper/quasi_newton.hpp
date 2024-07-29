@@ -6,12 +6,12 @@ namespace ax::fem {
 
 BOOST_DEFINE_ENUM_CLASS(LbfgsStrategy, kNaive, kLaplacian, kHard, kReservedForExperimental);
 
-template <idx dim> class Timestepper_QuasiNewton : public TimeStepperBase<dim> {
+template <int dim> class Timestepper_QuasiNewton : public TimeStepperBase<dim> {
 public:
   using TimeStepperBase<dim>::TimeStepperBase;
   virtual ~Timestepper_QuasiNewton() = default;
 
-  virtual Status Initialize() final;
+  virtual void Initialize() final;
   void SetLbfgsStrategy(LbfgsStrategy strategy) { strategy_ = strategy; }
   void UpdateSolverLaplace();
 

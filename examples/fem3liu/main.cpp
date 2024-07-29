@@ -2,6 +2,7 @@
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
@@ -26,17 +27,17 @@
 #include "ax/utils/iota.hpp"
 #include "ax/utils/time.hpp"
 
-ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-ABSL_FLAG(int, N, 3, "Num of division.");
-ABSL_FLAG(bool, flip_yz, false, "flip yz");
-ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
-ABSL_FLAG(std::string, elast, "stable_neohookean",
-          "Hyperelasticity model, nh=Neohookean arap=Arap");
-ABSL_FLAG(std::string, optim, "newton", "optimizer newton 'naive' or 'liu'");
-ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
-ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
-ABSL_FLAG(std::string, lbfgs, "laplacian", "naive, laplacian, hard");
-ABSL_FLAG(double, youngs, 1e7, "Youngs");
+// ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
+// ABSL_FLAG(int, N, 3, "Num of division.");
+// ABSL_FLAG(bool, flip_yz, false, "flip yz");
+// ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
+// ABSL_FLAG(std::string, elast, "stable_neohookean",
+//           "Hyperelasticity model, nh=Neohookean arap=Arap");
+// ABSL_FLAG(std::string, optim, "newton", "optimizer newton 'naive' or 'liu'");
+// ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
+// ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
+// ABSL_FLAG(std::string, lbfgs, "laplacian", "naive, laplacian, hard");
+// ABSL_FLAG(double, youngs, 1e7, "Youngs");
 
 int nx;
 using namespace ax;
@@ -190,11 +191,11 @@ void ui_callback(gl::UiRenderEvent) {
       handle_armadillo_extreme(*ts->GetMesh(), frame * dt);
     }
 
-    auto time_start = ax::utils::GetCurrentTimeNanos();
+    auto time_start = utils::get_current_time_nanos();
     ts->BeginTimestep();
     ts->SolveTimestep();
     ts->EndTimestep();
-    auto time_end = ax::utils::GetCurrentTimeNanos();
+    auto time_end = utils::get_current_time_nanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
     std::cout << frame << " Dt=" << time_elapsed
@@ -219,9 +220,19 @@ void fix_negative_volume(math::field4i& tets, math::field3r const& verts) {
 }
 
 int main(int argc, char** argv) {
+  ax::get_program_options().add_options()
+    ("youngs", "Youngs", cxxopts::value<real>()->default_value("1e7"))(
+      "N", "Num of division", cxxopts::value<int>()->default_value("3"))(
+      "scene", "id of scene, 0 for twist, 1 for bend.", cxxopts::value<std::string>()->default_value("bend"))(
+      "elast", "Hyperelasticity model, nh=Neohookean arap=Arap",
+      cxxopts::value<std::string>()->default_value("stable_neohookean"))(
+      "optim", "optimizer newton 'naive' or 'liu'", cxxopts::value<std::string>()->default_value("newton"))(
+      "device", "cpu or gpu", cxxopts::value<std::string>()->default_value("gpu"))(
+      "optopo", "Optimize topology using RCM.", cxxopts::value<bool>()->default_value("true"))(
+      "lbfgs", "naive, laplacian, hard", cxxopts::value<std::string>()->default_value("laplacian"));
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  auto sname = absl::GetFlag(FLAGS_scene);
+  auto sname = get_parse_result()["scene"].as<std::string>();
   if (sname == "twist") {
     scene = SCENE_TWIST;
   } else if (sname == "bend") {
@@ -231,14 +242,15 @@ int main(int argc, char** argv) {
   } else if (sname == "extreme") {
     scene = SCENE_ARMADILLO_EXTREME;
   } else {
-    AX_CHECK(false) << "Invalid scene name.";
+    AX_CHECK(false, "Invalid scene name.");
   }
-
-  nx = absl::GetFlag(FLAGS_N);
+  nx = get_parse_result()["N"].as<int>();
 
   std::string tet_file, vet_file;
 
-  lame = fem::elasticity::compute_lame(absl::GetFlag(FLAGS_youngs), 0.45);
+  auto youngs = get_parse_result()["youngs"].as<real>();
+
+  lame = fem::elasticity::compute_lame(youngs, 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
     tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
@@ -257,10 +269,10 @@ int main(int argc, char** argv) {
   input_mesh.vertices_ = vet.transpose();
   // input_mesh = cube;
 
-  if (auto opt = absl::GetFlag(FLAGS_optim); opt == "liu") {
+  if (auto opt = get_parse_result()["optim"].as<std::string>(); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
-    auto strategy = absl::GetFlag(FLAGS_lbfgs);
-    auto p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
+    auto strategy = get_parse_result()["lbfgs"].as<std::string>();
+    auto *p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
     if (strategy == "naive") {
       std::cout << "LBFGS: Naive" << std::endl;
       p_ts->SetOptions({{"lbfgs_strategy", "kNaive"}});
@@ -275,9 +287,9 @@ int main(int argc, char** argv) {
     std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
   } else {
-    AX_CHECK(false) << "Invalid optimizer name, expect 'liu' or 'newton'";
+    AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton'");
   }
-  ts->SetYoungs(absl::GetFlag(FLAGS_youngs));
+  ts->SetYoungs(youngs);
   ts->SetPoissonRatio(0.45);
 
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
@@ -305,14 +317,14 @@ int main(int argc, char** argv) {
   }
 
   ts->SetDensity(1e3);
-  ts->SetupElasticity(absl::GetFlag(FLAGS_elast),
+  ts->SetupElasticity(get_parse_result()["elast"].as<std::string>(),
 #ifdef AX_HAS_CUDA
-                      absl::GetFlag(FLAGS_device)
+                      get_parse_result()["device"].as<std::string>()
 #else
                       "cpu"
 #endif
   );
-  AX_CHECK_OK(ts->Initialize());
+  ts->Initialize();
 
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
@@ -330,7 +342,7 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_callback>();
   std::cout << ts->GetOptions() << std::endl;
 
-  AX_CHECK_OK(gl::enter_main_loop());
+  gl::enter_main_loop();
 
   ts.reset();
   clean_up();

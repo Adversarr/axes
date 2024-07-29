@@ -3,6 +3,8 @@
 
 #include "ax/optim/optimizers/fista.hpp"
 
+#include "ax/core/logging.hpp"
+
 namespace ax::optim {
 
 // fista method have a special linesearch.
@@ -53,12 +55,14 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const math::vecxr
       converged_var |= (x - x_old).norm() < tol_var_ * step_length_old;
     }
     if (verbose_) {
-      AX_LOG(INFO) << "Fista iter " << iter << std::endl
-                   << "  f: " << energy << std::endl
-                   << "  grad_norm: " << grad.norm() << std::endl
-                   << "  conv_grad: " << evalcg << std::endl
-                   << "  conv_var: " << evalcv << std::endl
-                   << "  theta: " << theta_old << std::endl;
+      AX_INFO(
+          "Fista iter {}:\n"
+          "  f: {}\n"
+          "  grad_norm: {}\n"
+          "  conv_grad: {}\n"
+          "  conv_var: {}\n"
+          "  theta: {}",
+          iter, energy, grad.norm(), evalcg, evalcv, theta_old);
     }
 
     if (converged_grad || converged_var) {

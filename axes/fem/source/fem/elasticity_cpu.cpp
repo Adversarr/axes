@@ -59,7 +59,7 @@ template <idx dim> static bool check_cache(elasticity::DeformationGradientCache<
   for (const auto& R_inv : cache) {
     real detR = R_inv.determinant();
     if (math::isnan(detR) || math::abs(detR) < math::epsilon<real>) {
-      AX_LOG(ERROR) << "Found Determinant of R.inv is nan, or det is nearly zero.";
+      AX_ERROR("Found Determinant of R.inv is nan, or det is nearly zero.");
       has_error = true;
     }
   }
@@ -242,7 +242,7 @@ template <idx dim> void ElasticityComputeBase<dim>::SetLame(math::vec2r const& u
 }
 
 template <idx dim> void ElasticityComputeBase<dim>::SetLame(math::field2r const& e_lame) {
-  AX_CHECK(e_lame.cols() == mesh_->GetNumElements());
+  AX_CHECK(e_lame.cols() == mesh_->GetNumElements(), "Lame parameters size mismatch.");
   lame_ = e_lame;
 }
 

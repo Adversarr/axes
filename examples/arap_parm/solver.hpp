@@ -11,7 +11,6 @@ using ax::math::mat2r;
 using Parameterization = ax::math::field2r;
 using IsoCoord = ax::math::mat2r;
 
-using ax::std::vector;
 using ax::geo::SurfaceMesh;
 
 struct ParameterizationProblem {

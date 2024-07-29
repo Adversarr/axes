@@ -40,6 +40,7 @@ cxxopts::Options& get_program_options() {
   static cxxopts::Options opt("axes", "libaxes internal");
   return opt;
 }
+
 cxxopts::ParseResult& get_parse_result() {
   return parse_result;
 }
@@ -50,11 +51,17 @@ void init(int argc, char** argv) {
   /****************************** Flags ******************************/
   auto& opt = get_program_options();
   opt.add_options()("num_eigen_threads", "Parallelism of Eigen library.",
-                    cxxopts::value<int>()->default_value("0"));
+                    cxxopts::value<int>()->default_value("0"))
+                    ("h,help", "Print usage.");
   if (argc > 0) {
     /****************************** Install the debuggers ******************************/
     program_path = argv[0];
     parse_result = opt.parse(argc, argv);
+  }
+
+  if (parse_result.count("help")) {
+    std::cout << opt.help() << std::endl;
+    exit(EXIT_SUCCESS);
   }
   init();
 }

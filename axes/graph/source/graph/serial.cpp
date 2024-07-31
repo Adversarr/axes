@@ -3,18 +3,18 @@
 //
 #include "ax/graph/serial.hpp"
 
+#include "ax/core/logging.hpp"
 #include "ax/graph/node.hpp"
-#include "ax/utils/status.hpp"
 using namespace ax;
 using namespace ax::graph;
 
 Serializer::Serializer(Graph &g) : graph_(g) {}
 
-void Serializer::SetNodeMetadata(idx node_id, boost::json::value const &obj) {
+void Serializer::SetNodeMetadata(id_t node_id, boost::json::value const &obj) {
   node_metadata_[node_id] = obj;
 }
 
-void Serializer::SetSocketMetadata(idx socket_id, boost::json::value const &obj) {
+void Serializer::SetSocketMetadata(id_t socket_id, boost::json::value const &obj) {
   socket_metadata_[socket_id] = obj;
 }
 
@@ -53,50 +53,41 @@ boost::json::object Serializer::Serialize() const {
 
 Deserializer::Deserializer(Graph &g) : graph_(g) {}
 
-Status Deserializer::Deserialize(boost::json::object const &obj) {
+void Deserializer::Deserialize(boost::json::object const &obj) {
   graph_.Clear();
   auto nodes = obj.at("nodes").as_array();
   auto sockets = obj.at("sockets").as_array();
 
   for (auto const &node_obj : nodes) {
     auto id = node_obj.at("id").as_int64();
-    auto name = node_obj.at("name").as_string().c_str();
-    auto sornode = graph_.AddNode(details::get_node_descriptor(name));
-    if (!sornode.ok()) {
-      return sornode.status();
-    }
-    auto node = sornode.value();
+    const char *name = node_obj.at("name").as_string().c_str();
+    NodeBase *node = graph_.AddNode(details::get_node_descriptor(name));
     node_id_map_[id] = node->GetId();
     inverse_node_id_map_[node->GetId()] = id;
-    if (auto iter = node_obj.as_object().if_contains("meta");
-        iter != nullptr) {
-        node_metadata_[id] = *iter;
+    if (auto iter = node_obj.as_object().if_contains("meta"); iter != nullptr) {
+      node_metadata_[id] = *iter;
     }
   }
 
   for (auto const &socket_obj : sockets) {
-    auto id = socket_obj.at("id").as_int64();
-    auto input_node = socket_obj.at("input_node").as_int64();
-    auto input_pin = socket_obj.at("input_pin").as_int64();
-    auto output_node = socket_obj.at("output_node").as_int64();
-    auto output_pin = socket_obj.at("output_pin").as_int64();
+    id_t id = socket_obj.at("id").as_int64();
+    id_t input_node = socket_obj.at("input_node").as_int64();
+    id_t input_pin = socket_obj.at("input_pin").as_int64();
+    id_t output_node = socket_obj.at("output_node").as_int64();
+    id_t output_pin = socket_obj.at("output_pin").as_int64();
     auto in_node = node_id_map_[input_node];
     auto out_node = node_id_map_[output_node];
-    auto const* input = graph_.GetNode(in_node);
-    auto const* output = graph_.GetNode(out_node);
-    auto socket = graph_.AddSocket(input->GetId(), input_pin,
-                                   output->GetId(), output_pin);
-    if (!socket.ok() || socket.value() == nullptr) {
-      AX_LOG(ERROR) << "Failed to add socket: " << "I [" << input->GetId() << ":" << input_pin 
-                    << "] O [" << output->GetId() << ":" << output_pin << "]";
+    auto const *input = graph_.GetNode(in_node);
+    auto const *output = graph_.GetNode(out_node);
+    auto socket = graph_.AddSocket(input->GetId(), input_pin, output->GetId(), output_pin);
+    if (socket == nullptr) {
+      AX_ERROR("Failed to add socket: I [{}:{}] O [{}:{}]", input->GetId(), input_pin, output->GetId(), output_pin);
       continue;
     }
-    socket_id_map_[id] = socket.value()->id_;
-    inverse_socket_id_map_[socket.value()->id_] = id;
-    if (auto iter = socket_obj.as_object().if_contains("meta");
-        iter != nullptr) {
-        socket_metadata_[id] = *iter;
+    socket_id_map_[id] = socket->id_;
+    inverse_socket_id_map_[socket->id_] = id;
+    if (auto iter = socket_obj.as_object().if_contains("meta"); iter != nullptr) {
+      socket_metadata_[id] = *iter;
     }
   }
-  AX_RETURN_OK();
 }

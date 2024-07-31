@@ -7,25 +7,32 @@
 namespace ax::graph {
 
 struct PinDescriptor {
-  TypeIdentifier type_;
-  std::string name_;
-  std::string description_;
+  type_index type_;          ///< The type of the pin.
+  std::string name_;         ///< The name of the pin.
+  std::string description_;  ///< The description of the pin.
 };
+
+template <typename T>
+inline PinDescriptor make_pin_descriptor(std::string name, std::string description) noexcept {
+  return PinDescriptor{typeid(T), std::move(name), std::move(description)};
+}
 
 struct Pin {
 public:
   using desc_ptr = const PinDescriptor*;
-  idx const node_id_;
-  idx const node_io_index_;
+  id_t const node_id_;
+  id_t const node_io_index_;
   bool const is_input_;
   desc_ptr const descriptor_;
-  idx const id_;
+  id_t const id_;
   Payload* payload_ = nullptr;
 
 private:
   friend class Graph;
-  idx socket_in_id_ = INVALID_ID;
-  Pin(idx node_id, idx node_io_index, bool is_input, desc_ptr descriptor, idx id,
+  id_t socket_in_id_ = INVALID_ID;
+
+  // The only constructor.
+  Pin(id_t node_id, id_t node_io_index, bool is_input, desc_ptr descriptor, id_t id,
       Payload* payload = nullptr)
       : node_id_(node_id),
         node_io_index_(node_io_index),

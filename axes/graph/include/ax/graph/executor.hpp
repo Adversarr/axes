@@ -29,11 +29,11 @@ public:
   virtual ~GraphExecutorBase() = default;
   GraphExecutorBase(Graph& graph) : graph_(graph) {}
 
-  virtual Status Execute();
+  virtual void Execute();
 
-  Status Begin();
+  void Begin();
   void End();
-  Status WorkOnce();
+  void WorkOnce();
   GraphExecuteStage GetStage() const { return stage_; }
   std::map<idx, std::set<idx>> DependencyMap();
   std::vector<idx> TopologicalSort();
@@ -45,13 +45,13 @@ public:
 
   void CleanUpGraph();
 
-  virtual Status PreApply();
+  virtual void PreApply();
 
-  virtual Status PostApply();
+  virtual void PostApply();
 
-  virtual Status Apply(idx frame_id);
+  virtual void Apply(idx frame_id);
 
-  virtual Status LoopApply(idx end);
+  virtual void LoopApply(idx end);
 
 protected:
   Graph& graph_;

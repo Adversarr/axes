@@ -1,15 +1,17 @@
 #include "ax/nodes/io.hpp"
 
-#include "ax/geometry/common.hpp"
-#include "ax/geometry/io.hpp"
-#include "ax/utils/asset.hpp"
-#include "ax/graph/node.hpp"
-#include "ax/graph/render.hpp"
-#include "ax/utils/status.hpp"
-#include "ax/math/io.hpp"
 #include <imgui.h>
 #include <imgui_node_editor.h>
+
 #include <exception>
+
+#include "ax/core/excepts.hpp"
+#include "ax/geometry/common.hpp"
+#include "ax/geometry/io.hpp"
+#include "ax/graph/node.hpp"
+#include "ax/graph/render.hpp"
+#include "ax/math/io.hpp"
+#include "ax/utils/asset.hpp"
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
@@ -31,38 +33,31 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status DoApply() {
+  void DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
-      return utils::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
 
     try {
       auto mesh = geo::read_obj(*file);
       *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh);
-    } catch (std::exception const& e) {
-      return utils::FailedPreconditionError(e.what());
+    } catch (...) {
+      std::throw_with_nested(make_runtime_error("Read Obj failed"));
     }
-
-    AX_RETURN_OK();
   }
 
-  Status Apply(idx frame_id) override {
+  void Apply(size_t frame_id) override {
     if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
-      return DoApply();
+      DoApply();
     }
-    AX_RETURN_OK();
   }
 
-  Status PreApply() override {
-    DoApply().IgnoreError();
-    AX_RETURN_OK();
-  }
+  void PreApply() override { DoApply(); }
 };
 
 class Selector_Mesh_Obj : public NodeBase {
 public:
-
   Selector_Mesh_Obj(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
@@ -72,44 +67,44 @@ public:
         .AddOutput<std::string>("mesh", "The mesh read from the obj file")
         .FinalizeAndRegister();
 
-    add_custom_node_render(typeid(Selector_Mesh_Obj), CustomNodeRender{[](NodeBase* node) {
-      begin_draw_node(node);draw_node_header_default(node);
-        auto n = dynamic_cast<Selector_Mesh_Obj*>(node);
-        ImGui::SetNextItemWidth(100);
-        if (ImGui::Button("Select")) {
-          ImGui::OpenPopup("Select Mesh");
-        }
-        ImGui::SameLine();
-        ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-        ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
-        ed::EndPin();
-        ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
-      end_draw_node();
-
-      ed::Suspend();
-      ImGui::PushID(node);
-      if (ImGui::BeginPopup("Select Mesh")) {
-        for (int i = 0; i < (idx)n->assets_.size(); ++i) {
-          if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-            n->selected_idx_ = i;
+    add_custom_node_render(
+        typeid(Selector_Mesh_Obj), CustomNodeRender{[](NodeBase* node) {
+          begin_draw_node(node);
+          draw_node_header_default(node);
+          auto n = dynamic_cast<Selector_Mesh_Obj*>(node);
+          ImGui::SetNextItemWidth(100);
+          if (ImGui::Button("Select")) {
+            ImGui::OpenPopup("Select Mesh");
           }
-        }
-        ImGui::EndPopup();
-      }
-      ImGui::PopID();
-      ed::Resume();
-      }});
+          ImGui::SameLine();
+          ed::BeginPin(ed::PinId{n->GetOutputs()[0].id_}, ed::PinKind::Output);
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ed::EndPin();
+          ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
+          end_draw_node();
+
+          ed::Suspend();
+          ImGui::PushID(node);
+          if (ImGui::BeginPopup("Select Mesh")) {
+            for (int i = 0; i < (idx)n->assets_.size(); ++i) {
+              if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
+                n->selected_idx_ = i;
+              }
+            }
+            ImGui::EndPopup();
+          }
+          ImGui::PopID();
+          ed::Resume();
+        }});
   }
 
-  Status PreApply() override {
+  void PreApply() override {
     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_idx_]);
-    AX_RETURN_OK();
   }
 
-  Status OnConstruct() override {
+  void OnConstruct() override {
     assets_ = utils::discover_assets("/mesh/obj/");
     selected_idx_ = 0;
-    AX_RETURN_OK();
   }
 
   boost::json::object Serialize() const override {
@@ -130,7 +125,6 @@ public:
 
 class Selector_Mesh_Npy : public NodeBase {
 public:
-
   Selector_Mesh_Npy(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
@@ -140,45 +134,44 @@ public:
         .AddOutput<std::string>("mesh", "The mesh read from the obj file")
         .FinalizeAndRegister();
 
-    add_custom_node_render(typeid(Selector_Mesh_Npy), CustomNodeRender{[](NodeBase* node) {
-      begin_draw_node(node);draw_node_header_default(node);
-        auto n = dynamic_cast<Selector_Mesh_Npy*>(node);
-        ImGui::SetNextItemWidth(100);
-        if (ImGui::Button("Select")) {
-          ImGui::OpenPopup("Select Mesh");
-        }
-        ImGui::SameLine();
-        ed::BeginPin(n->GetOutputs()[0].id_, ed::PinKind::Output);
-        ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
-        ed::EndPin();
-        ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
-      end_draw_node();
-
-      ed::Suspend();
-      ImGui::PushID(node);
-      if (ImGui::BeginPopup("Select Mesh")) {
-        for (int i = 0; i < (idx)n->assets_.size(); ++i) {
-          if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-            n->selected_idx_ = i;
+    add_custom_node_render(
+        typeid(Selector_Mesh_Npy), CustomNodeRender{[](NodeBase* node) {
+          begin_draw_node(node);
+          draw_node_header_default(node);
+          auto n = dynamic_cast<Selector_Mesh_Npy*>(node);
+          ImGui::SetNextItemWidth(100);
+          if (ImGui::Button("Select")) {
+            ImGui::OpenPopup("Select Mesh");
           }
-        }
-        ImGui::EndPopup();
-      }
-      ImGui::PopID();
-      ed::Resume();
-      }});
+          ImGui::SameLine();
+          ed::BeginPin(ed::PinId{n->GetOutputs()[0].id_}, ed::PinKind::Output);
+          ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
+          ed::EndPin();
+          ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
+          end_draw_node();
 
+          ed::Suspend();
+          ImGui::PushID(node);
+          if (ImGui::BeginPopup("Select Mesh")) {
+            for (int i = 0; i < (idx)n->assets_.size(); ++i) {
+              if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
+                n->selected_idx_ = i;
+              }
+            }
+            ImGui::EndPopup();
+          }
+          ImGui::PopID();
+          ed::Resume();
+        }});
   }
 
-  Status PreApply() override {
+  void PreApply() override {
     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_idx_]);
-    AX_RETURN_OK();
   }
 
-  Status OnConstruct() override {
+  void OnConstruct() override {
     assets_ = utils::discover_assets("/mesh/npy/");
     selected_idx_ = 0;
-    AX_RETURN_OK();
   }
 
   boost::json::object Serialize() const override {
@@ -210,14 +203,14 @@ public:
         .AddInput<std ::string>("file", "The path to the numpy file")
         .FinalizeAndRegister();
   }
-  Status Apply(idx) override {
-    auto *data = RetriveInput<matxxr>(0);
-    auto *file = RetriveInput<std ::string>(1);
+  void Apply(size_t) override {
+    auto* data = RetriveInput<matxxr>(0);
+    auto* file = RetriveInput<std ::string>(1);
     if (data == nullptr) {
-      return utils ::FailedPreconditionError("Data is not set");
+      throw make_invalid_argument("Data is not set");
     }
     if (file == nullptr) {
-      return utils ::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
     ax ::math ::matxxr out = *data;
     std ::string fname = *file;
@@ -225,7 +218,6 @@ public:
       fname += ".npy";
     }
     math::write_npy_v10(fname, out);
-    return ::ax ::utils ::OkStatus();
   }
 };
 
@@ -241,14 +233,14 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
-    auto *data = RetriveInput<matxxr>(0);
-    auto *file = RetriveInput<std ::string>(1);
+  void Apply(size_t) override {
+    auto* data = RetriveInput<matxxr>(0);
+    auto* file = RetriveInput<std ::string>(1);
     if (data == nullptr) {
-      return utils ::FailedPreconditionError("Data is not set");
+      throw make_invalid_argument("Data is not set");
     }
     if (file == nullptr) {
-      return utils ::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
     ax ::math ::matxxr out = *data;
     std ::string fname = *file;
@@ -256,7 +248,6 @@ public:
       fname += ".npy";
     }
     math::write_npy_v10(fname, out);
-    return ::ax ::utils ::OkStatus();
   }
 };
 
@@ -274,32 +265,27 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status DoApply() {
+  size_t DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
-      return utils::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
 
     try {
       auto val = math::read_npy_v10_real(*file);
       SetOutput<matxxr>(0, val);
-    } catch (std::exception const& e) {
-      AX_LOG(ERROR) << "Read Npy failed: " << e.what();
+    } catch (...) {
+      std::throw_with_nested(make_runtime_error("Read Npy failed"));
     }
-    AX_RETURN_OK();
   }
 
-  Status Apply(idx frame_id) override {
+  void Apply(size_t frame_id) override {
     if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
-      return DoApply();
+      DoApply();
     }
-    AX_RETURN_OK();
   }
 
-  Status PreApply() override {
-    DoApply().IgnoreError();
-    AX_RETURN_OK();
-  }
+  void PreApply() override { DoApply(); }
 };
 class Read_npy_matxxi : public NodeBase {
 public:
@@ -315,31 +301,27 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status DoApply() {
+  void DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
-      return utils::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
 
     try {
       auto val = math::read_npy_v10_idx(*file);
       SetOutput<matxxi>(0, val);
-    } catch (std::exception const& e) {
-      AX_LOG(ERROR) << "Read Npy failed: " << e.what();
+    } catch (...) {
+      std::throw_with_nested(make_runtime_error("Read Npy failed"));
     }
-
-    AX_RETURN_OK();
   }
 
-  Status Apply(idx frame_id) override {
+  void Apply(size_t frame_id) override {
     if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
-      return DoApply();
+      DoApply();
     }
-    AX_RETURN_OK();
   }
-  Status PreApply() override {
-    DoApply().IgnoreError();
-    AX_RETURN_OK();
+  void PreApply() override {
+    DoApply();
   }
 };
 
@@ -357,31 +339,28 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status DoApply() {
+  void DoApply() {
     auto* file = RetriveInput<std::string>(0);
     if (file == nullptr) {
-      return utils::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
 
     try {
       auto val = math::read_sparse_matrix(*file);
       SetOutput<spmatr>(0, val);
-    } catch (std::exception const& e) {
-      AX_LOG(ERROR) << "Read sparse failed: " << e.what();
+    } catch (...) {
+      std::throw_with_nested(make_runtime_error("Read SparseMatrix failed"));
     }
-    AX_RETURN_OK();
   }
 
-  Status Apply(idx frame_id) override {
+  void Apply(size_t frame_id) override {
     if (auto reload = RetriveInput<bool>(1); frame_id == 0 || (reload != nullptr && *reload)) {
-      return DoApply();
+      DoApply();
     }
-    AX_RETURN_OK();
   }
 
-  Status PreApply() override {
-    DoApply().IgnoreError();
-    AX_RETURN_OK();
+  void PreApply() override {
+    DoApply();
   }
 };
 
@@ -398,20 +377,18 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) override {
+  void Apply(size_t /* frame_id */) override {
     auto* file = RetriveInput<std::string>(1);
     if (file == nullptr) {
-      return utils::FailedPreconditionError("File path is not set");
+      throw make_invalid_argument("File path is not set");
     }
     auto* matrix = RetriveInput<math::spmatr>(0);
     if (matrix == nullptr) {
-      return utils::FailedPreconditionError("Matrix is not set");
+      throw make_invalid_argument("Matrix is not set");
     }
     math::write_sparse_matrix(*file, *matrix);
-    AX_RETURN_OK();
   }
 };
-
 
 void register_io_nodes() {
   ReadObjNode::register_this();

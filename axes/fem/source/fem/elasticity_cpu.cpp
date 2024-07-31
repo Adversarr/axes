@@ -1,6 +1,4 @@
-#include <Eigen/SVD>
-
-#include "ax/fem/elasticity.hpp"
+#include "ax/fem/elasticity_cpu.hpp"
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"

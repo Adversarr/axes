@@ -6,9 +6,10 @@
 #include <imgui_node_editor.h>
 
 #include "ax/core/entt.hpp"
+#include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
-#include "ax/utils/status.hpp"
 
 using namespace ax::graph;
 namespace ed = ax::NodeEditor;
@@ -26,7 +27,7 @@ namespace ax::nodes {
       NodeDescriptorFactory<Input_##class_name>{}                                          \
           .SetName("Input_" #class_name)                                                   \
           .SetDescription("User Input for " #class_name)                                   \
-          .AddOutput<class_name>("out", "value from input")                              \
+          .AddOutput<class_name>("out", "value from input")                                \
           .FinalizeAndRegister();                                                          \
       add_custom_node_render(typeid(Input_##class_name), CustomNodeRender{[](NodeBase* n) {       \
               auto node = dynamic_cast<Input_##class_name *>(n); begin_draw_node(n); draw_node_header_default(n);
@@ -98,10 +99,7 @@ public:
                            }});
   }
 
-  Status OnConstruct() override {
-    *RetriveOutput<bool>(0) = false;
-    AX_RETURN_OK();
-  }
+  void OnConstruct() override { *RetriveOutput<bool>(0) = false; }
 
   boost::json::object Serialize() const override {
     boost::json::object obj;
@@ -168,18 +166,17 @@ private:
       NodeDescriptorFactory<Convert_##from_type##_to_##to_type>{}              \
           .SetName("Convert_" #from_type "_to_" #to_type)                      \
           .SetDescription("Convert " #from_type " to " #to_type)               \
-          .AddInput<from_type>("in", "input value")                         \
-          .AddOutput<to_type>("out", "output value")                        \
+          .AddInput<from_type>("in", "input value")                            \
+          .AddOutput<to_type>("out", "output value")                           \
           .FinalizeAndRegister();                                              \
     }                                                                          \
-    Status Apply(idx) override {                                               \
+    void Apply(size_t) override {                                              \
       auto* p_get = RetriveInput<from_type>(0);                                \
       if (!p_get) {                                                            \
-        return utils::InvalidArgumentError("input is null");                   \
+        throw make_invalid_argument("input is null");                          \
       }                                                                        \
       auto* p_put = RetriveOutput<to_type>(0);                                 \
       *p_put = static_cast<to_type>(*p_get);                                   \
-      AX_RETURN_OK();                                                          \
     }                                                                          \
   }
 
@@ -205,18 +202,17 @@ DefineConversionNodeBegin(idx, bool);
     static void register_this() {                                           \
       NodeDescriptorFactory<Convert_##from_type##_to_string>{}              \
           .SetName("Convert_" #from_type "_to_string")                      \
-          .AddInput<from_type>("in", "input value")                      \
-          .AddOutput<string>("out", "output value")                      \
+          .AddInput<from_type>("in", "input value")                         \
+          .AddOutput<string>("out", "output value")                         \
           .FinalizeAndRegister();                                           \
     }                                                                       \
-    Status Apply(idx) override {                                            \
+    void Apply(size_t) override {                                           \
       auto* p_get = RetriveInput<from_type>(0);                             \
       if (!p_get) {                                                         \
-        return utils::InvalidArgumentError("input is null");                \
+        throw make_invalid_argument("input is null");                       \
       }                                                                     \
       auto* p_put = RetriveOutput<string>(0);                               \
       *p_put = std::to_string(*p_get);                                      \
-      AX_RETURN_OK();                                                       \
     }                                                                       \
   }
 
@@ -229,18 +225,17 @@ DefineConversionNodeBegin(idx, bool);
       NodeDescriptorFactory<Convert_string_to_##to_type>{}              \
           .SetName("Convert_string_to_" #to_type)                       \
           .SetDescription("Convert string to " #to_type)                \
-          .AddInput<string>("in", "input value")                     \
-          .AddOutput<to_type>("out", "output value")                 \
+          .AddInput<string>("in", "input value")                        \
+          .AddOutput<to_type>("out", "output value")                    \
           .FinalizeAndRegister();                                       \
     }                                                                   \
-    Status Apply(idx) override {                                        \
+    void Apply(size_t) override {                                       \
       auto* p_get = RetriveInput<string>(0);                            \
       if (!p_get) {                                                     \
-        return utils::InvalidArgumentError("input is null");            \
+        throw make_invalid_argument("input is null");                   \
       }                                                                 \
       auto* p_put = RetriveOutput<to_type>(0);                          \
       *p_put = method(*p_get);                                          \
-      AX_RETURN_OK();                                                   \
     }                                                                   \
   }
 
@@ -274,14 +269,13 @@ public:
         .AddOutput<string>("out", "output value")
         .FinalizeAndRegister();
   }
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* p_get = RetriveInput<bool>(0);
     if (!p_get) {
-      return utils ::InvalidArgumentError("input is null");
+      throw make_invalid_argument("input is null");
     }
     auto* p_put = RetriveOutput<string>(0);
     *p_put = from_bool_to_string(*p_get);
-    AX_RETURN_OK();
   }
 };
 
@@ -294,16 +288,15 @@ public:
       NodeDescriptorFactory<Log_##type##_to_console_##severity>{}              \
           .SetName("Log_" #type "_" #severity)                                 \
           .SetDescription("Log " #type " to console (" #severity ")")          \
-          .AddInput<type>("in", "input value")                              \
+          .AddInput<type>("in", "input value")                                 \
           .FinalizeAndRegister();                                              \
     }                                                                          \
-    Status Apply(idx f) override {                                             \
+    void Apply(size_t f) override {                                            \
       auto* p_get = RetriveInput<type>(0);                                     \
       if (!p_get) {                                                            \
-        return utils::InvalidArgumentError("input is null");                   \
+        throw make_invalid_argument("input is null");                          \
       }                                                                        \
-      AX_LOG(severity) << "Frame ID: " << f << #type " value: " << *p_get;     \
-      AX_RETURN_OK();                                                          \
+      AX_INFO("Frame ID: {} {} value: {}", f, #type, *p_get);                  \
     }                                                                          \
   }
 
@@ -331,20 +324,19 @@ DefineLogtoConsoleNode(bool, ERROR);
       NodeDescriptorFactory<Operator_##type##_##name>{}                                          \
           .SetName(#type "_" #op)                                                                \
           .SetDescription("Operation " #op " for " #type)                                        \
-          .AddInput<type>("in1", "input value 1")                                             \
-          .AddInput<type>("in2", "input value 2")                                             \
-          .AddOutput<type>("out", "output value")                                             \
+          .AddInput<type>("in1", "input value 1")                                                \
+          .AddInput<type>("in2", "input value 2")                                                \
+          .AddOutput<type>("out", "output value")                                                \
           .FinalizeAndRegister();                                                                \
     }                                                                                            \
-    Status Apply(idx) override {                                                                 \
+    void Apply(size_t) override {                                                                \
       auto* p_get1 = RetriveInput<type>(0);                                                      \
       auto* p_get2 = RetriveInput<type>(1);                                                      \
       if (!p_get1 || !p_get2) {                                                                  \
-        return utils::InvalidArgumentError("input is null");                                     \
+        throw make_invalid_argument("input is null");                                            \
       }                                                                                          \
       auto* p_put = RetriveOutput<type>(0);                                                      \
       *p_put = *p_get1 op * p_get2;                                                              \
-      AX_RETURN_OK();                                                                            \
     }                                                                                            \
   }
 
@@ -383,10 +375,9 @@ public:
     });
   }
 
-  Status OnConstruct() override {
+  void OnConstruct() override {
     ent_ = create_entity();
     *RetriveOutput<Entity>(0) = ent_;
-    AX_RETURN_OK();
   }
 
   void OnDestroy() override {
@@ -411,14 +402,11 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx frame_id) {
-    SetOutput<idx>(0, frame_id);
-    AX_RETURN_OK();
-  }
+  void Apply(idx frame_id) { SetOutput<idx>(0, frame_id); }
 };
 
 class StringConcat : public NodeBase {
-  public:
+public:
   StringConcat(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
   static void register_this() {
     NodeDescriptorFactory<StringConcat>{}
@@ -430,19 +418,16 @@ class StringConcat : public NodeBase {
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* p_get1 = RetriveInput<string>(0);
     auto* p_get2 = RetriveInput<string>(1);
     if (!p_get1 || !p_get2) {
-      return utils::InvalidArgumentError("input is null");
+      throw make_invalid_argument("input is null");
     }
     auto* p_put = RetriveOutput<string>(0);
     *p_put = *p_get1 + *p_get2;
-    AX_RETURN_OK();
   }
 };
-
-
 
 void register_stl_types() {
   Input_int::register_this();

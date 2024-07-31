@@ -4,7 +4,7 @@
 #include "ax/optim/common.hpp"
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/opt.hpp"
-#include "elasticity.hpp"
+#include "elasticity_cpu.hpp"
 #include "scheme.hpp"
 #include "trimesh.hpp"
 

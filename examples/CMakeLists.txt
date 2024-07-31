@@ -2,6 +2,7 @@ macro(axes_add_example name)
   file(GLOB_RECURSE sources "${name}/*.cpp" "${name}/*.cu")
   add_executable(${name} ${sources})
   target_link_libraries(${name} PUBLIC ${ARGN})
+  ax_target_apply_flag(${name} PRIVATE)
 endmacro(axes_add_example)
 
 axes_add_example(empty "axes_core")

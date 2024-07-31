@@ -1,0 +1,36 @@
+#pragma once
+#include <range/v3/view/cartesian_product.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/zip.hpp>
+
+#include "shape.hpp"
+
+namespace ax::math {
+
+namespace details {
+
+template <size_t dim, size_t... Idx>
+auto make_shape_iter(Shape<dim> const& shape, std::index_sequence<Idx...>) {
+  return ranges::views::cartesian_product(
+      ranges::views::iota(static_cast<size_t>(0), shape.Extent(Idx))...);
+}
+
+}  // namespace details
+
+template <size_t dim> auto iter(Shape<dim> const& shape) {
+  return details::make_shape_iter(shape, std::make_index_sequence<dim>{});
+}
+
+template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim>& accessor) {
+  return ranges::views::zip(
+      iter(accessor.GetShape()),
+      ranges::subrange(accessor.Data(), accessor.Data() + accessor.GetShape().Size()));
+}
+
+template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim> const& accessor) {
+  return ranges::views::zip(
+      iter(accessor.GetShape()),
+      ranges::subrange(accessor.Data(), accessor.Data() + accessor.GetShape().Size()));
+}
+
+}  // namespace ax::math

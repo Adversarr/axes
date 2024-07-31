@@ -5,8 +5,9 @@
 #include <boost/graph/topological_sort.hpp>
 #include <stdexcept>
 
+#include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/graph/node.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ax::graph {
 
@@ -70,168 +71,149 @@ std::vector<idx> GraphExecutorBase::TopologicalSort() {
   return result;
 }
 
-Status GraphExecutorBase::Execute() {
+void GraphExecutorBase::Execute() {
   if (end_ < 0) {
-    return utils::InvalidArgumentError("Invalid frame range");
+    throw make_invalid_argument("Invalid frame range");
   }
-  Status s = utils::OkStatus();
-  s.Update(this->PreApply());
-  if (!s.ok()) {
-    return s;
-  }
-  s.Update(this->LoopApply(end_));
-  if (!s.ok()) {
-    return s;
-  }
-
-  s.Update(this->PostApply());
-  if (!s.ok()) {
-    return s;
-  }
-  AX_RETURN_OK();
+  this->PreApply();
+  this->LoopApply(end_);
+  this->PostApply();
 }
 
 void GraphExecutorBase::CleanUpGraph() {
   graph_.ForeachNode([](NodeBase* n) { n->CleanUp(); });
 }
 
-Status GraphExecutorBase::PreApply() {
+void GraphExecutorBase::PreApply() {
   toposort_ = TopologicalSort();
   if (graph_.GetNumNodes() > 0 && toposort_.empty()) {
-    return utils::FailedPreconditionError("Exist a cycle in your input graph");
+    throw make_runtime_error("Exist a cycle in your input graph");
   }
 
-  for (auto node_id: toposort_) {
-    AX_DLOG(INFO) << "Precompute " << node_id;
+  for (auto node_id : toposort_) {
+    AX_TRACE("Precompute node {}", node_id);
     auto node = graph_.GetNode(node_id);
-    if (auto status = node->PreApply(); !status.ok()) {
-      AX_LOG(ERROR) << "Failed to precompute node " << node_id << ": " << status;
-      return status;
-    }
+    node->PreApply();
   }
-
-  AX_RETURN_OK();
 }
 
-Status GraphExecutorBase::PostApply() {
-  for (auto node_id: toposort_) {
+void GraphExecutorBase::PostApply() {
+  for (auto node_id : toposort_) {
+    AX_TRACE("Postcompute node {}", node_id);
     auto node = graph_.GetNode(node_id);
-    if (auto status = node->PostApply(); !status.ok()) {
-      AX_LOG(ERROR) << "Failed to postcompute node " << node_id << ": " << status;
-      return status;
-    }
+    node->PostApply();
   }
-  AX_RETURN_OK();
 }
 
-Status GraphExecutorBase::LoopApply(idx end) {
+void GraphExecutorBase::LoopApply(idx end) {
   for (idx frame_id = current_frame_id_; frame_id <= end; ++frame_id) {
-    if (auto status = Apply(frame_id); !status.ok()) {
-      AX_LOG(ERROR) << "Failed to execute frame " << frame_id << ": " << status;
-      return status;
-    }
+    // TODO: try except
+    Apply(frame_id);
   }
-  AX_RETURN_OK();
 }
 
-Status GraphExecutorBase::Apply(idx frame_id) {
+void GraphExecutorBase::Apply(idx frame_id) {
   for (auto node_id : toposort_) {
     auto node = graph_.GetNode(node_id);
-    if (auto status = node->Apply(frame_id); !status.ok()) {
-      AX_LOG(ERROR) << "Failed to execute node " << node_id << ": " << status;
-      return status;
-    }
+    // if (auto status = node->Apply(frame_id); !status.ok()) {
+    //   AX_LOG(ERROR) << "Failed to execute node " << node_id << ": " << status;
+    //   return status;
+    // }
+    // TODO: try except
+    node->Apply(frame_id);
   }
-  AX_RETURN_OK();
 }
 
-Status GraphExecutorBase::Begin() {
+void GraphExecutorBase::Begin() {
   if (stage_ != GraphExecuteStage::kIdle) {
     auto optname = utils::reflect_name(stage_);
-    return utils::CancelledError("GraphExecutor is not in idle state" + optname.value_or(""));
+    // return utils::CancelledError("GraphExecutor is not in idle state" + optname.value_or(""));
+    throw make_runtime_error("GraphExecutor is not in idle state: {}", optname.value_or(""));
   }
   stage_ = GraphExecuteStage::kPrePreApply;
   current_frame_id_ = 0;
-  AX_RETURN_OK();
 }
 
 void GraphExecutorBase::End() {
   if (stage_ != GraphExecuteStage::kDone) {
     auto optname = utils::reflect_name(stage_);
-    AX_LOG(WARNING) << "GraphExecutor is not in post apply done state" << optname.value_or("");
+    AX_WARN("GraphExecutor is not in post apply done state: {}", optname.value_or(""));
   }
   stage_ = GraphExecuteStage::kIdle;
 }
 
-Status GraphExecutorBase::WorkOnce() {
+void GraphExecutorBase::WorkOnce() {
   switch (stage_) {
     case GraphExecuteStage::kIdle:
       // Nothing to do.
-      AX_RETURN_OK();
+      return;
     /* PRE APPLY */
     case GraphExecuteStage::kPrePreApply: {
-      Status s = PreApply();
-      if (!s.ok()) {
-        stage_ = GraphExecuteStage::kPreApplyError;
-        AX_LOG(ERROR) << "Failed to pre apply: " << s;
-        return s;
-      } else {
-        stage_ = GraphExecuteStage::kPreApplyDone;
-      }
-      AX_RETURN_OK();
+      // TODO: try except
+      PreApply();
+      // if (!s.ok()) {
+      //   stage_ = GraphExecuteStage::kPreApplyError;
+      //   AX_LOG(ERROR) << "Failed to pre apply: " << s;
+      //   return s;
+      // } else {
+      //   stage_ = GraphExecuteStage::kPreApplyDone;
+      // }
+      return;
     }
     case GraphExecuteStage::kPreApplyDone:
       current_frame_id_ = 0;
     /* APPLY */
     case GraphExecuteStage::kApplyRunning: {
-      // Although current_frame_id_ may be larger than end_, for example, 0 = current_frame_id_ = end_
-      // We still apply the first time.
-      Status s = Apply(current_frame_id_);
-      if (!s.ok()) {
-        stage_ = GraphExecuteStage::kApplyError;
-        AX_LOG(ERROR) << "Frame id: " << current_frame_id_ << "Failed to apply: " << s;
-        return s;
-      } else {
-        ++current_frame_id_;
-        if (current_frame_id_ >= end_) /* Apply all done */ {
-          stage_ = GraphExecuteStage::kApplyDone;
-        } else /* Go to next frame */ {
-          stage_ = GraphExecuteStage::kApplyRunning;
-        }
-      }
-      AX_RETURN_OK();
+      // Although current_frame_id_ may be larger than end_, for example, 0 = current_frame_id_ =
+      // end_ We still apply the first time.
+      // TODO: try except
+      Apply(current_frame_id_);
+      // if (!s.ok()) {
+      //   stage_ = GraphExecuteStage::kApplyError;
+      //   AX_LOG(ERROR) << "Frame id: " << current_frame_id_ << "Failed to apply: " << s;
+      //   return s;
+      // } else {
+      //   ++current_frame_id_;
+      //   if (current_frame_id_ >= end_) /* Apply all done */ {
+      //     stage_ = GraphExecuteStage::kApplyDone;
+      //   } else /* Go to next frame */ {
+      //     stage_ = GraphExecuteStage::kApplyRunning;
+      //   }
+      // }
+      return;
     }
     case GraphExecuteStage::kApplyDone:
       stage_ = GraphExecuteStage::kPostApplyDone;
       return PostApply();
     /* POST-APPLY */
     case GraphExecuteStage::kPrePostApply: {
-      Status s = PostApply();
-      if (!s.ok()) {
-        stage_ = GraphExecuteStage::kPostApplyError;
-        AX_LOG(ERROR) << "Failed to post apply: " << s;
-        return s;
-      } else {
-        stage_ = GraphExecuteStage::kPostApplyDone;
-      }
-      AX_RETURN_OK();
+      // TODO: try except
+      PostApply();
+      // if (!s.ok()) {
+      //   stage_ = GraphExecuteStage::kPostApplyError;
+      //   AX_LOG(ERROR) << "Failed to post apply: " << s;
+      //   return s;
+      // } else {
+      //   stage_ = GraphExecuteStage::kPostApplyDone;
+      // }
+      return;
     }
+
     case GraphExecuteStage::kPostApplyDone:
       stage_ = GraphExecuteStage::kDone;
-      return utils::OkStatus();
+      return;
 
     // All the errors:
     case GraphExecuteStage::kPreApplyError:
-      return utils::FailedPreconditionError("GraphExecutor is in pre-apply error state");
+      throw make_runtime_error("GraphExecutor is in pre-apply error state");
     case GraphExecuteStage::kApplyError:
-      return utils::FailedPreconditionError("GraphExecutor is in apply error state");
+      throw make_runtime_error("GraphExecutor is in apply error state");
     case GraphExecuteStage::kPostApplyError:
-      return utils::FailedPreconditionError("GraphExecutor is in post-apply error state");
+      throw make_runtime_error("GraphExecutor is in post-apply error state");
 
     default:
-      return utils::FailedPreconditionError("GraphExecutor is in unknown state");
+      throw make_runtime_error("GraphExecutor is in unknown state");
   }
 }
-
 
 }  // namespace ax::graph

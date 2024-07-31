@@ -1,7 +1,6 @@
 #pragma once
 #include "ax/core/common.hpp"
 #include "ax/core/config.hpp"
-#include "ax/core/status.hpp"
 #include "ax/graph/common.hpp"
 #include "ax/graph/payload.hpp"
 #include "ax/graph/pin.hpp"
@@ -11,7 +10,7 @@
 #include <string>
 
 namespace ax::graph {
-using NodeConstructor = std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*, idx)>;
+using NodeConstructor = std::function<std::unique_ptr<NodeBase>(NodeDescriptor const*, size_t)>;
 
 namespace details {
 
@@ -25,9 +24,9 @@ std::vector<std::string> const& get_node_names();
 
 
 struct NodeDescriptor {
-  NodeDescriptor(TypeIdentifier type): type_(type) {}
+  NodeDescriptor(type_index type): type_(type) {}
 
-  TypeIdentifier type_;
+  type_index type_;
   std::string name_;
   std::string description_;
   std::vector<PinDescriptor> inputs_;
@@ -45,7 +44,7 @@ class NodeDescriptorFactory {
 public:
   static_assert(std::is_base_of_v<NodeBase, T>, "T must be derived from NodeBase");
   NodeDescriptorFactory() : descriptor_(typeid(T)) {
-    descriptor_.ctor_ = [](NodeDescriptor const* descript, idx id) -> std::unique_ptr<NodeBase> {
+    descriptor_.ctor_ = [](NodeDescriptor const* descript, size_t id) -> std::unique_ptr<NodeBase> {
       return std::make_unique<T>(descript, id);
     };
   }
@@ -93,43 +92,38 @@ class NodeBase {
 public:
   virtual ~NodeBase() = default;
   // Core apply function, will be called by the graph system.
-  virtual Status Apply(idx frame_id);
-  virtual Status PreApply();
-  virtual Status PostApply();
+  virtual void Apply(size_t frame_id);
+  virtual void PreApply();
+  virtual void PostApply();
 
   // Reserved for future use
-  virtual Status OnConnect(idx in_io_index);
-
-
-  // Call from Create().
-  virtual Status OnConstruct();
-  virtual void OnDestroy();
+  virtual void OnConnect(size_t in_io_index);
 
   // Some node can have temporary data, such as a RenderMesh node, will register an 
   // entity to the scene, and use the internal renderer to render it.
-  virtual void CleanUp();
+  virtual void CleanUp() noexcept;
 
   // Serialize and Deserialize
   virtual boost::json::object Serialize() const;
   virtual void Deserialize(boost::json::object const& obj);
 
   // Getters:
-  idx GetId() const { return id_; }
+  size_t GetId() const { return id_; }
   NodeDescriptor const* GetDescriptor() const { return descriptor_; }
-  TypeIdentifier GetType() const { return descriptor_->type_; }
+  type_index GetType() const { return descriptor_->type_; }
 
-  Pin const* GetInput(idx index) const { return &inputs_[index]; }
-  Pin const* GetOutput(idx index) const { return &outputs_[index]; }
+  Pin const* GetInput(size_t index) const { return &inputs_[index]; }
+  Pin const* GetOutput(size_t index) const { return &outputs_[index]; }
 
-  idx GetNumInputs() const { return inputs_.size(); }
-  idx GetNumOutputs() const { return outputs_.size(); }
+  size_t GetNumInputs() const { return inputs_.size(); }
+  size_t GetNumOutputs() const { return outputs_.size(); }
 
   std::vector<Pin> const& GetInputs() const { return inputs_; }
   std::vector<Pin> const& GetOutputs() const { return outputs_; }
 
 protected:
   template <typename T, typename ... Args>
-  T* SetOutput(idx index, Args && ... arg) {
+  T* SetOutput(size_t index, Args && ... arg) {
     T* p = RetriveOutput<T>(index);
     if (p != nullptr) {
       *p = T(std::forward<Args>(arg)...);
@@ -138,8 +132,8 @@ protected:
   }
 
   template<typename T>
-  T* RetriveInput(idx index) {
-    if ((idx) inputs_.size() <= index || index < 0) {
+  T* RetriveInput(size_t index) {
+    if ((size_t) inputs_.size() <= index || index < 0) {
       return nullptr;
     }
     if (Payload* p = inputs_[index].payload_; p != nullptr) {
@@ -150,8 +144,8 @@ protected:
   }
 
   template<typename T>
-  T* RetriveOutput(idx index) {
-    if ((idx) outputs_.size() <= index || index < 0) {
+  T* RetriveOutput(size_t index) {
+    if ((size_t) outputs_.size() <= index || index < 0) {
       return nullptr;
     }
     if (Payload* p = outputs_[index].payload_; p != nullptr) {
@@ -162,8 +156,8 @@ protected:
   }
 
   template<typename T>
-  T const* RetriveOutput(idx index) const {
-    if ((idx) outputs_.size() <= index || index < 0) {
+  T const* RetriveOutput(size_t index) const {
+    if ((size_t) outputs_.size() <= index || index < 0) {
       return nullptr;
     }
     if (Payload* p = outputs_[index].payload_; p != nullptr) {
@@ -173,22 +167,22 @@ protected:
     }
   }
 
-  Pin* GetInput(idx index) { return &inputs_[index]; }
+  Pin* GetInput(size_t index) { return &inputs_[index]; }
 
-  Pin* GetOutput(idx index) { return &outputs_[index]; }
+  Pin* GetOutput(size_t index) { return &outputs_[index]; }
 
-  NodeBase(NodeDescriptor const* descriptor, idx id);
+  NodeBase(NodeDescriptor const* descriptor, size_t id);
 
 private:
   // Whatever, although friend is not recommended, but it is the only way to make the
   // factory function to be able to access the constructor, and user cannot access it.
   friend class Graph;
   // Factory
-  static std::unique_ptr<NodeBase> Create(NodeDescriptor const* descript, idx id);
+  static std::unique_ptr<NodeBase> Create(NodeDescriptor const* descript, size_t id);
 
 
   NodeDescriptor const* descriptor_;
-  idx const id_;
+  size_t const id_;
   // Node should not care about the memory allocation of input params.
   std::vector<Pin> inputs_;
 

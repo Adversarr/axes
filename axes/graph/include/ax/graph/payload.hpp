@@ -1,5 +1,4 @@
 #pragma once
-#include <absl/container/flat_hash_map.h>
 
 #include <functional>
 #include <typeindex>
@@ -29,6 +28,8 @@ PayloadCtorDtor const& ensure_ctor_dtor(std::type_index type, PayloadCtorDtor co
 
 template <typename T> PayloadCtorDtor const& ensure_ctor_dtor() {
   static_assert(std::is_default_constructible_v<T>, "T must be default constructible.");
+  static_assert(std::is_nothrow_destructible_v<T>, "T must be nothrow destructible.");
+
   return ensure_ctor_dtor(
       typeid(T), PayloadCtorDtor{[](void* data) -> void { delete reinterpret_cast<T*>(data); },
                                  []() -> void* { return new T; }});
@@ -65,7 +66,7 @@ public:
   }
 
   // Test if the payload is empty.
-  operator bool() const noexcept { return data_ != nullptr; }
+  explicit operator bool() const noexcept { return data_ != nullptr; }
 
   static Payload Create(std::type_index t);
 

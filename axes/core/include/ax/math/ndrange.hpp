@@ -1,6 +1,8 @@
 #pragma once
 #include "ax/math/common.hpp"
 #include "ax/utils/iota.hpp"
+#include "ax/math/shape.hpp"
+
 namespace ax::math {
 
 /****************************** iota ******************************/

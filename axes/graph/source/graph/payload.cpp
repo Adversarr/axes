@@ -9,7 +9,7 @@ namespace ax::graph {
 namespace details {
 
 struct TypeRegistry {
-  absl::flat_hash_map<std::type_index, PayloadCtorDtor> map_;
+  std::map<std::type_index, PayloadCtorDtor> map_;
 };
 
 PayloadCtorDtor const& ensure_ctor_dtor(std::type_index type, PayloadCtorDtor const &dtor) {
@@ -32,7 +32,7 @@ Payload::~Payload() {
   if (auto it = map.find(type_); it != map.end()) {
     it->second.dtor_(data_);
   } else {
-    AX_CHECK(false) << "Payload type not registered: " << type_.name();
+    AX_CHECK(false, "Payload type not registered: {}", type_.name());
   }
 }
 Payload Payload::Create(std::type_index t) {

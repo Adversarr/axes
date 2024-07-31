@@ -2,8 +2,8 @@
 #  error "This file should only be included in CUDA mode"
 #endif
 
-#include <cuda.h>
-#include <cuda_runtime_api.h>
+// #include <cuda.h>
+// #include <cuda_runtime_api.h>
 #include <thrust/copy.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -18,11 +18,8 @@ template<typename T>
 auto arg(T x) { return std::arg(x); }
 #endif
 
-#include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/elasticity/neohookean_bw.hpp"
 #include "ax/fem/elasticity/stable_neohookean.hpp"
-#include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity_gpu.cuh"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/decomp/svd/svd_cuda.cuh"
@@ -615,8 +612,6 @@ __device__ idx coo_locate_hessian(idx elem_id, idx i, idx j, idx di, idx dj) {
   return coo_offset + local_offset;
 }
 
-
-
 template <idx dim>
 __global__ void gather_hessian(SparseCOO* coo, math::veci<dim + 1> const* elements,
                                math::matr<dim, dim> const* rinv,
@@ -647,14 +642,50 @@ __global__ void gather_hessian(SparseCOO* coo, math::veci<dim + 1> const* elemen
   }
 }
 
+template <idx dim>
+__global__ void gather_hessian2(
+    real* dst,
+    HessianGatherInfo *hessian_gather_info,
+    idx* hessian_gather_entries,
+    SparseCOO* hessian_on_vertices,
+    idx max_entries
+    ) {
+  idx i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= max_entries) return;
+  dst[i] = 0;
+  for (idx entry = hessian_gather_entries[i]; entry < hessian_gather_entries[i + 1]; ++entry) {
+    auto& hgi = hessian_gather_info[entry];
+    idx row = hgi.i, col = hgi.j;
+    idx element_id = hgi.element_id;
+    idx local_i = hgi.local_i;
+    idx local_j = hgi.local_j;
+    idx local_di = hgi.local_di;
+    idx local_dj = hgi.local_dj;
+    idx coo = coo_locate_hessian<dim>(element_id, local_i, local_j, local_di, local_dj);
+
+    SparseCOO& coo_entry = hessian_on_vertices[coo];
+    idx row_coo = coo_entry.row, col_coo = coo_entry.col;
+
+    // NOTE: check
+    // if (row == row_coo && col == col_coo) {
+    dst[i] += hessian_on_vertices[coo].val;
+    // } else {
+    //   printf("Error: i=%ld, row=%ld, col=%ld, row_coo=%ld, col_coo=%ld\n", i, row, col, row_coo, col_coo);
+    // }
+  }
+}
+
 template <idx dim, template <idx> class ElasticModelTemplate>
 void ElasticityCompute_GPU<dim, ElasticModelTemplate>::GatherHessianToVertices() {
   auto const ne = this->mesh_->GetNumElements();
-  gather_hessian<dim><<<(ne + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+  idx nnz = impl_->hessian_gather_entries_.size() - 1;
+  gather_hessian2<dim><<<(nnz + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+      thrust::raw_pointer_cast(impl_->hessian_on_vertices2_.data()),
+      thrust::raw_pointer_cast(impl_->hessian_gather_info_.data()),
+      thrust::raw_pointer_cast(impl_->hessian_gather_entries_.data()),
       thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
-      thrust::raw_pointer_cast(impl_->elements_.data()),
-      thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
-      thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()), ne);
+      nnz
+  );
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -706,38 +737,6 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
   return cpu;
 }
 
-template <idx dim>
-__global__ void gather_hessian2(
-    real* dst,
-    HessianGatherInfo *hessian_gather_info,
-    idx* hessian_gather_entries,
-    SparseCOO* hessian_on_vertices,
-    idx max_entries
-    ) {
-  idx i = blockIdx.x * blockDim.x + threadIdx.x;
-  if (i >= max_entries) return;
-  dst[i] = 0;
-  for (idx entry = hessian_gather_entries[i]; entry < hessian_gather_entries[i + 1]; ++entry) {
-    auto& hgi = hessian_gather_info[entry];
-    idx row = hgi.i, col = hgi.j;
-    idx element_id = hgi.element_id;
-    idx local_i = hgi.local_i;
-    idx local_j = hgi.local_j;
-    idx local_di = hgi.local_di;
-    idx local_dj = hgi.local_dj;
-    idx coo = coo_locate_hessian<dim>(element_id, local_i, local_j, local_di, local_dj);
-
-    SparseCOO& coo_entry = hessian_on_vertices[coo];
-    idx row_coo = coo_entry.row, col_coo = coo_entry.col;
-
-    // NOTE: check
-    // if (row == row_coo && col == col_coo) {
-    dst[i] += hessian_on_vertices[coo].val;
-    // } else {
-    //   printf("Error: i=%ld, row=%ld, col=%ld, row_coo=%ld, col_coo=%ld\n", i, row, col, row_coo, col_coo);
-    // }
-  }
-}
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
@@ -777,17 +776,6 @@ math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessian
   return cpu;
 }
 
-template class ElasticityCompute_GPU<2, elasticity::StableNeoHookean>;
-template class ElasticityCompute_GPU<2, elasticity::NeoHookeanBW>;
-template class ElasticityCompute_GPU<2, elasticity::StVK>;
-template class ElasticityCompute_GPU<2, elasticity::Linear>;
-template class ElasticityCompute_GPU<2, elasticity::IsotropicARAP>;
-
-template class ElasticityCompute_GPU<3, elasticity::StableNeoHookean>;
-template class ElasticityCompute_GPU<3, elasticity::NeoHookeanBW>;
-template class ElasticityCompute_GPU<3, elasticity::StVK>;
-template class ElasticityCompute_GPU<3, elasticity::Linear>;
-template class ElasticityCompute_GPU<3, elasticity::IsotropicARAP>;
 
 }  // namespace fem
 }  // namespace ax

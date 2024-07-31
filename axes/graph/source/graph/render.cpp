@@ -6,9 +6,11 @@
 #include <boost/json/stream_parser.hpp>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/graph/cache_sequence.hpp"
 #include "ax/graph/executor.hpp"
@@ -16,7 +18,6 @@
 #include "ax/graph/node.hpp"
 #include "ax/graph/serial.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ed = ax::NodeEditor;
 
@@ -58,16 +59,17 @@ char json_out_path[64] = "blueprint.json";
 static void run_once();
 
 std::unique_ptr<GraphExecutorBase>& ensure_executor() {
-  auto &g = ensure_resource<Graph>();
+  auto& g = ensure_resource<Graph>();
   if (auto* ptr = try_get_resource<std::unique_ptr<GraphExecutorBase>>()) {
-    if_likely (&(ptr->get()->GetGraph()) == &g) {
-      return *ptr;
-    } else {
+    if_likely(&(ptr->get()->GetGraph()) == &g) { return *ptr; }
+    else {
       erase_resource<std::unique_ptr<GraphExecutorBase>>();
-      return add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+      return add_resource<std::unique_ptr<GraphExecutorBase>>(
+          std::make_unique<GraphExecutorBase>(g));
     }
   } else {
-    auto &r = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    auto& r
+        = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     return r;
   }
 }
@@ -80,13 +82,14 @@ void draw_node_content_default(NodeBase* node) {
   auto const& in = node->GetInputs();
   auto const& out = node->GetOutputs();
   size_t n_max_io = std::max(in.size(), out.size());
-  absl::InlinedVector<real, 16> input_widths;
+  std::vector<float> input_widths;
   float max_width = 0;
-  for (size_t i = 0; i < in.size(); ++i) {
-    auto size = ImGui::CalcTextSize(in[i].descriptor_->name_.c_str(), nullptr, true);
+  for (const auto & i : in) {
+    auto size = ImGui::CalcTextSize(i.descriptor_->name_.c_str(), nullptr, true);
     input_widths.push_back(size.x);
     max_width = std::max(max_width, size.x);
   }
+
   for (size_t i = 0; i < n_max_io; ++i) {
     if (i < in.size()) {
       ed::BeginPin(in[i].id_, ed::PinKind::Input);
@@ -137,11 +140,8 @@ static void draw_socket(Socket* socket) {
 static void add_node(Graph& g, char const* name) {
   auto desc = details::get_node_descriptor(name);
   if (desc) {
-    auto opt_node = g.AddNode(desc);
-    if (!opt_node.ok()) {
-      AX_LOG(ERROR) << opt_node;
-    }
-    auto node = opt_node.value();
+    // TODO: Try except here
+    auto* node = g.AddNode(desc);
 
     // current mouse position in the editor.
     draw_node(node);
@@ -158,24 +158,22 @@ static void handle_inputs() {
     ed::PinId input_id, output_id;
     if (ed::QueryNewLink(&input_id, &output_id)) {
       if (ed::AcceptNewItem()) {
-        idx inid = input_id.Get();
-        idx outid = output_id.Get();
+        size_t inid = input_id.Get();
+        size_t outid = output_id.Get();
         auto input = g.GetPin(inid);
         auto output = g.GetPin(outid);
-        StatusOr<Socket*> sock;
+        // TODO: Try except
+        Socket* sock;
         if (input->is_input_) {
           sock = g.AddSocket(output, input);
         } else {
           sock = g.AddSocket(input, output);
         }
-        if (sock.ok()) {
-          auto s = sock.value();
-          if (s != nullptr) {
-            AX_LOG(INFO) << "Created link: " << s->input_->node_id_ << ":"
-                         << s->input_->node_io_index_ << "->" << s->output_->node_id_ << ":"
-                         << s->output_->node_io_index_;
-            draw_socket(s);
-          }
+        if (sock != nullptr) {
+          AX_INFO("Create link: {}:{} -> {}:{}", sock->input_->node_id_,
+                  sock->input_->node_io_index_, sock->output_->node_id_,
+                  sock->output_->node_io_index_);
+          draw_socket(sock);
         }
       }
     }
@@ -185,7 +183,7 @@ static void handle_inputs() {
     ed::LinkId link_id = 0;
     while (ed::QueryDeletedLink(&link_id)) {
       if (ed::AcceptDeletedItem()) {
-        AX_LOG(INFO) << "Deleted link: " << link_id.Get();
+        AX_INFO("Deleted link: {}", link_id.Get());
         g.RemoveSocket(link_id.Get());
       }
     }
@@ -193,7 +191,7 @@ static void handle_inputs() {
     ed::NodeId node_id = 0;
     while (ed::QueryDeletedNode(&node_id)) {
       if (ed::AcceptDeletedItem()) {
-        AX_LOG(INFO) << "Deleted node: " << node_id.Get();
+        AX_INFO("Deleted node: {}", node_id.Get());
         g.RemoveNode(node_id.Get());
       }
     }
@@ -338,7 +336,8 @@ static void draw_config_window(gl::UiRenderEvent) {
     return;
   }
   if (!ImGui::Begin("Graph Commander", &is_config_open_,
-       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize)) {
+                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar
+                        | ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::End();
     return;
   }
@@ -385,11 +384,8 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Execute All")) {
-    auto status = executor->Execute();
-    if (!status.ok()) {
-      AX_LOG(ERROR) << status;
-      message = status.message();
-    }
+    // TODO: Try except
+    executor->Execute();
   }
   ImGui::SameLine();
   if (ImGui::Button("Execute Once")) {
@@ -407,7 +403,6 @@ static void draw_config_window(gl::UiRenderEvent) {
   ImGui::SameLine();
   ImGui::SetNextItemWidth(200);
   need_trigger_event |= ImGui::DragInt("Idx", &cache_in_show, 0, end);
-
 
   /* Import/Export */
   ImGui::Separator();
@@ -434,7 +429,7 @@ static void draw_once(gl::UiRenderEvent) {
     return;
   }
   if (!ImGui::Begin("Node editor", &is_open_,
-       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
     ImGui::End();
     return;
   }
@@ -446,7 +441,7 @@ static void draw_once(gl::UiRenderEvent) {
   if (need_load_json) {
     std::ifstream file(ax_blueprint_root + json_out_path);
     if (!file) {
-      AX_LOG(ERROR) << "Cannot open file: " << json_out_path;
+      AX_ERROR("Cannot open file: {}", json_out_path);
     } else {
       Deserializer d(g);
       boost::json::stream_parser p;
@@ -458,10 +453,8 @@ static void draw_once(gl::UiRenderEvent) {
       p.write(buffer);
       p.finish();
       auto json = p.release();
-      auto s = d.Deserialize(json.as_object());
-      if (!s.ok()) {
-        AX_LOG(ERROR) << "Failed to load blue print!" << s;
-      }
+      // TODO: Try except
+      d.Deserialize(json.as_object());
       has_cycle = ensure_executor()->HasCycle();
 
       auto const& meta = d.node_metadata_;
@@ -490,7 +483,8 @@ static void draw_once(gl::UiRenderEvent) {
   if (need_export_json) {
     std::ofstream file(ax_blueprint_root + json_out_path);
     if (!file) {
-      AX_LOG(ERROR) << "Cannot open file: " << json_out_path;
+      // AX_LOG(ERROR) << "Cannot open file: " << json_out_path;
+      AX_ERROR("Cannot open file: {}", json_out_path);
     } else {
       export_json(file);
     }
@@ -513,12 +507,12 @@ static void draw_once(gl::UiRenderEvent) {
 }
 
 static void init(gl::ContextInitEvent const&) {
-  AX_LOG(INFO) << "Create editor context";
+  AX_TRACE("Create editor context");
   context_ = ed::CreateEditor();
 }
 
 static void cleanup(gl::ContextDestroyEvent const&) {
-  AX_LOG(INFO) << "Destroy editor context";
+  AX_TRACE("Destroy editor context");
   ed::DestroyEditor(context_);
   context_ = nullptr;
 }
@@ -535,16 +529,13 @@ void on_menu_bar(gl::MainMenuBarRenderEvent) {
   }
 }
 
-static void run_once(){
+static void run_once() {
   auto& e = ensure_executor();
   auto stage = e->GetStage();
   switch (stage) {
     case GraphExecuteStage::kIdle: {
-      auto s = e->Begin();
-      if (!s.ok()) {
-        AX_LOG(ERROR) << "Failed to begin executor: " << s;
-        // Do not call end, because we may need the error stage information.
-      }
+      // TODO: Try except
+      e->Begin();
     }
     case GraphExecuteStage::kPrePreApply:
     case GraphExecuteStage::kPreApplyDone:
@@ -552,17 +543,15 @@ static void run_once(){
     case GraphExecuteStage::kApplyDone:
     case GraphExecuteStage::kPrePostApply:
     case GraphExecuteStage::kPostApplyDone: {
-      auto s = e->WorkOnce();
-      if (!s.ok()) {
-        AX_LOG(ERROR) << "Error in work once: " << s;
-      }
+      // TODO: Try except
+      e->WorkOnce();
       break;
     }
 
     case GraphExecuteStage::kPreApplyError:
     case GraphExecuteStage::kApplyError:
     case GraphExecuteStage::kPostApplyError: {
-      AX_LOG(ERROR) << "Error in executor: " << int(stage);
+      AX_ERROR("Error in executor: {}", int(stage));
       std::cout << "Error.." << std::endl;
       running_ = false;
       break;
@@ -575,7 +564,7 @@ static void run_once(){
 }
 
 void on_tick_logic(gl::TickLogicEvent) {
-  if (! running_) {
+  if (!running_) {
     return;
   }
   run_once();
@@ -613,12 +602,11 @@ void install_renderer(GraphRendererOptions opt) {
     if (std::filesystem::exists(ax_blueprint_root + spath)) {
       std::ifstream file(ax_blueprint_root + spath);
       if (!file) {
-        AX_LOG(ERROR) << "Cannot open file: " << spath;
+        AX_ERROR("Cannot open file: {}", spath);
       } else {
         need_load_json = true;
       }
     }
-
 
     for (size_t i = 0; i < spath.size(); ++i) {
       json_out_path[i] = spath[i];
@@ -633,13 +621,10 @@ void install_renderer(GraphRendererOptions opt) {
   connect<gl::MainMenuBarRenderEvent, &on_menu_bar>();
   connect<gl::TickLogicEvent, &on_tick_logic>();
 
-  add_clean_up_hook("Remove Graph", []() -> Status {
-    erase_resource<Graph>();
-    AX_RETURN_OK();
-  });
+  add_clean_up_hook("Remove Graph", []() { erase_resource<Graph>(); });
 }
 
-using WidgetMap = absl::flat_hash_map<std::type_index, CustomNodeRender>;
+using WidgetMap = std::unordered_map<std::type_index, CustomNodeRender>;
 
 void add_custom_node_render(std::type_index type, CustomNodeRender const& widget) {
   auto& map = ensure_resource<WidgetMap>();

@@ -1,6 +1,8 @@
 #include <imgui_node_editor.h>
+#include <iostream>
 
 #include "ax/core/entt.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/gl/colormap.hpp"
 #include "ax/gl/primitives/lines.hpp"
@@ -10,7 +12,6 @@
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/nodes/gl_prims.hpp"
-#include "ax/utils/status.hpp"
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
@@ -59,7 +60,7 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* entity = RetriveInput<entt::entity>(0);
     auto* mesh = RetriveInput<geo::SurfaceMesh>(1);
     auto* color = RetriveInput<math::field4r>(2);
@@ -70,7 +71,7 @@ public:
     auto* flush = RetriveInput<bool>(7);
 
     if (mesh == nullptr) {
-      return utils::FailedPreconditionError("mesh is not set.");
+      throw make_invalid_argument("mesh is not set.");
     }
 
     math::vec4r u_color_inuse = math::vec4r::Constant(0.);
@@ -114,8 +115,6 @@ public:
 
     SetOutput<gl::Mesh>(1, mesh_comp);
     SetOutput<Entity>(0, entity_inuse);
-
-    AX_RETURN_OK();
   }
 
   void CleanUp() override {
@@ -151,7 +150,7 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* entity = RetriveInput<entt::entity>(0);
     auto* vertices = RetriveInput<math::field3r>(1);
     auto* indices = RetriveInput<math::field2i>(2);
@@ -162,17 +161,18 @@ public:
 
     if (vertices == nullptr) {
       if (entity == nullptr) {
-        return utils::FailedPreconditionError("points is not set.");
+        // return utils::FailedPreconditionError("points is not set.");
+        throw make_invalid_argument("points is not set.");
       }
       auto* msh = try_get_component<gl::Mesh>(*entity);
       if (msh == nullptr) {
-        return utils::FailedPreconditionError("The input entity does not have a mesh");
+        throw make_invalid_argument("The input entity does not have a mesh");
       } else {
         auto& l = add_or_replace_component<gl::Lines>(*entity, gl::Lines::Create(*msh));
         entity_inuse = *entity;
         SetOutput<Entity>(0, *entity);
         SetOutput<gl::Lines>(1, l);
-        AX_RETURN_OK();
+        return;
       }
     }
 
@@ -208,7 +208,6 @@ public:
 
     SetOutput<Entity>(0, entity_inuse);
     SetOutput<gl::Lines>(1, lines_comp);
-    AX_RETURN_OK();
   }
 
   void CleanUp() override {
@@ -245,14 +244,14 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* entity = RetriveInput<entt::entity>(0);
     auto* points = RetriveInput<math::field3r>(1);
     auto* color = RetriveInput<math::field4r>(2);
     auto* u_color = RetriveInput<math::vec4r>(3);
 
     if (points == nullptr) {
-      return utils::FailedPreconditionError("points is not set.");
+      throw make_invalid_argument("points is not set.");
     }
 
     if (entity != nullptr) {
@@ -270,7 +269,7 @@ public:
       points_comp.colors_ = math::field4r::Constant(4, points->cols(), 0.7);
     } else {
       if (color->cols() != points->cols()) {
-        return utils::InvalidArgumentError("The number of colors does not match the number of points.");
+        throw make_invalid_argument("The number of colors does not match the number of points.");
       }
       points_comp.colors_ = *color;
     }
@@ -280,7 +279,6 @@ public:
 
     SetOutput<gl::Points>(1, points_comp);
     SetOutput<Entity>(0, entity_inuse);
-    AX_RETURN_OK();
   }
 
   void CleanUp() override {
@@ -335,21 +333,21 @@ public:
     });
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* value = RetriveInput<real>(0);
     auto* low = RetriveInput<real>(1);
     auto* high = RetriveInput<real>(2);
 
     if (value == nullptr) {
-      return utils::FailedPreconditionError("value is not set.");
+      throw make_invalid_argument("value is not set.");
     }
 
     if (low == nullptr) {
-      return utils::FailedPreconditionError("low is not set.");
+      throw make_invalid_argument("low is not set.");
     }
 
     if (high == nullptr) {
-      return utils::FailedPreconditionError("high is not set.");
+      throw make_invalid_argument("high is not set.");
     }
 
     real value_inuse = *value;
@@ -361,7 +359,6 @@ public:
     math::vec4r rgba;
     rgba << rgb, 1;
     SetOutput<math::vec4r>(0, rgba);
-    AX_RETURN_OK();
   }
 
   boost::json::object Serialize() const override {
@@ -374,7 +371,7 @@ public:
   void Deserialize(boost::json::object const& obj) override {
     if (obj.contains("which_map")) {
       which_map = obj.at("which_map").as_int64();
-      if (which_map < 0 || (size_t)which_map > sizeof(cmap_names) / sizeof(cmap_names[0])) {
+      if (which_map < 0 || static_cast<size_t>(which_map) > sizeof(cmap_names) / sizeof(cmap_names[0])) {
         which_map = 0;
       }
     }
@@ -394,11 +391,11 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* field = RetriveInput<math::field1r>(0);
 
     if (field == nullptr) {
-      return utils::FailedPreconditionError("field is not set.");
+      throw make_invalid_argument("field is not set.");
     }
 
     math::field1r const& field_inuse = *field;
@@ -407,7 +404,6 @@ public:
     out.topRows(3) = field_inuse.replicate(3, 1);
     out.row(3).setOnes();
     SetOutput<math::field4r>(0, std::move(out));
-    AX_RETURN_OK();
   }
 };
 
@@ -439,10 +435,9 @@ public:
     add_or_replace_component<gl::Mesh>(ent_created, mesh);
   }
 
-  Status OnConstruct() override {
+  void OnConstruct() override {
     connect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
     ent_created = create_entity();
-    AX_RETURN_OK();
   }
 
   void OnDestroy() override {
@@ -450,16 +445,15 @@ public:
     disconnect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
   }
 
-  Status Apply(idx) override {
+  void Apply(size_t) override {
     auto* mesh = RetriveInput<gl::Mesh>(0);
     if (mesh == nullptr) {
-      return utils::FailedPreconditionError("Mesh is not set.");
+      throw make_invalid_argument("Mesh is not set.");
     }
     meshes.push_back(*mesh);
     if (auto flush = RetriveInput<bool>(1); flush != nullptr) {
       meshes.back().flush_ = *flush;
     }
-    AX_RETURN_OK();
   }
 
   std::vector<gl::Mesh> meshes;

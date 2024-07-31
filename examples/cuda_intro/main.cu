@@ -7,12 +7,12 @@
 #include <thrust/zip_function.h>
 
 #include <ax/core/init.hpp>
+#include <ax/math/accessor.hpp>
 #include <complex>
 #include <cstdio>
 template <typename T> auto arg(T x) { return std::arg(x); }
 
-#include "ax/math/common.hpp"
-#include "ax/core/status.hpp"
+#include "ax/math/field_gpu.cuh"
 
 using namespace ax;
 using namespace ax::math;
@@ -20,9 +20,16 @@ using namespace ax::math;
 using real = double;
 
 __global__ void GpuAddKernel(const int num, real* x, real* y) {
-    const int thread_grid_idx = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
-    const int num_threads_in_grid = static_cast<int>(blockDim.x * gridDim.x);
-    for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
+  const int thread_grid_idx = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+  const int num_threads_in_grid = static_cast<int>(blockDim.x * gridDim.x);
+  for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
+}
+
+__global__ void gpu_test_accessor(FieldAccessor<real, 1> accessor) {
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (accessor->IsValidSub(i)) {
+    printf("%d %lf\n", i, accessor(i));
+  }
 }
 
 int main(int argc, char** argv) {
@@ -54,7 +61,7 @@ int main(int argc, char** argv) {
   printf("Device name: %s\n", props.name);
 
   real *x, *y;
-  err = cudaMalloc((void**) & x, 100 * sizeof(real));
+  err = cudaMalloc((void**)&x, 100 * sizeof(real));
   if (err != cudaSuccess) {
     printf("Failed to allocate memory for x.\n");
     return 1;
@@ -67,16 +74,13 @@ int main(int argc, char** argv) {
   GpuAddKernel<<<1, 32>>>(100, x, y);
   cudaDeviceSynchronize();
 
-
   thrust::host_vector<vec2r> h(102400);
-  for (int i = 0; i < 102400; ++i) h[i] .setRandom();
+  for (int i = 0; i < 102400; ++i) h[i].setRandom();
   thrust::device_vector<vec2r> a = h;
   thrust::device_vector<vec2r> b = h;
-  thrust::transform(
-      thrust::make_zip_iterator(thrust::make_tuple(a.begin(), b.begin())),
-      thrust::make_zip_iterator(thrust::make_tuple(a.end(), b.end())),
-      a.begin(),
-      thrust::make_zip_function(thrust::plus<vec2r>()));
+  thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(a.begin(), b.begin())),
+                    thrust::make_zip_iterator(thrust::make_tuple(a.end(), b.end())), a.begin(),
+                    thrust::make_zip_function(thrust::plus<vec2r>()));
   cudaDeviceSynchronize();
 
   constexpr idx dim = 3;
@@ -86,6 +90,14 @@ int main(int argc, char** argv) {
   thrust::device_vector<math::matr<dim, dim>> deformation_gradient_;
   thrust::device_vector<math::matr<dim, dim>> rinv_gpu_;
   thrust::device_vector<real> rest_volume_gpu_;
+
+  HostFieldData<real> host_field_data(24);
+  for (int i = 0; i < 24; ++i) host_field_data[i] = i;
+  DeviceFieldData<real> device_field_data = host_field_data;
+  auto accessor = math::make_accessor(device_field_data);
+  thrust::for_each(device_field_data.begin(), device_field_data.end(),
+                   [] __device__(real & x) { x += 1; });
+  gpu_test_accessor<<<16, 1>>>(accessor);
 
   seq_.resize(100);
   elements_.resize(100);

@@ -2,13 +2,8 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include "ax/core/logging.hpp"
 #include "ax/core/entt.hpp"
-#include "ax/utils/status.hpp"
-
-#if WIN32
-#  undef ERROR
-#endif
+#include "ax/core/logging.hpp"
 
 namespace ax::graph {
 namespace details {
@@ -21,14 +16,12 @@ struct wrapper {
   bool is_sorted = true;
 };
 
-static inline wrapper& ensure_wrapper() {
-  return ensure_resource<wrapper>();
-}
+static inline wrapper& ensure_wrapper() { return ensure_resource<wrapper>(); }
 NodeDescriptor const* factory_register(NodeDescriptor desc) {
-  auto &w = ensure_wrapper();
+  auto& w = ensure_wrapper();
   auto [it, b] = w.desc_.try_emplace(desc.name_, desc);
   if (b) {
-    AX_DLOG(INFO) << "NodeDescriptor: " << desc.name_ << " registered.";
+    AX_INFO("NodeDescriptor: {} registered.", desc.name_);
     ensure_resource<wrapper>().node_names_.emplace_back(desc.name_);
     w.is_sorted = false;
   }
@@ -36,7 +29,7 @@ NodeDescriptor const* factory_register(NodeDescriptor desc) {
 }
 
 std::vector<std::string> const& get_node_names() {
-  auto &w = ensure_wrapper();
+  auto& w = ensure_wrapper();
   if (!w.is_sorted) {
     std::sort(w.node_names_.begin(), w.node_names_.end());
     w.is_sorted = true;
@@ -55,40 +48,33 @@ NodeDescriptor const* get_node_descriptor(const char* name) {
 
 }  // namespace details
 
-std::unique_ptr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, idx id) {
+std::unique_ptr<NodeBase> NodeBase::Create(NodeDescriptor const* descript, size_t id) {
   auto& cmap = details::ensure_wrapper().desc_;
   auto it = cmap.find(descript->name_);
   if (it != cmap.end()) {
     return (it->second).ctor_(descript, id);
   }
-  AX_LOG(ERROR) << "Node " << descript->name_ << " not found.";
+  AX_ERROR("Node {} not found.", descript->name_);
   return nullptr;
 }
 
 // Some function have default implementation
-Status NodeBase::Apply(ax::idx) { AX_RETURN_OK(); }
+void NodeBase::Apply(size_t) {}
 
-Status NodeBase::PreApply() { AX_RETURN_OK(); }
+void NodeBase::PreApply() {}
 
-Status NodeBase::PostApply() { AX_RETURN_OK(); }
+void NodeBase::PostApply() {}
 
-Status NodeBase::OnConnect(idx) { AX_RETURN_OK(); }
+void NodeBase::OnConnect(size_t) {}
+void NodeBase::CleanUp() noexcept {}
 
-Status NodeBase::OnConstruct() { AX_RETURN_OK(); }
-
-void NodeBase::OnDestroy() {}
-
-void NodeBase::CleanUp() {}
-
-boost::json::object NodeBase::Serialize() const {
-  return {};
-}
+boost::json::object NodeBase::Serialize() const { return {}; }
 
 void NodeBase::Deserialize(boost::json::object const&) {
   // nothing to do.
 }
 
-
-NodeBase::NodeBase(NodeDescriptor const* descriptor, idx id) : descriptor_(descriptor), id_(id) {}
+NodeBase::NodeBase(NodeDescriptor const* descriptor, size_t id)
+    : descriptor_(descriptor), id_(id) {}
 
 }  // namespace ax::graph

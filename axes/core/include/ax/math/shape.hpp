@@ -1,6 +1,5 @@
 #pragma once
-#include "common.hpp"
-#include "shape.hpp"
+#include "ax/core/common.hpp"
 
 namespace ax::math {
 

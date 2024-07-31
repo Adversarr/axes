@@ -2,7 +2,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "ax/math/traits.hpp"
+#include "ax/math/common.hpp"  // IWYU pragma: export
 
 // Not column vector
 template <typename T> struct fmt::formatter<
@@ -16,7 +16,8 @@ template <typename T> struct fmt::formatter<
                         char>> {
   constexpr auto parse(format_parse_context& ctx) /* NOLINT */ { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(T const& vec, FormatContext& ctx) /* NOLINT */ const {
+  template <typename FormatContext>
+  auto format(T const& vec, FormatContext& ctx) /* NOLINT */ const {
     return ostream_formatter{}.format(vec.transpose(), ctx);
   }
 };

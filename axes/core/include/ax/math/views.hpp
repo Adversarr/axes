@@ -1,8 +1,10 @@
 #pragma once
 #include <range/v3/view/cartesian_product.hpp>
+#include <range/v3/view/counted.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/zip.hpp>
 
+#include "ax/math/accessor.hpp"
 #include "shape.hpp"
 
 namespace ax::math {
@@ -24,13 +26,13 @@ template <size_t dim> auto iter(Shape<dim> const& shape) {
 template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim>& accessor) {
   return ranges::views::zip(
       iter(accessor.GetShape()),
-      ranges::subrange(accessor.Data(), accessor.Data() + accessor.GetShape().Size()));
+      ranges::views::counted(accessor.Data(), accessor.GetShape().Size()));
 }
 
 template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim> const& accessor) {
   return ranges::views::zip(
       iter(accessor.GetShape()),
-      ranges::subrange(accessor.Data(), accessor.Data() + accessor.GetShape().Size()));
+      ranges::views::counted(accessor.Data(), accessor.GetShape().Size()));
 }
 
 }  // namespace ax::math

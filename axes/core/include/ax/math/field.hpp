@@ -74,7 +74,7 @@ public:
 
   // construct from other type of fields.
   template <typename OtherT, typename OtherC>
-  AX_FORCE_INLINE AX_HOST FieldData(FieldData<OtherT, OtherC> const& other) noexcept
+  AX_FORCE_INLINE AX_HOST FieldData(FieldData<OtherT, OtherC> const& other) noexcept  // NOLINT
       : data_(other.Underlying()) {}
 
   template <typename OtherT, typename OtherC>
@@ -84,11 +84,11 @@ public:
   }
 
   AX_FORCE_INLINE AX_HOST void Swap(FieldData& other) noexcept { data_.swap(other.data_); }
-
   AX_FORCE_INLINE AX_HOST void Resize(size_type new_size) noexcept { data_.resize(new_size); }
   AX_FORCE_INLINE AX_HOST void Reserve(size_type new_capacity) noexcept {
     data_.reserve(new_capacity);
   }
+
   AX_FORCE_INLINE AX_HOST size_type Capacity() const noexcept { return data_.capacity(); }
   AX_FORCE_INLINE AX_HOST size_type Size() const noexcept { return data_.size(); }
   AX_FORCE_INLINE AX_HOST Container& Underlying() noexcept { return data_; }

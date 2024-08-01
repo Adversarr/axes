@@ -2,6 +2,8 @@
 
 #include "ax/core/logging.hpp"
 #include "ax/math/linsys/dense/HouseholderQR.hpp"
+#include <set>
+#include <map>
 
 namespace ax::geo {
 

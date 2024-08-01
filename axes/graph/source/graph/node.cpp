@@ -1,17 +1,15 @@
 #include "ax/graph/node.hpp"
 
-#include <absl/container/flat_hash_map.h>
-
 #include "ax/core/entt.hpp"
 #include "ax/core/logging.hpp"
 
 namespace ax::graph {
 namespace details {
 
-using constructor_map = absl::flat_hash_map<std::string, NodeConstructor>;
+using constructor_map = std::map<std::string, NodeConstructor>;
 
 struct wrapper {
-  absl::flat_hash_map<std::string, NodeDescriptor> desc_;
+  std::map<std::string, NodeDescriptor> desc_;
   std::vector<std::string> node_names_;
   bool is_sorted = true;
 };

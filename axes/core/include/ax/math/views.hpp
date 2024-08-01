@@ -26,13 +26,15 @@ template <size_t dim> auto iter(Shape<dim> const& shape) {
 template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim>& accessor) {
   return ranges::views::zip(
       iter(accessor.GetShape()),
-      ranges::views::counted(accessor.Data(), accessor.GetShape().Size()));
+      ranges::views::counted(accessor.Data(),
+                             static_cast<std::ptrdiff_t>(accessor.GetShape().Size())));
 }
 
 template <typename T, size_t dim> auto enumerate(FieldAccessor<T, dim> const& accessor) {
   return ranges::views::zip(
       iter(accessor.GetShape()),
-      ranges::views::counted(accessor.Data(), accessor.GetShape().Size()));
+      ranges::views::counted(accessor.Data(),
+                             static_cast<std::ptrdiff_t>(accessor.GetShape().Size())));
 }
 
 }  // namespace ax::math

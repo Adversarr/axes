@@ -1,6 +1,4 @@
 // Path: axes/include/axes/ax_pch.hpp
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
 
 #include <algorithm>
 #include <cmath>
@@ -19,11 +17,8 @@
 #include <vector>
 
 #include "core/logging.hpp"
-#include "core/status.hpp"
 #include "math/common.hpp"
 #include "math/functional.hpp"
 #include "math/sparse.hpp"
-#include "optim/optimizer_base.hpp"
-#include "utils/status.hpp"
 
 #include "vdb/common.hpp"

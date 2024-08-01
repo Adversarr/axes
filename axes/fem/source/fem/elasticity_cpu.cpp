@@ -396,7 +396,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> const& pose,
+void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> const& pose,
                                                               ElasticityUpdateLevel upt) {
   idx const n_elem = this->mesh_->GetNumElements();
   auto& dg_l = this->deformation_gradient_;

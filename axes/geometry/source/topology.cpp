@@ -1,8 +1,6 @@
 #include "ax/geometry/topology.hpp"
 #include "ax/math/linalg.hpp"
-
-#include <absl/hash/hash.h>
-#include <absl/log/check.h>
+#include <set>
 
 namespace ax::geo {
 

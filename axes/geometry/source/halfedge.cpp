@@ -3,12 +3,11 @@
 //
 #include "ax/geometry/halfedge.hpp"
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
-#include <absl/container/inlined_vector.h>
-
 #include <entt/entity/entity.hpp>
 #include <map>
+#include <boost/container/small_vector.hpp>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
@@ -275,11 +274,11 @@ bool HalfedgeMesh::CheckCollapse(HalfedgeEdge* edge) {
   }
 
   // Foreach $k$ incident to both i and j, $(i,j,k)$ should be the vertices of a triangle.
-  absl::InlinedVector<HalfedgeVertex*, 16> i_incidents;
+  boost::container::small_vector<HalfedgeVertex*, 16> i_incidents;
   ForeachEdgeAroundVertex(
       head, [&i_incidents](HalfedgeEdge* e) { i_incidents.push_back(e->pair_->vertex_); });
   std::sort(i_incidents.begin(), i_incidents.end());
-  absl::InlinedVector<HalfedgeVertex*, 16> incidents_both;
+  boost::container::small_vector<HalfedgeVertex*, 16> incidents_both;
 
   ForeachEdgeAroundVertex(tail, [&i_incidents, &incidents_both](HalfedgeEdge* e) {
     if (std::binary_search(i_incidents.begin(), i_incidents.end(), e->pair_->vertex_)) {

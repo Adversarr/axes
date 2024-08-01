@@ -27,8 +27,10 @@ struct Graph::Impl {
   std::vector<size_t> uuid_reuse_node_, uuid_reuse_pin_, uuid_reuse_socket_;
   size_t uuid_next_ = 0;
   std::vector<UuidUnderlyingInfo> uuid_info_;
-  std::map<id_t, id_t> pin_to_node_;
-  std::map<id_t, std::set<id_t>> node_to_sockets_;
+
+  // Cache the mappings
+  std::map<ident_t, ident_t> pin_to_node_;
+  std::map<ident_t, std::set<ident_t>> node_to_sockets_;
 
   // Container for graph elements.
   std::vector<std::unique_ptr<NodeBase>> nodes_;
@@ -76,7 +78,7 @@ struct Graph::Impl {
   void EmplaceNode(std::unique_ptr<NodeBase> n) {
     AX_CHECK(n->id_ < uuid_info_.size(), "Internal Logic Error!");
     auto& uinfo = uuid_info_[n->id_];
-    node_to_sockets_.insert({n->id_, std::set<id_t>{}});
+    node_to_sockets_.insert({n->id_, std::set<ident_t>{}});
     if (uinfo.real_id_ == INVALID_ID) {
       uinfo.real_id_ = nodes_.size();
       nodes_.push_back(std::move(n));
@@ -94,7 +96,7 @@ struct Graph::Impl {
     }
   }
 
-  void RemoveNode(id_t i) {
+  void RemoveNode(ident_t i) {
     auto& n = nodes_[i];
     auto uid = n->id_;
     n.reset(nullptr);
@@ -116,7 +118,7 @@ struct Graph::Impl {
     node_to_sockets_[s.output_->node_id_].insert(s.id_);
   }
 
-  void RemoveSocket(id_t i) {
+  void RemoveSocket(ident_t i) {
     auto& s = sockets_[i];
     auto uid = s.id_;
     node_to_sockets_[s.input_->node_id_].erase(uid);
@@ -238,7 +240,7 @@ bool Graph::RemoveNode(size_t id) {
 
   if (auto it = impl_->node_to_sockets_.find(id); it != impl_->node_to_sockets_.end()) {
     auto copy = it->second;
-    for (id_t sock_id : copy) {
+    for (ident_t sock_id : copy) {
       RemoveSocket(sock_id);
     }
     impl_->node_to_sockets_.erase(id);
@@ -260,7 +262,7 @@ Socket* Graph::AddSocket(Pin* input, Pin* output) {
     RemoveSocket(existing_socket);
   }
 
-  id_t sock_id = impl_->UuidStep(kSocket);
+  ident_t sock_id = impl_->UuidStep(kSocket);
   Socket socket{sock_id, input, output};
 
   NodeBase* in_node = GetNode(input->node_id_);
@@ -276,7 +278,7 @@ Socket* Graph::AddSocket(Pin* input, Pin* output) {
   return &(impl_->sockets_[impl_->uuid_info_[sock_id].real_id_]);
 }
 
-Socket* Graph::AddSocket(id_t input_pin, id_t output_pin) {
+Socket* Graph::AddSocket(ident_t input_pin, ident_t output_pin) {
   Pin *input = GetPin(input_pin), *output = GetPin(output_pin);
   if (!input || !output) {
     return nullptr;
@@ -284,7 +286,7 @@ Socket* Graph::AddSocket(id_t input_pin, id_t output_pin) {
   return AddSocket(input, output);
 }
 
-Socket* Graph::AddSocket(id_t left, id_t input_pin, id_t right, id_t output_pin) {
+Socket* Graph::AddSocket(ident_t left, ident_t input_pin, ident_t right, ident_t output_pin) {
   NodeBase* data_in_node = GetNode(left);
   NodeBase* data_out_node = GetNode(right);
   // The node does not exist
@@ -318,13 +320,13 @@ bool Graph::CanConnectSocket(Pin const* input, Pin const* output) const {
   return true;
 }
 
-bool Graph::CanConnectSocket(id_t input_pin, id_t output_pin) const {
+bool Graph::CanConnectSocket(ident_t input_pin, ident_t output_pin) const {
   Pin const *input = GetPin(input_pin), *output = GetPin(output_pin);
   return CanConnectSocket(input, output);
 }
 
-bool Graph::CanConnectSocket(id_t input_node, id_t input_pin, id_t output_node,
-                             id_t output_pin) const {
+bool Graph::CanConnectSocket(ident_t input_node, ident_t input_pin, ident_t output_node,
+                             ident_t output_pin) const {
   NodeBase const* data_in_node = GetNode(input_node);
   NodeBase const* data_out_node = GetNode(output_node);
   if (data_in_node == nullptr || data_out_node == nullptr) {
@@ -342,7 +344,7 @@ bool Graph::CanConnectSocket(id_t input_node, id_t input_pin, id_t output_node,
                           &(data_out_node->inputs_[output_pin]));
 }
 
-Socket* Graph::GetSocket(id_t id) {
+Socket* Graph::GetSocket(ident_t id) {
   auto const& uinfo = impl_->uuid_info_;
   if (id >= uinfo.size() || id < 0) {
     throw make_out_of_range("Socket not found!");
@@ -364,7 +366,7 @@ Socket* Graph::GetSocket(Pin* output) {
   return GetSocket(output->socket_in_id_);
 }
 
-Socket* Graph::GetSocket(id_t input_pin, id_t output_pin) {
+Socket* Graph::GetSocket(ident_t input_pin, ident_t output_pin) {
   Socket* sock = GetSocket(GetPin(output_pin));
   if (sock == nullptr) {
     return nullptr;
@@ -373,7 +375,7 @@ Socket* Graph::GetSocket(id_t input_pin, id_t output_pin) {
   return sock;
 }
 
-Socket* Graph::GetSocket(id_t input_node, id_t input_pin, id_t output_node, id_t output_pin) {
+Socket* Graph::GetSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin) {
   NodeBase* data_in_node = GetNode(input_node);
   NodeBase* data_out_node = GetNode(output_node);
   if (data_in_node == nullptr || data_out_node == nullptr) {
@@ -389,7 +391,7 @@ Socket* Graph::GetSocket(id_t input_node, id_t input_pin, id_t output_node, id_t
   return GetSocket(data_in_node->outputs_[input_pin].id_, data_out_node->inputs_[output_pin].id_);
 }
 
-bool Graph::RemoveSocket(id_t id) { return RemoveSocket(GetSocket(id)); }
+bool Graph::RemoveSocket(ident_t id) { return RemoveSocket(GetSocket(id)); }
 
 bool Graph::RemoveSocket(Socket* sock) {
   if (sock == nullptr) {
@@ -405,7 +407,7 @@ bool Graph::RemoveSocket(Socket* sock) {
   return sock;
 }
 
-bool Graph::RemoveSocket(id_t input_pin, id_t output_pin) {
+bool Graph::RemoveSocket(ident_t input_pin, ident_t output_pin) {
   Socket* sock = GetSocket(input_pin, output_pin);
   if (sock == nullptr) {
     return false;
@@ -413,7 +415,7 @@ bool Graph::RemoveSocket(id_t input_pin, id_t output_pin) {
   return RemoveSocket(sock);
 }
 
-bool Graph::RemoveSocket(id_t input_node, id_t input_pin, id_t output_node, id_t output_pin) {
+bool Graph::RemoveSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin) {
   Socket* sock = GetSocket(input_node, input_pin, output_node, output_pin);
   if (sock == nullptr) {
     return false;
@@ -421,21 +423,21 @@ bool Graph::RemoveSocket(id_t input_node, id_t input_pin, id_t output_node, id_t
   return RemoveSocket(sock);
 }
 
-Pin* Graph::GetPin(id_t id) {
+Pin* Graph::GetPin(ident_t id) {
   auto pin_to_node_info = PinToNode(id);
   if (pin_to_node_info.node_id_ == INVALID_ID || pin_to_node_info.pin_id_ == INVALID_ID) {
     return nullptr;
   }
   NodeBase* node = GetNode(pin_to_node_info.node_id_);
-  id_t pi = pin_to_node_info.pin_id_;
+  ident_t pi = pin_to_node_info.pin_id_;
   Pin* result = pin_to_node_info.is_input_ ? &(node->inputs_[pi]) : &(node->outputs_[pi]);
   AX_CHECK(result->id_ == id, "{} != {}", result->id_, id);
   return result;
 }
 
-Pin const* Graph::GetPin(id_t id) const { return const_cast<Graph*>(this)->GetPin(id); }
+Pin const* Graph::GetPin(ident_t id) const { return const_cast<Graph*>(this)->GetPin(id); }
 
-PinToNodeInfo Graph::PinToNode(id_t pin_id) const {
+PinToNodeInfo Graph::PinToNode(ident_t pin_id) const {
   auto it = impl_->pin_to_node_.find(pin_id);
   if (it == impl_->pin_to_node_.end()) {
     return {INVALID_ID, INVALID_ID, true};
@@ -471,13 +473,13 @@ void Graph::Clear() {
   impl_ = std::make_unique<Impl>();
 }
 
-id_t Graph::GetNumNodes() const { return (impl_->nodes_.size() - impl_->uuid_reuse_node_.size()); }
+ident_t Graph::GetNumNodes() const { return (impl_->nodes_.size() - impl_->uuid_reuse_node_.size()); }
 
-id_t Graph::GetNumSockets() const {
+ident_t Graph::GetNumSockets() const {
   return impl_->sockets_.size() - impl_->uuid_reuse_socket_.size();
 }
 
-id_t Graph::GetCurrentUuid() const { return impl_->uuid_next_; }
+ident_t Graph::GetCurrentUuid() const { return impl_->uuid_next_; }
 
 void Graph::ForeachNode(std::function<void(NodeBase*)> const& func) {
   for (auto& node : impl_->nodes_) {

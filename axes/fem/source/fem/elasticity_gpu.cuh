@@ -1,34 +1,18 @@
-#ifndef AX_HAS_CUDA
-#  error "This file should only be included in CUDA mode"
-#endif
-
-// #include <cuda.h>
-// #include <cuda_runtime_api.h>
-#include <thrust/copy.h>
+#pragma once
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <thrust/sequence.h>
-#include <thrust/transform.h>
-#include <thrust/zip_function.h>
 
 // just MSVC + NVCC requires this:
 #ifdef _MSC_VER
-#include <complex>
-template<typename T>
-auto arg(T x) { return std::arg(x); }
+#  include <complex>
+template <typename T> auto arg(T x) { return std::arg(x); }
 #endif
 
-#include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity_gpu.cuh"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/decomp/svd/svd_cuda.cuh"
-// #include "ax/utils/time.hpp"
 
-
-namespace ax {
-
-namespace fem {
+namespace ax ::fem {
 
 template <idx dim> using SvdR = math::decomp::SvdResult<dim, real>;
 
@@ -42,10 +26,10 @@ struct VertexOnElementInfo {
 };
 
 struct HessianGatherInfo {
-  idx i, j;             // row, col in hessian
-  idx element_id;       // which element to fetch
-  idx local_i, local_j; // local index in the element
-  idx local_di, local_dj; // local index (dimension) in the element
+  idx i, j;                // row, col in hessian
+  idx element_id;          // which element to fetch
+  idx local_i, local_j;    // local index in the element
+  idx local_di, local_dj;  // local index (dimension) in the element
 };
 
 struct SparseCOO {
@@ -147,11 +131,10 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::~ElasticityCompute_GPU() {
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-bool ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> const& pose,
+void ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> const& pose,
                                                               ElasticityUpdateLevel upt) {
   auto error = cudaMemcpy(thrust::raw_pointer_cast(impl_->pose_gpu_.data()), pose.data(),
                           pose.size() * sizeof(real), cudaMemcpyHostToDevice);
-  // AX_CHECK(error == cudaSuccess) << "Failed to copy pose to GPU." << cudaGetErrorString(error);
   AX_CHECK(error == cudaSuccess, "Failed to copy pose to GPU: {}", cudaGetErrorString(error));
   idx n_elem = this->mesh_->GetNumElements();
   bool const need_svd
@@ -169,7 +152,6 @@ bool ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
   // thrust::copy(impl_->deformation_gradient_.begin(), impl_->deformation_gradient_.end(),
   //              deformation_gradient_cpu.begin());
   // std::cout << "Deformation gradient: " << deformation_gradient_cpu[0] << std::endl;
-  return true;
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -187,7 +169,7 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
       elements_host[eid][i] = elem[i];
     }
   }
-  thrust::copy(elements_host.begin(), elements_host.end(), impl_->elements_.begin());
+  impl_->elements_ = elements_host;
 
   impl_->rest_volume_gpu_.resize(n_elem);
   impl_->rinv_gpu_.resize(n_elem);
@@ -273,10 +255,10 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   }
   std::sort(hgi.begin(), hgi.end(),
             [n_vert](HessianGatherInfo const& a, HessianGatherInfo const& b) {
-    idx ai = a.i * n_vert * dim + a.j;
-    idx bi = b.i * n_vert * dim + b.j;
-    return ai < bi;
-  });
+              idx ai = a.i * n_vert * dim + a.j;
+              idx bi = b.i * n_vert * dim + b.j;
+              return ai < bi;
+            });
 
   thrust::host_vector<idx> hg_entries;
   hg_entries.push_back(0);
@@ -329,15 +311,14 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::SetLame(math::vec2r const
  *************************/
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-__global__ void compute_energy_impl(math::matr<dim, dim> const* deformation_gradient, real const* rest_volume,
-                                    SvdR<dim> const* svd_results, real* energy, math::vec2r const* lame,
-                                    idx n_elem) {
+__global__ void compute_energy_impl(math::matr<dim, dim> const* deformation_gradient,
+                                    real const* rest_volume, SvdR<dim> const* svd_results,
+                                    real* energy, math::vec2r const* lame, idx n_elem) {
   idx eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
   // printf("E begin: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
-  ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]); 
-  energy[eid] = model.Energy(deformation_gradient[eid], svd_results[eid])
-                * rest_volume[eid];
+  ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
+  energy[eid] = model.Energy(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
   // printf("E end: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
 }
 
@@ -352,33 +333,27 @@ __global__ void compute_stress_impl(math::matr<dim, dim> const* deformation_grad
   size_t eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
   ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
-  stress[eid] = model.Stress(deformation_gradient[eid], svd_results[eid])
-                * rest_volume[eid];
+  stress[eid] = model.Stress(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
   // printf("Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
 }
-
 
 /*************************
  * SECT: Hessian
  *************************/
 template <idx dim, template <idx> class ElasticModelTemplate>
 __global__ void compute_hessian_impl(math::matr<dim, dim> const* deformation_gradient,
-                                     real const* rest_volume,
-                                     SvdR<dim> const* svd_results,
+                                     real const* rest_volume, SvdR<dim> const* svd_results,
                                      elasticity::HessianTensor<dim>* hessian,
-                                     math::vec2r const* lame,
-                                     idx n_elem,
-                                     bool projection) {
+                                     math::vec2r const* lame, idx n_elem, bool projection) {
   idx eid = blockIdx.x * blockDim.x + threadIdx.x;
   if (eid >= n_elem) return;
   // printf("H begin: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
 
   ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
-  hessian[eid] = model.Hessian(deformation_gradient[eid], svd_results[eid])
-                 * rest_volume[eid];
+  hessian[eid] = model.Hessian(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
 
   if (projection) {
-    math::matr<dim * dim, dim * dim> & H = hessian[eid];
+    math::matr<dim * dim, dim * dim>& H = hessian[eid];
     Eigen::SelfAdjointEigenSolver<math::matr<dim * dim, dim * dim>> es(H);
     math::vecr<dim * dim> D = es.eigenvalues().cwiseMax(1e-4);
     math::matr<dim * dim, dim * dim> V = es.eigenvectors();
@@ -386,7 +361,7 @@ __global__ void compute_hessian_impl(math::matr<dim, dim> const* deformation_gra
   }
 
   // printf("H end: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
- }
+}
 
 template <idx dim, template <idx> class ElasticModelTemplate>
 void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateEnergy() {
@@ -437,8 +412,7 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
           thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
           thrust::raw_pointer_cast(impl_->svd_results_.data()),
           thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()),
-          thrust::raw_pointer_cast(impl_->lame_.data()),
-          impl_->deformation_gradient_.size(),
+          thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size(),
           projection);
 }
 
@@ -605,8 +579,7 @@ __device__ AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r
   return PFPx;
 }
 
-template <idx dim>
-__device__ idx coo_locate_hessian(idx elem_id, idx i, idx j, idx di, idx dj) {
+template <idx dim> __device__ idx coo_locate_hessian(idx elem_id, idx i, idx j, idx di, idx dj) {
   idx coo_offset = elem_id * (dim + 1) * dim * (dim + 1) * dim;
   idx local_offset = (i * (dim + 1) + j) * dim * dim + di * dim + dj;
   return coo_offset + local_offset;
@@ -622,8 +595,8 @@ __global__ void gather_hessian(SparseCOO* coo, math::veci<dim + 1> const* elemen
 
   math::matr<dim * dim, dim * dim> const& H = hessian_on_elements[eid];
   math::matr<dim, dim> const& DmInv = rinv[eid];
-  math::matr<dim * dim, dim * (dim + 1)> PFPx = ComputePFPx(DmInv);
-  math::matr<(dim + 1) * dim, dim * (dim + 1)> pppx = PFPx.transpose() * H * PFPx;
+  math::matr<dim * dim, dim*(dim + 1)> PFPx = ComputePFPx(DmInv);
+  math::matr<(dim + 1) * dim, dim*(dim + 1)> pppx = PFPx.transpose() * H * PFPx;
   math::veci<dim + 1> ijk = elements[eid];
 
   for (idx i = 0; i <= dim; ++i) {
@@ -643,13 +616,9 @@ __global__ void gather_hessian(SparseCOO* coo, math::veci<dim + 1> const* elemen
 }
 
 template <idx dim>
-__global__ void gather_hessian2(
-    real* dst,
-    HessianGatherInfo *hessian_gather_info,
-    idx* hessian_gather_entries,
-    SparseCOO* hessian_on_vertices,
-    idx max_entries
-    ) {
+__global__ void gather_hessian2(real* dst, HessianGatherInfo* hessian_gather_info,
+                                idx* hessian_gather_entries, SparseCOO* hessian_on_vertices,
+                                idx max_entries) {
   idx i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i >= max_entries) return;
   dst[i] = 0;
@@ -670,7 +639,8 @@ __global__ void gather_hessian2(
     // if (row == row_coo && col == col_coo) {
     dst[i] += hessian_on_vertices[coo].val;
     // } else {
-    //   printf("Error: i=%ld, row=%ld, col=%ld, row_coo=%ld, col_coo=%ld\n", i, row, col, row_coo, col_coo);
+    //   printf("Error: i=%ld, row=%ld, col=%ld, row_coo=%ld, col_coo=%ld\n", i, row, col, row_coo,
+    //   col_coo);
     // }
   }
 }
@@ -683,9 +653,7 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
       thrust::raw_pointer_cast(impl_->hessian_on_vertices2_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_info_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_entries_.data()),
-      thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
-      nnz
-  );
+      thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()), nnz);
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
@@ -720,7 +688,8 @@ math::fieldr<dim> const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetSt
   return cpu;
 }
 
-template <idx dim, template <idx> class ElasticModelTemplate> std::vector<math::matr<dim, dim>> const&
+template <idx dim, template <idx> class ElasticModelTemplate>
+std::vector<math::matr<dim, dim>> const&
 ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnElements() {
   auto& gpu = impl_->stress_on_elements_;
   auto& cpu = this->stress_on_elements_;
@@ -737,7 +706,6 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
   return cpu;
 }
 
-
 template <idx dim, template <idx> class ElasticModelTemplate>
 math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
   auto& gpu = impl_->hessian_on_vertices_;
@@ -749,9 +717,7 @@ math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessian
       thrust::raw_pointer_cast(impl_->hessian_on_vertices2_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_info_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_entries_.data()),
-      thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
-      nnz
-  );
+      thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()), nnz);
 
   real* value = cpu.valuePtr();
   thrust::copy(impl_->hessian_on_vertices2_.begin(), impl_->hessian_on_vertices2_.end(), value);
@@ -775,7 +741,6 @@ math::spmatr const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessian
 
   return cpu;
 }
-
 
 }  // namespace fem
 }  // namespace ax

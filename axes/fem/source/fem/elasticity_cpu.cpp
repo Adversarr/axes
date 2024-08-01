@@ -407,7 +407,6 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)
         || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::kStress)
         || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::kHessian);
-  std::atomic<bool> failed = false;
   tbb::parallel_for(
       tbb::blocked_range<idx>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
       [&](const tbb::blocked_range<idx>& r) {
@@ -428,7 +427,6 @@ bool ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::fieldr<dim> 
         }
       },
       this->partitioner_impl_->svd_ap);
-  return failed.load();
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>

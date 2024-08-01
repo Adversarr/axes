@@ -13,11 +13,11 @@ public:
   using elem_hessian_t = std::vector<math::matr<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
-  ElasticityCompute_GPU(MeshPtr const& mesh);
+  explicit ElasticityCompute_GPU(MeshPtr const& mesh);
 
   ~ElasticityCompute_GPU() override;
 
-  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
   void SetLame(math::vec2r const& u_lame) final;
   void SetLame(math::field2r const& e_lame) final;

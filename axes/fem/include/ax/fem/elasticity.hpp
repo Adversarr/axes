@@ -1,12 +1,13 @@
 #pragma once
-#include "ax/math/decomp/svd/common.hpp"
+#include <boost/describe/enum.hpp>
+
 #include "ax/math/sparse.hpp"
 #include "elasticity/common.hpp"
 #include "trimesh.hpp"
 
 namespace ax::fem {
 
-AX_DECLARE_ENUM(ElasticityUpdateLevel){kEnergy, kStress, kHessian};
+BOOST_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
 
 /**
  * @brief Base class for general elasticity computation.
@@ -29,7 +30,7 @@ public:
   virtual void SetLame(math::vec2r const& u_lame);
   virtual void SetLame(math::field2r const& e_lame);
 
-  virtual bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) = 0;
+  virtual void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) = 0;
 
   virtual void UpdateEnergy() = 0;
   virtual void UpdateStress() = 0;
@@ -59,6 +60,5 @@ protected:
   elem_hessian_t hessian_on_elements_;
   vert_hessian_t hessian_on_vertices_;
 };
-
 
 }  // namespace ax::fem

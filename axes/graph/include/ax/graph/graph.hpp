@@ -9,11 +9,11 @@
 namespace ax::graph {
 
 struct PinToNodeInfo {
-  id_t node_id_ = INVALID_ID;
-  id_t pin_id_ = INVALID_ID;
+  ident_t node_id_ = INVALID_ID;
+  ident_t pin_id_ = INVALID_ID;
   bool is_input_ = false;
 
-  PinToNodeInfo(id_t node_id, id_t pin_id, bool is_input)
+  PinToNodeInfo(ident_t node_id, ident_t pin_id, bool is_input)
       : node_id_(node_id), pin_id_(pin_id), is_input_(is_input) {}
 
   explicit operator bool() const { return node_id_ != INVALID_ID && pin_id_ != INVALID_ID; }
@@ -23,34 +23,34 @@ class Graph final {
 public:
   // Node management
   NodeBase* AddNode(NodeDescriptor const* descriptor);
-  NodeBase* GetNode(id_t id);
-  NodeBase const* GetNode(id_t id) const;
+  NodeBase* GetNode(ident_t id);
+  NodeBase const* GetNode(ident_t id) const;
 
-  bool RemoveNode(id_t id);
+  bool RemoveNode(ident_t id);
   bool RemoveNode(NodeBase* node);
 
   // Socket management
   Socket* AddSocket(Pin* input, Pin* output);
-  Socket* AddSocket(id_t input_pin, id_t output_pin);
-  Socket* AddSocket(id_t left_node_id, id_t input_pin, id_t right_node_id, id_t output_pin);
+  Socket* AddSocket(ident_t input_pin, ident_t output_pin);
+  Socket* AddSocket(ident_t left_node_id, ident_t input_pin, ident_t right_node_id, ident_t output_pin);
 
   bool CanConnectSocket(Pin const* input, Pin const* output) const;
-  bool CanConnectSocket(id_t input_pin, id_t output_pin) const;
-  bool CanConnectSocket(id_t input_node, id_t input_pin, id_t output_node, id_t output_pin) const;
+  bool CanConnectSocket(ident_t input_pin, ident_t output_pin) const;
+  bool CanConnectSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin) const;
 
   Socket* GetSocket(Pin* output);
-  Socket* GetSocket(id_t socket_id);
-  Socket* GetSocket(id_t input_pin, id_t output_pin);
-  Socket* GetSocket(id_t input_node, id_t input_pin, id_t output_node, id_t output_pin);
+  Socket* GetSocket(ident_t socket_id);
+  Socket* GetSocket(ident_t input_pin, ident_t output_pin);
+  Socket* GetSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin);
 
   bool RemoveSocket(Socket* sock);
-  bool RemoveSocket(id_t id);
-  bool RemoveSocket(id_t input_pin, id_t output_pin);
-  bool RemoveSocket(id_t input_node, id_t input_pin, id_t output_node, id_t output_pin);
+  bool RemoveSocket(ident_t id);
+  bool RemoveSocket(ident_t input_pin, ident_t output_pin);
+  bool RemoveSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin);
 
-  Pin* GetPin(id_t id);
-  Pin const* GetPin(id_t id) const;
-  PinToNodeInfo PinToNode(id_t pin_id) const;
+  Pin* GetPin(ident_t id);
+  Pin const* GetPin(ident_t id) const;
+  PinToNodeInfo PinToNode(ident_t pin_id) const;
 
   // Graph management
   void Clear();
@@ -65,7 +65,6 @@ public:
 
   void ForeachNode(std::function<void(NodeBase*)> const& func);
   void ForeachSocket(std::function<void(Socket*)> const& func);
-  void EnsurePayloads();
 
 private:
   struct Impl;

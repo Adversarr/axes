@@ -22,12 +22,9 @@ using real = f64;    ///< Alias for double precision floating point number.
 
 using EnumUnderlyingType = std::int32_t;  ///< Alias for enum underlying type.
 
-#ifndef REAL_PRID
-#  define REAL_PRID "d"  ///< The printf format string for Real.
-#endif
-
 constexpr idx INVALID_ID = -1;  ///< The invalid index value. commonly used.
 
-}  // namespace ax
+using tpl_size_t = int;  ///< Alias for template integer type.
+using vec_size_t = idx;  ///< Alias for vector size type.
 
-#define AX_DECLARE_ENUM(EnumName) enum class EnumName : ax::EnumUnderlyingType
+}  // namespace ax

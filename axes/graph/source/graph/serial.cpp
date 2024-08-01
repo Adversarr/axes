@@ -10,11 +10,11 @@ using namespace ax::graph;
 
 Serializer::Serializer(Graph &g) : graph_(g) {}
 
-void Serializer::SetNodeMetadata(id_t node_id, boost::json::value const &obj) {
+void Serializer::SetNodeMetadata(ident_t node_id, boost::json::value const &obj) {
   node_metadata_[node_id] = obj;
 }
 
-void Serializer::SetSocketMetadata(id_t socket_id, boost::json::value const &obj) {
+void Serializer::SetSocketMetadata(ident_t socket_id, boost::json::value const &obj) {
   socket_metadata_[socket_id] = obj;
 }
 
@@ -70,11 +70,11 @@ void Deserializer::Deserialize(boost::json::object const &obj) {
   }
 
   for (auto const &socket_obj : sockets) {
-    id_t id = socket_obj.at("id").as_int64();
-    id_t input_node = socket_obj.at("input_node").as_int64();
-    id_t input_pin = socket_obj.at("input_pin").as_int64();
-    id_t output_node = socket_obj.at("output_node").as_int64();
-    id_t output_pin = socket_obj.at("output_pin").as_int64();
+    ident_t id = socket_obj.at("id").as_int64();
+    ident_t input_node = socket_obj.at("input_node").as_int64();
+    ident_t input_pin = socket_obj.at("input_pin").as_int64();
+    ident_t output_node = socket_obj.at("output_node").as_int64();
+    ident_t output_pin = socket_obj.at("output_pin").as_int64();
     auto in_node = node_id_map_[input_node];
     auto out_node = node_id_map_[output_node];
     auto const *input = graph_.GetNode(in_node);

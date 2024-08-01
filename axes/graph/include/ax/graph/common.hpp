@@ -17,7 +17,7 @@ struct PinDescriptor;
 struct NodeDescriptor;
 
 // NOTE: The id_t is used to identify the unique id of a node, pin, or socket.
-using id_t = size_t;
+using ident_t = size_t;
 
 // NOTE: A payload is an alternative for std::any to store the actual data of a Pin.
 class Payload;
@@ -44,16 +44,16 @@ class NodeBase;
 // NOTE: Graph, the manager of all the Nodes, Pins, Sockets
 class Graph;
 
-constexpr id_t INVALID_ID = 0xFFFFFFFF;
+constexpr ident_t INVALID_ID = 0xFFFFFFFF;
 
 // NOTE:
 //   Each Socket connects an input Pin to an output Pin, this concept is quite similar to the
 //   concept of a wire in a circuit.
 struct Socket {
-  Socket(id_t id, Pin* input, Pin* out) : input_(input), output_(out), id_(id) {}
+  Socket(ident_t id, Pin* input, Pin* out) : input_(input), output_(out), id_(id) {}
   Pin* input_;
   Pin* output_;
-  id_t id_;
+  ident_t id_;
 };
 
 }  // namespace ax::graph

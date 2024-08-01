@@ -82,15 +82,13 @@ void write_npy_v10(std::ostream& out, const real* p, size_t write_length, size_t
   out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(real)));
 
   if (!out.good()) {
-    // return void{voidCode::kUnavailable, "Failed to write to the ostream properly."};
     throw std::runtime_error("Failed to write to the ostream properly.");
   }
 }
 
-void write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t f, size_t i,
-                   size_t j) {
+static void write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t f, size_t i,
+                          size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
-    // return void{voidCode::kInvalidArgument, "The write length is not correct."};
     throw std::runtime_error("The write length is not correct.");
   }
   out.write(numpy_magic_code, 6);
@@ -120,10 +118,10 @@ void write_npy_v10(std::ostream& out, const idx* p, size_t write_length, size_t 
 
   out.write(reinterpret_cast<char*>(&header_len), 2);
   out.write(header.c_str(), header_len);
-  out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(idx)));
+  out.write(reinterpret_cast<const char*>(p),
+            static_cast<std::streamsize>(write_length * sizeof(idx)));
 
   if (!out.good()) {
-    // return void{voidCode::kUnavailable, "Failed to write to the ostream properly."};
     throw std::runtime_error("Failed to write to the ostream properly.");
   }
 }
@@ -200,7 +198,7 @@ struct Header {
     std::stringstream ss(header);
     char c;
     auto consume_until = [&ss](char target) -> bool {
-      char c;
+      char c = '\0';
       bool status = false;
       while ((status = static_cast<bool>(ss >> c))) {
         if (c == target) {

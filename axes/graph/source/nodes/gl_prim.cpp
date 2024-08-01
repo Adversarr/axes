@@ -1,4 +1,5 @@
 #include <imgui_node_editor.h>
+
 #include <iostream>
 
 #include "ax/core/entt.hpp"
@@ -12,7 +13,6 @@
 #include "ax/graph/node.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/nodes/gl_prims.hpp"
-
 namespace ed = ax::NodeEditor;
 using namespace ax;
 using namespace graph;
@@ -41,54 +41,44 @@ gl::cmap& get_colormap(idx which) {
 
 class Render_Mesh : public NodeBase {
 public:
-  Render_Mesh(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
-
-  static void register_this() {
-    NodeDescriptorFactory<Render_Mesh>()
-        .SetName("Render_mesh")
-        .SetDescription("Renders a mesh entity")
-        .AddInput<entt::entity>("entity", "The entity to add the component")
-        .AddInput<geo::SurfaceMesh>("mesh", "The mesh to render")
-        .AddInput<math::field4r>("color", "The color of the mesh")
-        .AddInput<math::vec4r>("u_color", "The color of the mesh")
-        .AddInput<math::field3r>("normal", "The normal of the mesh")
-        .AddInput<bool>("flat", "If true, the mesh will be rendered flat")
-        .AddInput<bool>("use_lighting", "If true, the mesh will be rendered with lighting")
-        .AddInput<bool>("flush", "If true, the mesh will be rendered to screen.")
-        .AddOutput<Entity>("entity", "The entity that has the mesh component")
-        .AddOutput<gl::Mesh>("gl_mesh", "Mesh in render.")
-        .FinalizeAndRegister();
-  }
+  AX_NODE_COMMON(Render_Mesh, "Render_mesh", "Renders a mesh entity") {}
+  AX_NODE_INPUTS((entt::entity, entity, "Entity"), (geo::SurfaceMesh, mesh, "Mesh"),
+                 (math::field4r, color, "The color of the mesh"),
+                 (math::vec4r, u_color, "The color of the mesh"),
+                 (math::field3r, normal, "The normal of the mesh"),
+                 (bool, flat, "If true, the mesh will be rendered flat"),
+                 (bool, use_lighting, "If true, the mesh will be rendered with lighting"),
+                 (bool, flush, "If true, the mesh will be rendered to screen."));
+  AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Mesh, gl_mesh, "Mesh in render."));
 
   void Apply(size_t) override {
-    auto* entity = RetriveInput<entt::entity>(0);
-    auto* mesh = RetriveInput<geo::SurfaceMesh>(1);
+    const auto* entity = Get(in_entity);
+    if (entity != nullptr) {
+      entity_inuse_ = *entity;
+    } else {
+      if (ent_ == entt::null) {
+        ent_ = create_entity();
+      }
+      entity_inuse_ = ent_;
+    }
+    const auto* mesh = AX_NODE_INPUT_ENSURE(mesh);
+
     auto* color = RetriveInput<math::field4r>(2);
     auto* u_color = RetriveInput<math::vec4r>(3);
+
     auto* normal = RetriveInput<math::field3r>(4);
     auto* flat = RetriveInput<bool>(5);
     auto* use_lighting = RetriveInput<bool>(6);
     auto* flush = RetriveInput<bool>(7);
 
-    if (mesh == nullptr) {
-      throw make_invalid_argument("mesh is not set.");
-    }
+    const auto* m = AX_NODE_INPUT_ENSURE(mesh);
 
     math::vec4r u_color_inuse = math::vec4r::Constant(0.);
     if (u_color != nullptr) {
       u_color_inuse = *u_color;
     }
 
-    if (entity != nullptr) {
-      entity_inuse = *entity;
-    } else {
-      if (ent == entt::null) {
-        ent = create_entity();
-      }
-      entity_inuse = ent;
-    }
-
-    auto& mesh_comp = add_or_replace_component<gl::Mesh>(entity_inuse);
+    auto& mesh_comp = add_or_replace_component<gl::Mesh>(entity_inuse_);
     mesh_comp.vertices_ = mesh->vertices_;
     mesh_comp.indices_ = mesh->indices_;
     if (normal != nullptr) {
@@ -114,41 +104,36 @@ public:
     }
 
     SetOutput<gl::Mesh>(1, mesh_comp);
-    SetOutput<Entity>(0, entity_inuse);
+    SetOutput<Entity>(0, entity_inuse_);
+    Set(out_gl_mesh, mesh_comp);
+    Set(out_entity, entity_inuse_);
   }
 
-  void CleanUp() override {
-    if (ent != entt::null) {
-      destroy_entity(ent);
+  void CleanUp() noexcept override {
+    if (ent_ != entt::null) {
+      destroy_entity(ent_);
     } else {
-      if (entity_inuse != entt::null) {
-        if (global_registry().valid(entity_inuse) && has_component<gl::Mesh>(entity_inuse)) {
-          remove_component<gl::Mesh>(entity_inuse);
+      if (entity_inuse_ != entt::null) {
+        if (global_registry().valid(entity_inuse_) && has_component<gl::Mesh>(entity_inuse_)) {
+          remove_component<gl::Mesh>(entity_inuse_);
         }
       }
     }
   }
-  Entity ent = entt::null;
-  Entity entity_inuse = entt::null;
+
+  Entity ent_ = entt::null;
+  Entity entity_inuse_ = entt::null;
 };
 
 class Render_Lines : public NodeBase {
 public:
-  Render_Lines(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
-
-  static void register_this() {
-    NodeDescriptorFactory<Render_Lines>()
-        .SetName("Render_Lines")
-        .SetDescription("Renders a line entity")
-        .AddInput<entt::entity>("entity", "The entity to add the component")
-        .AddInput<math::field3r>("vertices", "The points to render")
-        .AddInput<math::field2i>("indices", "The indices of the points")
-        .AddInput<math::field4r>("color", "The color of the line")
-        .AddInput<math::vec4r>("u_color", "The color of the line")
-        .AddOutput<Entity>("entity", "The entity that has the line component")
-        .AddOutput<gl::Lines>("gl_lines", "Lines in render")
-        .FinalizeAndRegister();
-  }
+  AX_NODE_COMMON_WITH_CTOR(Render_Lines, "Render_Lines", "Renders a line entity");
+  AX_NODE_INPUTS((entt::entity, entity, "Entity"),
+                 (math::field3r, vertices, "The points to render"),
+                 (math::field2i, indices, "The indices of the points"),
+                 (math::field4r, color, "The color of the line"),
+                 (math::vec4r, u_color, "The color of the line"));
+  AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Lines, gl_lines, "Lines in render."));
 
   void Apply(size_t) override {
     auto* entity = RetriveInput<entt::entity>(0);
@@ -169,7 +154,7 @@ public:
         throw make_invalid_argument("The input entity does not have a mesh");
       } else {
         auto& l = add_or_replace_component<gl::Lines>(*entity, gl::Lines::Create(*msh));
-        entity_inuse = *entity;
+        entity_inuse_ = *entity;
         SetOutput<Entity>(0, *entity);
         SetOutput<gl::Lines>(1, l);
         return;
@@ -186,18 +171,18 @@ public:
       indices_in_use = *indices;
     }
     if (entity != nullptr) {
-      entity_inuse = *entity;
+      entity_inuse_ = *entity;
     } else {
-      if (ent == entt::null) {
-        ent = create_entity();
+      if (ent_ == entt::null) {
+        ent_ = create_entity();
       }
-      entity_inuse = ent;
+      entity_inuse_ = ent_;
     }
 
-    auto& lines_comp = add_or_replace_component<gl::Lines>(entity_inuse);
+    auto& lines_comp = add_or_replace_component<gl::Lines>(entity_inuse_);
     lines_comp.vertices_ = *vertices;
     lines_comp.indices_ = std::move(indices_in_use);
-    
+
     lines_comp.colors_ = math::field4r::Zero(4, vertices->cols());
     if (color != nullptr) {
       lines_comp.colors_ = *color;
@@ -206,43 +191,35 @@ public:
       lines_comp.colors_.colwise() += *u_color;
     }
 
-    SetOutput<Entity>(0, entity_inuse);
+    SetOutput<Entity>(0, entity_inuse_);
     SetOutput<gl::Lines>(1, lines_comp);
   }
 
-  void CleanUp() override {
-    if (ent != entt::null) {
-      destroy_entity(ent);
+  void CleanUp() noexcept override {
+    if (ent_ != entt::null) {
+      destroy_entity(ent_);
     } else {
-      if (entity_inuse != entt::null) {
-        if (global_registry().valid(entity_inuse) && has_component<gl::Lines>(entity_inuse)) {
-          remove_component<gl::Lines>(entity_inuse);
+      if (entity_inuse_ != entt::null) {
+        if (global_registry().valid(entity_inuse_) && has_component<gl::Lines>(entity_inuse_)) {
+          remove_component<gl::Lines>(entity_inuse_);
         }
       }
     }
   }
 
-  Entity ent = entt::null;
-  Entity entity_inuse = entt::null;
+  Entity ent_ = entt::null;
+  Entity entity_inuse_ = entt::null;
 };
 
 class Render_Points : public NodeBase {
 public:
-  Render_Points(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
 
-  static void register_this() {
-    NodeDescriptorFactory<Render_Points>()
-        .SetName("Render_Points")
-        .SetDescription("Renders a point entity")
-        .AddInput<Entity>("entity", "The entity to add the component")
-        .AddInput<math::field3r>("vertices", "The points to render")
-        .AddInput<math::field4r>("color", "The color of the points")
-        .AddInput<math::vec4r>("u_color", "The color of the points")
-        .AddInput<bool>("flush", "Flush the points to screen.")
-        .AddOutput<Entity>("entity", "The entity that has the point component")
-        .AddOutput<gl::Points>("gl_points", "Points in render")
-        .FinalizeAndRegister();
-  }
+  AX_NODE_COMMON_WITH_CTOR(Render_Points, "Render_Points", "Renders a point entity");
+  AX_NODE_INPUTS((entt::entity, entity, "Entity"), (math::field3r, points, "The points to render"),
+                 (math::field4r, color, "The color of the points"),
+                 (math::vec4r, u_color, "The color of the points"),
+                 (bool, flush, "Flush the points to screen."));
+  AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Points, gl_points, "Points in render."));
 
   void Apply(size_t) override {
     auto* entity = RetriveInput<entt::entity>(0);
@@ -281,7 +258,7 @@ public:
     SetOutput<Entity>(0, entity_inuse);
   }
 
-  void CleanUp() override {
+  void CleanUp() noexcept override {
     if (ent != entt::null) {
       destroy_entity(ent);
     } else {
@@ -299,17 +276,14 @@ public:
 
 class ColorMap_real : public NodeBase {
 public:
-  ColorMap_real(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+  AX_NODE_COMMON_WITH_CTOR(ColorMap_real, "Colormap_real", "Maps a real value to a color",
+                           register_render);
+  AX_NODE_INPUTS((real, value, "The real value to map"),
+                 (real, low, "Low value of the map"),
+                 (real, high, "High value of the map"));
+  AX_NODE_OUTPUTS((math::vec4r, color, "The color mapped from the value"));
 
-  static void register_this() {
-    NodeDescriptorFactory<ColorMap_real>()
-        .SetName("Colormap_real")
-        .SetDescription("Maps a real value to a color")
-        .AddInput<real>("value", "The real value to map")
-        .AddInput<real>("low", "Low value of the map")
-        .AddInput<real>("high", "High value of the map")
-        .AddOutput<math::vec4r>("color", "The color mapped from the value")
-        .FinalizeAndRegister();
+  static void register_render() {
     add_custom_node_render<ColorMap_real>([](NodeBase* node) {
       draw_node_content_default(node);
       draw_node_header_default(node);
@@ -334,31 +308,15 @@ public:
   }
 
   void Apply(size_t) override {
-    auto* value = RetriveInput<real>(0);
-    auto* low = RetriveInput<real>(1);
-    auto* high = RetriveInput<real>(2);
-
-    if (value == nullptr) {
-      throw make_invalid_argument("value is not set.");
-    }
-
-    if (low == nullptr) {
-      throw make_invalid_argument("low is not set.");
-    }
-
-    if (high == nullptr) {
-      throw make_invalid_argument("high is not set.");
-    }
-
-    real value_inuse = *value;
-    real low_inuse = *low;
-    real high_inuse = *high;
+    real value_inuse = AX_NODE_INPUT_ENSURE_EXTRACT(value);
+    real low_inuse = AX_NODE_INPUT_ENSURE_EXTRACT(low);
+    real high_inuse = AX_NODE_INPUT_ENSURE_EXTRACT(high);
 
     gl::Colormap cmap(low_inuse, high_inuse);
     auto rgb = cmap(value_inuse);
     math::vec4r rgba;
     rgba << rgb, 1;
-    SetOutput<math::vec4r>(0, rgba);
+    Set(out_color, rgba);
   }
 
   boost::json::object Serialize() const override {
@@ -366,12 +324,14 @@ public:
     obj["which_map"] = which_map;
     return obj;
   }
+
   idx which_map = 0;
 
   void Deserialize(boost::json::object const& obj) override {
     if (obj.contains("which_map")) {
       which_map = obj.at("which_map").as_int64();
-      if (which_map < 0 || static_cast<size_t>(which_map) > sizeof(cmap_names) / sizeof(cmap_names[0])) {
+      if (which_map < 0
+          || static_cast<size_t>(which_map) > sizeof(cmap_names) / sizeof(cmap_names[0])) {
         which_map = 0;
       }
     }
@@ -380,16 +340,9 @@ public:
 
 class ColorMap_field1r : public NodeBase {
 public:
-  ColorMap_field1r(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
-
-  static void register_this() {
-    NodeDescriptorFactory<ColorMap_field1r>()
-        .SetName("Colormap_field1r")
-        .SetDescription("Maps a field1r to a color")
-        .AddInput<math::field1r>("data", "The field to map")
-        .AddOutput<math::field4r>("color", "The color mapped from the field")
-        .FinalizeAndRegister();
-  }
+  AX_NODE_COMMON_WITH_CTOR(ColorMap_field1r, "Colormap_field1r", "Maps a field1r to a color");
+  AX_NODE_INPUTS((math::field1r, data, "The field to map"));
+  AX_NODE_OUTPUTS((math::field4r, color, "The color mapped from the field"));
 
   void Apply(size_t) override {
     auto* field = RetriveInput<math::field1r>(0);
@@ -409,16 +362,11 @@ public:
 
 class GlMeshCachedSequence : public NodeBase {
 public:
-  GlMeshCachedSequence(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
-
-  static void register_this() {
-    NodeDescriptorFactory<GlMeshCachedSequence>()
-        .SetName("GlMeshCachedSequence")
-        .SetDescription("Renders a sequence of mesh entities")
-        .AddInput<gl::Mesh>("mesh", "The mesh to render")
-        .AddInput<bool>("flush", "Display the input mesh directly.")
-        .FinalizeAndRegister();
-  }
+  AX_NODE_COMMON_WITH_CTOR(GlMeshCachedSequence, "GlMeshCachedSequence",
+                           "Renders a sequence of mesh entities");
+  AX_NODE_INPUTS((gl::Mesh, mesh, "The mesh to render"),
+                 (bool, flush, "Display the input mesh directly."));
+  AX_NODE_OUTPUTS((gl::Mesh, mesh, "Mesh in render"));
 
   void OnUpdate(CacheSequenceUpdateEvent const& event) {
     std::cout << "Updating..." << std::endl;
@@ -435,16 +383,6 @@ public:
     add_or_replace_component<gl::Mesh>(ent_created, mesh);
   }
 
-  void OnConstruct() override {
-    connect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
-    ent_created = create_entity();
-  }
-
-  void OnDestroy() override {
-    destroy_entity(ent_created);
-    disconnect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
-  }
-
   void Apply(size_t) override {
     auto* mesh = RetriveInput<gl::Mesh>(0);
     if (mesh == nullptr) {
@@ -456,6 +394,16 @@ public:
     }
   }
 
+
+  // void OnConstruct() override {
+  //   connect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
+  //   ent_created = create_entity();
+  // }
+  //
+  // void OnDestroy() override {
+  //   destroy_entity(ent_created);
+  //   disconnect<CacheSequenceUpdateEvent, &GlMeshCachedSequence::OnUpdate>(this);
+  // }
   std::vector<gl::Mesh> meshes;
 
   Entity ent_created;

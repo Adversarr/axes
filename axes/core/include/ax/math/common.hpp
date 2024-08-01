@@ -51,11 +51,10 @@ template <int dim> using vecf = vec<float, dim>;
 using vec2r = vec<real, 2>;  ///< Alias for 2D vector with double precision floating point number.
 using vec3r = vec<real, 3>;  ///< Alias for 3D vector with double precision floating point number.
 using vec4r = vec<real, 4>;  ///< Alias for 4D vector with double precision floating point number.
-using vecxr
-    = vec<real, dynamic>;  ///< Alias for vector with double precision floating point number.
-using vec2f = vecf<2>;     ///< Alias for 2D vector with single precision floating point number.
-using vec3f = vecf<3>;     ///< Alias for 3D vector with single precision floating point number.
-using vec4f = vecf<4>;     ///< Alias for 4D vector with single precision floating point number.
+using vecxr = vec<real, dynamic>;  ///< Alias for vector with double precision float point number.
+using vec2f = vecf<2>;  ///< Alias for 2D vector with single precision floating point number.
+using vec3f = vecf<3>;  ///< Alias for 3D vector with single precision floating point number.
+using vec4f = vecf<4>;  ///< Alias for 4D vector with single precision floating point number.
 
 /**
  * @brief idx vector type.

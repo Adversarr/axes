@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/math/decomp/svd/common.hpp"
 #include "elasticity.hpp"
 
 namespace ax::fem {
@@ -9,7 +10,7 @@ namespace ax::fem {
  * @tparam dim
  * @tparam ElasticModelTemplate
  */
-template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute_CPU final
+template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute_CPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 
@@ -21,7 +22,7 @@ public:
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh);
+  explicit ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh);
   ~ElasticityCompute_CPU() override;
 
   void UpdateEnergy() final;
@@ -31,7 +32,7 @@ public:
   void GatherEnergyToVertices() final;
   void GatherStressToVertices() final;
   void GatherHessianToVertices() final;
-  bool Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
 
 protected:
@@ -40,4 +41,4 @@ protected:
   struct TbbPartitioners;  ///< include tbb in CUDA will cause error, so we have to put it here.
   std::unique_ptr<TbbPartitioners> partitioner_impl_;
 };
-}
+}  // namespace ax::fem

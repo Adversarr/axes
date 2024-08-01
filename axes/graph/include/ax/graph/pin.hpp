@@ -20,19 +20,19 @@ inline PinDescriptor make_pin_descriptor(std::string name, std::string descripti
 struct Pin {
 public:
   using desc_ptr = const PinDescriptor*;
-  id_t const node_id_;
-  id_t const node_io_index_;
+  ident_t const node_id_;
+  ident_t const node_io_index_;
   bool const is_input_;
   desc_ptr const descriptor_;
-  id_t const id_;
+  ident_t const id_;
   Payload* payload_ = nullptr;
 
 private:
   friend class Graph;
-  id_t socket_in_id_ = INVALID_ID;
+  ident_t socket_in_id_ = INVALID_ID;
 
   // The only constructor.
-  Pin(id_t node_id, id_t node_io_index, bool is_input, desc_ptr descriptor, id_t id,
+  Pin(ident_t node_id, ident_t node_io_index, bool is_input, desc_ptr descriptor, ident_t id,
       Payload* payload = nullptr)
       : node_id_(node_id),
         node_io_index_(node_io_index),

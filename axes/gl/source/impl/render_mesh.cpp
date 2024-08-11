@@ -20,12 +20,20 @@ namespace ax::gl {
 
 MeshRenderer::MeshRenderer() = default;
 
+static void update_render(entt::registry &r, entt::entity ent) {
+  if (const auto render = r.view<MeshRenderData>(); render.contains(ent)) {
+    r.erase<MeshRenderData>(ent);
+  }
+  r.emplace<MeshRenderData>(ent, r.get<Mesh>(ent));
+}
+
 void MeshRenderer::Setup() {
   auto vs = Shader::CompileFile(utils::get_asset("/shader/phong/phong.vert"), ShaderType::kVertex);
   auto fs
       = Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment);
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
   global_registry().on_destroy<Mesh>().connect<&MeshRenderer::Erase>(*this);
+  global_registry().on_update<Mesh>().connect<&update_render>();
 }
 
 void MeshRenderer::TickRender() {
@@ -77,15 +85,15 @@ void MeshRenderer::TickRender() {
 }
 
 void MeshRenderer::TickLogic() {
-  for (auto [ent, lines] : view_component<Mesh>().each()) {
-    if (lines.flush_) {
-      if (has_component<MeshRenderData>(ent)) {
-        remove_component<MeshRenderData>(ent);
-      }
-      global_registry().emplace<MeshRenderData>(ent, lines);
-    }
-    lines.flush_ = false;
-  }
+  // for (auto [ent, lines] : view_component<Mesh>().each()) {
+  //   if (lines.flush_) {
+  //     if (has_component<MeshRenderData>(ent)) {
+  //       remove_component<MeshRenderData>(ent);
+  //     }
+  //     global_registry().emplace<MeshRenderData>(ent, lines);
+  //   }
+  //   lines.flush_ = false;
+  // }
 }
 
 void MeshRenderer::Erase(Entity entity) { remove_component<MeshRenderData>(entity); }
@@ -210,7 +218,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
     vao_.GetIndexBuffer().Bind();
   }
 
-  AX_DEBUG("MeshRenderData created: #v={}, #e={}", vertices_.size(), indices_.size());
+  AX_TRACE("MeshRenderData created: #v={}, #e={}", vertices_.size(), indices_.size());
 }
 
 void MeshRenderer::RenderGui() {

@@ -5,9 +5,9 @@
 namespace ax::optim {
 
 using LbfgsHessianApproximator
-    = std::function<math::vecxr(math::vecxr const& /*r, solve this*/,
-                                math::vecxr const& /*x_k+1 - x_k, if possible else empty*/,
-                                math::vecxr const& /*g_k+1 - g_k, if possible else empty*/)>;
+    = std::function<math::vecxr(Gradient const& /*r, solve this*/,
+                                Variable const& /*x_k+1 - x_k, if possible else empty*/,
+                                Variable const& /*g_k+1 - g_k, if possible else empty*/)>;
 
 class Optimizer_Lbfgs : public OptimizerBase {
 public:
@@ -15,7 +15,7 @@ public:
 
   ~Optimizer_Lbfgs() override = default;
 
-  OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
+  OptResult Optimize(OptProblem const& problem, const Variable& x0) const override;
 
   OptimizerKind GetKind() const override { return OptimizerKind::kLbfgs; }
 

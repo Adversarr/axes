@@ -4,8 +4,8 @@
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/opt.hpp"
 namespace ax::optim {
-OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& x0,
-                                     math::vecxr const& grad, math::vecxr const& dir) const {
+OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
+                                     Gradient const& grad, Variable const& dir) const {
   // SECT: Check Inputs
   AX_THROW_IF_LT(initial_step_length_, 0, "Initial step length must be positive");
   AX_THROW_IF_FALSE(0 < step_shrink_rate_ && step_shrink_rate_ < 1,
@@ -24,7 +24,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& 
   // }
   AX_THROW_IF_FALSE(math::isfinite(f0),
                     "Invalid x0 in Line Search, Energy returns infinite number.");
-  real const expected_descent = grad.dot(dir);
+  real const expected_descent = math::dot(grad, dir);
   // if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
   //   AX_LOG(ERROR) << "grad: " << grad.transpose();
   //   AX_LOG(ERROR) << "dir: " << dir.transpose();
@@ -34,8 +34,8 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, math::vecxr const& 
   AX_THROW_IF_FALSE(expected_descent >= 0 || !math::isfinite(expected_descent),
                     "Invalid descent direction: df0={}", expected_descent);
   idx iter = 0;
-  math::vecxr g;
-  math::vecxr x;
+  Gradient g;
+  Variable x;
   real f = f0;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;

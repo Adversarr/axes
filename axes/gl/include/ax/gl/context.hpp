@@ -24,6 +24,7 @@ public:
   /****************************** Methods ******************************/
   void TickLogic();
   void TickRender();
+  void Initialize();
   bool ShouldClose() const;
 
   /**

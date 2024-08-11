@@ -6,7 +6,7 @@
 
 namespace ax::graph {
 
-BOOST_DEFINE_ENUM_CLASS(GraphExecuteStage, 
+AX_DEFINE_ENUM_CLASS(GraphExecuteStage,
   kIdle,
 
   kPrePreApply,

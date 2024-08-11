@@ -7,7 +7,8 @@ class Linesearch_Backtracking : public LinesearchBase {
 public:
   Linesearch_Backtracking() = default;
 
-  OptResult Optimize(OptProblem const& prob,math::vecxr const& x0, math::vecxr const& grad, math::vecxr const& dir) const override;
+  OptResult Optimize(OptProblem const& prob, Variable const& x0, Gradient const& grad,
+                     Variable const& dir) const override;
 
   void SetOptions(utils::Options const& options) override;
 
@@ -20,4 +21,4 @@ public:
   real required_descent_rate_ = 1e-4;
 };
 
-}
+}  // namespace ax::optim

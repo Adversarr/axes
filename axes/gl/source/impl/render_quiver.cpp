@@ -12,6 +12,13 @@
 
 namespace ax::gl {
 
+static void update_render(entt::registry &r, entt::entity ent) {
+  if (const auto render = r.view<QuiverRenderData>(); render.contains(ent)) {
+    r.erase<QuiverRenderData>(ent);
+  }
+  r.emplace<QuiverRenderData>(ent, r.get<Quiver>(ent));
+}
+
 QuiverRenderer::QuiverRenderer() = default;
 
 void QuiverRenderer::Setup() {
@@ -22,7 +29,7 @@ void QuiverRenderer::Setup() {
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
 
   global_registry().on_destroy<Quiver>().connect<&QuiverRenderer::Erase>(*this);
-  global_registry().on_destroy<Quiver>().connect<&QuiverRenderer::Erase>(*this);
+  global_registry().on_update<Quiver>().connect<&update_render>();
 }
 
 QuiverRenderer::~QuiverRenderer() {
@@ -56,16 +63,16 @@ void QuiverRenderer::TickRender() {
 }
 
 void QuiverRenderer::TickLogic() {
-  for (auto [ent, quiver] : view_component<Quiver>().each()) {
-    if (quiver.flush_) {
-      if (has_component<QuiverRenderData>(ent)) {
-        remove_component<QuiverRenderData>(ent);
-      }
-      add_component<QuiverRenderData>(ent, quiver);
-      AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
-    }
-    quiver.flush_ = false;
-  }
+  // for (auto [ent, quiver] : view_component<Quiver>().each()) {
+  //   if (quiver.flush_) {
+  //     if (has_component<QuiverRenderData>(ent)) {
+  //       remove_component<QuiverRenderData>(ent);
+  //     }
+  //     add_component<QuiverRenderData>(ent, quiver);
+  //     AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
+  //   }
+  //   quiver.flush_ = false;
+  // }
 }
 
 void QuiverRenderer::Erase(Entity entity) {

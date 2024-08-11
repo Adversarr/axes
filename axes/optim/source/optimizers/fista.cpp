@@ -8,20 +8,20 @@
 namespace ax::optim {
 
 // fista method have a special linesearch.
-OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const math::vecxr &x0) const {
+OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const Variable &x0) const {
   // SECT: Checkings
   AX_THROW_IF_FALSE(problem.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");
   AX_THROW_IF_FALSE(problem.HasProximator(), "Proximator function not set");
 
   // SECT: Variables
-  math::vecxr x = x0;
-  math::vecxr grad = problem.EvalGrad(x), x_old = x;
-  math::vecxr v = x;
+  Variable x = x0;
+  Gradient grad = problem.EvalGrad(x), x_old = x;
+  Variable v = x;
 
-  real theta = math::nan<real>, theta_old = 1, step_length_old = 0;
+  real theta_old = 1, step_length_old = 0;
   real energy = problem.EvalEnergy(x);
-  bool converged_grad, converged_var;
+  bool converged_grad = false, converged_var = false;
   idx iter;
 
   auto select_theta = [&iter, &theta_old, &step_length_old](real t) -> real {
@@ -72,7 +72,7 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const math::vecxr
     x_old = x;  // xk-1
     grad = problem.EvalGrad(x);
 
-    math::vecxr y = x;
+    Variable y = x;
     real t = lr_;
     auto converged_linesearch = [&]() -> bool {
       real energy_at_x = (energy = problem.EvalEnergy(x));

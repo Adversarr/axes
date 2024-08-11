@@ -165,14 +165,14 @@ void SparseSolver_Cholmod::Factorize() {
   }
 }
 
-LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
+LinsysSolveResult SparseSolver_Cholmod::Solve(matxxr const& b, matxxr const&) {
   AX_THROW_IF_NULL(impl_->factor, "Factorize must be called before Solve");
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Solve");
   cholmod_dense b_chol;
-  b_chol.nrow = static_cast<size_t>(b.size());
-  b_chol.ncol = 1;
+  b_chol.nrow = static_cast<size_t>(b.rows());
+  b_chol.ncol = static_cast<size_t>(b.cols());
   b_chol.nzmax = static_cast<size_t>(b.size());
-  b_chol.d = static_cast<size_t>(b.size());
+  b_chol.d = static_cast<size_t>(b.rows());
   b_chol.x = const_cast<real*>(b.data());
   b_chol.xtype = CHOLMOD_REAL;
   b_chol.dtype = CHOLMOD_DOUBLE;
@@ -186,8 +186,8 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(vecxr const& b, vecxr const&) {
     throw std::runtime_error("Cholmod::Solve Failed");
   }
 
-  LinsysSolveResult res(static_cast<idx>(result->nrow));
-  memcpy(res.solution_.data(), result->x, result->nrow * sizeof(real));
+  LinsysSolveResult res(to_vec_size(result->nrow), to_vec_size(result->ncol));
+  memcpy(res.solution_.data(), result->x, result->nrow * result->ncol * sizeof(real));
   cholmod_l_free_dense(&result, &impl_->common);
   res.converged_ = true;
   return res;

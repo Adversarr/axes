@@ -9,7 +9,7 @@ class Optimizer_GradientDescent : public OptimizerBase {
 public:
   Optimizer_GradientDescent(real const& lr = 0.01) : lr_(lr) {}
 
-  OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
+  OptResult Optimize(OptProblem const& problem, const Variable& x0) const override;
 
   OptimizerKind GetKind() const override;
 

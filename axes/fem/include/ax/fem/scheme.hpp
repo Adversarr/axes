@@ -4,7 +4,7 @@
 
 namespace ax::fem {
 
-BOOST_DEFINE_ENUM_CLASS(TimestepSchemeKind, kBackwardEuler, kBDF2);
+AX_DEFINE_ENUM_CLASS(TimestepSchemeKind, kBackwardEuler, kBDF2);
 
 template <idx dim> class TimestepSchemeBase {
 public:

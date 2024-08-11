@@ -18,12 +18,20 @@ namespace ax::gl {
 
 LineRenderer::LineRenderer() = default;
 
+static void update_render(entt::registry &r, entt::entity ent) {
+  if (const auto render = r.view<LineRenderData>(); render.contains(ent)) {
+    r.erase<LineRenderData>(ent);
+  }
+  r.emplace<LineRenderData>(ent, r.get<Lines>(ent));
+}
+
 void LineRenderer::Setup() {
   auto vs = Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex);
   auto fs
       = Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment);
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
   global_registry().on_destroy<Lines>().connect<&LineRenderer::Erase>(*this);
+  global_registry().on_update<Lines>().connect<&update_render>();
 }
 
 void LineRenderer::TickRender() {
@@ -43,7 +51,7 @@ void LineRenderer::TickRender() {
     } else {
       prog_.SetUniform("model", eye);
     }
-    if (line_data.instance_data_.size() > 0) {
+    if (!line_data.instance_data_.empty()) {
       AXGL_WITH_BIND(line_data.vao_) {
         line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
                                              Type::kUnsignedInt, 0,
@@ -61,15 +69,15 @@ void LineRenderer::TickRender() {
 
 void LineRenderer::TickLogic() {
   // Replace or add LineRenderData to the entity
-  for (auto [ent, lines] : view_component<Lines>().each()) {
-    if (lines.flush_) {
-      if (has_component<LineRenderData>(ent)) {
-        remove_component<LineRenderData>(ent);
-      }
-      global_registry().emplace<LineRenderData>(ent, lines);
-    }
-    lines.flush_ = false;
-  }
+  // for (auto [ent, lines] : view_component<Lines>().each()) {
+  //   if (lines.flush_) {
+  //     if (has_component<LineRenderData>(ent)) {
+  //       remove_component<LineRenderData>(ent);
+  //     }
+  //     global_registry().emplace<LineRenderData>(ent, lines);
+  //   }
+  //   lines.flush_ = false;
+  // }
 }
 
 void LineRenderer::Erase(Entity entity) { remove_component<LineRenderData>(entity); }
@@ -87,11 +95,10 @@ LineRenderData::LineRenderData(const Lines& lines) {
   vertices_.reserve(static_cast<size_t>(lines.vertices_.cols()));
   for (idx i = 0; i < lines.vertices_.cols(); i++) {
     LineRenderVertexData vertex;
-    auto position = lines.vertices_.col(i);
-    auto color = lines.colors_.col(i);
-    vertex.position_ = glm::vec3(position.x(), position.y(), position.z());
-    vertex.color_ = glm::vec4(color.x(), color.y(), color.z(), color.w());
-
+    math::vec3r position = lines.vertices_.col(i);
+    math::vec4r color = lines.colors_.col(i);
+    vertex.position_ = details::to_glm(position);
+    vertex.color_ = details::to_glm(color);
     vertices_.push_back(vertex);
   }
 
@@ -156,7 +163,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
     vao_.GetIndexBuffer().Bind();
   }
 
-  AX_INFO("LineRenderData created: #v={}, #e={}", vertices_.size(), indices_.size());
+  AX_TRACE("LineRenderData created: #v={}, #e={}", vertices_.size(), indices_.size());
 }
 
 LineRenderData::~LineRenderData() = default;

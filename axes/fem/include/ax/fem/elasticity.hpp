@@ -1,13 +1,12 @@
 #pragma once
-#include <boost/describe/enum.hpp>
-
 #include "ax/math/sparse.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "elasticity/common.hpp"
 #include "trimesh.hpp"
 
 namespace ax::fem {
 
-BOOST_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
+AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
 
 /**
  * @brief Base class for general elasticity computation.

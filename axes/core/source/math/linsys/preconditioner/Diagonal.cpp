@@ -12,6 +12,6 @@ void Preconditioner_Diagonal::Factorize() {
   AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "The factorization has not been computed.");
 }
 
-vecxr Preconditioner_Diagonal::Solve(vecxr const &b) { return impl_.solve(b); }
+matxxr Preconditioner_Diagonal::Solve(matxxr const &b) { return impl_.solve(b); }
 
 }  // namespace ax::math

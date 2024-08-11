@@ -9,6 +9,7 @@
 #include "ax/fem/elasticity/stable_neohookean.hpp"
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity_cpu.hpp"
+#include "ax/fem/elasticity_gpu.cuh"
 #include "ax/fem/trimesh.hpp"
 #include "ax/math/approx.hpp"
 using namespace ax;
@@ -24,15 +25,15 @@ int main(int argc, char** argv) {
 
   math::fieldi<DIM + 1> indices(DIM + 1, 1);
   for (idx i = 0; i <= DIM; ++i) {
-    indices(i) = i;
+    indices(i, 0) = i;
   }
 
-  math::fieldr<DIM> original_vertices(3, DIM + 1);
+  math::fieldr<DIM> original_vertices(DIM, DIM + 1);
   if constexpr (DIM == 3) {
-    original_vertices.col(0) = math::vec3r(0, 0, 0);
-    original_vertices.col(1) = math::vec3r(1, 0, 0);
-    original_vertices.col(2) = math::vec3r(0, 1, 0);
-    original_vertices.col(3) = math::vec3r(0, 0, 1);
+    original_vertices.col(0) = math::vec3r{0, 0, 0};
+    original_vertices.col(1) = math::vec3r{1, 0, 0};
+    original_vertices.col(2) = math::vec3r{0, 1, 0};
+    original_vertices.col(3) = math::vec3r{0, 0, 1};
   } else {
     original_vertices.col(0) = math::vec2r(0, 0);
     original_vertices.col(1) = math::vec2r(1, 0);
@@ -45,11 +46,6 @@ int main(int argc, char** argv) {
   mesh = std::make_unique<fem::TriMesh<DIM>>();
   mesh->SetNumDofPerVertex(1);
   mesh->SetMesh(indices, original_vertices);
-
-  // Elasticity and Deformation.
-  fem::ElasticityCompute_CPU<DIM, fem::elasticity::NeoHookeanBW> elast(
-      mesh);  //< 3d Linear Elasticity
-
   // randomly perturb the vertices.
   for (idx i = 0; i <= DIM; ++i) {
     for (idx d = 0; d < DIM; ++d) {
@@ -59,6 +55,11 @@ int main(int argc, char** argv) {
   // Update the deformation gradient.
   std::cout << "Vertices:\n" << original_vertices << std::endl;
   mesh->SetVertices(original_vertices);
+
+  // Elasticity and Deformation.
+  fem::ElasticityCompute_GPU<DIM, fem::elasticity::NeoHookeanBW> elast(
+      mesh);  //< 3d Linear Elasticity
+
   elast.RecomputeRestPose();
   elast.SetLame(lame);
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);

@@ -6,7 +6,7 @@
 
 namespace ax::optim {
 
-BOOST_DEFINE_ENUM_CLASS(OptimizerKind,
+AX_DEFINE_ENUM_CLASS(OptimizerKind,
     kNewton,
     kGradientDescent,
     kLbfgs,
@@ -22,14 +22,14 @@ public:
   /****************************** Ctor Dtor ******************************/
   explicit OptimizerBase() = default;
 
-  virtual void SetOptions(utils::Options const& options) override;
+  void SetOptions(utils::Options const& options) override;
 
   utils::Options GetOptions() const override;
 
   virtual ~OptimizerBase() = default;
 
   /****************************** Interfaces ******************************/
-  virtual OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const = 0;
+  virtual OptResult Optimize(OptProblem const& problem, Variable const& x) const = 0;
 
   virtual OptimizerKind GetKind() const = 0;
 

@@ -38,8 +38,8 @@ struct LinsysProblem_Sparse {
   real linf_tol_;
 
   // Additional checkers.
-  std::function<bool(vecxr const&, vecxr const&)> converge_residual_;
-  std::function<bool(vecxr const&)> converge_solution_;
+  std::function<bool(matxxr const&, matxxr const&)> converge_residual_;
+  std::function<bool(matxxr const&)> converge_solution_;
   LinsysProblem_Sparse(spmatr const& A) : A_{A} {
     A_.makeCompressed();
   }
@@ -60,7 +60,7 @@ AX_FORCE_INLINE std::unique_ptr<LinsysProblem_Sparse> make_sparse_problem(spmatr
 /****************************** Solver Result ******************************/
 struct LinsysSolveResult {
   // Basic Result
-  vecxr solution_;
+  matxxr solution_;
   bool converged_;
 
   // For iterative solver
@@ -70,8 +70,8 @@ struct LinsysSolveResult {
   real l2_err_{-1};
   real linf_err_{-1};
 
-  LinsysSolveResult(idx rows) : solution_(rows), converged_{false} {}
-  LinsysSolveResult(vecxr const& solution, bool converged = true)
+  LinsysSolveResult(idx rows, idx cols = 1) : solution_(rows, cols), converged_{false} {}
+  LinsysSolveResult(matxxr const& solution, bool converged = true)
       : solution_{solution}, converged_{converged} {}
 };
 

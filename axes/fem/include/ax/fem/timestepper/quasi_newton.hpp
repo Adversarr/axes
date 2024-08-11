@@ -4,7 +4,7 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 namespace ax::fem {
 
-BOOST_DEFINE_ENUM_CLASS(LbfgsStrategy, kNaive, kLaplacian, kHard, kReservedForExperimental);
+AX_DEFINE_ENUM_CLASS(LbfgsStrategy, kNaive, kLaplacian, kHard, kReservedForExperimental);
 
 template <int dim> class Timestepper_QuasiNewton : public TimeStepperBase<dim> {
 public:

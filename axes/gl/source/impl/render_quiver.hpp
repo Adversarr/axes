@@ -1,3 +1,4 @@
+#pragma once
 #include "ax/core/entt.hpp"
 #include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/program.hpp"

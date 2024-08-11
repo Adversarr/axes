@@ -6,28 +6,29 @@ class RosenbrockProblem : public OptProblem {
 public:
   RosenbrockProblem();
 
-  math::vecxr Optimal(math::vecxr const& x0);
+  Variable Optimal(Variable const& x0);
 };
 
 class LeastSquareProblem : public OptProblem {
 public:
-  LeastSquareProblem(math::matxxr const& A, math::vecxr const& b);
+  LeastSquareProblem(DenseHessian const& A, Variable const& b);
 
-  math::vecxr Optimal(math::vecxr const& x0);
+  Variable Optimal(Variable const& x0);
 
 private:
-  math::matxxr A_;
-  math::vecxr b_;
+  DenseHessian A_;
+  Variable b_;
 };
 
 class SparseLeastSquareProblem : public OptProblem {
 public:
-  SparseLeastSquareProblem(math::spmatr const& A, math::vecxr const& b);
+  SparseLeastSquareProblem(SparseHessian const& A, Variable const& b);
 
-  math::vecxr Optimal(math::vecxr const& x0);
+  Variable Optimal(Variable const& x0);
+
 private:
-  math::spmatr A_;
-  math::vecxr b_;
+  SparseHessian A_;
+  Variable b_;
 };
 
 }  // namespace ax::optim::test

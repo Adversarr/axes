@@ -30,7 +30,7 @@ public:
   bool RemoveNode(NodeBase* node);
 
   // Socket management
-  Socket* AddSocket(Pin* input, Pin* output);
+  Socket* AddSocket(Pin* input, Pin* output); // TODO: Must return const Socket*
   Socket* AddSocket(ident_t input_pin, ident_t output_pin);
   Socket* AddSocket(ident_t left_node_id, ident_t input_pin, ident_t right_node_id, ident_t output_pin);
 

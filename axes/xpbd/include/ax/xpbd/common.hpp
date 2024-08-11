@@ -13,7 +13,7 @@
 
 namespace ax::xpbd {
 
-BOOST_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
+AX_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
                   kSpring,  // the most common elasticity term.
                   kTetra,   // FEM-like energy.
                   kCollision,

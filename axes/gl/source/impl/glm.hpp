@@ -1,13 +1,22 @@
+#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "ax/math/common.hpp"
 namespace ax::gl::details {
 
+template <typename Scalar, int rows>
+glm::vec<rows, float> to_glm(math::vec<Scalar, rows> const& m) {
+  glm::vec<rows, float> result;
+  for (int i = 0; i < rows; ++i) {
+    result[i] = static_cast<float>(m[i]);
+  }
+  return result;
+}
+
 inline glm::mat4 lookat(math::vec3r const& eye, math::vec3r const& center, math::vec3r const& up) {
-  return glm::lookAt(glm::vec3(eye.x(), eye.y(), eye.z()),
-                     glm::vec3(center.x(), center.y(), center.z()),
-                     glm::vec3(up.x(), up.y(), up.z()));
+  return glm::lookAt(to_glm(eye), to_glm(center), to_glm(up));
 }
 
 inline glm::mat4 perspective(real fov, real aspect, real near, real far) {

@@ -47,24 +47,6 @@ target_include_directories(axes_core
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-# set(ABSL_LIBRARIES
-#   absl::btree
-#   absl::check
-#   absl::cleanup
-#   absl::flat_hash_map
-#   absl::inlined_vector
-#   absl::status
-#   absl::log
-#   absl::log_initialize
-#   absl::log_globals
-#   absl::log_flags
-#   absl::flags_parse
-#   absl::flags_usage
-#   absl::failure_signal_handler
-#   absl::stacktrace
-#   absl::symbolize
-#   absl::statusor)
-
 target_link_libraries(axes_core
   PUBLIC
     Eigen3::Eigen
@@ -80,6 +62,7 @@ target_link_libraries(axes_core
     SuiteSparse::CHOLMOD
     spdlog::spdlog_header_only
     fmt::fmt-header-only
+#    Backward::Interface
 )
 
 if (AX_ENABLE_CUDA)
@@ -96,3 +79,12 @@ endif()
 
 target_compile_definitions(axes_core PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")
 ax_target_apply_flag(axes_core PRIVATE)
+include(FindPkgConfig)
+pkg_check_modules(libdw QUIET libdw)
+if (libdw_FOUND)
+  target_link_libraries(axes_core PUBLIC ${libdw_LIBRARIES})
+  target_include_directories(axes_core PUBLIC ${libdw_INCLUDE_DIRS})
+  target_compile_definitions(axes_core PRIVATE "AX_HAS_LIBDW")
+
+  message(STATUS "libdw found, enabling advanced stacktrace")
+endif()

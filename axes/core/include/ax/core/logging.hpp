@@ -16,12 +16,12 @@
 #define AX_ERROR(...) SPDLOG_ERROR(__VA_ARGS__)
 #define AX_CRITICAL(...) SPDLOG_CRITICAL(__VA_ARGS__)
 
-#define AX_CHECK(cond, msg, ...)                                                       \
-  do {                                                                                 \
-    if (!(cond)) {                                                                     \
-      AX_CRITICAL("AX_CHECK ({}) failed: " msg, #cond __VA_OPT__(,) __VA_ARGS__);      \
-      std::abort();                                                                    \
-    }                                                                                  \
+#define AX_CHECK(cond, msg, ...)                                                   \
+  do {                                                                             \
+    if (!(cond)) {                                                                 \
+      AX_CRITICAL("AX_CHECK ({}) failed: " msg, #cond __VA_OPT__(, ) __VA_ARGS__); \
+      std::abort();                                                                \
+    }                                                                              \
   } while (false)
 
 #if (AX_IS_DEBUG)
@@ -30,4 +30,9 @@
 #  define AX_DCHECK(cond, ...) (void)(cond)
 #endif
 
-namespace ax {}  // namespace ax
+namespace ax {
+
+// Possible values are: trace, debug, info, warn, err, critical, off
+using loglvl = spdlog::level::level_enum;
+
+}  // namespace ax

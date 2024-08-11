@@ -19,15 +19,8 @@ template <> struct scalar_of<f64> {
 };
 
 /****************************** floating check ******************************/
-
-template <typename F> constexpr bool is_scalar_v
-    = std::is_same_v<std::decay_t<F>, f32> || std::is_same_v<std::decay_t<F>, f64>;
-
+template <typename F> constexpr bool is_scalar_v = std::is_floating_point_v<std::decay_t<F>>;
 template <typename F> using enable_if_scalar_t = std::enable_if_t<is_scalar_v<F>, F>;
-
-template <typename T> struct ensure_floating {
-  static_assert(is_scalar_v<T>, "T must be a floating point type");
-};
 
 /****************************** convertion check ******************************/
 
@@ -66,9 +59,5 @@ template <typename Derived> constexpr bool is_row_vector_v = (rows_v<Derived> ==
 template <typename A, typename B> constexpr bool same_rows_v = rows_v<A> == rows_v<B>;
 template <typename A, typename B> constexpr bool same_cols_v = cols_v<A> == cols_v<B>;
 template <typename A, typename B> constexpr bool same_shape_v = same_rows_v<A, B> && same_cols_v<A, B>;
-
-template <typename A>
-struct is_support_operator_add : std::false_type {};
-
 
 }  // namespace ax::math

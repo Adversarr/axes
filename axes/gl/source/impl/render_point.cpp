@@ -16,7 +16,14 @@
 
 namespace ax::gl {
 
-PointRenderer::PointRenderer() {}
+static void update_render(entt::registry &r, entt::entity ent) {
+  if (const auto render = r.view<PointRenderData>(); render.contains(ent)) {
+    r.erase<PointRenderData>(ent);
+  }
+  r.emplace<PointRenderData>(ent, r.get<Points>(ent));
+}
+
+PointRenderer::PointRenderer() = default;
 
 void PointRenderer::Setup() {
   auto vs
@@ -26,6 +33,7 @@ void PointRenderer::Setup() {
 
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
   global_registry().on_destroy<Points>().connect<&PointRenderer::Erase>(*this);
+  global_registry().on_update<Points>().connect<&update_render>();
 }
 
 void PointRenderer::TickRender() {
@@ -66,17 +74,17 @@ void PointRenderer::TickRender() {
 
 void PointRenderer::TickLogic() {
   // Replace or add PointRenderData to the entity
-  for (auto [ent, points] : view_component<Points>().each()) {
-    if (points.flush_) {
-      if (has_component<PointRenderData>(ent)) {
-        remove_component<PointRenderData>(ent);
-      }
-      global_registry().emplace<PointRenderData>(ent, points);
-
-      AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
-    }
-    points.flush_ = false;
-  }
+  // for (auto [ent, points] : view_component<Points>().each()) {
+  //   if (points.flush_) {
+  //     if (has_component<PointRenderData>(ent)) {
+  //       remove_component<PointRenderData>(ent);
+  //     }
+  //     global_registry().emplace<PointRenderData>(ent, points);
+  //
+  //     AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
+  //   }
+  //   points.flush_ = false;
+  // }
 }
 
 void PointRenderer::Erase(Entity entity) { remove_component<PointRenderData>(entity); }

@@ -1,48 +1,48 @@
 #include "ax/core/init.hpp"
 
-#include <algorithm>
 #include <openvdb/openvdb.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <cxxopts.hpp>
-
-#include "ax/core/logging.hpp"
+// #ifdef AX_HAS_LIBDW
+// #  define BACKWARD_HAS_DW 1
+// #endif
+#include "3rdparty/backward/backward.hpp"
 #include "ax/core/entt.hpp"
-#include "ax/math/init.hpp"
-#include "ax/utils/common.hpp"
+#include "ax/core/logging.hpp"
+#include "ax/math/init_parallel.hpp"
 #include "ax/utils/time.hpp"
-
-// ABSL_FLAG(int, n_eigen_threads, -1,
-//           "Number of eigen parallelism: negative for disable, 0 for hardware cocurrency, positive
-//           " "for specific number of threads.");
 
 namespace ax {
 
 /****************************** GLOBAL VARS ******************************/
-std::unique_ptr<entt::registry> g_registry;
-std::unique_ptr<entt::dispatcher> g_dispatcher;
+std::unique_ptr<entt::registry> kRegistry;
+std::unique_ptr<entt::dispatcher> kDispatcher;
+
 struct Hook {
   const std::string name_;
   std::function<void()> call_;
 };
-std::vector<Hook> g_init_hooks;
-std::vector<Hook> g_cleanup_hook;
 
-std::string program_path = "UNKNOWN";
-std::string logger_name = "ax";
-cxxopts::ParseResult parse_result;
+std::vector<Hook> kInitHooks;
+std::vector<Hook> kCleanupHooks;
 
-const char* get_program_path() { return program_path.c_str(); }
+std::string kProgramPath;
+std::string kLoggerName = "ax";
+cxxopts::ParseResult kParseResult;
+
+const char* get_program_path() { return kProgramPath.c_str(); }
 
 cxxopts::Options& get_program_options() {
-  static cxxopts::Options opt("axes", "libaxes internal");
+  static cxxopts::Options opt("axes", "libaxes internal argument parser");
   return opt;
 }
 
 cxxopts::ParseResult& get_parse_result() {
-  return parse_result;
+  return kParseResult;
 }
 
 /****************************** Implementation ******************************/
@@ -55,11 +55,11 @@ void init(int argc, char** argv) {
                     ("h,help", "Print usage.");
   if (argc > 0) {
     /****************************** Install the debuggers ******************************/
-    program_path = argv[0];
-    parse_result = opt.parse(argc, argv);
+    kProgramPath = argv[0];
+    kParseResult = opt.parse(argc, argv);
   }
 
-  if (parse_result.count("help")) {
+  if (kParseResult.count("help")) {
     std::cout << opt.help() << std::endl;
     exit(EXIT_SUCCESS);
   }
@@ -67,22 +67,25 @@ void init(int argc, char** argv) {
 }
 
 std::shared_ptr<spdlog::logger> get_logger() {
-  auto logger = spdlog::get(logger_name);
+  auto logger = spdlog::get(kLoggerName);
   if (!logger) {
-    logger = spdlog::stdout_color_mt(logger_name);
+    logger = spdlog::stdout_color_mt(kLoggerName);
     logger->set_level(spdlog::level::info);
+    logger->set_pattern("[%D %T.%e] [%^%L%$] %s:%#: %v");
     spdlog::set_default_logger(logger);
-    SPDLOG_DEBUG("Initialized spdlog");
+    AX_DEBUG("Initialized spdlog");
   }
   return logger;
 }
 
 void init() {
+  static backward::SignalHandling sh; // install the signal handler.\
+
   add_clean_up_hook("Show Timers", []() { erase_resource<utils::TimerRegistry>(); });
   get_logger();  // trigger the logger initialization
   /****************************** Setup Entt Registry ******************************/
-  g_registry = std::make_unique<entt::registry>();
-  g_dispatcher = std::make_unique<entt::dispatcher>();
+  kRegistry = std::make_unique<entt::registry>();
+  kDispatcher = std::make_unique<entt::dispatcher>();
 
   /****************************** Vdb ******************************/
   openvdb::initialize();
@@ -91,62 +94,71 @@ void init() {
   AX_INFO("Initialized Eigen with {} threads", Eigen::nbThreads());
 
   // 3. Run all the hooks
-  for (auto&& [name, call] : g_init_hooks) {
-    AX_INFO("Run init-hook [{}]", name);
+  for (auto&& [name, call] : kInitHooks) {
+    AX_INFO("Run init: {}", name);
     try {
       call();
     } catch (const std::exception& e) {
       AX_CRITICAL("Init-hook [{}] failed: {}", name, e.what());
+      abort();
     }
   }
-  g_init_hooks.clear();
+  kInitHooks.clear();
 }
 
 void clean_up() {
   // 1. Run all the clean up hooks in reverse order.
-  std::for_each(g_cleanup_hook.rbegin(), g_cleanup_hook.rend(), [](auto const& hook) {
-    AX_INFO("Run clean-up-hook [{}]", hook.name_);
+  std::for_each(kCleanupHooks.rbegin(), kCleanupHooks.rend(), [](auto const& hook) {
+    AX_INFO("Run clean up: {}", hook.name_);
     try {
       hook.call_();
     } catch (const std::exception& e) {
       AX_CRITICAL("Clean up hook [{}] run failed: {}", hook.name_, e.what());
     }
   });
-  g_cleanup_hook.clear();
+  kCleanupHooks.clear();
 
   // 2. Destroy all the resources.
-  g_registry.reset();
-  g_dispatcher.reset();
+  openvdb::uninitialize();
+  kDispatcher.reset();
+  kRegistry.reset();
   spdlog::drop_all();
 }
 
 void add_init_hook(const char* name, std::function<void()> f) {
-  for (auto const& [n, _] : g_init_hooks) {
+  for (auto const& [n, _] : kInitHooks) {
     if (n == name) {
       return;
     }
   }
-  g_init_hooks.push_back({name, f});
+  kInitHooks.push_back({name, f});
 }
 
 void add_clean_up_hook(const char* name, std::function<void()> f) {
   // Check if the callback is already in the list.
-  for (auto const& [n, _] : g_cleanup_hook) {
+  for (auto const& [n, _] : kCleanupHooks) {
     if (n == name) {
       return;
     }
   }
-  g_cleanup_hook.push_back({name, f});
+  kCleanupHooks.push_back({name, f});
 }
 
 entt::registry& global_registry() {
-  AX_DCHECK(g_registry != nullptr, "Registry is not initialized.");
-  return *g_registry;
+  AX_DCHECK(kRegistry != nullptr, "Registry is not initialized.");
+  return *kRegistry;
 }
 
 entt::dispatcher& global_dispatcher() {
-  AX_DCHECK(g_dispatcher != nullptr, "Dispatcher is not initialized.");
-  return *g_dispatcher;
+  AX_DCHECK(kDispatcher != nullptr, "Dispatcher is not initialized.");
+  return *kDispatcher;
+}
+
+void print_stack() {
+  backward::StackTrace st;
+  st.load_here(32);
+  backward::Printer p;
+  p.print(st);
 }
 
 }  // namespace ax

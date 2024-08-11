@@ -8,7 +8,7 @@ public:
   Optimizer_Fista() = default;
   ~Optimizer_Fista() = default;
 
-  OptResult Optimize(const OptProblem &problem, const math::vecxr &x0) const final;
+  OptResult Optimize(const OptProblem &problem, const Variable &x0) const final;
 
   OptimizerKind GetKind() const final { return OptimizerKind::kFista; }
 

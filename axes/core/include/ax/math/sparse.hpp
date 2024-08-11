@@ -68,6 +68,7 @@ AX_FORCE_INLINE void spmatr_for_each(const spmatr & A, Fn&& fn) {
   }
 }
 
+/****************************** matrix norm ******************************/
 
 AX_FORCE_INLINE real norm(spmatr const& A, math::l1_t) {
   real norm = 0;
@@ -87,6 +88,15 @@ AX_FORCE_INLINE real norm(spmatr const& A, math::l1_t) {
 
 AX_FORCE_INLINE real norm(spmatr const& A, math::l2_t) {
   return A.norm();
+}
+
+/****************************** inner product ******************************/
+AX_FORCE_INLINE real inner(vecxr const& left, spmatr const& bilinear, vecxr const& right) {
+  real total = 0.;
+  spmatr_for_each(bilinear, [&](idx row, idx col, real value) {
+    total += left[row] * right[col] * value;
+  });
+  return total;
 }
 
 }  // namespace ax::math

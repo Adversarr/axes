@@ -80,7 +80,7 @@ public:
 
   NodeDescriptor Finalize() { return descriptor_; }
 
-  void FinalizeAndRegister() { details::factory_register(descriptor_); }
+  void FinalizeAndRegister() const { details::factory_register(descriptor_); }
 
 private:
   NodeDescriptor descriptor_;
@@ -216,7 +216,7 @@ private:
   AX_DECLARE_OUTPUT BOOST_PP_TUPLE_PUSH_BACK(elem, ith);
 
 // DO NOT USE THIS
-#define AX_NODE_ADD_INPUT(r, data, elem)                                                          \
+#define AX_NODE_ADD_INPUT(r, data, elem)                                                           \
   factory.AddInput<BOOST_PP_TUPLE_ELEM(0, elem)>(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), \
                                                                     BOOST_PP_TUPLE_ELEM(2, elem));
 
@@ -226,28 +226,36 @@ private:
       BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), BOOST_PP_TUPLE_ELEM(2, elem));
 
 // Declare the input of one node. e.g. AX_NODE_INPUTS((type, name, description), ...)
-#define AX_NODE_OUTPUTS(...)                                                            \
-  BOOST_PP_VA_OPT((BOOST_PP_SEQ_FOR_EACH_I(AX_DECLARE_OUTPUT_ADAPTOR, _,                \
-                                           BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))),     \
-                  (), __VA_ARGS__)                                                      \
-  static void register_outputs(NodeDescriptorFactory<ThisType>& factory) {              \
-    BOOST_PP_SEQ_FOR_EACH(AX_NODE_ADD_OUTPUT, _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)) \
+#define AX_NODE_OUTPUTS(...)                                                                       \
+  BOOST_PP_VA_OPT((BOOST_PP_SEQ_FOR_EACH_I(AX_DECLARE_OUTPUT_ADAPTOR, _,                           \
+                                           BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))),                \
+                  (), __VA_ARGS__)                                                                 \
+  static void register_output(NodeDescriptorFactory<ThisType>& factory) {                         \
+    BOOST_PP_VA_OPT(                                                                               \
+        (BOOST_PP_SEQ_FOR_EACH(AX_NODE_ADD_OUTPUT, _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))), (), \
+        __VA_ARGS__)                                                                               \
   }
 
 // Declare the output of one node. e.g. AX_NODE_OUTPUTS((type, name, description), ...)
-#define AX_NODE_INPUTS(...)                                                                  \
-  BOOST_PP_VA_OPT((BOOST_PP_SEQ_FOR_EACH_I(AX_DECLARE_INPUT_ADAPTOR, _,                      \
-                                           BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))),          \
-                  (), __VA_ARGS__)                                                           \
-  static void register_inputs(NodeDescriptorFactory<ThisType>& factory) {                    \
-    BOOST_PP_SEQ_FOR_EACH(AX_NODE_ADD_INPUT, _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))       \
-  }                                                                                          \
-  template <size_t... Idx> inline auto GetAllInputImpl(std::index_sequence<Idx...>) {        \
-    return std::make_tuple(Get(input_param_i_t<Idx>{})...);                                  \
-  }                                                                                          \
-  inline auto GetAllInput() {                                                                \
-    return GetAllInputImpl(std::make_index_sequence<BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)>{}); \
+#define AX_NODE_INPUTS(...)                                                                       \
+  BOOST_PP_VA_OPT((BOOST_PP_SEQ_FOR_EACH_I(AX_DECLARE_INPUT_ADAPTOR, _,                           \
+                                           BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))),               \
+                  (), __VA_ARGS__)                                                                \
+  static void register_input(NodeDescriptorFactory<ThisType>& factory) {                         \
+    BOOST_PP_VA_OPT(                                                                              \
+        (BOOST_PP_SEQ_FOR_EACH(AX_NODE_ADD_INPUT, _, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))), (), \
+        __VA_ARGS__)                                                                              \
+  }                                                                                               \
+  template <size_t... Idx> inline auto GetAllInputImpl(std::index_sequence<Idx...>) {             \
+    return std::make_tuple(Get(input_param_i_t<Idx>{})...);                                       \
+  }                                                                                               \
+  inline auto GetAllInput() {                                                                     \
+    return GetAllInputImpl(std::make_index_sequence<BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)>{});      \
   }
+
+
+#define AX_NODE_NO_INPUT() static void register_input(NodeDescriptorFactory<ThisType>&) {}
+#define AX_NODE_NO_OUTPUT() static void register_output(NodeDescriptorFactory<ThisType>&) {}
 
 #define AX_NODE_DETAILS_CALL(r, data, elem) elem();
 
@@ -256,8 +264,6 @@ private:
   using ThisType = name;                                                                         \
   static constexpr char const* title_ = title;                                                   \
   static constexpr char const* desc_ = desc;                                                     \
-  static void register_input(NodeDescriptorFactory<name>& factory);                              \
-  static void register_output(NodeDescriptorFactory<name>& factory);                             \
   static void register_this() {                                                                  \
     NodeDescriptorFactory<name> f;                                                               \
     f.SetName(title_).SetDescription(desc_);                                                     \
@@ -285,7 +291,7 @@ private:
 // Helper to ensure the input is not nullptr.
 #define AX_NODE_INPUT_ENSURE(name)                                          \
   (([this]() -> typename in_##name##_t::type const* {                       \
-    auto const* ptr = this->Get(in_##name);                                 \
+    auto const* ptr = this -> Get(in_##name);                               \
     if (ptr == nullptr) {                                                   \
       throw std::invalid_argument("Input \"" #name "\" is not connected."); \
     }                                                                       \
@@ -296,7 +302,7 @@ private:
 
 #define AX_NODE_INPUT_EXTRACT_DEFAULT(name, default_value) \
   (([this]() -> typename in_##name##_t::type {             \
-    auto const* ptr = this->Get(in_##name);                \
+    auto const* ptr = this -> Get(in_##name);              \
     if (ptr == nullptr) {                                  \
       return default_value;                                \
     }                                                      \

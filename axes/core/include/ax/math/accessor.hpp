@@ -56,12 +56,12 @@ private:
 
 template <typename T, typename C, size_t dim>
 auto make_accessor(FieldData<T, C>& data, Shape<dim> shape) {
-  return FieldAccessor<T, dim>{shape, details::extract_data_ptr<C>::get(data.Underlying())};
+  return FieldAccessor<T, dim>{shape, ContainerTraits<C>::raw_ptr_cast(data.Underlying())};
 }
 
 template <typename T, typename C, size_t dim>
 auto make_accessor(FieldData<T, C> const& data, Shape<dim> shape) {
-  return FieldAccessor<T const, dim>{shape, details::extract_data_ptr<C>::get(data.Underlying())};
+  return FieldAccessor<T const, dim>{shape, ContainerTraits<C>::raw_ptr_cast(data.Underlying())};
 }
 
 template <typename T, typename C, size_t dim> void make_accessor(Shape<dim>, FieldData<T, C>&&) {

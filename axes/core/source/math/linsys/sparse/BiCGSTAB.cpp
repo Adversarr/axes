@@ -13,7 +13,7 @@ void SparseSolver_BiCGSTAB::Factorize() {
                     "SparseSolver_BiCGSTAB: Compute failed");
 }
 
-LinsysSolveResult SparseSolver_BiCGSTAB::Solve(vecxr const &b, vecxr const &x0) {
+LinsysSolveResult SparseSolver_BiCGSTAB::Solve(matxxr const &b, matxxr const &x0) {
   vecxr x;
   if (x0.size() > 0) {
     AX_THROW_IF_NE(x0.size(), b.size(), "SparseSolver_BiCGSTAB: x0 size mismatch");

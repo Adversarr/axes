@@ -1,9 +1,10 @@
 #pragma once
-#include <boost/describe/enum.hpp>  // IWYU pragma: export
+#include <boost/describe/enum.hpp>
 #include <boost/describe/enum_from_string.hpp>
 #include <boost/describe/enum_to_string.hpp>
-#include <map>  // IWYU pragma: export
 #include <optional>
+
+#define AX_DEFINE_ENUM_CLASS(...) BOOST_DEFINE_ENUM_CLASS(__VA_ARGS__)
 
 #include "common.hpp"
 
@@ -21,6 +22,7 @@ namespace ax::utils {
  * representation is invalid.
  */
 template <typename Enum> std::optional<Enum> reflect_enum(const char* name) {
+  static_assert(std::is_enum_v<Enum>, "should be a cpp enum.");
   using namespace boost::describe;
   if (Enum e; enum_from_string<Enum, describe_enumerators<Enum>>(name, e)) {
     return e;

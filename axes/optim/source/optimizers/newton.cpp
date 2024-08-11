@@ -1,6 +1,7 @@
 #include "ax/optim/optimizers/newton.hpp"
 
 #include "ax/core/logging.hpp"
+#include "ax/math/formatting.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
@@ -8,12 +9,11 @@
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/utils/time.hpp"
 
 namespace ax::optim {
 
-OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr const& x0) const {
+OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const& x0) const {
   AX_TIME_FUNC();
   AX_THROW_IF_FALSE(problem_.HasEnergy(), "Energy function not set");
   AX_THROW_IF_FALSE(problem_.HasGrad(), "Gradient function not set");
@@ -22,10 +22,10 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
   bool is_dense_hessian = problem_.HasHessian();
 
   // SECT: Initialize
-  math::vecxr x = x0;
+  Variable x = x0;
   real f_iter = problem_.EvalEnergy(x);
-  math::vecxr grad = problem_.EvalGrad(x);
-  math::vecxr dir = -grad;
+  Gradient grad = problem_.EvalGrad(x);
+  Variable dir = -grad;
 
   idx iter = 0;
   bool converged = false;
@@ -38,8 +38,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
     // SECT: verbose_
     problem_.EvalVerbose(iter, x, f_iter);
     if (verbose_) {
-      AX_INFO("Newton iter {}:\n  x: {}\n  f: {}\n  grad: {}", iter, x.transpose(), f_iter,
-              grad.transpose());
+      AX_INFO("Newton iter {}:\n  f: {}\n  |g|: {}", iter, f_iter, math::norm2(grad));
     }
 
     AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns NaN or Inf");
@@ -55,7 +54,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
 
     // SECT: Find a Dir
     if (is_dense_hessian) {
-      math::matxxr H = problem_.EvalHessian(x);
+      auto H = problem_.EvalHessian(x);
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(),
                        "Hessian matrix size mismatch");
       // TODO: this is not correct
@@ -63,17 +62,17 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
       dir = dense_solver_->Solve(-grad);
     } else {
       AX_TIMEIT("Eval and Solve Sparse System");
-      math::spmatr H = problem_.EvalSparseHessian(x);
+      auto H = problem_.EvalSparseHessian(x);
       AX_THROW_IF_TRUE(H.rows() != x.rows() || H.cols() != x.rows(),
                        "Hessian matrix size mismatch");
       auto prob = math::make_sparse_problem(H);
       if (problem_.HasConvergeGrad()) {
-        prob->converge_residual_ = [&](math::vecxr const& x, math::vecxr const& r) -> bool {
+        prob->converge_residual_ = [&](Variable const& x, Gradient const& r) -> bool {
           return problem_.EvalConvergeGrad(x, r) < tol_grad_;
         };
       }
       if (problem_.HasConvergeVar()) {
-        prob->converge_solution_ = [&](math::vecxr const& x) -> bool {
+        prob->converge_solution_ = [&](Variable const& x) -> bool {
           return problem_.EvalConvergeVar(x, x0) < tol_var_;
         };
       }
@@ -82,23 +81,27 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, math::vecxr con
       dir = -solution.solution_;
     }
 
-    real dir_dot_grad = dir.dot(grad);
-    if (dir_dot_grad > 0) {
-      AX_ERROR("Direction is not descenting.");
-      break;
-    }
-
     // SECT: Line search
-    OptResult ls_result = linesearch_->Optimize(problem_, x, grad, dir);
-    x = ls_result.x_opt_;
-    real f_last = f_iter;
-    f_iter = ls_result.f_opt_;
-    if (f_iter > f_last) {
-      // AX_LOG(ERROR) << "Line Search Error: Energy increased!!!";
-      AX_ERROR("Line Search Error: Energy increased, last={}, current={}", f_last, f_iter);
+    const real f_last = f_iter;
+    if (linesearch_) {
+      OptResult ls_result = linesearch_->Optimize(problem_, x, grad, dir);
       if (!ls_result.converged_) {
         AX_ERROR("Line Search Error: Failed to converge");
+        break;
       }
+      x = ls_result.x_opt_;
+      f_iter = ls_result.f_opt_;
+    } else {
+      if (const real dir_dot_grad = math::dot(dir, grad); dir_dot_grad > math::epsilon<real>) {
+        AX_ERROR("Direction is not descenting.");
+        break;
+      }
+
+      x += dir;
+      f_iter = problem_.EvalEnergy(x);
+    }
+    if (f_iter > f_last) {
+      AX_ERROR("Line Search Error: Energy increased, last={}, current={}", f_last, f_iter);
       break;
     }
     grad = problem_.EvalGrad(x);
@@ -117,9 +120,9 @@ Optimizer_Newton::Optimizer_Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
   sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
-  math::SparseSolver_ConjugateGradient* cg
-      = static_cast<math::SparseSolver_ConjugateGradient*>(sparse_solver_.get());
-  cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
+  // math::SparseSolver_ConjugateGradient* cg
+  //     = static_cast<math::SparseSolver_ConjugateGradient*>(sparse_solver_.get());
+  // cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
 void Optimizer_Newton::SetOptions(utils::Options const& options) {

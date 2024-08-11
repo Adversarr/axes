@@ -2,7 +2,7 @@
 #include "ax/math/linsys/sparse.hpp"
 namespace ax::math {
 
-BOOST_DEFINE_ENUM_CLASS(CholmodSupernodalKind,
+AX_DEFINE_ENUM_CLASS(CholmodSupernodalKind,
                         kAuto,        // automatic
                         kSimplicial,  // use simplicial LDLT
                         kSupernodal   // use supernodal LLT, numerical issue may occur
@@ -16,13 +16,13 @@ public:
 
   void AnalyzePattern() override;
   void Factorize() override;
-  LinsysSolveResult Solve(vecxr const& b, vecxr const& x0) override;
+  LinsysSolveResult Solve(matxxr const& b, matxxr const& x0) override;
   int FactorizeOnce();
 
   void SetOptions(utils::Options const& opt) override;
   utils::Options GetOptions() const override;
 
-  math::matxxr Inverse() const;
+  matxxr Inverse() const;
 
 private:
   struct Impl;

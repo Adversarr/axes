@@ -98,8 +98,8 @@ public:
                              end_draw_node();
                            }});
   }
-
-  void OnConstruct() override { *RetriveOutput<bool>(0) = false; }
+  // TODO: Implement OnConstruct
+  // void OnConstruct() override { *RetriveOutput<bool>(0) = false; }
 
   boost::json::object Serialize() const override {
     boost::json::object obj;
@@ -375,17 +375,18 @@ public:
     });
   }
 
-  void OnConstruct() override {
-    ent_ = create_entity();
-    *RetriveOutput<Entity>(0) = ent_;
-  }
-
-  void OnDestroy() override {
-    if (ent_ != entt::null) {
-      destroy_entity(ent_);
-    }
-    *RetriveOutput<Entity>(0) = ent_;
-  }
+  // TODO: Implement OnConstruct and OnDestroy
+  // void OnConstruct() override {
+  //   ent_ = create_entity();
+  //   *RetriveOutput<Entity>(0) = ent_;
+  // }
+  //
+  // void OnDestroy() override {
+  //   if (ent_ != entt::null) {
+  //     destroy_entity(ent_);
+  //   }
+  //   *RetriveOutput<Entity>(0) = ent_;
+  // }
 
 private:
   Entity ent_ = entt::null;

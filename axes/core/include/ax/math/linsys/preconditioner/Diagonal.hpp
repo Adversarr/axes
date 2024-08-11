@@ -7,7 +7,7 @@ class Preconditioner_Diagonal : public PreconditionerBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
-  vecxr Solve(vecxr const &b) override;
+  matxxr Solve(matxxr const &b) override;
 
   PreconditionerKind GetKind() const final { return PreconditionerKind::kDiagonal; }
 

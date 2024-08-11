@@ -16,7 +16,7 @@ public:
   ~Optimizer_Newton() override = default;
 
   /****************************** Interfaces ******************************/
-  OptResult Optimize(OptProblem const& problem, math::vecxr const& x0) const override;
+  OptResult Optimize(OptProblem const& problem, Variable const& x) const override;
 
   OptimizerKind GetKind() const override { return OptimizerKind::kNewton; }
 

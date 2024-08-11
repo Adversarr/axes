@@ -7,14 +7,14 @@
 
 namespace ax::optim {
 
-BOOST_DEFINE_ENUM_CLASS(LineSearchKind, kBacktracking, kWolfe);
+AX_DEFINE_ENUM_CLASS(LineSearchKind, kBacktracking, kWolfe);
 
 class LinesearchBase : public utils::Tunable {
 public:
   virtual ~LinesearchBase() = default;
 
-  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad,
-                             math::vecxr const& dir) const
+  virtual OptResult Optimize(OptProblem const& prob, Variable const& x0, Gradient const& grad,
+                             Variable const& dir) const
       = 0;
   virtual LineSearchKind GetKind() const = 0;
 
@@ -59,9 +59,9 @@ inline bool examine_arjimo_condition(real f_step, real f_original, real expected
  * @return true
  * @return false
  */
-inline bool examine_curvature_condition(math::vecxr const& step_dir, math::vecxr const& grad_step,
+inline bool examine_curvature_condition(Variable const& step_dir, Gradient const& grad_step,
                                         real expected_descent, real required_curvature_rate) {
-  return -grad_step.dot(step_dir) <= -required_curvature_rate * expected_descent;
+  return -math::dot(grad_step, step_dir) <= -required_curvature_rate * expected_descent;
 }
 
 /**
@@ -76,10 +76,9 @@ inline bool examine_curvature_condition(math::vecxr const& step_dir, math::vecxr
  * @return true
  * @return false
  */
-inline bool examine_strong_wolfe_condition(math::vecxr const& step_dir,
-                                           math::vecxr const& grad_step, real expected_descent,
-                                           real required_curvature_rate) {
-  return math::abs(grad_step.dot(step_dir))
+inline bool examine_strong_wolfe_condition(Variable const& step_dir, Gradient const& grad_step,
+                                           real expected_descent, real required_curvature_rate) {
+  return math::abs(math::dot(grad_step, step_dir))
          <= math::abs(required_curvature_rate * expected_descent);
 }
 

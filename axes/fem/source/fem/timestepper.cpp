@@ -99,7 +99,7 @@ template <int dim> void TimeStepperBase<dim>::SetOptions(utils::Options const& o
   u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
 
   AX_SYNC_OPT_IF(opt, real, density) { SetDensity(density_); }
-  utils::Tunable::SetOptions(opt);
+  Tunable::SetOptions(opt);
 }
 
 template <int dim>
@@ -146,7 +146,7 @@ void TimeStepperBase<dim>::SetupElasticity(std::string name, std::string device)
 }
 
 template <int dim> utils::Options TimeStepperBase<dim>::GetOptions() const {
-  utils::Options opt = utils::Tunable::GetOptions();
+  utils::Options opt = Tunable::GetOptions();
   opt["rel_tol_grad"] = rel_tol_grad_;
   opt["tol_var"] = tol_var_;
   opt["max_iter"] = max_iter_;
@@ -296,24 +296,20 @@ math::spmatr TimeStepperBase<dim>::Hessian(math::fieldr<dim> const& u, bool proj
 }
 
 template <int dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() {
-  optim::OptProblem problem;
-  auto n_vert = mesh_->GetNumVertices();
-  problem
-      .SetEnergy([&, n_vert](math::vecxr const& du) -> real {
-        return Energy(du.reshaped(dim, n_vert) + u_);
+  using namespace optim;
+  OptProblem prob;
+  idx n_vert = mesh_->GetNumVertices();
+  prob.SetEnergy(
+          [&, n_vert](Variable const& du) -> real { return Energy(du.reshaped(dim, n_vert) + u_); })
+      .SetGrad(
+          [&](Variable const& du) -> optim::Gradient { return GradientFlat(du + u_.reshaped()); })
+      .SetSparseHessian([&, n_vert](Variable const& du) -> SparseHessian {
+        return Hessian(du.reshaped(dim, n_vert) + u_, true);
       })
-      .SetGrad([&](math::vecxr const& du) -> math::vecxr {
-        math::vecxr g = GradientFlat(du + u_.reshaped());
-        return g;
-      })
-      .SetSparseHessian([&, n_vert](math::vecxr const& du) -> math::spmatr {
-        math::spmatr H = Hessian(du.reshaped(dim, n_vert) + u_, true);
-        return H;
-      })
-      .SetConvergeGrad([this, n_vert](const math::vecxr&, const math::vecxr& grad) -> real {
+      .SetConvergeGrad([this, n_vert](const Variable&, const Variable& grad) -> real {
         return ResidualNorm(grad.reshaped(dim, n_vert)) / abs_tol_grad_;
       })
-      .SetConvergeVar([this, n_vert](const math::vecxr& du_back, const math::vecxr& du) -> real {
+      .SetConvergeVar([this, n_vert](const Variable& du_back, const Variable& du) -> real {
         math::fieldr<dim> ddu_flat = (du_back - du).reshaped(dim, n_vert);
         return ResidualNorm(ddu_flat);
       });
@@ -321,14 +317,14 @@ template <int dim> optim::OptProblem TimeStepperBase<dim>::AssembleProblem() {
   last_trajectory_.clear();
   last_energy_.clear();
   last_iterations_ = 0;
-  problem.SetVerbose([this](idx ith, const math::vecxr& x, const real energy) {
+  prob.SetVerbose([this](idx ith, const Variable& x, const real energy) {
     x.reshaped<Eigen::AutoOrder>(dim, mesh_->GetNumVertices());
     auto du = math::reshape<dim>(x, mesh_->GetNumVertices());
     last_trajectory_.push_back(u_ + du);
     last_energy_.push_back(energy);
     last_iterations_ = ith;
   });
-  return problem;
+  return prob;
 }
 
 template <int dim> void TimeStepperBase<dim>::RecomputeInitialGuess(

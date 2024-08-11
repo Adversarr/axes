@@ -1,9 +1,9 @@
 #pragma once
 #include <Eigen/Geometry>
-#include <boost/describe/enum.hpp>
 #include <map>
 
 #include "ax/core/logging.hpp"
+#include "ax/utils/enum_refl.hpp"
 #include "ax/geometry/common.hpp"  // IWYU pragma: export
 namespace ax::geo {
 
@@ -47,7 +47,7 @@ template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<d
   return a.intersects(b);
 }
 
-BOOST_DEFINE_ENUM_CLASS(CollisionKind, kVertexFace, kVertexEdge, kVertexVertex, kEdgeEdge, kNone);
+AX_DEFINE_ENUM_CLASS(CollisionKind, kVertexFace, kVertexEdge, kVertexVertex, kEdgeEdge, kNone);
 
 struct CollisionInfo {
   bool valid_;
@@ -102,7 +102,7 @@ struct BroadPhaseCollisionInfo {
 };
 
 /************************* SECT: Broad Phase *************************/
-BOOST_DEFINE_ENUM_CLASS(PrimitiveKind, kVertex, kSegment, kTriangle);
+AX_DEFINE_ENUM_CLASS(PrimitiveKind, kVertex, kSegment, kTriangle);
 
 namespace details {
 

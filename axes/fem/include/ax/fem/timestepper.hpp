@@ -10,7 +10,7 @@
 
 namespace ax::fem {
 
-BOOST_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
+AX_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 
 // Use Backward Euler (with exactly 1 step backward)
 //     M (x' - (x + dt v)) = dt^2 F_int(x')

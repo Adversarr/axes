@@ -170,13 +170,6 @@ void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex* vert) {
                          [vert](auto const& v) { return v.get() == vert; });
   AX_DCHECK(it != vertices_.end());
   std::swap(*it, vertices_.back());
-
-#ifndef NDEBUG
-  auto ite = std::find_if(edges_.begin(), edges_.end(),
-                          [vert](auto const& e) { return e->Head() == vert; });
-  AX_DCHECK(ite == edges_.end())
-      << "After you delete the vertex, there should be no edge pointing to it." << ite->get();
-#endif
   vertices_.pop_back();
 }
 

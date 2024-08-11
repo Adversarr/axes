@@ -79,6 +79,7 @@ void Deserializer::Deserialize(boost::json::object const &obj) {
     auto out_node = node_id_map_[output_node];
     auto const *input = graph_.GetNode(in_node);
     auto const *output = graph_.GetNode(out_node);
+    // TODO: May throw.
     auto socket = graph_.AddSocket(input->GetId(), input_pin, output->GetId(), output_pin);
     if (socket == nullptr) {
       AX_ERROR("Failed to add socket: I [{}:{}] O [{}:{}]", input->GetId(), input_pin, output->GetId(), output_pin);

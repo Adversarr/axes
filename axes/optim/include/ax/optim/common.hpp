@@ -7,24 +7,28 @@
 
 namespace ax::optim {
 
+using Variable = math::matxxr;       // type of variable in optimization.
+using Gradient = Variable;           // type of gradient is the same as variable.
+using DenseHessian = math::matxxr;   // type of dense hessian.
+using SparseHessian = math::spmatr;  // type of sparse hessian.
+
 /****************************** Function Handles ******************************/
-using ConvergeVarFn
-    = std::function<real(const math::vecxr&, const math::vecxr&)>;
-using ConvergeGradFn
-    = std::function<real(const math::vecxr&, const math::vecxr&)>;
-using VerboseFn = std::function<void(idx, const math::vecxr&, const real)>;
-using EnergyFn = std::function<real(const math::vecxr&)>;
-using GradFn = std::function<math::vecxr(const math::vecxr&)>;
-using HessianFn = std::function<math::matxxr(const math::vecxr&)>;
-using SparseHessianFn = std::function<math::spmatr(math::vecxr const&)>;
-using ProximatorFn = std::function<math::vecxr(const math::vecxr&, real)>;
+using ConvergeVarFn = std::function<real(const Variable&, const Variable&)>;
+using ConvergeGradFn = std::function<real(const Gradient&, const Gradient&)>;
+using VerboseFn = std::function<void(idx, const Variable&, real)>;
+using EnergyFn = std::function<real(const Variable&)>;
+using GradFn = std::function<Gradient(const Variable&)>;
+using HessianFn = std::function<DenseHessian(const Variable&)>;
+using SparseHessianFn = std::function<SparseHessian(const Variable&)>;
+using ProximatorFn = std::function<math::matxxr(const Variable&, real)>;
+
 template <typename NormType = math::l2_t>
-inline real default_converge_grad(math::vecxr const&, math::vecxr const& grad) {
+real default_converge_grad(const Gradient &, const Gradient& grad) {
   return math::norm(grad, NormType{});
 }
 
 template <typename NormType = math::l2_t>
-inline real default_converge_var(math::vecxr const& x0, math::vecxr const& x1) {
+real default_converge_var(const Variable& x0, const Variable& x1) {
   return math::norm(x1 - x0, NormType{});
 }
 
@@ -34,30 +38,23 @@ public:
   AX_DECLARE_CONSTRUCTOR(OptProblem, default, default);
 
   /****************************** Evaluation ******************************/
-  real EvalEnergy(math::vecxr const& x) const;
-  math::vecxr EvalGrad(math::vecxr const& x) const;
-  math::matxxr EvalHessian(math::vecxr const& x) const;
-  math::spmatr EvalSparseHessian(math::vecxr const& x) const;
-  real EvalConvergeVar(math::vecxr const& x0, math::vecxr const& x1) const;
-  real EvalConvergeGrad(math::vecxr const& x, math::vecxr const& grad) const;
-  void EvalVerbose(idx iter, math::vecxr const& x, real f) const;
-  math::vecxr EvalProximator(math::vecxr const& x, real step_length) const;
+  real EvalEnergy(const Variable& x) const;
+  Gradient EvalGrad(const Variable& x) const;
+  DenseHessian EvalHessian(const Variable& x) const;
+  SparseHessian EvalSparseHessian(const Variable& x) const;
+  real EvalConvergeVar(const Variable& x0, const Variable& x1) const;
+  real EvalConvergeGrad(const Gradient& grad0, const Gradient& grad1) const;
+  void EvalVerbose(idx iter, const Variable& x, real energy) const;
+  Variable EvalProximator(const Variable& x, real step_length) const;
 
   /****************************** Setters ******************************/
   OptProblem& SetEnergy(EnergyFn const& energy);
-
   OptProblem& SetGrad(GradFn const& grad);
-
   OptProblem& SetHessian(HessianFn const& hessian);
-
   OptProblem& SetSparseHessian(SparseHessianFn const& sparse_hessian);
-
   OptProblem& SetConvergeVar(ConvergeVarFn const& converge_var);
-
   OptProblem& SetConvergeGrad(ConvergeGradFn const& converge_grad);
-
   OptProblem& SetVerbose(VerboseFn const& verbose);
-
   OptProblem& SetProximator(ProximatorFn const& proximator);
 
   /****************************** Check Valid ******************************/
@@ -92,7 +89,8 @@ private:
  * ******************************/
 struct OptResult {
   // Optimal x
-  math::vecxr x_opt_;
+  Variable x_opt_;
+
   // Optimal energy
   real f_opt_;
   real step_length_{1.0}; // for linesarchers.
@@ -107,10 +105,10 @@ struct OptResult {
 
   OptResult() = default;
 
-  OptResult(math::vecxr const& x_opt, real f_opt, idx n_iter)
+  OptResult(Variable const& x_opt, real f_opt, idx n_iter)
       : x_opt_(x_opt), f_opt_(f_opt), n_iter_(n_iter) {}
 
-  std::pair<math::vecxr, real> GetResult() const;
+  std::pair<Variable, real> GetResult() const;
 };
 
 std::ostream& operator<<(std::ostream& os, OptResult const& result);

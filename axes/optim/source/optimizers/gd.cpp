@@ -8,20 +8,15 @@
 using namespace ax;
 using namespace ax::optim;
 
-OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
-                                              math::vecxr const& x0) const {
-  math::vecxr x = x0;
-  // if (!problem.HasGrad()) {
-  //   return utils::FailedPreconditionError("Gradient function not set");
-  // } else if (!problem.HasEnergy()) {
-  //   return utils::FailedPreconditionError("Energy function not set");
-  // }
+OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem, const Variable& x0) const {
+  Variable x = x0;
   AX_THROW_IF_FALSE(problem.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");
   AX_THROW_IF_LT(lr_, 0, "Invalid learning rate: {}", lr_);
 
   real energy = problem.EvalEnergy(x);
-  math::vecxr grad, x_old = x;
+  Gradient grad;
+  Variable x_old = x;
   real last_step_length = 1;
   bool converged_grad = false;
   bool converged_var = false;
@@ -57,7 +52,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem,
       break;
     }
 
-    math::vecxr const dir = -grad;
+    Variable dir = -grad;
     if (linesearch_) {
       auto lsr = linesearch_->Optimize(problem, x, grad, dir);
       x = lsr.x_opt_;
@@ -87,7 +82,7 @@ void ax::optim::Optimizer_GradientDescent::SetLineSearch(
   linesearch_ = std::move(linesearch);
 }
 
-void ax::optim::Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
+void Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
 
 void Optimizer_GradientDescent::SetOptions(utils::Options const& opt) {
   OptimizerBase::SetOptions(opt);

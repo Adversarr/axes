@@ -250,18 +250,22 @@ void Context::Impl::UpdateLight() {
     return;
   }
   if (render_light_) {
-    auto& mesh = add_or_replace_component<gl::Mesh>(light_entity_);
-    auto cube = geo::cube(0.03);
-    mesh.vertices_ = cube.vertices_;
-    mesh.indices_ = mesh.indices_;
-    math::each(mesh.vertices_) += light_.position_.cast<f64>();
-    mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
-    mesh.use_lighting_ = false;
-    mesh.is_flat_ = true;
-    mesh.use_global_model_ = true;
-    mesh.flush_ = true;
+    if (! has_component<Mesh>(light_entity_)) {
+      add_component<Mesh>(light_entity_);
+    }
+    patch_component<Mesh>(light_entity_, [&] (Mesh& mesh) {
+      auto const cube = geo::cube(0.03);
+      mesh.vertices_ = cube.vertices_;
+      mesh.indices_ = cube.indices_;
+      math::each(mesh.vertices_) += light_.position_.cast<f64>();
+      mesh.colors_ = math::ones<4>(mesh.vertices_.cols());
+      mesh.use_lighting_ = false;
+      mesh.is_flat_ = true;
+      mesh.use_global_model_ = true;
+      mesh.flush_ = true;
+    });
   } else {
-    remove_component<gl::Mesh>(light_entity_);
+    remove_component<Mesh>(light_entity_);
   }
   update_light_ = false;
 }
@@ -271,11 +275,14 @@ void Context::Impl::UpdateAxes() {
     return;
   }
   if (render_axis_) {
-    auto& mesh = add_or_replace_component<gl::Lines>(axis_entity_, gl::prim::Axes().Draw());
-    mesh.use_global_model_ = true;
-    mesh.flush_ = true;
+    if (! has_component<Lines>(axis_entity_)) {
+      add_component<Lines>(axis_entity_);
+    }
+    patch_component<Lines>(axis_entity_, [&] (Lines& lines) {
+      lines = prim::Axes().Draw();
+    });
   } else {
-    remove_component<gl::Lines>(axis_entity_);
+    remove_component<Lines>(axis_entity_);
   }
   update_axes_ = false;
 }
@@ -349,13 +356,20 @@ Camera& Context::GetCamera() { return impl_->camera_; }
 
 /************************* SECT: Tick Logic and Tick Renderers *************************/
 
+void Context::Initialize() {
+  if (impl_->has_setuped_) {
+    return;
+  }
+  for (auto& renderer : impl_->renderers_) {
+    renderer->Setup();
+  }
+  emit(ContextInitEvent{});
+  impl_->has_setuped_ = true;
+}
+
 void Context::TickLogic() {
-  if (!impl_->has_setuped_) {
-    for (auto& renderer : impl_->renderers_) {
-      renderer->Setup();
-    }
-    emit(ContextInitEvent{});
-    impl_->has_setuped_ = true;
+  if_unlikely(!impl_->has_setuped_) {
+    Initialize();
   }
   impl_->window_.PollEvents();
   impl_->UpdateLight();

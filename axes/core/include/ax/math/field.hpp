@@ -29,6 +29,19 @@
 
 namespace ax::math {
 
+template <typename Container> struct ContainerTraits;
+
+template <typename T, typename A> struct ContainerTraits<std::vector<T, A>> {
+  using value_type = T;
+  using allocator_type = A;
+  using type = std::vector<T, A>;
+
+  static constexpr bool is_host = true;
+
+  static T* raw_ptr_cast(type& v) noexcept { return v.data(); }
+  static const T* raw_ptr_cast(type const& v) noexcept { return v.data(); }
+};
+
 /**
  * @brief Data container for field data, only support 1D indexing.
  *        This type works as an adaptor for std::vector, thrust::device_vector, etc.
@@ -36,7 +49,7 @@ namespace ax::math {
  * @tparam T The element type
  * @tparam Container The container type of actual data
  */
-template <typename T, typename Container = std::vector<T, Eigen::aligned_allocator<T>>>
+template <typename T, typename Container>
 class FieldData {
 public:
   using value_type = T;
@@ -131,15 +144,12 @@ protected:
   Container data_;
 };
 
-namespace details {
-
-template <typename Container> struct extract_data_ptr {};
-
-template <typename T, typename A> struct extract_data_ptr<std::vector<T, A>> {
-  static T* get(std::vector<T, A>& v) { return v.data(); }
-  static const T* get(std::vector<T, A> const& v) { return v.data(); }
-};
-
-}  // namespace details
+using RealFieldData = FieldData<real, std::vector<real, Eigen::aligned_allocator<real>>>;
+using Vec2rFieldData = FieldData<vec2r, std::vector<vec2r, Eigen::aligned_allocator<vec2r>>>;
+using Vec3rFieldData = FieldData<vec3r, std::vector<vec3r, Eigen::aligned_allocator<vec3r>>>;
+using Vec4rFieldData = FieldData<vec4r, std::vector<vec4r, Eigen::aligned_allocator<vec4r>>>;
+using Vec2iFieldData = FieldData<vec2i, std::vector<vec2i, Eigen::aligned_allocator<vec2i>>>;
+using Vec3iFieldData = FieldData<vec3i, std::vector<vec3i, Eigen::aligned_allocator<vec3i>>>;
+using Vec4iFieldData = FieldData<vec4i, std::vector<vec4i, Eigen::aligned_allocator<vec4i>>>;
 
 }  // namespace ax::math

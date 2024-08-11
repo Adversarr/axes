@@ -28,12 +28,18 @@ void SparseSolver_ConjugateGradient::Factorize() {
   }
 }
 
-LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr const &x0) {
+void batch_dot_to(matxxr const& lhs, matxxr const& rhs, vecxr & dest) {
+  for (idx i = 0; i < dest.rows(); ++i) {
+    dest[i] = dot(lhs.col(i), rhs.col(i));
+  }
+}
+
+LinsysSolveResult SparseSolver_ConjugateGradient::Solve(matxxr const &b, matxxr const &x0) {
   spmatr const &A = cached_problem_->A_;
   AX_THROW_IF_NE(b.rows(), A.rows(), "Invalid rhs vector size: {} != {} (b, A)", b.rows(),
                  A.rows());
   if (!preconditioner_) {
-    vecxr x;
+    matxxr x;
     if (x0.size() > 0) {
       AX_THROW_IF_NE(x0.size(), b.size(), "Size mismatch!");
       x = solver_.solveWithGuess(b, x0);
@@ -47,28 +53,38 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
     return impl;
   } else {
     // Initialize the solution vector.
-    math::vecxr x = x0;
-    if (x.size() != A.cols()) {
-      AX_THROW_IF_NE(x.size(), 0, "Invalid initial guess size");
-      x.resize(A.cols());
+    matxxr x = x0;
+    if (x.rows() != A.cols()) {
+      AX_THROW_IF_NE(x.rows(), 0, "Invalid initial guess size");
+      x.resize(A.cols(), b.cols());
       x.setZero();
     }
 
     // Initialize the residual vector.
-    math::vecxr r = A * x - b;
-    math::vecxr y = preconditioner_->Solve(r);
-    math::vecxr p = -y;
-    math::vecxr p_new(r.size());
-    math::vecxr Ap(p.size());
-    real rk_dot_yk = r.dot(y);
+    matxxr r = A * x - b;
+    matxxr y = preconditioner_->Solve(r);
+    matxxr p = -y;
+    matxxr p_new = p;
+    matxxr Ap = p;
+
+    idx const ncols = x.cols();
+    vecxr rk_dot_yk(ncols), rk_dot_yk_new(ncols), p_dot_Ap(ncols);
     bool converged = false, conv_residual = false;
     idx iter = 0;
+    batch_dot_to(r, y, rk_dot_yk);
     for (; iter < max_iter_; ++iter) {
       Ap.noalias() = A * p;
-      real alpha = r.dot(y) / p.dot(Ap);
-      x.noalias() += alpha * p;   // 5.39b
-      r.noalias() += alpha * Ap;  // 5.39c
-      real residual_norm = math::norm(r);
+      // real alpha = r.dot(y) / p.dot(Ap); // BUG: alpha is row vector.
+      // x.noalias() += alpha * p;   // 5.39b
+      // r.noalias() += alpha * Ap;  // 5.39c
+      batch_dot_to(p, Ap, p_dot_Ap);
+      for (idx i = 0; i < ncols; ++i) {
+        real const alpha = rk_dot_yk[i] / p_dot_Ap[i];
+        x.col(i).noalias() += alpha * p.col(i);
+        r.col(i).noalias() += alpha * Ap.col(i);
+      }
+
+      real residual_norm = norm(r);
       if (residual_norm <= tol_) {
         converged = true;
         break;
@@ -79,11 +95,18 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(vecxr const &b, vecxr co
         converged = true;
         break;
       }
+
       y.noalias() = preconditioner_->Solve(r);
-      real rk_dot_yk_new = r.dot(y);
-      real beta = rk_dot_yk_new / rk_dot_yk;
-      rk_dot_yk = rk_dot_yk_new;
-      p_new.noalias() = beta * p - y;
+      batch_dot_to(r, y, rk_dot_yk_new);
+      // real beta = rk_dot_yk_new / rk_dot_yk;
+      // rk_dot_yk = rk_dot_yk_new;
+      // p_new.noalias() = beta * p - y;
+      for (idx i = 0; i < ncols; ++i) {
+        real const beta = rk_dot_yk_new[i] / rk_dot_yk[i];
+        p_new.col(i).noalias() = beta * p.col(i);
+      }
+      p_new.noalias() -= y;
+      rk_dot_yk.swap(rk_dot_yk_new);
       p_new.swap(p);
     }
     LinsysSolveResult impl(x, converged || conv_residual);

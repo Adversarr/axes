@@ -10,7 +10,7 @@ public:
 
   void Factorize() final;
 
-  LinsysSolveResult Solve(vecxr const &b, vecxr const &x0) override;
+  LinsysSolveResult Solve(matxxr const &b, matxxr const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kBiCGSTAB; }
 

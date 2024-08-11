@@ -54,21 +54,6 @@ int scene;
 std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
-  auto& mesh = get_component<gl::Mesh>(out);
-  if (mesh.indices_.size() == 0) {
-    mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
-  }
-  mesh.vertices_ = ts->GetPosition();
-  mesh.colors_.setOnes(4, mesh.vertices_.cols());
-  mesh.flush_ = true;
-  mesh.use_lighting_ = false;
-  auto& lines = get_component<gl::Lines>(out);
-  if (lines.indices_.size() == 0) {
-    lines = gl::Lines::Create(mesh);
-  }
-  lines.vertices_ = mesh.vertices_;
-  lines.flush_ = true;
-  lines.colors_.topRows<3>().setZero();
   auto &elast = ts->GetElasticity();
   elast.Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::kEnergy);
   elast.UpdateEnergy();
@@ -80,8 +65,25 @@ void update_rendering() {
   M = e_per_vert.maxCoeff();
   std::cout << "Energy: " << m << " " << M << std::endl;
 
-  gl::Colormap cmap((m), (M));
-  mesh.colors_.topRows<3>() = cmap(e_per_vert);
+  gl::Colormap cmap(m, M);
+
+  auto const& mesh = patch_component<gl::Mesh>(out, [&](gl::Mesh& mesh) {
+    if (mesh.indices_.size() == 0) {
+      mesh.indices_ = geo::get_boundary_triangles(input_mesh.vertices_, input_mesh.indices_);
+    }
+    mesh.vertices_ = ts->GetPosition();
+    mesh.colors_.setOnes(4, mesh.vertices_.cols());
+    mesh.use_lighting_ = false;
+    mesh.colors_.topRows<3>() = cmap(e_per_vert);
+  });
+
+  patch_component<gl::Lines>(out, [&](gl::Lines & lines) {
+    if (lines.indices_.size() == 0) {
+      lines = gl::Lines::Create(mesh);
+    }
+    lines.vertices_ = mesh.vertices_;
+    lines.colors_.topRows<3>().setZero();
+  });
 }
 
 static bool running = false;
@@ -254,8 +256,8 @@ int main(int argc, char** argv) {
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
     tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
-    // tet_file = utils::get_asset("/mesh/npy/beam_mid_res_elements.npy");
-    // vet_file = utils::get_asset("/mesh/npy/beam_mid_res_vertices.npy");
+    // tet_file = utils::get_asset("/mesh/npy/beam_low_res_elements.npy");
+    // vet_file = utils::get_asset("/mesh/npy/beam_low_res_vertices.npy");
   } else if (scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     tet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_elements.npy");
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
@@ -286,6 +288,7 @@ int main(int argc, char** argv) {
   } else if (opt == "newton") {
     std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
+    ts->SetOptions({{"optimizer_opt", utils::Options{{"verbose", true}}}});
   } else {
     AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton'");
   }
@@ -338,10 +341,10 @@ int main(int argc, char** argv) {
   out = create_entity();
   add_component<gl::Mesh>(out);
   add_component<gl::Lines>(out);
-  update_rendering();
   connect<gl::UiRenderEvent, &ui_callback>();
-  std::cout << ts->GetOptions() << std::endl;
+  get_resource<gl::Context>().Initialize();
 
+  update_rendering();
   gl::enter_main_loop();
 
   ts.reset();

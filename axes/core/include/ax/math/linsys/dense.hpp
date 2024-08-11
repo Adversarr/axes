@@ -36,16 +36,16 @@ public:
     return *this;
   }
 
-  DenseSolverBase& SetProblem(math::matxxr const &A) {
+  DenseSolverBase& SetProblem(matxxr const &A) {
     return SetProblem(make_dense_problem(A));
   }
 
-  DenseSolverBase& SetProblem(math::matxxr &&A) {
+  DenseSolverBase& SetProblem(matxxr &&A) {
     return SetProblem(make_dense_problem(A));
   }
 
   virtual void Compute() = 0;
-  virtual math::vecxr Solve(math::vecxr const &b) = 0;
+  virtual vecxr Solve(vecxr const &b) = 0;
   virtual DenseSolverKind GetKind() const = 0;
 
 

@@ -57,4 +57,6 @@ const char* get_program_path();
 
 std::shared_ptr<spdlog::logger> get_logger();
 
+void print_stack();
+
 }  // namespace ax

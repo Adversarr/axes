@@ -3,13 +3,16 @@
 #include "ax/core/logging.hpp"
 #include "ax/math/functional.hpp"
 #include "ax/math/linsys/sparse.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/linsys/sparse/LDLT.hpp"
 #include "ax/math/linsys/sparse/QR.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
 
 namespace ax::optim::test {
 
 /************************* SECT: RosenbrockProblem *************************/
-real rosenbrock(math::vecxr const& x) {
+real rosenbrock(Variable const& x_mat) {
+  math::vecxr x = x_mat;
   real f = 0;
   for (idx i = 0; i < x.size() - 1; ++i) {
     f += math::square(x[i] - 1) + 100 * math::square(x[i + 1] - math::square(x[i]));
@@ -17,7 +20,8 @@ real rosenbrock(math::vecxr const& x) {
   return f;
 }
 
-math::vecxr rosenbrock_grad(math::vecxr const& x) {
+Gradient rosenbrock_grad(Variable const& x_mat) {
+  math::vecxr x = x_mat;
   math::vecxr grad(x.size());
   for (idx i = 0; i < x.size() - 1; ++i) {
     grad[i] = -2 * (1 - x[i]) - 400 * x[i] * (x[i + 1] - math::square(x[i]));
@@ -26,7 +30,8 @@ math::vecxr rosenbrock_grad(math::vecxr const& x) {
   return grad;
 }
 
-math::matxxr rosenbrock_hessian(math::vecxr const& x) {
+DenseHessian rosenbrock_hessian(Variable const& x_mat) {
+  math::vecxr x = x_mat;
   math::matxxr hessian = math::zeros(x.size(), x.size());
   for (idx i = 0; i < x.size() - 1; ++i) {
     hessian(i, i) = 2 - 400 * x[i + 1] + 1200 * math::square(x[i]);
@@ -35,13 +40,13 @@ math::matxxr rosenbrock_hessian(math::vecxr const& x) {
   }
   hessian(x.size() - 1, x.size() - 1) = 200;
 
-  optim::EigenvalueModification modification;
+  EigenvalueModification modification;
   modification.min_eigval_ = 1e-3;
   auto spsd_hessian = modification.Modify(hessian);
   return spsd_hessian;
 }
 
-math::vecxr RosenbrockProblem::Optimal(math::vecxr const& x0) {
+Variable RosenbrockProblem::Optimal(Variable const& x0) {
   return math::vecxr::Ones(x0.size());
 }
 
@@ -52,37 +57,34 @@ RosenbrockProblem::RosenbrockProblem() {
 }
 
 /************************* SECT: Least Square *************************/
-LeastSquareProblem::LeastSquareProblem(math::matxxr const& A, math::vecxr const& b) : A_(A), b_(b) {
-  SetEnergy([this](math::vecxr const& x) { return 0.5 * (x - b_).transpose() * A_ * (x - b_); });
-  SetGrad([this](math::vecxr const& x) { return A_ * (x - b_); });
-  SetHessian([this](math::vecxr const&) { return A_; });
+LeastSquareProblem::LeastSquareProblem(DenseHessian const& A, Variable const& b) : A_(A), b_(b) {
+  SetEnergy([this](Variable const& x) -> real {
+    return (0.5 * (x - b_).transpose() * A_ * (x - b_))(0, 0);
+  });
+  SetGrad([this](Variable const& x) { return A_ * (x - b_); });
+  SetHessian([this](Variable const&) { return A_; });
 }
 
-math::vecxr LeastSquareProblem::Optimal(math::vecxr const&) { return b_; }
+Variable LeastSquareProblem::Optimal(Variable const&) { return b_; }
 
-SparseLeastSquareProblem::SparseLeastSquareProblem(math::spmatr const& A, math::vecxr const& b)
+SparseLeastSquareProblem::SparseLeastSquareProblem(SparseHessian const& A, Variable const& b)
     : A_(A), b_(b) {
   AX_CHECK(A.rows() == A.cols(), "A must be square");
   AX_CHECK(A.rows() == b.rows(), "A and b must have the same rows");
-  SetEnergy([this](math::vecxr const& x) {
-    math::vecxr residual = A_ * x - b_;
-    return 0.5 * residual.dot(residual);
+  SetEnergy([this](Variable const& x) -> real {
+    Variable residual = x - b_;
+    return 0.5 * math::inner(residual.reshaped(), A_, residual.reshaped());
   });
-  SetGrad([this](math::vecxr const& x) {
-    return A_.transpose() * (A_ * x - b_);
+  SetGrad([this](Variable const& x) -> Gradient {
+    return A_ * (x - b_);
   });
-  SetSparseHessian([this](math::vecxr const& x) {
-    return A_.transpose() * A_;
+  SetSparseHessian([this](Variable const&) -> SparseHessian {
+    return A_;
   });
 }
 
-math::vecxr SparseLeastSquareProblem::Optimal(math::vecxr const&) {
-  math::vecxr x_opt = math::vecxr::Zero(b_.rows());
-  math::SparseSolver_QR solver;
-  solver.SetProblem(A_).Compute();
-  auto solution = solver.Solve(b_, {});
-  x_opt = solution.solution_;
-  return x_opt;
+Variable SparseLeastSquareProblem::Optimal(Variable const&) {
+  return b_;
 }
 
 }  // namespace ax::optim::test

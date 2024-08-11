@@ -12,6 +12,6 @@ void Preconditioner_IncompleteCholesky::Factorize() {
   AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "IncompleteCholesky failed to compute.");
 }
 
-vecxr Preconditioner_IncompleteCholesky::Solve(vecxr const &b) { return impl_.solve(b); }
+matxxr Preconditioner_IncompleteCholesky::Solve(matxxr const &b) { return impl_.solve(b); }
 
 }  // namespace ax::math

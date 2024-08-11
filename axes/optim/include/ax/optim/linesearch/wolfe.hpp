@@ -5,12 +5,11 @@
 #include "linesearch.hpp"
 namespace ax::optim {
 
-
 class Linesearch_Wofle : public LinesearchBase {
 public:
   virtual ~Linesearch_Wofle() = default;
-  virtual OptResult Optimize(OptProblem const& prob, math::vecxr const& x0, math::vecxr const& grad,
-                             math::vecxr const& dir) const override;
+  virtual OptResult Optimize(OptProblem const& prob, Variable const& x0, Gradient const& grad,
+                             Variable const& dir) const override;
   virtual LineSearchKind GetKind() const override;
   virtual void SetOptions(utils::Options const& options) override;
   virtual utils::Options GetOptions() const override;

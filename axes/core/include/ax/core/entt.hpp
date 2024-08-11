@@ -7,6 +7,10 @@
 #include "common.hpp"  // IWYU pragma: export
 
 namespace ax {
+using Registry = entt::registry;     ///< Alias for entt::registry
+using Dispatcher = entt::dispatcher; ///< Alias for entt::dispatcher
+using Entity = entt::entity;         ///< Alias for entt::entity
+using EntityID = entt::entt_traits<Entity>::entity_type;
 
 /****************************** Registry ******************************/
 
@@ -15,10 +19,8 @@ namespace ax {
  * 
  * @return entt::registry& The global registry
  */
-entt::registry& global_registry();
+Registry& global_registry();
 
-using Entity = entt::entity; ///< Alias for entt::entity
-using EntityID = entt::entt_traits<Entity>::entity_type;
 /****************************** Entity ******************************/
 
 /**
@@ -123,7 +125,7 @@ template <typename T> bool remove_component(Entity entity) {
   return 0 < global_registry().remove<T>(entity);
 }
 
-template <typename T, typename Fn> decltype(auto) update_component(Entity ent, Fn&& fn) {
+template <typename T, typename Fn> decltype(auto) patch_component(Entity ent, Fn&& fn) {
   return global_registry().patch<T>(ent, std::forward<Fn>(fn));
 }
 

@@ -1,5 +1,7 @@
 #include "ax/graph/graph.hpp"
 
+#include <ax/utils/scope_exit.hpp>
+#include <boost/container/small_vector.hpp>
 #include <boost/describe/enum.hpp>
 #include <boost/scope_exit.hpp>
 #include <map>
@@ -19,7 +21,7 @@ BOOST_DEFINE_ENUM(UuidInferType, kNode, kPin, kSocket, kInvalid);
 
 struct UuidUnderlyingInfo {
   UuidInferType const type_;
-  size_t real_id_;
+  size_t index_;
 };
 
 struct Graph::Impl {
@@ -79,20 +81,20 @@ struct Graph::Impl {
     AX_CHECK(n->id_ < uuid_info_.size(), "Internal Logic Error!");
     auto& uinfo = uuid_info_[n->id_];
     node_to_sockets_.insert({n->id_, std::set<ident_t>{}});
-    if (uinfo.real_id_ == INVALID_ID) {
-      uinfo.real_id_ = nodes_.size();
+    if (uinfo.index_ == INVALID_ID) {
+      uinfo.index_ = nodes_.size();
       nodes_.push_back(std::move(n));
     } else {
-      AX_CHECK(nodes_[uinfo.real_id_].get() == nullptr,
+      AX_CHECK(nodes_[uinfo.index_].get() == nullptr,
                "You are trying to overwrite an existing node!");
-      nodes_[uinfo.real_id_] = std::move(n);
+      nodes_[uinfo.index_] = std::move(n);
     }
 
-    for (auto& pin : nodes_[uinfo.real_id_]->inputs_) {
-      pin_to_node_[pin.id_] = nodes_[uinfo.real_id_]->id_;
+    for (auto& pin : nodes_[uinfo.index_]->inputs_) {
+      pin_to_node_[pin.id_] = nodes_[uinfo.index_]->id_;
     }
-    for (auto& pin : nodes_[uinfo.real_id_]->outputs_) {
-      pin_to_node_[pin.id_] = nodes_[uinfo.real_id_]->id_;
+    for (auto& pin : nodes_[uinfo.index_]->outputs_) {
+      pin_to_node_[pin.id_] = nodes_[uinfo.index_]->id_;
     }
   }
 
@@ -106,13 +108,13 @@ struct Graph::Impl {
   void EmplaceSocket(Socket s) {
     AX_CHECK(s.id_ <= uuid_info_.size(), "Internal Logic Error!");
     auto& uinfo = uuid_info_[s.id_];
-    if (uinfo.real_id_ == INVALID_ID) {
-      uinfo.real_id_ = sockets_.size();
+    if (uinfo.index_ == INVALID_ID) {
+      uinfo.index_ = sockets_.size();
       sockets_.push_back(s);
     } else {
-      AX_CHECK(sockets_[uinfo.real_id_].id_ == INVALID_ID,
+      AX_CHECK(sockets_[uinfo.index_].id_ == INVALID_ID,
                "You are trying to overwrite an existing socket!");
-      sockets_[uinfo.real_id_] = s;
+      sockets_[uinfo.index_] = s;
     }
     node_to_sockets_[s.input_->node_id_].insert(s.id_);
     node_to_sockets_[s.output_->node_id_].insert(s.id_);
@@ -151,27 +153,24 @@ Graph::Graph() { impl_ = std::make_unique<Impl>(); }
 Graph::~Graph() { Clear(); }
 
 NodeBase* Graph::AddNode(NodeDescriptor const* descriptor) {
+  AX_CHECK(descriptor != nullptr, "Invalid Node Descriptor!");
+
+  // 1. create the node, with UUID.
   size_t id = impl_->UuidStep(kNode);
-  auto n = NodeBase::Create(descriptor, id);
-  std::vector<size_t> ids_used;
-  bool build_failed = false;
-
-  BOOST_SCOPE_EXIT(build_failed, ids_used, &impl_) {
-    if_unlikely(build_failed) {
-      for (auto id : ids_used) {
-        impl_->UuidRecycle(id);
-      }
+  boost::container::small_vector<size_t, 16> ids_used = {id};
+  utils::ScopeExit clean_up = [&ids_used, this]() {
+    for (auto const& id : ids_used) {
+      impl_->UuidRecycle(id);
     }
-  }
-  BOOST_SCOPE_EXIT_END;
+  };
 
-  // Not found.
-  if_unlikely(!n) {
-    build_failed = true;
-    return nullptr;
+  auto n = NodeBase::Create(descriptor, id);
+  NodeBase* node = n.get();
+  if (!n) /* failed to create node */ {
+    throw make_runtime_error("Failed to create node: {}", descriptor->name_);
   }
 
-  // Construct the node Input and Output.
+  // 2. Construct the node Input and Output.
   n->inputs_.reserve(descriptor->inputs_.size());
   n->outputs_.reserve(descriptor->outputs_.size());
   n->output_payloads_.reserve(descriptor->outputs_.size());
@@ -192,24 +191,25 @@ NodeBase* Graph::AddNode(NodeDescriptor const* descriptor) {
   }
 
   // Everything is ok.
-  NodeBase* node = n.get();
   impl_->EmplaceNode(std::move(n));
   AX_TRACE("Node {} added. <uid={}>", descriptor->name_, node->id_);
+  clean_up.Dismiss();  // create success, dismiss the clean_up.
   return node;
 }
 
 NodeBase* Graph::GetNode(size_t id) {
   auto const& uinfo = impl_->uuid_info_;
   if (id >= uinfo.size()) {
-    throw make_out_of_range("Node not found!");
+    throw make_invalid_argument("Node not found: {}", id);
   }
 
   const auto& info = uinfo[id];
   if (info.type_ != kNode) {
-    return nullptr;
+    throw make_invalid_argument("Invalid node id, not a node! {}",
+                                utils::reflect_name(info.type_).value_or("???"));
   }
-  AX_DCHECK(info.real_id_ < impl_->nodes_.size(), "Internal Logic Error!");
-  return impl_->nodes_[info.real_id_].get();
+  AX_DCHECK(info.index_ < impl_->nodes_.size(), "Internal Logic Error!");
+  return impl_->nodes_[info.index_].get();
 }
 
 NodeBase const* Graph::GetNode(size_t id) const { return const_cast<Graph*>(this)->GetNode(id); }
@@ -219,7 +219,7 @@ bool Graph::RemoveNode(NodeBase* n) { return RemoveNode(n->id_); }
 bool Graph::RemoveNode(size_t id) {
   auto const& uinfo = impl_->uuid_info_;
   if (id >= uinfo.size()) {
-    throw make_out_of_range("Node not found!");
+    throw make_invalid_argument("Node not found!");
   }
 
   const auto& info = uinfo[id];
@@ -228,7 +228,8 @@ bool Graph::RemoveNode(size_t id) {
                                 utils::reflect_name(info.type_).value_or("???"));
   }
 
-  auto* node = impl_->nodes_[info.real_id_].get();
+  auto* node = impl_->nodes_[info.index_].get();
+  node->CleanUp();  // do not throw.
 
   for (auto& pin : node->inputs_) {
     impl_->UuidRecycle(pin.id_);
@@ -236,7 +237,6 @@ bool Graph::RemoveNode(size_t id) {
   for (auto& pin : node->outputs_) {
     impl_->UuidRecycle(pin.id_);
   }
-  node->CleanUp();
 
   if (auto it = impl_->node_to_sockets_.find(id); it != impl_->node_to_sockets_.end()) {
     auto copy = it->second;
@@ -245,37 +245,42 @@ bool Graph::RemoveNode(size_t id) {
     }
     impl_->node_to_sockets_.erase(id);
   }
-  impl_->RemoveNode(info.real_id_);
-  AX_TRACE("Node <uid={}>, <real_id={}> removed.", id, info.real_id_);
+
+  impl_->RemoveNode(info.index_);
+  AX_TRACE("Node <uid={}>, <real_id={}> removed.", id, info.index_);
   return true;
 }
 
 Socket* Graph::AddSocket(Pin* input, Pin* output) {
   if (!input || !output) {
-    return nullptr;
+    throw make_invalid_argument("Invalid input or output pin! {} {}", fmt::ptr(input),
+                                fmt::ptr(output));
   }
   if (!CanConnectSocket(input, output)) {
-    return nullptr;
-  }
-  if (Socket* existing_socket = GetSocket(output)) {
-    AX_TRACE("Socket on {} already exists! Remove before add a new one", output->node_id_);
-    RemoveSocket(existing_socket);
+    throw make_invalid_argument("Cannot connect the socket!");
   }
 
+  // If the output pin already has a socket, remove it.
+  if (output->socket_in_id_ != INVALID_ID) {
+    if (Socket* existing_socket = GetSocket(output)) {
+      AX_INFO("Socket on {} already exists, Remove before add a new one", output->node_id_);
+      RemoveSocket(existing_socket);
+    }
+  }
+
+  // Create the socket.
   ident_t sock_id = impl_->UuidStep(kSocket);
   Socket socket{sock_id, input, output};
-
   NodeBase* in_node = GetNode(input->node_id_);
   NodeBase* out_node = GetNode(output->node_id_);
-
   socket.output_->payload_ = &in_node->output_payloads_[input->node_io_index_];
 
   // Set the input pin to the socket.
   impl_->EmplaceSocket(socket);
   output->socket_in_id_ = sock_id;
+  out_node->OnConnect(socket.output_->node_io_index_);  // TODO: may throw, ignored for simplicity
   AX_TRACE("Socket <uid={}> added. <{}--{}>", sock_id, input->id_, output->id_);
-  out_node->OnConnect(socket.output_->node_io_index_);
-  return &(impl_->sockets_[impl_->uuid_info_[sock_id].real_id_]);
+  return &(impl_->sockets_[impl_->uuid_info_[sock_id].index_]);
 }
 
 Socket* Graph::AddSocket(ident_t input_pin, ident_t output_pin) {
@@ -289,12 +294,7 @@ Socket* Graph::AddSocket(ident_t input_pin, ident_t output_pin) {
 Socket* Graph::AddSocket(ident_t left, ident_t input_pin, ident_t right, ident_t output_pin) {
   NodeBase* data_in_node = GetNode(left);
   NodeBase* data_out_node = GetNode(right);
-  // The node does not exist
-  if (!data_in_node || !data_out_node) {
-    AX_ERROR("Node not found!");
-    return nullptr;
-  }
-
+  AX_DCHECK(data_in_node != nullptr && data_out_node != nullptr, "Node not found!");
   if (input_pin >= data_in_node->outputs_.size() || output_pin >= data_out_node->inputs_.size()) {
     AX_ERROR("Pin index out of range!");
     return nullptr;
@@ -305,8 +305,8 @@ Socket* Graph::AddSocket(ident_t left, ident_t input_pin, ident_t right, ident_t
 
 bool Graph::CanConnectSocket(Pin const* input, Pin const* output) const {
   if (!input || !output) {
-    throw make_invalid_argument("Invalid input or output pin!");
-    return false;
+    throw make_invalid_argument("Invalid input or output pin! {} {}", fmt::ptr(input),
+                                fmt::ptr(output));
   }
   if (input->is_input_ || !output->is_input_) {
     AX_WARN("Link is only available when O->I");
@@ -329,9 +329,6 @@ bool Graph::CanConnectSocket(ident_t input_node, ident_t input_pin, ident_t outp
                              ident_t output_pin) const {
   NodeBase const* data_in_node = GetNode(input_node);
   NodeBase const* data_out_node = GetNode(output_node);
-  if (data_in_node == nullptr || data_out_node == nullptr) {
-    throw make_invalid_argument("Node not found!");
-  }
 
   if (input_pin >= data_in_node->outputs_.size()) {
     throw make_out_of_range("Pin index out of range!");
@@ -346,8 +343,8 @@ bool Graph::CanConnectSocket(ident_t input_node, ident_t input_pin, ident_t outp
 
 Socket* Graph::GetSocket(ident_t id) {
   auto const& uinfo = impl_->uuid_info_;
-  if (id >= uinfo.size() || id < 0) {
-    throw make_out_of_range("Socket not found!");
+  if (id >= uinfo.size()) {
+    throw make_out_of_range("Socket {} not found!", id);
   }
 
   const auto& info = uinfo[id];
@@ -356,7 +353,7 @@ Socket* Graph::GetSocket(ident_t id) {
                                 utils::reflect_name(info.type_).value_or("???"));
   }
 
-  return &(impl_->sockets_[info.real_id_]);
+  return &(impl_->sockets_[info.index_]);
 }
 
 Socket* Graph::GetSocket(Pin* output) {
@@ -375,7 +372,8 @@ Socket* Graph::GetSocket(ident_t input_pin, ident_t output_pin) {
   return sock;
 }
 
-Socket* Graph::GetSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin) {
+Socket* Graph::GetSocket(ident_t input_node, ident_t input_pin, ident_t output_node,
+                         ident_t output_pin) {
   NodeBase* data_in_node = GetNode(input_node);
   NodeBase* data_out_node = GetNode(output_node);
   if (data_in_node == nullptr || data_out_node == nullptr) {
@@ -403,7 +401,7 @@ bool Graph::RemoveSocket(Socket* sock) {
   NodeBase* out_node = GetNode(sock->output_->node_id_);
   out_node->inputs_[output->node_io_index_].payload_ = nullptr;
   out_node->CleanUp();
-  impl_->RemoveSocket(uinfo.real_id_);
+  impl_->RemoveSocket(uinfo.index_);
   return sock;
 }
 
@@ -415,7 +413,8 @@ bool Graph::RemoveSocket(ident_t input_pin, ident_t output_pin) {
   return RemoveSocket(sock);
 }
 
-bool Graph::RemoveSocket(ident_t input_node, ident_t input_pin, ident_t output_node, ident_t output_pin) {
+bool Graph::RemoveSocket(ident_t input_node, ident_t input_pin, ident_t output_node,
+                         ident_t output_pin) {
   Socket* sock = GetSocket(input_node, input_pin, output_node, output_pin);
   if (sock == nullptr) {
     return false;
@@ -459,7 +458,7 @@ PinToNodeInfo Graph::PinToNode(ident_t pin_id) const {
         return {node->id_, pin.node_io_index_, false};
       }
     }
-    AX_CRITICAL("Internal Logic Error!");
+    AX_CHECK(false, "Internal Logic Error!");
     return {node->id_, INVALID_ID, false};
   }
 }
@@ -473,7 +472,9 @@ void Graph::Clear() {
   impl_ = std::make_unique<Impl>();
 }
 
-ident_t Graph::GetNumNodes() const { return (impl_->nodes_.size() - impl_->uuid_reuse_node_.size()); }
+ident_t Graph::GetNumNodes() const {
+  return (impl_->nodes_.size() - impl_->uuid_reuse_node_.size());
+}
 
 ident_t Graph::GetNumSockets() const {
   return impl_->sockets_.size() - impl_->uuid_reuse_socket_.size();

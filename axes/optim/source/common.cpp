@@ -9,7 +9,7 @@ OptProblem::OptProblem()
     : converge_var_(default_converge_var<math::l2_t>),
       converge_grad_(default_converge_grad<math::l2_t>) {}
 
-std::pair<math::vecxr, real> OptResult::GetResult() const {
+std::pair<Variable, real> OptResult::GetResult() const {
   return {x_opt_, f_opt_};
 }
 
@@ -61,46 +61,45 @@ OptProblem& OptProblem::SetProximator(ProximatorFn const& proximator) {
   return *this;
 }
 
-math::spmatr OptProblem::EvalSparseHessian(math::vecxr const& x) const {
-  AX_CHECK(sparse_hessian_, "Sparse Hessian Fn is not set.");
+SparseHessian OptProblem::EvalSparseHessian(const Variable& x) const {
+  AX_THROW_IF_NULL(sparse_hessian_, "Sparse Hessian Fn is not set.");
   return sparse_hessian_(x);
 }
 
-math::matxxr OptProblem::EvalHessian(math::vecxr const& x) const {
-  AX_CHECK(hessian_, "Hessian Fn is not set.");
+DenseHessian OptProblem::EvalHessian(const Variable& x) const {
+  AX_THROW_IF_NULL(hessian_, "Hessian Fn is not set.");
   return hessian_(x);
 }
 
-math::vecxr OptProblem::EvalGrad(math::vecxr const& x) const {
-  AX_CHECK(grad_, "Grad Fn is not set.");
+Gradient OptProblem::EvalGrad(const Variable& x) const {
+  AX_THROW_IF_NULL(grad_, "Grad Fn is not set.");
   return grad_(x);
 }
 
-real OptProblem::EvalEnergy(math::vecxr const& x) const {
-  // TODO: Check Before Optimize
-  AX_CHECK(energy_, "Energy Fn is not set.");
+real OptProblem::EvalEnergy(const Variable& x) const {
+  AX_THROW_IF_NULL(energy_, "Energy Fn is not set.");
   return energy_(x);
 }
 
-void OptProblem::EvalVerbose(idx iter, math::vecxr const& x, real f) const {
+void OptProblem::EvalVerbose(idx iter, const Variable& x, real f) const {
   if (verbose_) {
     verbose_(iter, x, f);
   }
 }
 
-real OptProblem::EvalConvergeVar(math::vecxr const& x0,
-                                 math::vecxr const& x1) const {
-  AX_CHECK(converge_var_, "Converge Var Fn is not set.");
+real OptProblem::EvalConvergeVar(const Variable& x0,
+                                 const Variable& x1) const {
+  AX_THROW_IF_NULL(converge_var_, "Converge Var Fn is not set.");
   return converge_var_(x0, x1);
 }
 
-real OptProblem::EvalConvergeGrad(math::vecxr const& x,
-                                  math::vecxr const& grad) const {
-  AX_CHECK(converge_grad_, "Converge Grad Fn is not set.");
+real OptProblem::EvalConvergeGrad(const Variable& x,
+                                  const Variable& grad) const {
+  AX_THROW_IF_NULL(converge_grad_, "Converge Grad Fn is not set.");
   return converge_grad_(x, grad);
 }
 
-math::vecxr OptProblem::EvalProximator(math::vecxr const& x,
+Variable OptProblem::EvalProximator(const Variable& x,
                                        real step_length) const {
   AX_THROW_IF_NULL(proximator_, "Proximator Fn is not set.");
   if (proximator_) {

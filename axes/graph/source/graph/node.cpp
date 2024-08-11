@@ -19,7 +19,7 @@ NodeDescriptor const* factory_register(NodeDescriptor desc) {
   auto& w = ensure_wrapper();
   auto [it, b] = w.desc_.try_emplace(desc.name_, desc);
   if (b) {
-    AX_INFO("NodeDescriptor: {} registered.", desc.name_);
+    AX_TRACE("NodeDescriptor: {} registered.", desc.name_);
     ensure_resource<wrapper>().node_names_.emplace_back(desc.name_);
     w.is_sorted = false;
   }

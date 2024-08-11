@@ -5,10 +5,10 @@ namespace ax::math {
 
 class DenseSolver_JacobiSVD : public DenseSolverBase {
 public:
-  math::vecxr Solve(const math::vecxr &b) override;
+  vecxr Solve(const vecxr &b) override;
   void Compute() override;
 
-  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kJacobiSVD; }
+  DenseSolverKind GetKind() const final { return DenseSolverKind::kJacobiSVD; }
 
 private:
   Eigen::JacobiSVD<matxxr> impl_;

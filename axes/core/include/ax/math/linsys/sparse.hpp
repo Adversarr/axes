@@ -61,8 +61,8 @@ public:
    * @param x0 initial guess
    * @return
    */
-  virtual LinsysSolveResult Solve(math::vecxr const& b, math::vecxr const& x0 = {}) = 0;
-  AX_FORCE_INLINE LinsysSolveResult operator()(math::vecxr const& b, math::vecxr const& x0 = {}) {
+  virtual LinsysSolveResult Solve(matxxr const& b, matxxr const& x0 = {}) = 0;
+  AX_FORCE_INLINE LinsysSolveResult operator()(matxxr const& b, matxxr const& x0 = {}) {
     return Solve(b, x0);
   }
 

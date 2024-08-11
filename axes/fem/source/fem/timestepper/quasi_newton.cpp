@@ -62,28 +62,29 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
 }
 
 template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
-  optim::Optimizer_Lbfgs &optimizer = optimizer_;
+  using namespace optim;
+  Optimizer_Lbfgs &optimizer = optimizer_;
   optimizer.SetTolGrad(this->rel_tol_grad_);
   optimizer.SetTolVar(this->tol_var_);
   optimizer.SetMaxIter(this->max_iter_);
 
   if (strategy_ == LbfgsStrategy::kHard) {
     optimizer.SetApproxSolve(
-        [&](math::vecxr const &g, math::vecxr const &, math::vecxr const &) -> math::vecxr {
+        [&](optim::Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
           auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
           return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
     optimizer.SetApproxSolve(
-        [&](math::vecxr const &g, math::vecxr const &, math::vecxr const &) -> math::vecxr {
+        [&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
           auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
           return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer.SetApproxSolve([&](math::vecxr const &g, math::vecxr const &s,
-                                  math::vecxr const &y) -> math::vecxr {
-      // Addtive Schwartz on each element.
-    });
+    optimizer.SetApproxSolve(
+        [&](Gradient const &g, Variable const &s, Gradient const &y) -> math::vecxr {
+          // Addtive Schwartz on each element.
+        });
     // optimizer_.SetApproxSolve(
     //     [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
     //       auto *cmpt = try_get_resource<SparseInverseApproximator>();
@@ -125,7 +126,7 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   }
 
   auto problem = this->AssembleProblem();
-  optim::OptResult result;
+  OptResult result;
   try {
     result = optimizer.Optimize(problem, this->du_inertia_.reshaped());
   } catch (std::exception const &e) {

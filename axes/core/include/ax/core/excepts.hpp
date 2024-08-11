@@ -35,7 +35,7 @@ AX_DEFINE_STDEXCEPT(out_of_range);
 
 #define AX_THROW_IF(cond, msgfmt, ...)                                   \
   do {                                                                   \
-    if (cond) {                                                          \
+    if_unlikely (cond) {                                                 \
       throw ::ax::make_runtime_error(msgfmt __VA_OPT__(, ) __VA_ARGS__); \
     }                                                                    \
   } while (false)

@@ -15,9 +15,9 @@ public:
 
   /**
    * @brief Compute the Laplace matrix.
-   * 
+   *
    * @param W weight for the Laplace operator.
-   * @return math::sp_coeff_list 
+   * @return math::sp_coeff_list
    */
   math::spmatr operator()(real W = 1.0);
 

@@ -16,9 +16,9 @@ void write_npy_v10(std::string path, const mat<real, dynamic, dynamic>& mat);
 void write_npy_v10(std::string path, const mat<idx, dynamic, dynamic>& mat);
 
 // TODO: Load NPY file.
-math::matxxr read_npy_v10_real(std::string path);
+matxxr read_npy_v10_real(std::string path);
 
-math::matxxi read_npy_v10_idx(std::string path);
+matxxi read_npy_v10_idx(std::string path);
 
 void write_sparse_matrix(std::string path, const spmatr& mat);
 spmatr read_sparse_matrix(std::string path);

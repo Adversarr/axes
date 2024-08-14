@@ -21,8 +21,10 @@ void init(bool is_registering) {
 }
 
 void init(int argc, char** argv) {
-  gl::init(true);
-  ::ax::init(argc, argv);
+  init(true);
+  get_program_options().add_options()("gl_hidpi_scale", "HiDPI scale factor",
+                                      cxxopts::value<float>()->default_value("1.5"));
+  ax::init(argc, argv);
 }
 
 void enter_main_loop() {

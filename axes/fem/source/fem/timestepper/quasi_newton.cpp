@@ -9,7 +9,7 @@
 
 namespace ax::fem {
 
-template <int dim> void fem::Timestepper_QuasiNewton<dim>::Initialize() {
+template <int dim> void Timestepper_QuasiNewton<dim>::Initialize() {
   TimeStepperBase<dim>::Initialize();
   if (!solver_) {
     AX_WARN("Use default sparse solver: Cholmod.");
@@ -17,32 +17,27 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::Initialize() {
   }
 }
 
-template <int dim> void fem::Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
-  const math::vec2r lame = this->u_lame_;
+template <int dim> void Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
+  const auto &lame = this->lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
   // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-  real lambda = lame[0], mu = lame[1];
-  real W = 2 * mu + lambda;
-  math::spmatr L = LaplaceMatrixCompute<dim>{*(this->mesh_)}(1.0);
-  L *= W;
-  auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
-  math::spmatr A = math::kronecker_identity<dim>(full_laplacian);
-  this->mesh_->FilterMatrixFull(A);
-  solver_->SetProblem(A).Compute();
+  math::spmatr laplacian = LaplaceMatrixCompute<dim>{*(this->mesh_)}(lame.row(0) + 2 * lame.row(1));
+  auto convect_diffuse = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, laplacian);
+  math::spmatr full = math::kronecker_identity<dim>(convect_diffuse);
+  this->mesh_->FilterMatrixFull(full);
+  solver_->SetProblem(full).Compute();
 }
 
 template <int dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
-  const math::vec2r lame = this->u_lame_;
-  real lambda = lame[0], mu = lame[1];
-  real W = 2 * mu + lambda;
-  auto L = LaplaceMatrixCompute<dim>{*(this->mesh_)}();
-  L *= W;
-  auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, L);
+  const auto &lame = this->lame_;
+  math::field1r weight = lame.row(0) + 2 * lame.row(1);
+  math::spmatr laplace = LaplaceMatrixCompute<dim>{*(this->mesh_)}(weight);
+  auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, laplace);
   this->mesh_->FilterMatrixDof(0, full_laplacian);
   return full_laplacian;
 }
 
-template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
+template <int dim> void Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
   TimeStepperBase<dim>::BeginSimulation(dt);
   UpdateSolverLaplace();
 }
@@ -50,7 +45,7 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginSimulation(real 
 math::vecxr eigval;
 math::matxxr eigvec;
 
-template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
+template <int dim> void Timestepper_QuasiNewton<dim>::BeginTimestep() {
   TimeStepperBase<dim>::BeginTimestep();
   if (strategy_ == LbfgsStrategy::kHard) {
     auto A = this->Hessian(this->du_inertia_);
@@ -61,7 +56,7 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::BeginTimestep() {
   }
 }
 
-template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
+template <int dim> void Timestepper_QuasiNewton<dim>::SolveTimestep() {
   using namespace optim;
   Optimizer_Lbfgs &optimizer = optimizer_;
   optimizer.SetTolGrad(this->rel_tol_grad_);
@@ -69,22 +64,20 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
   optimizer.SetMaxIter(this->max_iter_);
 
   if (strategy_ == LbfgsStrategy::kHard) {
-    optimizer.SetApproxSolve(
-        [&](optim::Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
-          auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-          return approx.solution_;
-        });
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
+      auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
+      return approx.solution_;
+    });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
-    optimizer.SetApproxSolve(
-        [&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
-          auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-          return approx.solution_;
-        });
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
+      auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
+      return approx.solution_;
+    });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer.SetApproxSolve(
-        [&](Gradient const &g, Variable const &s, Gradient const &y) -> math::vecxr {
-          // Addtive Schwartz on each element.
-        });
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &s, Gradient const &y) -> math::vecxr {
+      // Addtive Schwartz on each element.
+      throw make_runtime_error("Unimplemented");
+    });
     // optimizer_.SetApproxSolve(
     //     [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
     //       auto *cmpt = try_get_resource<SparseInverseApproximator>();
@@ -139,18 +132,16 @@ template <int dim> void fem::Timestepper_QuasiNewton<dim>::SolveTimestep() {
     AX_ERROR("Failed to converge, early stopped!");
   }
 
-  AX_INFO("Converged: {}, Iterations={}", result.converged_var_ || result.converged_grad_,
-          result.n_iter_);
+  AX_INFO("Converged: {}, Iterations={}", result.converged_var_ || result.converged_grad_, result.n_iter_);
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
 template <int dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
   utils::extract_enum(option, "lbfgs_strategy", strategy_);
-  utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver",
-                                                                            solver_);
-  utils::extract_tunable(option, "sparse_solver_opt", solver_.get());
+  utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver", solver_);
+  extract_tunable(option, "sparse_solver_opt", solver_.get());
   /* SECT: Lbfgs Options */
-  utils::extract_tunable(option, "lbfgs_opt", &optimizer_);
+  extract_tunable(option, "lbfgs_opt", &optimizer_);
   /* SECT: More Options */
   TimeStepperBase<dim>::SetOptions(option);
 }

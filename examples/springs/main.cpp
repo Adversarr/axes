@@ -80,7 +80,7 @@ void ui_render(gl::UiRenderEvent ) {
     velocities = (vertices - lines.vertices_) / DELTA_TIME;
     std::cout << velocities.norm() << std::endl;
     lines.vertices_ = vertices;
-    lines.flush_ = true;
+    lines;
   }
   ImGui::End();
 }

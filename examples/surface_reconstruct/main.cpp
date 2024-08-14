@@ -69,7 +69,7 @@ void ui_callback(gl::UiRenderEvent) {
     mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
     mesh.colors_.resize(4, mesh.vertices_.cols());
     mesh.colors_.setConstant(0.5);
-    mesh.flush_ = true;
+    mesh;
   }
   ImGui::End();
 }
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
   mesh_reconstructed.colors_.resize(4, mesh_reconstructed.vertices_.cols());
   mesh_reconstructed.colors_.setConstant(0.5);
   mesh_reconstructed.use_lighting_ = true;
-  mesh_reconstructed.flush_ = true;
+  mesh_reconstructed;
 
   AX_CHECK_OK(ax::gl::enter_main_loop());
   point_data_grid.reset();

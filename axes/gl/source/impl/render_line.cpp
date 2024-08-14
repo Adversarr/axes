@@ -67,18 +67,7 @@ void LineRenderer::TickRender() {
   glUseProgram(0);
 }
 
-void LineRenderer::TickLogic() {
-  // Replace or add LineRenderData to the entity
-  // for (auto [ent, lines] : view_component<Lines>().each()) {
-  //   if (lines.flush_) {
-  //     if (has_component<LineRenderData>(ent)) {
-  //       remove_component<LineRenderData>(ent);
-  //     }
-  //     global_registry().emplace<LineRenderData>(ent, lines);
-  //   }
-  //   lines.flush_ = false;
-  // }
-}
+void LineRenderer::TickLogic() {}
 
 void LineRenderer::Erase(Entity entity) { remove_component<LineRenderData>(entity); }
 

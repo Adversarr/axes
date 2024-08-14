@@ -13,7 +13,6 @@ public:
   math::field3r instance_offset_;
   math::field4r instance_color_;
 
-  bool flush_{true};
   bool use_global_model_{true};
 
   static Lines Create(Mesh const& mesh);
@@ -28,7 +27,6 @@ inline Lines Lines::Create(Mesh const& mesh) {
   lines.instance_offset_ = mesh.instance_offset_;
   lines.instance_color_ = mesh.instance_color_;
 
-  lines.flush_ = mesh.flush_;
   return lines;
 }
 

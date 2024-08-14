@@ -12,7 +12,7 @@
 
 namespace ax::gl {
 
-static void update_render(entt::registry &r, entt::entity ent) {
+static void update_render(entt::registry& r, entt::entity ent) {
   if (const auto render = r.view<QuiverRenderData>(); render.contains(ent)) {
     r.erase<QuiverRenderData>(ent);
   }
@@ -23,8 +23,7 @@ QuiverRenderer::QuiverRenderer() = default;
 
 void QuiverRenderer::Setup() {
   auto vs = Shader::CompileFile(utils::get_asset("/shader/lines/lines.vert"), ShaderType::kVertex);
-  auto fs
-      = Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment);
+  auto fs = Shader::CompileFile(utils::get_asset("/shader/lines/lines.frag"), ShaderType::kFragment);
 
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
 
@@ -32,9 +31,7 @@ void QuiverRenderer::Setup() {
   global_registry().on_update<Quiver>().connect<&update_render>();
 }
 
-QuiverRenderer::~QuiverRenderer() {
-  global_registry().on_destroy<Quiver>().disconnect<&QuiverRenderer::Erase>(*this);
-}
+QuiverRenderer::~QuiverRenderer() { global_registry().on_destroy<Quiver>().disconnect<&QuiverRenderer::Erase>(*this); }
 
 void QuiverRenderer::TickRender() {
   prog_.Use();
@@ -62,18 +59,7 @@ void QuiverRenderer::TickRender() {
   glUseProgram(0);
 }
 
-void QuiverRenderer::TickLogic() {
-  // for (auto [ent, quiver] : view_component<Quiver>().each()) {
-  //   if (quiver.flush_) {
-  //     if (has_component<QuiverRenderData>(ent)) {
-  //       remove_component<QuiverRenderData>(ent);
-  //     }
-  //     add_component<QuiverRenderData>(ent, quiver);
-  //     AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
-  //   }
-  //   quiver.flush_ = false;
-  // }
-}
+void QuiverRenderer::TickLogic() {}
 
 void QuiverRenderer::Erase(Entity entity) {
   if (has_component<QuiverRenderData>(entity)) {
@@ -134,8 +120,7 @@ void QuiverRenderer::RenderGui() {
       ImGui::Checkbox("Enable", &quiver.enable_);
       ImGui::PopID();
       ImGui::SameLine();
-      ImGui::Text("Entity: %d, #v=%ld", static_cast<int>(entt::to_integral(ent)),
-                  quiver.vertices_.size());
+      ImGui::Text("Entity: %d, #v=%ld", static_cast<int>(entt::to_integral(ent)), quiver.vertices_.size());
 
       auto* name = try_get_component<cmpt::Name>(ent);
       if (name != nullptr) {

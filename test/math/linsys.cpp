@@ -84,13 +84,13 @@ TEST_CASE("Solve Non-Invertible") {
 TEST_CASE("Sparse LU") {
   using namespace ax::math;
   spmatr A(2, 2);
-  A.insert(0, 0) = 3;
+  A.insert(0, 0) = 4;
   A.insert(0, 1) = 1;
   A.insert(1, 0) = 1;
-  A.insert(1, 1) = 3;
+  A.insert(1, 1) = 4;
   A.makeCompressed();
-  vecxr x = vecxr::Ones(2);
-  vecxr b = A * x;
+  matxxr x = vecxr::Ones(2);
+  matxxr b = A * x;
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
                     SparseSolverKind::kCholmod}) {

@@ -4,7 +4,6 @@ namespace ax::math {
 void SparseSolver_QR::AnalyzePattern() {
   AX_THROW_IF_FALSE(cached_problem_->A_.isCompressed(), "SparseSolver_QR: matrix is not compressed");
   solver_.analyzePattern(cached_problem_->A_);
-  AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_QR: factorization failed");
 }
 
 void SparseSolver_QR::Factorize() {

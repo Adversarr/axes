@@ -32,14 +32,14 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
         for (idx D = 0; D < dim; ++D) {
           lap += C(D, i) * C(D, j);
         }
-        L_dense_local(i, j) = lap * W * volume;
+        L_dense_local(i, j) = lap * volume;
       }
     }
 
     // NOTE: make spsd enough.
     auto [eigen_vectors, eigen_values] = math::eig(L_dense_local);
     eigen_values = eigen_values.cwiseMax(0);
-    L_dense_local = eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
+    L_dense_local = W * eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
     for (idx i = 0; i <= dim; ++i) {
       for (idx j = 0; j <= dim; ++j) {
         l_coef.push_back({elem[i], elem[j], L_dense_local(i, j)});
@@ -62,13 +62,24 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::fiel
       vert[static_cast<size_t>(i)] = mesh_.GetVertex(elem[i]);
     }
     elements::P1Element<dim> E(vert);
+    math::matr<dim + 1, dim + 1> L_dense_local;
     for (idx i = 0; i <= dim; ++i) {
       for (idx j = 0; j <= dim; ++j) {
         real lap = 0.;
         for (idx D = 0; D < dim; ++D) {
           lap += E.Integrate_PF_PF(i, j, D, D);
         }
-        l_coef.push_back({elem[i], elem[j], lap * W(iElem)});
+        L_dense_local(i, j) = lap;
+      }
+    }
+
+    // NOTE: make spsd enough.
+    auto [eigen_vectors, eigen_values] = math::eig(L_dense_local);
+    eigen_values = eigen_values.cwiseMax(0);
+    L_dense_local = W(iElem) * eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
+    for (idx i = 0; i <= dim; ++i) {
+      for (idx j = 0; j <= dim; ++j) {
+        l_coef.push_back({elem[i], elem[j], L_dense_local(i, j)});
       }
     }
   }

@@ -20,9 +20,12 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_node_editor.h>
 
+#include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/gl/config.hpp"
 #include "ax/gl/details/gl_call.hpp"
+#include "ax/math/structure_binding.hpp"
+#include "ax/utils/asset.hpp"
 
 namespace ax::gl {
 
@@ -63,9 +66,7 @@ struct Context::Impl {
 
   std::vector<entt::connection> connections_;
 
-  void OnContextShouldShutdown(ContextShouldShutdownEvent const&) {
-    acknowledged_should_shutdown_ = true;
-  }
+  void OnContextShouldShutdown(ContextShouldShutdownEvent const&) { acknowledged_should_shutdown_ = true; }
 
   void OnKey(const KeyboardEvent& evt);
 
@@ -185,15 +186,7 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       math::mat3f rx = Eigen::AngleAxis<f32>(static_cast<f32>(dy), right).toRotationMatrix();
       math::mat3f ry = Eigen::AngleAxis<f32>(static_cast<f32>(-dx), up).toRotationMatrix();
 
-      model_.topLeftCorner<3, 3>() *= (rx * ry).cast<f32>();
-
-      // model_rotate_x_ += static_cast<f32>(dx);
-      // model_rotate_y_ += static_cast<f32>(dy);
-      // math::mat3f rx
-      //     = Eigen::AngleAxis<f32>(model_rotate_y_, math::vec3f::UnitX()).toRotationMatrix();
-      // math::mat3f ry
-      //     = Eigen::AngleAxis<f32>(-model_rotate_x_, math::vec3f::UnitY()).toRotationMatrix();
-      // model_.topLeftCorner<3, 3>() = (rx * ry).cast<f32>();
+      model_.topLeftCorner<3, 3>() *= rx * ry;
     }
   }
   prev_cursor_pos_ = evt.pos_;
@@ -215,8 +208,8 @@ void Context::Impl::OnUiRender(UiRenderEvent const&) {
   if (ImGui::Begin("AXGL Context", &is_context_window_open_)) {
     if (ImGui::CollapsingHeader("Scene")) {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
-      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(),
-                  camera_.GetPosition().y(), camera_.GetPosition().z());
+      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
+                  camera_.GetPosition().z());
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
       ImGui::Checkbox("Perspective", &camera_.use_perspective_);
       update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
@@ -250,10 +243,10 @@ void Context::Impl::UpdateLight() {
     return;
   }
   if (render_light_) {
-    if (! has_component<Mesh>(light_entity_)) {
+    if (!has_component<Mesh>(light_entity_)) {
       add_component<Mesh>(light_entity_);
     }
-    patch_component<Mesh>(light_entity_, [&] (Mesh& mesh) {
+    patch_component<Mesh>(light_entity_, [&](Mesh& mesh) {
       auto const cube = geo::cube(0.03);
       mesh.vertices_ = cube.vertices_;
       mesh.indices_ = cube.indices_;
@@ -262,7 +255,7 @@ void Context::Impl::UpdateLight() {
       mesh.use_lighting_ = false;
       mesh.is_flat_ = true;
       mesh.use_global_model_ = true;
-      mesh.flush_ = true;
+      mesh;
     });
   } else {
     remove_component<Mesh>(light_entity_);
@@ -275,12 +268,10 @@ void Context::Impl::UpdateAxes() {
     return;
   }
   if (render_axis_) {
-    if (! has_component<Lines>(axis_entity_)) {
+    if (!has_component<Lines>(axis_entity_)) {
       add_component<Lines>(axis_entity_);
     }
-    patch_component<Lines>(axis_entity_, [&] (Lines& lines) {
-      lines = prim::Axes().Draw();
-    });
+    patch_component<Lines>(axis_entity_, [&](Lines& lines) { lines = prim::Axes().Draw(); });
   } else {
     remove_component<Lines>(axis_entity_);
   }
@@ -291,7 +282,8 @@ Context::Context(Context&&) noexcept = default;
 
 Context::Context() {
   impl_ = std::make_unique<Impl>();
-  AX_THROW_IF_FALSE(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)), "Failed to initialize OpenGL context");
+  AX_THROW_IF_FALSE(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)),
+                    "Failed to initialize OpenGL context");
 
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
@@ -305,8 +297,7 @@ Context::Context() {
   impl_->light_entity_ = cmpt::create_named_entity("SceneLight");
 
   /* SECT: std::vectoren on Signals */
-  impl_->connections_.emplace_back(
-      connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
+  impl_->connections_.emplace_back(connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
   impl_->connections_.emplace_back(connect<KeyboardEvent, &Impl::OnKey>(*impl_));
   impl_->connections_.emplace_back(connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_));
   impl_->connections_.emplace_back(connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_));
@@ -317,18 +308,29 @@ Context::Context() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
-  AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(
-                        static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
+  AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
                     "Failed to Initialize ImGUI_Glfw");
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG),
-                    "Failed to Initialize ImGUI_OpenGL3");
+  AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG), "Failed to Initialize ImGUI_OpenGL3");
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
   ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
 
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+  auto const& prog_option = get_parse_result();
+  float scale = 1.0f;
+  for (auto const& option : prog_option) {
+    if (option.key() == "gl_hidpi_scale") {
+      scale = prog_option["gl_hidpi_scale"].as<float>();
+      AX_TRACE("Setting HiDPI scale to {}", scale);
+      break;
+    }
+  }
+  ImGui::GetStyle().ScaleAllSizes(scale);
+  ImGui::GetIO().FontGlobalScale = scale;
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());
@@ -368,9 +370,7 @@ void Context::Initialize() {
 }
 
 void Context::TickLogic() {
-  if_unlikely(!impl_->has_setuped_) {
-    Initialize();
-  }
+  if_unlikely(!impl_->has_setuped_) { Initialize(); }
   impl_->window_.PollEvents();
   impl_->UpdateLight();
   impl_->UpdateAxes();
@@ -385,8 +385,8 @@ void Context::TickRender() {
   // SECT: Setup OpenGL context
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
-  glClearColor(impl_->clear_color_(0), impl_->clear_color_(1), impl_->clear_color_(2),
-               impl_->clear_color_(3));
+  auto [r, g, b, a] = math::unpack(impl_->clear_color_);
+  glClearColor(r, g, b ,a);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& renderer : impl_->renderers_) {
     renderer->TickRender();

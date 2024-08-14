@@ -3,8 +3,7 @@
 
 namespace ax::gl {
 
-class Mesh {
-public:
+struct Mesh {
   math::field3r vertices_;
   math::field4r colors_;
   math::field3r normals_;
@@ -14,10 +13,6 @@ public:
   math::field3r instance_scale_;
   math::field4r instance_color_;
 
-  void Flush();
-  void FlushVerticesOnly();
-
-  bool flush_{true};
   bool is_flat_{false};
   bool use_lighting_{true};
   bool use_global_model_{true};

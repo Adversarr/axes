@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
   auto height_field = gl::make_height_field(val, N, N);
   AX_CHECK_OK(height_field);
   auto& mesh = add_component<gl::Mesh>(ent, height_field.value());
-  mesh.flush_ = true;
+  mesh;
   AX_CHECK_OK(gl::enter_main_loop());
   clean_up();
   return 0;

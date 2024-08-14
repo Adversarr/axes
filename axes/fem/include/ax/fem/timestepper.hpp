@@ -58,19 +58,15 @@ public:
   // SECT: Density: Will update the mass matrices.
   void SetDensity(real density);
   void SetDensity(math::field1r const &density);
-  math::spmatr const &GetMassMatrix() const { return mass_matrix_; }
-  math::spmatr const &GetMassMatrixOriginal() const { return mass_matrix_original_; }
+  math::spmatr const &GetMassMatrix() const noexcept { return mass_matrix_; }
+  math::spmatr const &GetMassMatrixOriginal() const noexcept { return mass_matrix_original_; }
 
   // SECT: Lame:
-  void SetYoungs(real youngs) {
-    youngs_ = youngs;
-    u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
-  }
-  void SetPoissonRatio(real poisson_ratio) {
-    poisson_ratio_ = poisson_ratio;
-    u_lame_ = elasticity::compute_lame(youngs_, poisson_ratio_);
-  }
-  math::vec2r const &GetLame() const { return u_lame_; }
+  void SetYoungs(real youngs);
+  void SetPoissonRatio(real poisson_ratio);
+  void SetLame(const math::field2r &lame);
+  void SetLame(const math::vec2r &u_lame);
+  math::field2r const &GetLame() const noexcept { return lame_; }
 
   void SetupElasticity(std::string name, std::string device);
 
@@ -95,8 +91,7 @@ public:
   // Solve the timestep
   optim::OptProblem AssembleProblem();
   void RecomputeInitialGuess(math::fieldr<dim> const &u, math::fieldr<dim> const &u_back,
-                             math::fieldr<dim> const &velocity,
-                             math::fieldr<dim> const &velocity_back,
+                             math::fieldr<dim> const &velocity, math::fieldr<dim> const &velocity_back,
                              math::fieldr<dim> const &ext_accel);
   math::fieldr<dim> const &GetInitialGuess() const { return du_inertia_; }
   math::fieldr<dim> const &GetSolution() const { return du_; }
@@ -142,7 +137,8 @@ protected:
   math::fieldr<dim> du_inertia_, du_, u_inertia_;
 
   // runtime parameters.
-  math::vec2r u_lame_;                 ///< Uniform Lame parameters
+  // math::vec2r u_lame_;                 ///< Uniform Lame parameters
+  math::field2r lame_;                 ///< Lame parameters
   math::spmatr mass_matrix_;           ///< The full mass matrix, (N D, N D)
   math::spmatr mass_matrix_original_;  ///< The original mass matrix, (N, N)
 

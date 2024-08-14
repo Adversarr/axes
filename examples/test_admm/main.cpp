@@ -70,7 +70,7 @@ void render_aabb() {
     box.instance_offset_.col(i) = b.min();
     box.instance_scale_.col(i) = b.sizes();
   }
-  box.flush_ = true;
+  box;
 }
 
 void update_rendering() {
@@ -98,7 +98,7 @@ void update_rendering() {
     lines.indices_.col(i) = math::vec2i{edges[i].first, edges[i].second};
   }
   lines.colors_.setOnes(4, g.vertices_.size());
-  lines.flush_ = true;
+  lines;
 
   auto& particles = add_or_replace_component<gl::Mesh>(ent);
   auto ball = geo::sphere(R, 16, 16);
@@ -106,13 +106,13 @@ void update_rendering() {
   particles.indices_ = ball.indices_;
   particles.colors_.setOnes(4, ball.vertices_.cols());
   particles.instance_offset_ = g.vertices_;
-  particles.flush_ = true;
+  particles;
 
   // quiver
   auto& quivers = add_or_replace_component<gl::Quiver>(ent);
   quivers.positions_ = g.vertices_;
   quivers.directions_ = g.velocities_;
-  quivers.flush_ = true;
+  quivers;
   quivers.colors_.setConstant(4, quivers.positions_.cols(), 0.7);
 }
 

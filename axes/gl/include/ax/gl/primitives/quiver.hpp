@@ -11,7 +11,6 @@ struct Quiver {
   real scale_{1.0};
   real head_ratio_{0.2};
   bool normalize_{true};
-  bool flush_{true};
   bool use_global_model_{true};
 };
 

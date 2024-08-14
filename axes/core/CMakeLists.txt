@@ -11,6 +11,11 @@ find_package(CHOLMOD REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(cxxopts REQUIRED)
+set(BLA_VENDOR OpenBLAS)
+find_package(BLAS REQUIRED)
+if(BLAS_FOUND)
+  message(STATUS "OpenBLAS found.")
+endif(BLAS_FOUND)
 
 if (AX_ENABLE_OPENMP)
     find_package(OpenMP)
@@ -62,6 +67,7 @@ target_link_libraries(axes_core
     SuiteSparse::CHOLMOD
     spdlog::spdlog_header_only
     fmt::fmt-header-only
+    BLAS::BLAS
 #    Backward::Interface
 )
 
@@ -79,6 +85,7 @@ endif()
 
 target_compile_definitions(axes_core PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")
 ax_target_apply_flag(axes_core PRIVATE)
+
 include(FindPkgConfig)
 pkg_check_modules(libdw QUIET libdw)
 if (libdw_FOUND)
@@ -87,4 +94,4 @@ if (libdw_FOUND)
   target_compile_definitions(axes_core PRIVATE "AX_HAS_LIBDW")
 
   message(STATUS "libdw found, enabling advanced stacktrace")
-endif()
+endif ()

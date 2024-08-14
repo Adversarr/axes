@@ -72,20 +72,7 @@ void PointRenderer::TickRender() {
   }
 }
 
-void PointRenderer::TickLogic() {
-  // Replace or add PointRenderData to the entity
-  // for (auto [ent, points] : view_component<Points>().each()) {
-  //   if (points.flush_) {
-  //     if (has_component<PointRenderData>(ent)) {
-  //       remove_component<PointRenderData>(ent);
-  //     }
-  //     global_registry().emplace<PointRenderData>(ent, points);
-  //
-  //     AX_TRACE("Flushing entity: {}", entt::to_integral(ent));
-  //   }
-  //   points.flush_ = false;
-  // }
-}
+void PointRenderer::TickLogic() {}
 
 void PointRenderer::Erase(Entity entity) { remove_component<PointRenderData>(entity); }
 

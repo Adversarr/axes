@@ -122,7 +122,7 @@ Optimizer_Newton::Optimizer_Newton() {
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
   // math::SparseSolver_ConjugateGradient* cg
   //     = static_cast<math::SparseSolver_ConjugateGradient*>(sparse_solver_.get());
-  // cg->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
+  sparse_solver_->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
 void Optimizer_Newton::SetOptions(utils::Options const& options) {

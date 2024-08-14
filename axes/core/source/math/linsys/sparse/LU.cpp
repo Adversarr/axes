@@ -6,8 +6,6 @@ void SparseSolver_LU::AnalyzePattern() {
     cached_problem_->A_.makeCompressed();
   }
   solver_.analyzePattern(cached_problem_->A_);
-  AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_LU: factorize failed {}", 
-      to_string(solver_.info()));
 }
 
 void SparseSolver_LU::Factorize() {

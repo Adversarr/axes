@@ -54,7 +54,7 @@ gl::Lines create_dummy_line() {
   lines.indices_.resize(2, 2);
   lines.indices_.col(0) = math::vec2i{0, 1};
   lines.indices_.col(1) = math::vec2i{1, 2};
-  lines.flush_ = true;
+  lines;
   return lines;
 }
 
@@ -69,7 +69,7 @@ gl::Mesh create_dummy_cube() {
 
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.colors_ = (mesh.colors_.array() * 0.5 + 0.5).matrix();
-  mesh.flush_ = true;
+  mesh;
 
   mesh.instance_offset_.resize(3, 3);
   mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0};
@@ -93,7 +93,7 @@ gl::Mesh create_dummy_sphere() {
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.use_lighting_ = true;
   mesh.is_flat_ = true;
-  mesh.flush_ = true;
+  mesh;
   return mesh;
 }
 
@@ -130,14 +130,19 @@ int main(int argc, char** argv) {
   mesh.use_lighting_ = true;
   mesh.is_flat_ = false;
 
-  auto& quiver = add_component<gl::Quiver>(create_entity());  // Quiver
-  quiver.flush_ = true;
-  quiver.positions_.resize(3, 4);
-  quiver.positions_.setRandom();
-  quiver.directions_ = quiver.positions_;
-  quiver.colors_.resize(4, 4);
-  quiver.colors_.setConstant(1);
-  quiver.colors_.row(1).setConstant(0.3);
+  {
+    auto ent = create_entity();
+    add_component<gl::Quiver>(ent);  // Quiver
+    patch_component<gl::Quiver>(ent,[&](gl::Quiver & quiver) {
+      quiver;
+      quiver.positions_.resize(3, 4);
+      quiver.positions_.setRandom();
+      quiver.directions_ = quiver.positions_;
+      quiver.colors_.resize(4, 4);
+      quiver.colors_.setConstant(1);
+      quiver.colors_.row(1).setConstant(0.3);
+    });
+  }
 
 
   bool rotate = true;

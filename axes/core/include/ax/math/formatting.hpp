@@ -3,7 +3,7 @@
 #include <fmt/ostream.h>
 
 #include "ax/math/common.hpp"  // IWYU pragma: export
-
+#include "ax/math/shape.hpp"
 // Not column vector
 template <typename T> struct fmt::formatter<
     T, std::enable_if_t<std::is_base_of_v<Eigen::DenseBase<T>, T>
@@ -19,5 +19,21 @@ template <typename T> struct fmt::formatter<
   template <typename FormatContext>
   auto format(T const& vec, FormatContext& ctx) /* NOLINT */ const {
     return ostream_formatter{}.format(vec.transpose(), ctx);
+  }
+};
+
+template <typename IndexType, int dim> struct fmt::formatter<ax::math::ShapeArray<IndexType, dim>> {
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  constexpr auto format(const ax::math::ShapeArray<IndexType, dim>& p, FormatContext& ctx) const {
+    format_to(ctx.out(), "(");
+    for (int i = 0; i < dim; ++i) {
+      format_to(ctx.out(), "{}", p.data_[i]);
+      if (i + 1 < dim) {
+        format_to(ctx.out(), ", ");
+      }
+    }
+    return format_to(ctx.out(), ")");
   }
 };

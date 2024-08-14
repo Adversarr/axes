@@ -99,10 +99,6 @@ public:
       mesh_comp.use_lighting_ = *use_lighting;
     }
 
-    if (flush != nullptr) {
-      mesh_comp.flush_ = *flush;
-    }
-
     SetOutput<gl::Mesh>(1, mesh_comp);
     SetOutput<Entity>(0, entity_inuse_);
     Set(out_gl_mesh, mesh_comp);
@@ -379,7 +375,7 @@ public:
       return;
     }
     auto& mesh = meshes[to_show];
-    mesh.flush_ = true;
+    mesh;
     add_or_replace_component<gl::Mesh>(ent_created, mesh);
   }
 

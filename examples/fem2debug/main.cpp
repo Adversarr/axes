@@ -37,11 +37,11 @@ void update_entity() {
   auto F = msh.indices_ = input_mesh.indices_;
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
-  msh.flush_ = true;
+  msh;
   auto mesh = std::make_shared<fem::TriMesh<2>>();
   mesh->SetMesh(F, V.topRows<2>());
   fem::ElasticityCompute_CPU<2, fem::elasticity::NeoHookeanBW> elast(mesh);
-  add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh)).flush_ = true;
+  add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh));
   elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   elast.UpdateStress();
   elast.GatherStressToVertices();
@@ -62,7 +62,7 @@ void update_entity() {
   msh.colors_.topRows<3>() = result;
   q.scale_ = 0.15;
   q.normalize_ = true;
-  q.flush_ = true;
+  q;
 }
 
 static void ui_callback(gl::UiRenderEvent const&) {

@@ -58,12 +58,12 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
       mesh.vertices_ = sm.vertices_;
       mesh.indices_ = sm.indices_;
       mesh.colors_.setOnes(4, mesh.vertices_.cols());
-      mesh.flush_ = true;
+      mesh;
       if (has_component<gl::Lines>(out)) {
         remove_component<gl::Lines>(out);
       }
       auto& lines = add_component<gl::Lines>(out, gl::Lines::Create(mesh));
-      lines.flush_ = true;
+      lines;
       lines.colors_.setConstant(0.3);
       auto& orimesh = get_component<gl::Mesh>(ori);
       auto to_color = [](real x) -> real {
@@ -76,7 +76,7 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
         orimesh.colors_.col(i).z() = 0;
       }
       orimesh.use_lighting_ = false;
-      orimesh.flush_ = true;
+      orimesh;
     }
   }
 
@@ -106,12 +106,12 @@ int main(int argc, char** argv) {
     mesh.vertices_ = sm.vertices_;
     mesh.indices_ = sm.indices_;
     mesh.colors_.setOnes(4, mesh.vertices_.cols());
-    mesh.flush_ = true;
+    mesh;
     if (has_component<gl::Lines>(out)) {
       remove_component<gl::Lines>(out);
     }
     auto &lines = add_component<gl::Lines>(out, gl::Lines::Create(mesh));
-    lines.flush_ = true;
+    lines;
     lines.colors_.setConstant(0);
   }
   {
@@ -119,12 +119,12 @@ int main(int argc, char** argv) {
     mesh.vertices_ = surface_mesh.vertices_;
     mesh.indices_ = surface_mesh.indices_;
 
-    mesh.flush_ = true;
+    mesh;
     mesh.vertices_.row(0).array() += 3;
     mesh.colors_.setOnes(4, mesh.vertices_.cols());
 
     auto& lines = add_component<gl::Lines>(ori, gl::Lines::Create(mesh));
-    lines.flush_ = true;
+    lines;
     lines.colors_.setConstant(0);
   }
 

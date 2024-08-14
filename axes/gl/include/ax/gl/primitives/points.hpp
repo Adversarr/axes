@@ -8,7 +8,6 @@ struct Points {
   math::field4r colors_;
 
   real point_size_{1.0};
-  bool flush_{true};
   bool use_global_model_{true};
 };
 

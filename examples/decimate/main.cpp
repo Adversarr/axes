@@ -79,7 +79,7 @@ void ui_render_callback(gl::UiRenderEvent) {
 
     auto& wf = ax::get_component<gl::Lines>(modified);  // Wireframe
     wf = gl::Lines::Create(modified_mesh);
-    wf.flush_ = true;
+    wf;
     wf.colors_.setOnes();
     wf.instance_color_.setOnes();
   }

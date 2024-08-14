@@ -32,13 +32,13 @@ struct PointRenderData {
 class PointRenderer final : public RenderBase {
 public:
   PointRenderer();
-  virtual ~PointRenderer();
-  virtual void TickRender() override;
-  virtual void TickLogic() override;
-  void RenderGui() final;
-  virtual void Erase(Entity entity) override;
-  virtual void Setup() override;
-  virtual void CleanUp() override;
+  ~PointRenderer() override;
+  void TickRender() override;
+  void TickLogic() override;
+  void RenderGui() override;
+  void Erase(Entity entity) override;
+  void Setup() override;
+  void CleanUp() override;
 
 private:
   Program prog_;

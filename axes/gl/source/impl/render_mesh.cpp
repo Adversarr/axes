@@ -20,7 +20,7 @@ namespace ax::gl {
 
 MeshRenderer::MeshRenderer() = default;
 
-static void update_render(entt::registry &r, entt::entity ent) {
+static void update_render(entt::registry& r, entt::entity ent) {
   if (const auto render = r.view<MeshRenderData>(); render.contains(ent)) {
     r.erase<MeshRenderData>(ent);
   }
@@ -29,8 +29,7 @@ static void update_render(entt::registry &r, entt::entity ent) {
 
 void MeshRenderer::Setup() {
   auto vs = Shader::CompileFile(utils::get_asset("/shader/phong/phong.vert"), ShaderType::kVertex);
-  auto fs
-      = Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment);
+  auto fs = Shader::CompileFile(utils::get_asset("/shader/phong/phong.frag"), ShaderType::kFragment);
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
   global_registry().on_destroy<Mesh>().connect<&MeshRenderer::Erase>(*this);
   global_registry().on_update<Mesh>().connect<&update_render>();
@@ -74,8 +73,8 @@ void MeshRenderer::TickRender() {
       prog_.SetUniform("lightCoefficient", light_coef);
 
       if (md.vao_.GetInstanceBuffer()) {
-        md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(),
-                                      Type::kUnsignedInt, 0, md.instances_.size());
+        md.vao_.DrawElementsInstanced(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt, 0,
+                                      md.instances_.size());
       } else {
         md.vao_.DrawElements(PrimitiveType::kTriangles, md.indices_.size(), Type::kUnsignedInt, 0);
       }
@@ -84,17 +83,7 @@ void MeshRenderer::TickRender() {
   glUseProgram(0);
 }
 
-void MeshRenderer::TickLogic() {
-  // for (auto [ent, lines] : view_component<Mesh>().each()) {
-  //   if (lines.flush_) {
-  //     if (has_component<MeshRenderData>(ent)) {
-  //       remove_component<MeshRenderData>(ent);
-  //     }
-  //     global_registry().emplace<MeshRenderData>(ent, lines);
-  //   }
-  //   lines.flush_ = false;
-  // }
-}
+void MeshRenderer::TickLogic() {}
 
 void MeshRenderer::Erase(Entity entity) { remove_component<MeshRenderData>(entity); }
 
@@ -109,8 +98,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   is_flat_ = mesh.is_flat_;
   use_lighting_ = mesh.use_lighting_;
   use_global_model_ = mesh.use_global_model_;
-  AX_THROW_IF_GT(mesh.colors_.cols(), mesh.vertices_.cols(),
-                 "Color size should be less than vertex size");
+  AX_THROW_IF_GT(mesh.colors_.cols(), mesh.vertices_.cols(), "Color size should be less than vertex size");
   /****************************** Prepare Buffer Data ******************************/
   vertices_.reserve(static_cast<size_t>(mesh.vertices_.size()));
   auto normals = mesh.normals_;
@@ -143,12 +131,10 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
     for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);
-      instance.position_offset_
-          = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
+      instance.position_offset_ = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());
       if (i < mesh.instance_color_.cols()) {
         auto color_offset = mesh.instance_color_.col(i);
-        instance.color_offset_
-            = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
+        instance.color_offset_ = glm::vec4(color_offset.x(), color_offset.y(), color_offset.z(), color_offset.w());
       } else {
         instance.color_offset_ = glm::vec4(0, 0, 0, 0);
       }
@@ -178,16 +164,16 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   AXGL_WITH_BIND(ebo) { ebo.Write(indices_); }
   vao_.SetIndexBuffer(std::move(ebo));
   vao_.SetVertexBuffer(std::move(vbo));
-  if (instances_.size() > 0) {
+  if (!instances_.empty()) {
     auto ibo = Buffer::CreateVertexBuffer(BufferUsage::kStaticDraw);
     AXGL_WITH_BIND(ibo) { ibo.Write(instances_); }
     vao_.SetInstanceBuffer(std::move(ibo));
   }
 
-  const int stride = sizeof(MeshRenderVertexData);
-  const size_t position_offset = offsetof(MeshRenderVertexData, position_);
-  const size_t color_offset = offsetof(MeshRenderVertexData, color_);
-  const size_t normal_offset = offsetof(MeshRenderVertexData, normal_);
+  constexpr int stride = sizeof(MeshRenderVertexData);
+  constexpr size_t position_offset = offsetof(MeshRenderVertexData, position_);
+  constexpr size_t color_offset = offsetof(MeshRenderVertexData, color_);
+  constexpr size_t normal_offset = offsetof(MeshRenderVertexData, normal_);
 
   AXGL_WITH_BIND(vao_) {
     AXGL_WITH_BIND(vao_.GetVertexBuffer()) {
@@ -199,17 +185,15 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
       vao_.SetAttribPointer(2, 3, Type::kFloat, false, stride, normal_offset);
     }
 
-    if (instances_.size() > 0) {
+    if (!instances_.empty()) {
       AXGL_WITH_BIND(vao_.GetInstanceBuffer()) {
         vao_.EnableAttrib(3);
         vao_.SetAttribPointer(3, 3, Type::kFloat, false, sizeof(MeshInstanceData), 0);
         vao_.EnableAttrib(4);
-        vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData),
-                              sizeof(glm::vec3));
+        vao_.SetAttribPointer(4, 4, Type::kFloat, false, sizeof(MeshInstanceData), sizeof(glm::vec3));
 
         vao_.EnableAttrib(5);
-        vao_.SetAttribPointer(5, 3, Type::kFloat, false, sizeof(MeshInstanceData),
-                              offsetof(MeshInstanceData, scale_));
+        vao_.SetAttribPointer(5, 3, Type::kFloat, false, sizeof(MeshInstanceData), offsetof(MeshInstanceData, scale_));
         vao_.SetAttribDivisor(3, 1);
         vao_.SetAttribDivisor(4, 1);
         vao_.SetAttribDivisor(5, 1);
@@ -228,10 +212,9 @@ void MeshRenderer::RenderGui() {
       ImGui::Checkbox("Enable", &mesh.enable_);
       ImGui::PopID();
       ImGui::SameLine();
-      ImGui::Text("Entity: %d, #v=%ld, #e=%ld, #i=%ld", entt::to_integral(ent),
-                  mesh.vertices_.size(), mesh.indices_.size(), mesh.instances_.size());
-      auto* name = try_get_component<cmpt::Name>(ent);
-      if (name != nullptr) {
+      ImGui::Text("Entity: %d, #v=%ld, #e=%ld, #i=%ld", entt::to_integral(ent), mesh.vertices_.size(),
+                  mesh.indices_.size(), mesh.instances_.size());
+      if (auto* name = try_get_component<cmpt::Name>(ent)) {
         ImGui::SameLine();
         ImGui::Text("Name: %s", name->value_.c_str());
       }

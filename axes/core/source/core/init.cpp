@@ -7,9 +7,9 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <cxxopts.hpp>
-// #ifdef AX_HAS_LIBDW
-// #  define BACKWARD_HAS_DW 1
-// #endif
+#ifdef AX_HAS_LIBDW
+#  define BACKWARD_HAS_DW 1
+#endif
 #include "3rdparty/backward/backward.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/logging.hpp"

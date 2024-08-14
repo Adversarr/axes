@@ -49,14 +49,14 @@ void update_rendering() {
   }
   mesh.vertices_ = ts->GetPosition();
   mesh.colors_.setOnes(4, mesh.vertices_.cols());
-  mesh.flush_ = true;
+  mesh;
   mesh.use_lighting_ = false;
   auto& lines = get_component<gl::Lines>(out);
   if (lines.indices_.size() == 0) {
     lines = gl::Lines::Create(mesh);
   }
   lines.vertices_ = mesh.vertices_;
-  lines.flush_ = true;
+  lines;
   lines.colors_.topRows<3>().setZero();
 
   ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);

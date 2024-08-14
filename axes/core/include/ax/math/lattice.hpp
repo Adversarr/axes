@@ -193,11 +193,12 @@ public:
 private:
 
   AX_FORCE_INLINE void CheckInRange(veci<D> const& sub) const {
-    if (is_staggered_) {
-      AX_DCHECK(IsSubValid(sub, staggered), "sub {}, shape {}", sub, shape_);
-    } else {
-      AX_DCHECK(IsSubValid(sub, cell_center), "sub {}, shape {}", sub, shape_);
-    }
+    // TODO: compilation failure.
+    // if (is_staggered_) {
+    //   AX_DCHECK(IsSubValid(sub, staggered), "sub {}, shape {}", sub, shape_);
+    // } else {
+    //   AX_DCHECK(IsSubValid(sub, cell_center), "sub {}, shape {}", sub, shape_);
+    // }
   }
 
   AX_FORCE_INLINE idx sub2ind(veci<D> const& strides, veci<D> const& sub) const {

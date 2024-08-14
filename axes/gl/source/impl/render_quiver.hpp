@@ -1,10 +1,11 @@
 #pragma once
+#include <glm/glm.hpp>
+
 #include "ax/core/entt.hpp"
 #include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/program.hpp"
 #include "ax/gl/render_base.hpp"
 #include "ax/gl/vao.hpp"
-#include <glm/glm.hpp>
 
 namespace ax::gl {
 
@@ -25,15 +26,16 @@ struct QuiverRenderData {
 class QuiverRenderer final : public RenderBase {
 public:
   QuiverRenderer();
-  virtual ~QuiverRenderer();
-  virtual void TickRender() override;
-  virtual void TickLogic() override;
-  void RenderGui() final;
-  virtual void Erase(Entity entity) override;
-  virtual void Setup() override;
-  virtual void CleanUp() override;
+  ~QuiverRenderer() override;
+  void TickRender() override;
+  void TickLogic() override;
+  void RenderGui() override;
+  void Erase(Entity entity) override;
+  void Setup() override;
+  void CleanUp() override;
+
 private:
   Program prog_;
 };
 
-}
+}  // namespace ax::gl

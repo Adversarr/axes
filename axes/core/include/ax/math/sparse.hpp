@@ -10,7 +10,7 @@ namespace ax::math {
 /**
  * @brief Alias for a sparse matrix with real values, column-major storage, and index type idx.
  */
-using spmatr = Eigen::SparseMatrix<real, Eigen::RowMajor, idx>;
+using spmatr = Eigen::SparseMatrix<real, Eigen::ColMajor, idx>;
 
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.
@@ -59,8 +59,15 @@ AX_FORCE_INLINE void spmatr_for_each(spmatr & A, Fn&& fn) {
   }
 }
 
-template <typename Fn>
-AX_FORCE_INLINE void spmatr_for_each(const spmatr & A, Fn&& fn) {
+template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(const spmatr& A, Fn fn) {
+  for (idx k = 0; k < A.outerSize(); ++k) {
+    for (spmatr::InnerIterator it(A, k); it; ++it) {
+      fn(it.row(), it.col(), it.valueRef());
+    }
+  }
+}
+
+template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(spmatr& A, Fn fn) {
   for (idx k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
@@ -91,11 +98,12 @@ AX_FORCE_INLINE real norm(spmatr const& A, math::l2_t) {
 }
 
 /****************************** inner product ******************************/
-AX_FORCE_INLINE real inner(vecxr const& left, spmatr const& bilinear, vecxr const& right) {
-  real total = 0.;
-  spmatr_for_each(bilinear, [&](idx row, idx col, real value) {
-    total += left[row] * right[col] * value;
-  });
+template <typename DerivedLeft, typename DerivedRight,
+          typename = std::enable_if_t<DerivedLeft::IsVectorAtCompileTime && DerivedRight::IsVectorAtCompileTime>>
+AX_FORCE_INLINE real inner(Eigen::MatrixBase<DerivedLeft> const& left, const spmatr& bilinear,
+                           Eigen::MatrixBase<DerivedRight> const& right) {
+  real total = static_cast<real>(0.0);
+  spmatr_for_each(bilinear, [&](idx row, idx col, real value) { total += left[row] * right[col] * value; });
   return total;
 }
 

@@ -36,7 +36,7 @@ public:
     lines.indices_.col(0) = math::vec2i{0, 1};
     lines.indices_.col(1) = math::vec2i{2, 3};
     lines.indices_.col(2) = math::vec2i{4, 5};
-    lines.flush_ = true;
+    lines;
     return lines;
   }
 };

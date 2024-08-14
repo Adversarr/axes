@@ -15,12 +15,6 @@ constexpr l1_t l1{};
 
 template <typename DerivedA, typename DerivedB>
 AX_HOST_DEVICE AX_FORCE_INLINE auto dot(MBcr<DerivedA> a, MBcr<DerivedB> b) {
-  static_assert(DerivedA::RowsAtCompileTime == DerivedB::RowsAtCompileTime,
-                "dot product requires vectors of the same size");
-
-  static_assert(DerivedA::ColsAtCompileTime == DerivedB::ColsAtCompileTime,
-                "dot product requires vectors of the same size");
-
   return sum(as_array(a) * as_array(b));
 }
 

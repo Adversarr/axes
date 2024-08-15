@@ -14,8 +14,6 @@
 #include "ax/gl/context.hpp"
 #include "ax/graph/cache_sequence.hpp"
 #include "ax/graph/executor.hpp"
-#include "ax/graph/graph.hpp"
-#include "ax/graph/node.hpp"
 #include "ax/graph/serial.hpp"
 #include "ax/utils/asset.hpp"
 
@@ -45,18 +43,16 @@ namespace ax::graph {
 
 GraphRendererOptions opt_;
 ed::EditorContext* context_;
-ed::PinId hovered_pin_;
-ed::NodeId hovered_node_;
+ed::PinId hovered_pin_ = ed::PinId::Invalid;
+ed::NodeId hovered_node_ = ed::NodeId::Invalid;
 std::string ax_blueprint_root;
 bool is_open_;
 bool has_cycle;
 bool is_config_open_;
-bool need_load_json;
+bool need_load_json = false;
 bool need_export_json;
 bool running_;
 char json_out_path[64] = "blueprint.json";
-
-static void run_once();
 
 std::unique_ptr<GraphExecutorBase>& ensure_executor() {
   auto& g = ensure_resource<Graph>();
@@ -64,18 +60,16 @@ std::unique_ptr<GraphExecutorBase>& ensure_executor() {
     if_likely(&(ptr->get()->GetGraph()) == &g) { return *ptr; }
     else {
       erase_resource<std::unique_ptr<GraphExecutorBase>>();
-      return add_resource<std::unique_ptr<GraphExecutorBase>>(
-          std::make_unique<GraphExecutorBase>(g));
+      return add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     }
   } else {
-    auto& r
-        = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    auto& r = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     return r;
   }
 }
 
-void draw_node_header_default(NodeBase* node) {
-  ImGui::TextColored(ImVec4(0.1, 0.5, 0.8, 1), "= %s", node->GetDescriptor()->name_.c_str());
+void draw_node_header_default(NodePtr node) {
+  ImGui::TextColored(ImVec4(0.1, 0.5, 0.8, 1), "= %s", node->GetDescriptor().Name().c_str());
 }
 
 void draw_node_content_default(NodeBase* node) {
@@ -83,47 +77,60 @@ void draw_node_content_default(NodeBase* node) {
   auto const& out = node->GetOutputs();
   size_t n_max_io = std::max(in.size(), out.size());
   std::vector<float> input_widths;
-  float max_width = 0;
-  for (const auto& i : in) {
-    auto size = ImGui::CalcTextSize(i.descriptor_->name_.c_str(), nullptr, true);
-    input_widths.push_back(size.x);
-    max_width = std::max(max_width, size.x);
+  std::vector<float> output_widths;
+  float max_input_width = 0;
+  const auto& input_sockets = node->GetDescriptor().GetInputs();
+  const auto& output_sockets = node->GetDescriptor().GetOutputs();
+
+  for (const auto& in_sock : node->GetDescriptor().GetInputs()) {
+    const char* name = in_sock.Name().c_str();
+    ImVec2 size = ImGui::CalcTextSize(name);
+    max_input_width = std::max(max_input_width, size.x);
+  }
+
+  for (const auto& out_sock : node->GetDescriptor().GetOutputs()) {
+    const char* name = out_sock.Name().c_str();
+    ImVec2 size = ImGui::CalcTextSize(name);
+    output_widths.push_back(size.x);
   }
 
   for (size_t i = 0; i < n_max_io; ++i) {
     if (i < in.size()) {
-      ed::BeginPin(in[i].id_, ed::PinKind::Input);
-      ImGui::Text("%s", in[i].descriptor_->name_.c_str());
+      ed::PinId id{&in[i]};
+      ed::BeginPin(id, ed::PinKind::Input);
+      ImGui::TextUnformatted(input_sockets[i].Name().c_str());
       ed::EndPin();
-      ImGui::SameLine();
-      ImGui::Dummy(ImVec2(max_width + 10 - input_widths[i], 0));
-      ImGui::SameLine();
+      // ImGui::SameLine();
+      // ImGui::Dummy(ImVec2(max_input_width + 10 - input_widths[i], 0));
+      // ImGui::SameLine();
     } else {
-      ImGui::Dummy(ImVec2(max_width + 10, 0));
-      ImGui::SameLine();
+      // ImGui::Dummy(ImVec2(max_input_width + 10, 0));
+      // ImGui::SameLine();
     }
     if (i < out.size()) {
-      ed::BeginPin(out[i].id_, ed::PinKind::Output);
-      ImGui::TextUnformatted(out[i].descriptor_->name_.c_str());
+      ed::PinId id{&out[i]};
+      ed::BeginPin(id, ed::PinKind::Output);
+      ImGui::TextUnformatted(output_sockets[i].Name().c_str());
       ed::EndPin();
     } else {
-      ImGui::Dummy(ImVec2(0, 0));
+      // ImGui::Dummy(ImVec2(0, 0));
     }
   }
 }
 
 void begin_draw_node(NodeBase* node) {
-  ed::BeginNode(node->GetId());
-  ImGui::PushID(node);
+  ed::NodeId id{node};
+  ed::BeginNode(id);
+  ImGui::PushID(id.AsPointer());
 }
 
 void end_draw_node() {
-  ImGui::PopID();
   NodeEditor::EndNode();
+  ImGui::PopID();
 }
 
 void draw_node(NodeBase* node) {
-  if (auto render = get_custom_node_render(node->GetType()); render) {
+  if (auto render = get_custom_node_render(node->GetDescriptor().Name()); render) {
     render->widget_(node);
   } else {
     begin_draw_node(node);
@@ -133,78 +140,63 @@ void draw_node(NodeBase* node) {
   }
 }
 
-static void draw_socket(Socket* socket) {
-  ed::Link(socket->id_, socket->input_->id_, socket->output_->id_);
+static void draw_link(Link<> const& link) {
+  ed::PinId in_sock{link.From().operator->()};
+  ed::PinId out_sock{link.To().operator->()};
+
+  ed::LinkId id{link.To().operator->()};
+  ed::Link(id, in_sock, out_sock);
 }
 
 static void add_node(Graph& g, char const* name) {
-  auto desc = details::get_node_descriptor(name);
-  if (desc) {
-    // TODO: Try except here
-    try {
-      auto* node = g.AddNode(desc);
-      // current mouse position in the editor.
-      draw_node(node);
-      ed::CenterNodeOnScreen(node->GetId());
-    } catch (std::exception const& e) {
-      AX_ERROR("Cannot create node: {}", e.what());
-    }
-  }
+  auto const& reg = NodeRegistry::instance();
+  auto node_ptr = reg.Create(name);  // May throw?
+  g.PushBack(std::move(node_ptr));
 }
 
-static void do_create(Graph& g, size_t from_id, size_t to_id) {
-  auto* from = g.GetPin(from_id);
-  auto* to = g.GetPin(to_id);
-  if (from == nullptr) {
-    AX_ERROR("Cannot find from-pin: {}", from_id);
-    return;
-  } else if (to == nullptr) {
-    AX_ERROR("Cannot find to-pin: {}", to_id);
-    return;
-  }
-
-  // determine from/to to in/out
-  Pin *input = nullptr, *output = nullptr;
-  if (from->is_input_ && !to->is_input_) {
-    input = to;
-    output = from;
-  } else if (!from->is_input_ && to->is_input_) {
-    input = from;
-    output = to;
-  } else {
-    AX_ERROR("Cannot connect two input or two output pins.");
-    return;
-  }
-
-  // TODO: Try except
-  Socket* sock = nullptr;
-  try {
-    sock = g.AddSocket(input, output);
-  } catch (std::exception const& e) {
-    AX_ERROR("Cannot create link: {}", e.what());
-  }
-
-  if (sock != nullptr) {
-    AX_INFO("Create link: {}:{} -> {}:{}", sock->input_->node_id_, sock->input_->node_io_index_,
-            sock->output_->node_id_, sock->output_->node_io_index_);
-    draw_socket(sock);
-  }
+static void do_connect_sockets(Graph& g, OutputSocket const* out, InputSocket const* in) try {
+  auto out_nh = g.Get(&out->Node());
+  auto in_nh = g.Get(&in->Node());
+  AX_DCHECK(out_nh, "Output node handle not found.");
+  AX_DCHECK(in_nh, "Input node handle not found.");
+  auto out_sock_handle = out_nh->GetOutput(out->Index());
+  auto in_sock_handle = in_nh->GetInput(in->Index());
+  auto link = g.Connect(out_sock_handle, in_sock_handle);
+  draw_link(link);
+} catch (std::exception const& e) {
+  AX_ERROR("Cannot create link: {}", e.what());
 }
 
-static void do_delete(Graph& g) {
+static void do_erase_link(Graph& g, InputSocket* in) {
+  auto in_nh = g.Get(&in->Node());
+  auto in_sock_handle = in_nh->GetInput(in->Index());
+  AX_CHECK(in_sock_handle->IsConnected(), "Socket is not connected.");
+  OutputSocket const* out = in_sock_handle->From();
+  auto out_nh = g.Get(&out->Node());
+  auto out_sock_handle = out_nh->GetOutput(out->Index());
+  auto link = g.GetConnect(out_sock_handle, in_sock_handle);
+  g.Erase(link.value());
+}
+
+static void do_erase_node(Graph& g, NodeBase* node) {
+  auto nh = g.Get(node);
+  g.Erase(nh.value());
+}
+
+static void query_then_erase(Graph& g) {
   ed::LinkId link_id = 0;
   while (ed::QueryDeletedLink(&link_id)) {
     if (ed::AcceptDeletedItem()) {
-      AX_INFO("Deleted link: {}", link_id.Get());
-      g.RemoveSocket(link_id.Get());
+      AX_INFO("delete link: {}", link_id.Get());
+      do_erase_link(g, link_id.AsPointer<InputSocket>());
     }
   }
 
   ed::NodeId node_id = 0;
   while (ed::QueryDeletedNode(&node_id)) {
     if (ed::AcceptDeletedItem()) {
-      AX_INFO("Deleted node: {}", node_id.Get());
-      g.RemoveNode(node_id.Get());
+      AX_INFO("delete node: {}", node_id.Get());
+      do_erase_node(g, node_id.AsPointer<NodeBase>());
     }
   }
 }
@@ -214,16 +206,25 @@ static void do_delete(Graph& g) {
 static void handle_inputs() {
   auto& g = ensure_resource<Graph>();
   if (ed::BeginCreate()) {
-    ed::PinId input_id, output_id;
+    ed::PinId input_id, output_id;  // NOTE: I/O of Link is O/I of each node!
     if (ed::QueryNewLink(&input_id, &output_id)) {
-      if (ed::AcceptNewItem()) {
-        do_create(g, input_id.Get(), output_id.Get());
+      if (input_id && output_id) {
+        if (ed::AcceptNewItem()) {
+          SocketBase const* out = input_id.AsPointer<SocketBase>();
+          SocketBase const* in = output_id.AsPointer<SocketBase>();
+          if (!out->IsInput() && in->IsInput()) {
+            do_connect_sockets(g, static_cast<OutputSocket const*>(out), static_cast<InputSocket const*>(in));
+          } else {
+            do_connect_sockets(g, static_cast<OutputSocket const*>(in), static_cast<InputSocket const*>(out));
+          }
+        }
       }
     }
   }
   ed::EndCreate();
+
   if (ed::BeginDelete()) {
-    do_delete(g);
+    query_then_erase(g);
   }
   ed::EndDelete();
 }
@@ -232,16 +233,20 @@ static void show_create_node_window(Graph& g) {
   ImGui::TextUnformatted("Create New Node");
   ImGui::Separator();
   static char name_input[256]{0};
-  static int current_size = 0;
+  static size_t current_size = 0;
   const char* front_name = nullptr;
+
   if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
       && !ImGui::IsMouseClicked(0))
     ImGui::SetKeyboardFocusHere();
+
   if (ImGui::InputText("name", name_input, 256)) {
     current_size = strlen(name_input);
   }
 
-  for (auto const& name : details::get_node_names()) {
+  auto const& desc = NodeRegistry::instance().GetDescriptors();
+
+  for (auto const& [name, _] : desc) {
     if (!partially_match(name, name_input, current_size)) {
       continue;
     }
@@ -252,6 +257,7 @@ static void show_create_node_window(Graph& g) {
       add_node(g, name.c_str());
     }
   }
+
   // If pressed enter and there is only one item, then create it.
   if (ImGui::IsKeyPressed(ImGuiKey_Enter) && front_name != nullptr) {
     add_node(g, front_name);
@@ -260,25 +266,26 @@ static void show_create_node_window(Graph& g) {
     ImGui::CloseCurrentPopup();
   }
 }
-static void show_link_context_menu(ed::LinkId select_link0, Socket* link) {
-  ImGui::TextUnformatted("Link Context Menu");
-  if (link) {
-    ImGui::Text("Link ID: %ld", link->id_);
-    ImGui::Text("Link Input: %ld", link->input_->id_);
-    ImGui::Text("Link Output: %ld", link->output_->id_);
-    ImGui::Text("Link Type: %s", link->input_->descriptor_->type_.name());
-    ImGui::Separator();
-    if (ImGui::MenuItem("Delete?")) {
-      ed::DeleteLink(select_link0);
-    }
-  }
-}
-static void show_node_context_menu(ed::NodeId select_node0, NodeBase* node) {
+
+// TODO: static void show_link_context_menu(ed::LinkId select_link0, Socket* link) {
+//   ImGui::TextUnformatted("Link Context Menu");
+//   if (link) {
+//     ImGui::Text("Link ID: %ld", link->id_);
+//     ImGui::Text("Link Input: %ld", link->input_->id_);
+//     ImGui::Text("Link Output: %ld", link->output_->id_);
+//     ImGui::Text("Link Type: %s", link->input_->descriptor_->type_.name());
+//     ImGui::Separator();
+//     if (ImGui::MenuItem("Delete?")) {
+//       ed::DeleteLink(select_link0);
+//     }
+//   }
+// }
+
+static void show_node_context_menu(ed::NodeId select_node0, NodeBase const* node) {
   ImGui::TextUnformatted("Node Context Menu");
   if (node) {
-    ImGui::Text("Node ID: %ld", node->GetId());
-    ImGui::Text("Node Name: %s", node->GetDescriptor()->name_.c_str());
-    ImGui::Text("Node Type: %s", node->GetType().name());
+    ImGui::Text("Node Name: %s", node->GetDescriptor().Name().c_str());
+    ImGui::Text("Node Type: %s", node->GetDescriptor().Desc().c_str());
     ImGui::Separator();
     if (ImGui::MenuItem("Delete?")) {
       ed::DeleteNode(select_node0);
@@ -315,14 +322,8 @@ static void handle_selection() {
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
   if (ImGui::BeginPopup("Node Context Menu")) {
-    auto* node = g.GetNode(select_node0.Get());
-    show_node_context_menu(select_node0, node);
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("Link Context Menu")) {
-    auto* link = g.GetSocket(select_link0.Get());
-    show_link_context_menu(select_link0, link);
+    auto* ptr = select_node0.AsPointer<NodeBase>();
+    show_node_context_menu(select_node0, ptr);
     ImGui::EndPopup();
   }
 
@@ -335,15 +336,17 @@ static void handle_selection() {
 
 static void serialize_graph(std::ostream& out) {
   auto& g = ensure_resource<Graph>();
+  Serializer ser(g);
+  for (auto const& node : g.GetNodes()) {
+    NodeBase const* ptr = node.get();
+    ImVec2 const pos = ed::GetNodePosition(ed::NodeId(ptr));
+    boost::json::object meta = node->Serialize();
+    meta["canvas_x"] = pos.x;
+    meta["canvas_y"] = pos.y;
+    ser.SetNodeMetadata(ptr, meta);
+  }
+
   try {
-    Serializer ser(g);
-    g.ForeachNode([&](NodeBase* n) {
-      ImVec2 const pos = ed::GetNodePosition(n->GetId());
-      boost::json::object meta = n->Serialize();
-      meta["canvas_x"] = pos.x;
-      meta["canvas_y"] = pos.y;
-      ser.SetNodeMetadata(n->GetId(), meta);
-    });
     auto json = ser.Serialize();
     out << json;
   } catch (std::exception const& e) {
@@ -354,22 +357,26 @@ static void serialize_graph(std::ostream& out) {
 static void draw_hovered() {
   auto& g = ensure_resource<Graph>();
   if (hovered_pin_) {
-    if (auto const* pin = g.GetPin(hovered_pin_.Get())) {
-      if (ImGui::BeginTooltip()) {
-        ImGui::TextUnformatted(pin->descriptor_->description_.c_str());
-        ImGui::EndTooltip();
-      }
-    }
-    return;
+    // TODO: impl?
+    //
+    // if (auto const* pin = g.GetPin(hovered_pin_.Get())) {
+    //   if (ImGui::BeginTooltip()) {
+    //     ImGui::TextUnformatted(pin->descriptor_->description_.c_str());
+    //     ImGui::EndTooltip();
+    //   }
+    // }
+    // return;
   }
 
   if (hovered_node_) {
-    if (auto const* node = g.GetNode(hovered_node_.Get())) {
-      if (ImGui::BeginTooltip()) {
-        ImGui::TextUnformatted(node->GetDescriptor()->description_.c_str());
-        ImGui::EndTooltip();
-      }
-    }
+    // TODO: impl?
+    //
+    // if (auto const* node = g.GetNode(hovered_node_.Get())) {
+    //   if (ImGui::BeginTooltip()) {
+    //     ImGui::TextUnformatted(node->GetDescriptor()->description_.c_str());
+    //     ImGui::EndTooltip();
+    //   }
+    // }
   }
 }
 
@@ -378,8 +385,7 @@ static void draw_config_window(gl::UiRenderEvent) {
     return;
   }
   if (!ImGui::Begin("Graph Commander", &is_config_open_,
-                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar
-                        | ImGuiWindowFlags_AlwaysAutoResize)) {
+                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::End();
     return;
   }
@@ -431,7 +437,8 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Execute Once")) {
-    run_once();
+    // run_once();
+    AX_ERROR("Not Implemented");
   }
   ImGui::Checkbox("Running", &running_);
   ImGui::SameLine();
@@ -469,9 +476,14 @@ static void draw_config_window(gl::UiRenderEvent) {
 static void deserialize_graph(Graph& g, std::ifstream& file) {
   boost::json::stream_parser p;
   file.seekg(0, std::ios::end);
-  size_t size = file.tellg();
+  auto size = file.tellg();
   file.seekg(0, std::ios::beg);
-  std::string buffer(size, ' ');
+  if (size < 0) {
+    AX_CRITICAL("File load error.");
+    return;
+  }
+
+  std::string buffer(static_cast<size_t>(size), ' ');
   file.read(buffer.data(), size);
   if (!file.good()) {
     AX_CRITICAL("File load error.");
@@ -486,7 +498,7 @@ static void deserialize_graph(Graph& g, std::ifstream& file) {
   }
   boost::json::value json = p.release();
 
-  Deserializer d(g);
+  Serializer d(g);
   try {
     d.Deserialize(json.as_object());
   } catch (std::exception const& e) {
@@ -496,28 +508,25 @@ static void deserialize_graph(Graph& g, std::ifstream& file) {
   }
 
   has_cycle = ensure_executor()->HasCycle();
-  auto const& meta = d.node_metadata_;
-  auto const& node_id_map = d.inverse_node_id_map_;
-  g.ForeachNode([&](NodeBase* n) {
-    idx node_id_in_graph = n->GetId();
-    idx node_id_in_json = node_id_map.at(node_id_in_graph);
-    if (auto iter = meta.find(node_id_in_json); iter != meta.end()) {
-      auto const& obj = iter->second.as_object();
-      ImVec2 pos;
-      pos.x = obj.at("canvas_x").as_double();
-      pos.y = obj.at("canvas_y").as_double();
-      ed::SetNodePosition(node_id_in_graph, pos);
-      n->Deserialize(obj);
+
+  for (auto const& [ptr, obj] : d.GetNodeMetadata()) {
+    ImVec2 pos;
+    auto nh = g.Get(ptr);
+    if (!nh) {
+      continue;
     }
-  });
+    pos.x = static_cast<float>(obj.at("canvas_x").as_double());
+    pos.y = static_cast<float>(obj.at("canvas_y").as_double());
+    ed::SetNodePosition(ed::NodeId(ptr), pos);
+    (*nh)->Deserialize(obj);
+  }
 }
 
 static void draw_once(gl::UiRenderEvent) {
   if (!is_open_) {
     return;
   }
-  if (!ImGui::Begin("Node editor", &is_open_,
-                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+  if (!ImGui::Begin("Node editor", &is_open_, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
     ImGui::End();
     return;
   }
@@ -536,8 +545,24 @@ static void draw_once(gl::UiRenderEvent) {
     need_load_json = false;
   }
 
-  g.ForeachNode(draw_node);
-  g.ForeachSocket(draw_socket);
+  // g.ForeachNode(draw_node);
+  for (auto const& n : g.GetNodes()) {
+    draw_node(n.get());
+
+    auto handle = g.Get(n.get());
+    for (auto const& in_sock : n->GetInputs()) {
+      auto in_handle = handle->GetInput(in_sock.Index());
+      if (in_handle->IsConnected()) {
+        const auto* out_sock = in_handle->From();
+        auto out_nh = g.Get(&out_sock->Node());
+        AX_CHECK(out_nh, "Cannot find node.");
+        auto out_handle = out_nh->GetOutput(out_sock->Index());
+        auto link = g.GetConnect(out_handle, in_handle);
+        AX_CHECK(link, "Cannot find link.");
+        draw_link(*link);
+      }
+    }
+  }
   handle_inputs();
   handle_selection();
 
@@ -589,45 +614,11 @@ void on_menu_bar(gl::MainMenuBarRenderEvent) {
   }
 }
 
-static void run_once() {
-  auto& e = ensure_executor();
-  auto stage = e->GetStage();
-  switch (stage) {
-    case GraphExecuteStage::kIdle: {
-      // TODO: Try except
-      e->Begin();
-    }
-    case GraphExecuteStage::kPrePreApply:
-    case GraphExecuteStage::kPreApplyDone:
-    case GraphExecuteStage::kApplyRunning:
-    case GraphExecuteStage::kApplyDone:
-    case GraphExecuteStage::kPrePostApply:
-    case GraphExecuteStage::kPostApplyDone: {
-      // TODO: Try except
-      e->WorkOnce();
-      break;
-    }
-
-    case GraphExecuteStage::kPreApplyError:
-    case GraphExecuteStage::kApplyError:
-    case GraphExecuteStage::kPostApplyError: {
-      AX_ERROR("Error in executor: {}", int(stage));
-      std::cout << "Error.." << std::endl;
-      running_ = false;
-      break;
-    }
-    case GraphExecuteStage::kDone: {
-      e->End();
-      running_ = false;
-    }
-  }
-}
-
 void on_tick_logic(gl::TickLogicEvent) {
   if (!running_) {
     return;
   }
-  run_once();
+  // run_once();
 }
 
 void install_renderer(GraphRendererOptions opt) {
@@ -642,7 +633,7 @@ void install_renderer(GraphRendererOptions opt) {
   }
   ax_blueprint_root = ax_blueprint_root + "/blueprints/";
 
-  auto path = get_program_path();
+  const char* path = get_program_path();
   if (path) {
     std::string spath = path;
     for (auto& c : spath) {
@@ -684,16 +675,16 @@ void install_renderer(GraphRendererOptions opt) {
   add_clean_up_hook("Remove Graph", []() { erase_resource<Graph>(); });
 }
 
-using WidgetMap = std::unordered_map<std::type_index, CustomNodeRender>;
+using WidgetMap = std::unordered_map<std::string, CustomNodeRender>;
 
-void add_custom_node_render(std::type_index type, CustomNodeRender const& widget) {
+void add_custom_node_render(std::string type, CustomNodeRender const& widget) {
   auto& map = ensure_resource<WidgetMap>();
   map.try_emplace(type, widget);
 }
 
-CustomNodeRender const* get_custom_node_render(std::type_index type) {
+CustomNodeRender const* get_custom_node_render(std::string name) {
   auto& map = ensure_resource<WidgetMap>();
-  auto it = map.find(type);
+  auto it = map.find(name);
   if (it != map.end()) {
     return &(it->second);
   }

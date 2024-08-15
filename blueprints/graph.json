@@ -1,1 +1,1 @@
-{"nodes":[{"id":1,"name":"Convert_idx_to_bool","meta":{"canvas_x":-1.27E2,"canvas_y":-3.04E2}},{"id":4,"name":"Convert_bool_to_string","meta":{"canvas_x":8.5E1,"canvas_y":-1.92E2}}],"sockets":[{"id":7,"input_node":1,"input_pin":0,"output_node":4,"output_pin":0}]}
+{"nodes":[{"index":0,"name":"ConstantString","meta":{"canvas_x":1.25E2,"canvas_y":3.7E1}},{"index":1,"name":"EchoString","meta":{"canvas_x":3.44E2,"canvas_y":1.97E2}}],"pipes":[{"to":1,"to_socket_index":0,"from":0,"from_socket_index":0}],"strong_link":[]}

@@ -1,4 +1,5 @@
 #include "ax/gl/window.hpp"
+#include "ax/gl/context.hpp"
 
 #include <entt/signal/emitter.hpp>
 #include <entt/signal/sigh.hpp>
@@ -104,7 +105,10 @@ Window::Window() {
 #ifdef AX_PLATFORM_APPLE
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-  impl_->window_ = glfwCreateWindow(1280, 720, "Axes", nullptr, nullptr);
+
+  float hidpi_scale = get_hidpi_scale();
+  impl_->window_ = glfwCreateWindow(static_cast<int>(1280 * hidpi_scale),
+                                    static_cast<int>(720 * hidpi_scale), "Axes", nullptr, nullptr);
   AX_THROW_IF_NULLPTR(impl_->window_, "Failed to create GLFW window");
 
   glfwMakeContextCurrent(impl_->window_);
@@ -121,12 +125,6 @@ Window::Window() {
   glfwGetWindowContentScale(impl_->window_, &impl_->fb_scale_.x(), &impl_->fb_scale_.y());
   impl_->should_close_ = false;
   glfwSwapInterval(1);  // Enable vsync
-
-  // AX_DLOG(INFO) << "Window Information:" << std::endl
-  //               << " - Size=" << impl_->size_.transpose() << std::endl
-  //               << " - Pos=" << impl_->pos_.transpose() << std::endl
-  //               << " - FrameBufferSize=" << impl_->fb_size_.transpose() << std::endl
-  //               << " - FrameBufferScale=" << impl_->fb_scale_.transpose();
 
   AX_TRACE("Window information: size={}, pos={}, fb_size={}, fb_scale={}", impl_->size_.transpose(),
            impl_->pos_.transpose(), impl_->fb_size_.transpose(), impl_->fb_scale_.transpose());

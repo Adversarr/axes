@@ -46,5 +46,6 @@ private:
 };
 
 Context& get_context();
+float get_hidpi_scale();
 
 }  // namespace ax::gl

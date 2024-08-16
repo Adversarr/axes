@@ -28,6 +28,8 @@ option(AX_ENABLE_CUDA "Enable cuda." OFF)
 option(AX_NO_WARNING "Disable all warnings." OFF)
 option(AX_ENABLE_OPENMP "Enable OpenMP for automatic multi-threading in Eigen." ON)
 option(AX_ENABLE_PYBIND "Enable pybind11." OFF)
+option(AX_ENABLE_AVX "Enable AVX." OFF)
+option(AX_ENABLE_FASTMATH "Enable fast math." OFF)
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 
 project(axes LANGUAGES C CXX)
@@ -64,6 +66,22 @@ if (NOT AX_NO_WARNING)  # Use our customized warning flags
     ax_add_cxx_compiler_flag("-Wnon-virtual-dtor")
   endif()
 endif()
+
+# WARN: May not work.
+if(AX_ENABLE_AVX)
+    ax_add_cxx_compiler_flag_host_only("-march=native")
+endif()
+
+if (AX_ENABLE_FASTMATH)
+  if (MSVC)
+    ax_add_cxx_compiler_flag("/fp:fast")
+  else()
+    ax_add_cxx_compiler_flag("-ffast-math")
+  endif()
+
+  message(STATUS "Enable fast math.")
+endif()
+
 # <=== End: Took from ZENO.
 
 ##############################################################################################

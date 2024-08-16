@@ -57,6 +57,7 @@
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -209,14 +210,13 @@
 #define CG_PP_EVAL3(...) CG_PP_EVAL4(CG_PP_EVAL4(CG_PP_EVAL4(__VA_ARGS__)))
 #define CG_PP_EVAL4(...) __VA_ARGS__
 
-#define CG_PP_FOR_EACH_I(...)          \
-    CG_PP_VAOPT_FOR_EACH_I(CG_PP_EXPAND_FRONT_APPLY, __VA_ARGS__)
+#define CG_PP_FOR_EACH_I(...) CG_PP_VAOPT_FOR_EACH_I(CG_PP_EXPAND_FRONT_APPLY, __VA_ARGS__)
 
 #define CG_PP_HANDLE_COMMON(HandleType)               \
-HandleType(HandleType const &) noexcept = default;  \
-HandleType(HandleType &&) noexcept = default;       \
-HandleType &operator=(HandleType const &) = delete; \
-HandleType &operator=(HandleType &&) = delete
+  HandleType(HandleType const &) noexcept = default;  \
+  HandleType(HandleType &&) noexcept = default;       \
+  HandleType &operator=(HandleType const &) = delete; \
+  HandleType &operator=(HandleType &&) = delete
 
 namespace compute_graph {
 
@@ -239,7 +239,8 @@ CG_STRONG_INLINE std::string to_string(TypeIndex type_index) { return type_index
 
 class SocketDescriptor {
 public:
-  CG_STRONG_INLINE SocketDescriptor(TypeIndex type, std::string_view name, std::string_view desc) noexcept
+  CG_STRONG_INLINE SocketDescriptor(TypeIndex type, std::string_view name,
+                                    std::string_view desc) noexcept
       : type_(type), name_(name), desc_(desc) {}
 
   CG_STRONG_INLINE SocketDescriptor(TypeIndex type, std::string_view name, std::string_view desc,
@@ -261,13 +262,15 @@ private:
 };
 
 template <typename T>
-CG_STRONG_INLINE SocketDescriptor make_socket_descriptor(std::string_view name, std::string_view desc) {
+CG_STRONG_INLINE SocketDescriptor make_socket_descriptor(std::string_view name,
+                                                         std::string_view desc) {
   return {typeid(T), name, desc};
 }
 
-template <typename T> CG_STRONG_INLINE SocketDescriptor make_socket_descriptor(std::string_view name,
-                                                                               std::string_view desc,
-                                                                               std::string_view pretty_typename) {
+template <typename T>
+CG_STRONG_INLINE SocketDescriptor make_socket_descriptor(std::string_view name,
+                                                         std::string_view desc,
+                                                         std::string_view pretty_typename) {
   return {typeid(T), name, desc, pretty_typename};
 }
 
@@ -275,9 +278,13 @@ using NodeFactory = std::function<std::unique_ptr<NodeBase>(NodeDescriptor const
 
 class NodeDescriptor {
 public:
-  CG_STRONG_INLINE SmallVector<SocketDescriptor> const &GetInputs() const noexcept { return inputs_; }
+  CG_STRONG_INLINE SmallVector<SocketDescriptor> const &GetInputs() const noexcept {
+    return inputs_;
+  }
 
-  CG_STRONG_INLINE SmallVector<SocketDescriptor> const &GetOutputs() const noexcept { return outputs_; }
+  CG_STRONG_INLINE SmallVector<SocketDescriptor> const &GetOutputs() const noexcept {
+    return outputs_;
+  }
 
   CG_STRONG_INLINE std::string const &Name() const noexcept { return name_; }
 
@@ -324,8 +331,9 @@ template <typename NodeType> class NodeDescriptorBuilder {
 
 public:
   CG_STRONG_INLINE NodeDescriptorBuilder(std::string name, std::string desc) noexcept
-      : descriptor_(std::move(name), std::move(desc),
-                    [](NodeDescriptor const &descriptor) { return std::make_unique<NodeType>(descriptor); }) {}
+      : descriptor_(std::move(name), std::move(desc), [](NodeDescriptor const &descriptor) {
+          return std::make_unique<NodeType>(descriptor);
+        }) {}
 
   CG_STRONG_INLINE NodeDescriptorBuilder &AppendInput(SocketDescriptor const &desc) noexcept {
     descriptor_.inputs_.push_back(desc);
@@ -348,9 +356,11 @@ public:
   using container_type = std::unordered_map<std::string, NodeDescriptor>;
   using defered_load_fn = std::function<void(NodeRegistry &)>;
 
-  CG_STRONG_INLINE auto Find(const std::string& type) const noexcept { return descriptors_.find(type); }
-  
-  const container_type& GetDescriptors() const noexcept { return descriptors_; }
+  CG_STRONG_INLINE auto Find(const std::string &type) const noexcept {
+    return descriptors_.find(type);
+  }
+
+  const container_type &GetDescriptors() const noexcept { return descriptors_; }
 
   CG_STRONG_INLINE NodeDescriptor const &Emplace(NodeDescriptor const &descriptor) {
     return descriptors_.emplace(descriptor.Name(), descriptor).first->second;
@@ -360,7 +370,7 @@ public:
     descriptors_.emplace(descriptor.Name(), std::move(descriptor));
   }
 
-  std::unique_ptr<NodeBase> Create(const std::string& type) const CG_NOEXCEPT {
+  std::unique_ptr<NodeBase> Create(const std::string &type) const CG_NOEXCEPT {
     auto const it = descriptors_.find(type);
 #ifndef CG_NO_CHECK
     if (it == descriptors_.end()) {
@@ -374,7 +384,9 @@ public:
     return std::unique_ptr<T>(static_cast<T *>(Create(T::name()).release()));
   }
 
-  CG_STRONG_INLINE bool Has(std::string type) const noexcept { return descriptors_.find(type) != descriptors_.end(); }
+  CG_STRONG_INLINE bool Has(std::string type) const noexcept {
+    return descriptors_.find(type) != descriptors_.end();
+  }
 
   void DeferedLoad(defered_load_fn loader) { defered_loader_.push_back(std::move(loader)); }
 
@@ -411,14 +423,16 @@ private:
 namespace intern {
 
 template <size_t N, size_t Low, size_t High> struct StaticFor {
-  template <template <size_t> typename Fn, typename... Args> static CG_STRONG_INLINE void eval(Args &&...args) {
+  template <template <size_t> typename Fn, typename... Args>
+  static CG_STRONG_INLINE void eval(Args &&...args) {
     Fn<N>::eval(args...);
     StaticFor<N + 1, Low, High>().template eval<Fn>(args...);
   }
 };
 
 template <size_t N, size_t Low> struct StaticFor<N, Low, N> {
-  template <template <size_t> typename Fn, typename... Args> static CG_STRONG_INLINE void eval(Args &&...) {}
+  template <template <size_t> typename Fn, typename... Args>
+  static CG_STRONG_INLINE void eval(Args &&...) {}
 };
 
 template <size_t Low, size_t High, template <size_t> typename Fn, typename... Args>
@@ -430,22 +444,27 @@ template <typename T> struct IsMetaValid {
   static constexpr bool value = !std::is_same_v<typename T::type, void>;
 };
 
-template <template <size_t, typename> typename T, size_t current, bool valid = IsMetaValid<T<current, int>>::value>
+template <template <size_t, typename> typename T, size_t current,
+          bool valid = IsMetaValid<T<current, int>>::value>
 struct count_meta;
 
-template <template <size_t, typename> typename T, size_t current> struct count_meta<T, current, true> {
+template <template <size_t, typename> typename T, size_t current>
+struct count_meta<T, current, true> {
   static constexpr size_t count = 1 + count_meta<T, current + 1>::count;
 };
-template <template <size_t, typename> typename T, size_t current> struct count_meta<T, current, false> {
+template <template <size_t, typename> typename T, size_t current>
+struct count_meta<T, current, false> {
   static constexpr size_t count = 0;
 };
 
-template <template <size_t, typename> typename T> constexpr size_t count_meta_v = count_meta<T, 0>::count;
+template <template <size_t, typename> typename T> constexpr size_t count_meta_v
+    = count_meta<T, 0>::count;
 
 template <typename T> constexpr size_t count_socket_v = count_meta_v<T::template socket_meta>;
 
 template <typename, typename T> struct HasDefaultValue {
-  static_assert(std::integral_constant<T, false>::value, "Second template parameter needs to be of function type.");
+  static_assert(std::integral_constant<T, false>::value,
+                "Second template parameter needs to be of function type.");
 };
 
 template <typename C, typename Ret> struct HasDefaultValue<C, Ret()> {
@@ -487,7 +506,8 @@ public:
   static constexpr bool value = type::value;
 };
 
-template <typename C, bool is_valid_call = HasOnRegister<C>::value> struct call_on_register_if_presented;
+template <typename C, bool is_valid_call = HasOnRegister<C>::value>
+struct call_on_register_if_presented;
 
 template <typename C> struct call_on_register_if_presented<C, true> {
   static CG_STRONG_INLINE void exec() { C::OnRegister(); }
@@ -497,7 +517,8 @@ template <typename C> struct call_on_register_if_presented<C, false> {
   static CG_STRONG_INLINE void exec() {}
 };
 
-template <typename C, bool is_valid_call = HasOnConstruct<C>::value> struct call_on_construct_if_presented;
+template <typename C, bool is_valid_call = HasOnConstruct<C>::value>
+struct call_on_construct_if_presented;
 
 template <typename C> struct call_on_construct_if_presented<C, true> {
   static CG_STRONG_INLINE void exec(C &c) { c.OnConstruct(); }
@@ -523,7 +544,8 @@ template <typename T> constexpr bool is_socket_meta_v = is_socket_meta<T>::value
 template <typename C, typename MT> struct HasOnConnectDispatch {
 private:
   template <typename T> static constexpr auto check(T *) ->
-      typename std::is_same<decltype(std::declval<T>().OnConnectDispatch(std::declval<MT>())), void>::type;
+      typename std::is_same<decltype(std::declval<T>().OnConnectDispatch(std::declval<MT>())),
+                            void>::type;
 
   template <typename> static constexpr std::false_type check(...);
 
@@ -533,9 +555,11 @@ public:
   static constexpr bool value = type::value;
 };
 
-template <typename C, typename MT> static constexpr bool HasOnConnectMt_v = HasOnConnectDispatch<C, MT>::value;
+template <typename C, typename MT> static constexpr bool HasOnConnectMt_v
+    = HasOnConnectDispatch<C, MT>::value;
 
-template <typename C, typename MT, bool = HasOnConnectMt_v<C, MT>> struct call_on_connect_mt_if_presented;
+template <typename C, typename MT, bool = HasOnConnectMt_v<C, MT>>
+struct call_on_connect_mt_if_presented;
 
 template <typename C, typename MT> struct call_on_connect_mt_if_presented<C, MT, true> {
   static CG_STRONG_INLINE void exec(C &c, MT m) { c.OnConnectDispatch(m); }
@@ -555,10 +579,13 @@ template <typename MT> struct HasOnRegister : intern::HasOnRegister<MT> {};
 template <typename MT> constexpr bool HasOnRegister_v = intern::HasOnRegister_v<MT>;
 template <typename MT> struct HasOnConstruct : intern::HasOnConstruct<MT> {};
 template <typename MT> constexpr bool HasOnConstruct_v = intern::HasOnConstruct_v<MT>;
-template <typename C, typename MT> struct HasOnConnectDispatch : intern::HasOnConnectDispatch<C, MT> {};
-template <typename C, typename MT> constexpr bool HasOnConnectMt_v = intern::HasOnConnectMt_v<C, MT>;
+template <typename C, typename MT> struct HasOnConnectDispatch
+    : intern::HasOnConnectDispatch<C, MT> {};
+template <typename C, typename MT> constexpr bool HasOnConnectMt_v
+    = intern::HasOnConnectMt_v<C, MT>;
 
 using TypeErasedPtr = std::shared_ptr<void>;
+using WeakTypeErasedPtr = std::weak_ptr<void>;
 
 class SocketBase {
 public:
@@ -566,7 +593,7 @@ public:
   virtual ~SocketBase() noexcept = default;
 };
 
-class OutputSocket: public SocketBase {
+class OutputSocket : public SocketBase {
 public:
   template <typename T, typename... Args> T &Emplace(Args &&...args) CG_NOEXCEPT {
 #ifndef CG_NO_CHECK
@@ -612,7 +639,9 @@ private:
   }
 
   CG_STRONG_INLINE TypeErasedPtr &Payload() noexcept { return payload_; }
-  CG_STRONG_INLINE void Connect(InputSocket const &to) noexcept { connected_sockets_.push_back(&to); }
+  CG_STRONG_INLINE void Connect(InputSocket const &to) noexcept {
+    connected_sockets_.push_back(&to);
+  }
 
   friend class NodeBase;
   friend class Graph;
@@ -628,9 +657,18 @@ class InputSocket : public SocketBase {
 public:
   bool IsInput() const noexcept override { return true; }
   CG_STRONG_INLINE TypeIndex const &Type() const noexcept { return type_; }
-  CG_STRONG_INLINE TypeErasedPtr const &FetchPayload() const noexcept { return from_->Payload(); }
+  CG_STRONG_INLINE TypeErasedPtr FetchPayload() const noexcept {
+    if (from_ == nullptr) {
+      return nullptr;
+    }
+
+    if (fetched_payload_.expired()) {
+      fetched_payload_ = from_->Payload();
+    }
+    return fetched_payload_.lock();
+  }
   CG_STRONG_INLINE bool IsConnected() const noexcept { return from_ != nullptr; }
-  CG_STRONG_INLINE bool IsEmpty() const noexcept { return !IsConnected() || !static_cast<bool>(FetchPayload()); }
+  CG_STRONG_INLINE bool IsEmpty() const noexcept { return FetchPayload() == nullptr; }
 
   CG_STRONG_INLINE OutputSocket const *From() const noexcept { return from_; }
   CG_STRONG_INLINE NodeBase &Node() const noexcept { return node_; }
@@ -645,7 +683,10 @@ public:
 private:
   CG_STRONG_INLINE InputSocket(TypeIndex type, NodeBase &node, size_t const index) noexcept
       : type_(type), node_(node), index_(index), from_{nullptr} {}
-  CG_STRONG_INLINE void Clear() noexcept { from_ = nullptr; }
+  CG_STRONG_INLINE void Clear() noexcept {
+    from_ = nullptr;
+    fetched_payload_.reset();
+  }
   CG_STRONG_INLINE void Connect(OutputSocket const *from) noexcept { from_ = from; }
 
   friend class NodeBase;
@@ -654,11 +695,13 @@ private:
   NodeBase &node_;
   size_t const index_;
   OutputSocket const *from_;
+  mutable WeakTypeErasedPtr fetched_payload_;
 };
 
 class NodeBase CG_NODE_INHERITANCE {
 public:
-  CG_STRONG_INLINE explicit NodeBase(NodeDescriptor const &descriptor, bool do_prepare = true) noexcept
+  CG_STRONG_INLINE explicit NodeBase(NodeDescriptor const &descriptor,
+                                     bool do_prepare = true) noexcept
       : descriptor_(descriptor) {
     if (do_prepare) {
       prepare_sockets(descriptor);
@@ -682,16 +725,20 @@ public:
   CG_STRONG_INLINE auto const &GetPrecedents() const noexcept { return prec_; }
   CG_STRONG_INLINE auto const &GetSuccessors() const noexcept { return succ_; }
 
-  std::optional<size_t> FindInput(std::string_view name) const noexcept { return descriptor_.FindInput(name); }
+  std::optional<size_t> FindInput(std::string_view name) const noexcept {
+    return descriptor_.FindInput(name);
+  }
 
-  std::optional<size_t> FindOutput(std::string_view name) const noexcept { return descriptor_.FindOutput(name); }
+  std::optional<size_t> FindOutput(std::string_view name) const noexcept {
+    return descriptor_.FindOutput(name);
+  }
 
   CG_NODE_EXTENSION
 
 protected:
   virtual void OnConnect(size_t /*index*/) noexcept {}
 
-  CG_STRONG_INLINE TypeErasedPtr const &Get(size_t index) const {
+  CG_STRONG_INLINE TypeErasedPtr Get(size_t index) const {
 #ifndef CG_NO_CHECK
     return inputs_.at(index).FetchPayload();
 #else
@@ -746,7 +793,8 @@ private:
 // crtp.
 template <typename Derived> class NodeDerive : public NodeBase {
 public:
-  CG_STRONG_INLINE explicit NodeDerive(NodeDescriptor const &descriptor) noexcept : NodeBase(descriptor) {}
+  CG_STRONG_INLINE explicit NodeDerive(NodeDescriptor const &descriptor) noexcept
+      : NodeBase(descriptor) {}
 
   ~NodeDerive() noexcept override = default;
 
@@ -757,7 +805,8 @@ public:
       static CG_STRONG_INLINE void eval(NodeDescriptorBuilder<Derived> &builder) noexcept {
         using meta = typename input_metas::template socket_meta<i>;
         using T = typename meta::type;
-        builder.AppendInput(make_socket_descriptor<T>(meta::name, meta::description, meta::pretty_typename));
+        builder.AppendInput(
+            make_socket_descriptor<T>(meta::name, meta::description, meta::pretty_typename));
       }
     };
 
@@ -765,7 +814,8 @@ public:
       static CG_STRONG_INLINE void eval(NodeDescriptorBuilder<Derived> &builder) noexcept {
         using meta = typename output_metas::template socket_meta<i>;
         using T = typename meta::type;
-        builder.AppendOutput(make_socket_descriptor<T>(meta::name, meta::description, meta::pretty_typename));
+        builder.AppendOutput(
+            make_socket_descriptor<T>(meta::name, meta::description, meta::pretty_typename));
       }
     };
 
@@ -803,17 +853,18 @@ public:
 
   static CG_STRONG_INLINE NodeDescriptor BuildDescriptor() {
     NodeDescriptorBuilder<Derived> builder(Derived::name(), Derived::desc());
-    intern::static_for_eval<0, InternNodeTraits::num_inputs, InternNodeTraits::template InputRegFn>(builder);
-    intern::static_for_eval<0, InternNodeTraits::num_outputs, InternNodeTraits::template OutputRegFn>(builder);
-    intern::call_on_register_if_presented<Derived>::exec();
+    intern::static_for_eval<0, InternNodeTraits::num_inputs, InternNodeTraits::template InputRegFn>(
+        builder);
+    intern::static_for_eval<0, InternNodeTraits::num_outputs,
+                            InternNodeTraits::template OutputRegFn>(builder);
     return builder.Build();
   }
 
 protected:
   CG_STRONG_INLINE void OnConnect(size_t index) noexcept override {
     constexpr size_t total = InternNodeTraits::num_inputs;
-    intern::static_for_eval<0, total, InternNodeTraits::template InputOnConnectFn>(index,
-                                                                                        *static_cast<Derived *>(this));
+    intern::static_for_eval<0, total, InternNodeTraits::template InputOnConnectFn>(
+        index, *static_cast<Derived *>(this));
   }
 
   using NodeBase::Set, NodeBase::Has;
@@ -825,7 +876,7 @@ protected:
   }
 
   template <typename MT, typename = std::enable_if_t<intern::is_socket_meta_v<MT>>>
-  CG_STRONG_INLINE auto Ensure(MT) const CG_NOEXCEPT ->  std::add_const_t<typename MT::type> & {
+  CG_STRONG_INLINE auto Ensure(MT) const CG_NOEXCEPT->std::add_const_t<typename MT::type> & {
     if (typename MT::type const *ptr = Get<MT>({})) {
       return *ptr;
     }
@@ -848,7 +899,8 @@ protected:
     return static_cast<T const *>(Has(index) ? Get<T>(index) : DefaultValue(index));
   }
 
-  template <typename MT, typename... Args, typename = std::enable_if_t<intern::is_socket_meta_v<MT>>>
+  template <typename MT, typename... Args,
+            typename = std::enable_if_t<intern::is_socket_meta_v<MT>>>
   CG_STRONG_INLINE auto &Set(MT, Args &&...args) {
     constexpr size_t index = MT::index;
     using T = typename MT::type;
@@ -893,14 +945,17 @@ private:
     return std::make_tuple(Get<typename inputs::template socket_meta<Idx, int>>({})...);
   }
 
-  template <typename... Args, size_t... Idx> auto SetAllImpl(std::index_sequence<Idx...>, std::tuple<Args...> arg) {
+  template <typename... Args, size_t... Idx>
+  auto SetAllImpl(std::index_sequence<Idx...>, std::tuple<Args...> arg) {
     using outputs = typename InternNodeTraits::output_metas;
-    return std::make_tuple(Set<typename outputs::template socket_meta<Idx, int>::type>(Idx, std::get<Idx>(arg))...);
+    return std::make_tuple(
+        Set<typename outputs::template socket_meta<Idx, int>::type>(Idx, std::get<Idx>(arg))...);
   }
 
 protected:
   CG_STRONG_INLINE auto GetAll() const {
-    return GetAllImpl(std::make_index_sequence<InternNodeTraits::num_inputs>()); }
+    return GetAllImpl(std::make_index_sequence<InternNodeTraits::num_inputs>());
+  }
 
   template <typename... Args> CG_STRONG_INLINE auto SetAll(Args &&...args) {
     return SetAllImpl(std::make_index_sequence<InternNodeTraits::num_outputs>(),
@@ -941,6 +996,8 @@ public:
   std::any const &Get(std::string const &key) const CG_NOEXCEPT;
   std::any const &GetTop(std::string const &key) const CG_NOEXCEPT;
 
+  void Clear() noexcept;
+
   bool Has(std::string const &key) const noexcept;
   bool HasTop(std::string const &key) const noexcept;
 
@@ -948,11 +1005,13 @@ private:
   stacked_frames frames_;
 };
 
-CG_STRONG_INLINE Context::Context() noexcept { frames_.emplace_back(); }
+CG_STRONG_INLINE Context::Context() noexcept = default;
 
 CG_STRONG_INLINE void Context::PushStack() noexcept { frames_.emplace_back(); }
 
-CG_STRONG_INLINE void Context::PushStack(ctx_frame frame) noexcept { frames_.emplace_back(std::move(frame)); }
+CG_STRONG_INLINE void Context::PushStack(ctx_frame frame) noexcept {
+  frames_.emplace_back(std::move(frame));
+}
 
 CG_STRONG_INLINE void Context::PopStack() noexcept {
   if (!frames_.empty()) frames_.pop_back();
@@ -968,7 +1027,9 @@ CG_STRONG_INLINE stacked_frames &Context::Frames() noexcept { return frames_; }
 
 CG_STRONG_INLINE stacked_frames const &Context::Frames() const noexcept { return frames_; }
 
-CG_STRONG_INLINE auto Context::Emplace(std::string_view key, std::any const &value) { return Top().emplace(key, value); }
+CG_STRONG_INLINE auto Context::Emplace(std::string_view key, std::any const &value) {
+  return Top().emplace(key, value);
+}
 
 CG_STRONG_INLINE std::any const &Context::Get(std::string const &key) const CG_NOEXCEPT {
   for (auto it = frames_.crbegin(); it != frames_.crend(); ++it) {
@@ -996,7 +1057,10 @@ CG_STRONG_INLINE bool Context::HasTop(std::string const &key) const noexcept {
   return it != Top().end();
 }
 
-template <typename T, typename... Args> CG_STRONG_INLINE auto Context::Emplace(std::string_view key, Args &&...args) {
+CG_STRONG_INLINE void Context::Clear() noexcept { frames_.clear(); }
+
+template <typename T, typename... Args>
+CG_STRONG_INLINE auto Context::Emplace(std::string_view key, Args &&...args) {
   return Top().emplace(key, std::make_any<T>(std::forward<Args>(args)...));
 }
 
@@ -1009,12 +1073,14 @@ template <typename NodeType> class NodeHandle {
 public:
   CG_PP_HANDLE_COMMON(NodeHandle);
 
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
   CG_STRONG_INLINE NodeHandle<AnotherNodeType> Cast() const noexcept {
     return {static_cast<AnotherNodeType &>(node_), index_};
   }
 
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
   CG_STRONG_INLINE NodeHandle(NodeHandle<AnotherNodeType> const &another) noexcept
       : NodeHandle(another.template Cast<NodeType>()) {}
 
@@ -1049,17 +1115,23 @@ private:
 template <typename NodeType> class InputSocketHandle {
 public:
   CG_PP_HANDLE_COMMON(InputSocketHandle);
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
   CG_STRONG_INLINE InputSocketHandle<AnotherNodeType> Cast() const noexcept {
     return {static_cast<AnotherNodeType &>(node_), index_};
   }
 
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
   CG_STRONG_INLINE InputSocketHandle(NodeHandle<AnotherNodeType> const &another) noexcept
       : InputSocketHandle(another.template cast<NodeType>()) {}
 
-  CG_STRONG_INLINE InputSocket const &operator*() const noexcept { return node_.GetInputs()[index_]; }
-  CG_STRONG_INLINE InputSocket const *operator->() const noexcept { return &node_.GetInputs()[index_]; }
+  CG_STRONG_INLINE InputSocket const &operator*() const noexcept {
+    return node_.GetInputs()[index_];
+  }
+  CG_STRONG_INLINE InputSocket const *operator->() const noexcept {
+    return &node_.GetInputs()[index_];
+  }
 
   CG_STRONG_INLINE NodeType &Node() noexcept { return node_; }
   CG_STRONG_INLINE NodeType const &Node() const noexcept { return node_; }
@@ -1080,17 +1152,23 @@ private:
 template <typename NodeType> class OutputSocketHandle {
 public:
   CG_PP_HANDLE_COMMON(OutputSocketHandle);
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<AnotherNodeType, NodeType>>>
   CG_STRONG_INLINE OutputSocketHandle<AnotherNodeType> Cast() const noexcept {
     return {static_cast<AnotherNodeType &>(node_), index_};
   }
 
-  template <typename AnotherNodeType, typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
+  template <typename AnotherNodeType,
+            typename = std::enable_if_t<std::is_base_of_v<NodeType, AnotherNodeType>>>
   CG_STRONG_INLINE OutputSocketHandle(NodeHandle<AnotherNodeType> const &another) noexcept
       : OutputSocketHandle(another.template cast<NodeType>()) {}
 
-  CG_STRONG_INLINE OutputSocket const &operator*() const noexcept { return node_.GetOutputs()[index_]; }
-  CG_STRONG_INLINE OutputSocket const *operator->() const noexcept { return &node_.GetOutputs()[index_]; }
+  CG_STRONG_INLINE OutputSocket const &operator*() const noexcept {
+    return node_.GetOutputs()[index_];
+  }
+  CG_STRONG_INLINE OutputSocket const *operator->() const noexcept {
+    return &node_.GetOutputs()[index_];
+  }
 
   CG_STRONG_INLINE NodeType &Node() noexcept { return node_; }
   CG_STRONG_INLINE NodeType const &Node() const noexcept { return node_; }
@@ -1170,7 +1248,7 @@ public:
 
   Graph() = default;
   Graph(Graph const &) = delete;
-  Graph(Graph&& ) = default;
+  Graph(Graph &&) = default;
   ~Graph() noexcept { Clear(); }
   void Clear() noexcept;
   CG_STRONG_INLINE size_t NumNodes() const noexcept { return nodes_.size() - free_ids_.size(); }
@@ -1182,25 +1260,31 @@ public:
   NodeHandle<NodeBase> operator[](size_t index) noexcept { return {*nodes_[index], index}; }
 
   // node op.
-  template <typename NodeType> NodeHandle<NodeType> PushBack(std::unique_ptr<NodeType> node) noexcept;
-  template <typename NodeType> std::optional<NodeHandle<NodeType>> Get(NodeType const *ptr) const noexcept;
+  template <typename NodeType>
+  NodeHandle<NodeType> PushBack(std::unique_ptr<NodeType> node) noexcept;
+  template <typename NodeType>
+  std::optional<NodeHandle<NodeType>> Get(NodeType const *ptr) const noexcept;
   template <typename NodeType> void Erase(NodeHandle<NodeType> handle) noexcept;
 
   // strong link, describe node-wise connection.
   template <typename From, typename To>
   StrongLink<From, To> Connect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept;
-  template <typename From, typename To> bool HasConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept;
   template <typename From, typename To>
-  std::optional<StrongLink<From, To>> GetConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept;
+  bool HasConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept;
+  template <typename From, typename To>
+  std::optional<StrongLink<From, To>> GetConnect(NodeHandle<From> prec,
+                                                 NodeHandle<To> succ) noexcept;
   template <typename From, typename To> void Erase(StrongLink<From, To> link) noexcept;
 
   // socket op
-  template <typename From, typename To> Link<From, To> Connect(OutputSocketHandle<From> from, InputSocketHandle<To> to);
   template <typename From, typename To>
-  bool HasConnect(OutputSocketHandle<From> const &from, InputSocketHandle<To> const &to) const noexcept;
+  Link<From, To> Connect(OutputSocketHandle<From> from, InputSocketHandle<To> to);
+  template <typename From, typename To>
+  bool HasConnect(OutputSocketHandle<From> const &from,
+                  InputSocketHandle<To> const &to) const noexcept;
   template <typename From, typename To>
   std::optional<Link<From, To>> GetConnect(OutputSocketHandle<From> const &from,
-                                            InputSocketHandle<To> const &to) const noexcept;
+                                           InputSocketHandle<To> const &to) const noexcept;
   template <typename From, typename To> void Erase(Link<From, To> link) noexcept;
 
   void TopologySort();
@@ -1208,7 +1292,7 @@ public:
   bool HasCycle() const noexcept;
   void ShrinkToFit() noexcept;
 
-  const node_addr_to_index_map& AddrToIndex() const noexcept { return addr_to_index_; }
+  const node_addr_to_index_map &AddrToIndex() const noexcept { return addr_to_index_; }
 
 private:
   void RebuildAddrToIndex() noexcept;
@@ -1218,13 +1302,15 @@ private:
   node_addr_to_index_map addr_to_index_;
   size_t uid_next_ = 0;
   size_t link_size_ = 0;
+  bool is_sorted_ = false;
 };
 
 CG_STRONG_INLINE bool can_connect(OutputSocket const &from, InputSocket const &to) noexcept {
   return from.Type() == to.Type();
 }
 
-template <typename NodeType> CG_STRONG_INLINE std::optional<InputSocketHandle<NodeType>> NodeHandle<NodeType>::GetInput(
+template <typename NodeType>
+CG_STRONG_INLINE std::optional<InputSocketHandle<NodeType>> NodeHandle<NodeType>::GetInput(
     std::string_view name) noexcept {
   if (auto const index = node_.FindInput(name)) {
     return GetInput(*index);
@@ -1232,7 +1318,8 @@ template <typename NodeType> CG_STRONG_INLINE std::optional<InputSocketHandle<No
   return std::nullopt;
 }
 
-template <typename NodeType> CG_STRONG_INLINE std::optional<OutputSocketHandle<NodeType>> NodeHandle<NodeType>::GetOutput(
+template <typename NodeType>
+CG_STRONG_INLINE std::optional<OutputSocketHandle<NodeType>> NodeHandle<NodeType>::GetOutput(
     std::string_view name) noexcept {
   if (const auto index = node_.FindOutput(name)) {
     return GetInput(*index);
@@ -1240,7 +1327,8 @@ template <typename NodeType> CG_STRONG_INLINE std::optional<OutputSocketHandle<N
   return std::nullopt;
 }
 
-template <typename NodeType> CG_STRONG_INLINE InputSocketHandle<NodeType> NodeHandle<NodeType>::GetInput(size_t index) {
+template <typename NodeType>
+CG_STRONG_INLINE InputSocketHandle<NodeType> NodeHandle<NodeType>::GetInput(size_t index) {
   return {node_, index};
 }
 
@@ -1249,7 +1337,8 @@ CG_STRONG_INLINE InputSocketHandle<NodeType> NodeHandle<NodeType>::GetInput(MT) 
   return GetInput(MT::index);
 }
 
-template <typename NodeType> CG_STRONG_INLINE OutputSocketHandle<NodeType> NodeHandle<NodeType>::GetOutput(size_t index) {
+template <typename NodeType>
+CG_STRONG_INLINE OutputSocketHandle<NodeType> NodeHandle<NodeType>::GetOutput(size_t index) {
   return {node_, index};
 }
 
@@ -1270,9 +1359,11 @@ CG_STRONG_INLINE void Graph::Clear() noexcept {
   addr_to_index_.clear();
   uid_next_ = 0;
   link_size_ = 0;
+  is_sorted_ = false;
 }
 
-template <typename NodeType> CG_STRONG_INLINE NodeHandle<NodeType> Graph::PushBack(std::unique_ptr<NodeType> node) noexcept {
+template <typename NodeType>
+CG_STRONG_INLINE NodeHandle<NodeType> Graph::PushBack(std::unique_ptr<NodeType> node) noexcept {
   if (free_ids_.empty()) {
     nodes_.push_back(std::move(node));
     addr_to_index_.insert({nodes_.back().get(), nodes_.size() - 1});
@@ -1282,18 +1373,21 @@ template <typename NodeType> CG_STRONG_INLINE NodeHandle<NodeType> Graph::PushBa
   free_ids_.pop_back();
   nodes_[index] = std::move(node);
   addr_to_index_.insert({nodes_[index].get(), index});
+  is_sorted_ = false;
   return {*static_cast<NodeType *>(nodes_[index].get()), index};
 }
 
-template <typename NodeType>
-CG_STRONG_INLINE std::optional<NodeHandle<NodeType>> Graph::Get(NodeType const *ptr) const noexcept {
-  if (auto it = addr_to_index_.find(static_cast<NodeBase const*>(ptr)); it != addr_to_index_.end()) {
+template <typename NodeType> CG_STRONG_INLINE std::optional<NodeHandle<NodeType>> Graph::Get(
+    NodeType const *ptr) const noexcept {
+  if (auto it = addr_to_index_.find(static_cast<NodeBase const *>(ptr));
+      it != addr_to_index_.end()) {
     return NodeHandle<NodeType>{*nodes_[it->second], it->second};
   }
   return std::nullopt;
 }
 
-template <typename NodeType> CG_STRONG_INLINE void Graph::Erase(NodeHandle<NodeType> handle) noexcept {
+template <typename NodeType>
+CG_STRONG_INLINE void Graph::Erase(NodeHandle<NodeType> handle) noexcept {
   size_t const index = handle.Index();
   for (size_t i = 0; i < handle->GetInputs().size(); ++i) {
     if (auto const &input_sock = handle->GetInputs()[i]; input_sock.IsConnected()) {
@@ -1310,7 +1404,7 @@ template <typename NodeType> CG_STRONG_INLINE void Graph::Erase(NodeHandle<NodeT
     }
   }
 
-  NodeBase & node = *handle;
+  NodeBase &node = *handle;
   for (size_t i = 0; i < node.prec_.size(); ++i) {
     auto &prec = *node.prec_[i];
     if (auto it = std::find(prec.succ_.begin(), prec.succ_.end(), &node); it != prec.succ_.end()) {
@@ -1327,26 +1421,31 @@ template <typename NodeType> CG_STRONG_INLINE void Graph::Erase(NodeHandle<NodeT
   addr_to_index_.erase(nodes_[index].get());
   nodes_[index].reset();
   free_ids_.push_back(index);
+  // is_sorted_ = false; // NOTE: Erase a node does not affect the topology order.
 }
 
 template <typename From, typename To>
-CG_STRONG_INLINE StrongLink<From, To> Graph::Connect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept {
+CG_STRONG_INLINE StrongLink<From, To> Graph::Connect(NodeHandle<From> prec,
+                                                     NodeHandle<To> succ) noexcept {
   NodeBase &p = prec.Node(), &s = succ.Node();
   if (!HasConnect(prec, succ)) {
     p.succ_.push_back(&s);
     s.prec_.push_back(&p);
   }
+  is_sorted_ = false;
   return {prec, succ};
 }
 
-template <typename From, typename To> bool Graph::HasConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept {
+template <typename From, typename To>
+bool Graph::HasConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept {
   const NodeBase &n = prec.Node();
   const NodeBase &succ_node = succ.Node();
   return std::find(n.succ_.begin(), n.succ_.end(), &succ_node) != n.succ_.end();
 }
 
 template <typename From, typename To>
-std::optional<StrongLink<From, To>> Graph::GetConnect(NodeHandle<From> prec, NodeHandle<To> succ) noexcept {
+std::optional<StrongLink<From, To>> Graph::GetConnect(NodeHandle<From> prec,
+                                                      NodeHandle<To> succ) noexcept {
   if (HasConnect(prec, succ)) {
     return StrongLink{prec, succ};
   }
@@ -1362,13 +1461,16 @@ template <typename From, typename To> void Graph::Erase(StrongLink<From, To> lin
   if (auto sit = std::find(s.prec_.begin(), s.prec_.end(), &p); sit != s.prec_.end()) {
     s.prec_.erase(sit);
   }
+  is_sorted_ = false;
 }
 
 template <typename From, typename To>
-CG_STRONG_INLINE Link<From, To> Graph::Connect(OutputSocketHandle<From> from, InputSocketHandle<To> to) CG_NOEXCEPT {
+CG_STRONG_INLINE Link<From, To> Graph::Connect(OutputSocketHandle<From> from,
+                                               InputSocketHandle<To> to) CG_NOEXCEPT {
   if (!can_connect(*from, *to)) {
-    CG_THROW(std::invalid_argument,
-             "Cannot connect sockets of different types." + to_string(from->Type()) + " and " + to_string(to->Type()));
+    CG_THROW(std::invalid_argument, "Cannot connect sockets of different types."
+                                        + to_string(from->Type()) + " and "
+                                        + to_string(to->Type()));
   }
 
   // If already connected, erase the old link.
@@ -1382,6 +1484,7 @@ CG_STRONG_INLINE Link<From, To> Graph::Connect(OutputSocketHandle<From> from, In
   from_node.outputs_[from.Index()].Connect(*to);
   to_node.inputs_[to.Index()].Connect(from.operator->());
   ++link_size_;
+  is_sorted_ = false;
 
   to->Node().OnConnect(to.Index());
   return {from, to};
@@ -1389,20 +1492,21 @@ CG_STRONG_INLINE Link<From, To> Graph::Connect(OutputSocketHandle<From> from, In
 
 template <typename From, typename To>
 CG_STRONG_INLINE bool Graph::HasConnect(OutputSocketHandle<From> const &from,
-                                         InputSocketHandle<To> const &to) const noexcept {
+                                        InputSocketHandle<To> const &to) const noexcept {
   return to->From() == from.operator->();
 }
 
 template <typename From, typename To>
 std::optional<Link<From, To>> Graph::GetConnect(OutputSocketHandle<From> const &from,
-                                                 InputSocketHandle<To> const &to) const noexcept {
+                                                InputSocketHandle<To> const &to) const noexcept {
   if (HasConnect(from, to)) {
     return Link{from, to};
   }
   return std::nullopt;
 }
 
-template <typename From, typename To> CG_STRONG_INLINE void Graph::Erase(Link<From, To> link) noexcept {
+template <typename From, typename To>
+CG_STRONG_INLINE void Graph::Erase(Link<From, To> link) noexcept {
   auto &from = link.from_.node_;
   auto &to = link.to_.node_;
   auto &from_sock = from.outputs_[link.From().Index()];
@@ -1411,9 +1515,12 @@ template <typename From, typename To> CG_STRONG_INLINE void Graph::Erase(Link<Fr
   from_sock.Erase(to_sock);
   to_sock.Clear();
   --link_size_;
+  // is_sorted_ = false; // NOTE: Erase a link does not affect the topology order.
 }
 
-CG_STRONG_INLINE bool Graph::HasCycle() const noexcept { return TopologyOrder().empty(); }
+CG_STRONG_INLINE bool Graph::HasCycle() const noexcept {
+  return !nodes_.empty() && TopologyOrder().empty();
+}
 
 inline void Graph::ShrinkToFit() noexcept {
   node_container new_nodes;
@@ -1437,6 +1544,9 @@ CG_STRONG_INLINE void Graph::RebuildAddrToIndex() noexcept {
 }
 
 CG_STRONG_INLINE void Graph::TopologySort() {
+  if (is_sorted_) {
+    return;
+  }
   auto const order = TopologyOrder();
   node_container new_nodes;
   new_nodes.reserve(nodes_.size());
@@ -1444,10 +1554,12 @@ CG_STRONG_INLINE void Graph::TopologySort() {
     new_nodes.push_back(std::move(nodes_[i]));
   }
   nodes_ = std::move(new_nodes);
+  RebuildAddrToIndex();
+  is_sorted_ = true;
 }
 
 CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
-  std::vector<size_t> result;
+  std::vector<size_t> result, empty_input;
   size_t const n = nodes_.size();
   result.reserve(n);
   std::vector<size_t> connected_count(n, 0);
@@ -1466,20 +1578,30 @@ CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
     }
     connected_count[i] = count;
     if (count == 0) {
-      result.push_back(i);
+      empty_input.push_back(i);
     }
   }
+  std::copy(empty_input.begin(), empty_input.end(), std::back_inserter(result));
 
   for (size_t i = empty; i < result.size(); ++i) {
     auto const &node = nodes_[result[i]];
+    assert(node != nullptr);
     for (auto const &output : node->GetOutputs()) {
       for (auto const *to_socket : output.ConnectedSockets()) {
-        if (size_t const to_index = addr_to_index_.at(&(to_socket->Node())); --connected_count[to_index] == 0) {
+        if (size_t const to_index = addr_to_index_.at(&(to_socket->Node()));
+            --connected_count[to_index] == 0) {
           result.push_back(to_index);
         }
       }
     }
   }
+
+  // for (size_t i = 0; i < n; ++i) {
+  //   std::cout << i << " " << connected_count[i] << std::endl;
+  // }
+  // for (size_t i = 0; i < n; ++i) {
+  //   std::cout << i << " " << result[i] << std::endl;
+  // }
 
   if (result.size() == n) {
     return result;
@@ -1490,22 +1612,24 @@ CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
 }  // namespace compute_graph
 
 // Helper macros to define a node.
-#define CG_NODE_SOCKET_IMPL(ith, Type, Name, desc, ...)                                                          \
-  template <typename _WHATEVER> struct socket_meta<ith, _WHATEVER> : ::compute_graph::intern::SocketMetaBase { \
-    using type = Type;                                                                                           \
-    static constexpr size_t index = ith;                                                                         \
-    static constexpr const char *name = #Name;                                                                   \
-    static constexpr const char *pretty_typename = #Type;                                                        \
-    static constexpr const char *description = desc;                                                             \
-    __VA_OPT__(static CG_STRONG_INLINE Type const &DefaultValue() {                                             \
-      static Type _v{__VA_ARGS__};                                                                               \
-      return _v;                                                                                                 \
-    })                                                                                                           \
-  };                                                                                                             \
-  using Name##_ = socket_meta<ith, int>;                                                                         \
+#define CG_NODE_SOCKET_IMPL(ith, Type, Name, desc, ...)             \
+  template <typename _WHATEVER> struct socket_meta<ith, _WHATEVER>  \
+      : ::compute_graph::intern::SocketMetaBase {                   \
+    using type = Type;                                              \
+    static constexpr size_t index = ith;                            \
+    static constexpr const char *name = #Name;                      \
+    static constexpr const char *pretty_typename = #Type;           \
+    static constexpr const char *description = desc;                \
+    __VA_OPT__(static CG_STRONG_INLINE Type const &DefaultValue() { \
+      static Type _v{__VA_ARGS__};                                  \
+      return _v;                                                    \
+    })                                                              \
+  };                                                                \
+  using Name##_ = socket_meta<ith, int>;                            \
   static constexpr Name##_ Name{};
 
-#define CG_NODE_PP_ADAPTOR(x, i) CG_PP_EVAL(CG_NODE_SOCKET_IMPL CG_PP_EMPTY()(i, CG_PP_TUPLE_UNPACK x))
+#define CG_NODE_PP_ADAPTOR(x, i) \
+  CG_PP_EVAL(CG_NODE_SOCKET_IMPL CG_PP_EMPTY()(i, CG_PP_TUPLE_UNPACK x))
 
 // Usage:
 // CG_NODE_INPUTS(
@@ -1540,29 +1664,32 @@ CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
 #ifdef CG_NO_AUTO_REGISTER
 #  define CG_NODE_REGISTER_BODY(NodeType) /* empty */
 #else
-#  define CG_NODE_REGISTER_BODY(NodeType)                                                        \
-    struct intern_auto_register {                                                                \
-      CG_STRONG_INLINE intern_auto_register() {                                                  \
-        ::compute_graph::NodeRegistry::instance().DeferedLoad([](::compute_graph::NodeRegistry &r) { \
-          auto desc = NodeType::BuildDescriptor();                    \
-          r.Emplace(desc);                                                                       \
-        });                                                                                      \
-      }                                                                                          \
-    };                                                                                           \
+#  define CG_NODE_REGISTER_BODY(NodeType)                              \
+    struct intern_auto_register {                                      \
+      CG_STRONG_INLINE intern_auto_register() {                        \
+        ::compute_graph::NodeRegistry::instance().DeferedLoad(         \
+            [](::compute_graph::NodeRegistry &r) {                     \
+              auto desc = NodeType::BuildDescriptor();                 \
+              intern::call_on_register_if_presented<NodeType>::exec(); \
+              r.Emplace(desc);                                         \
+            });                                                        \
+      }                                                                \
+    };                                                                 \
     inline static const intern_auto_register intern_register
 #endif
 
 // Use to define a node.
-#define CG_NODE_COMMON(NodeType, Name, Desc)                                                                          \
-  CG_STRONG_INLINE explicit NodeType(NodeDescriptor const &descriptor) noexcept : NodeDerive<NodeType>(descriptor) {  \
-    ::compute_graph::intern::call_on_construct_if_presented<NodeType>::exec(*this);                                   \
-  }                                                                                                                   \
-                                                                                                                      \
-public:                                                                                                               \
-  friend class NodeDescriptorBuilder<NodeType>;                                                                       \
-  static std::string name() { return (Name); }                                                                        \
-  static std::string desc() { return (Desc); }                                                                        \
-  CG_NODE_REGISTER_BODY(NodeType);                                                                                    \
-  using NodeDerive<NodeType>::GetOr, NodeDerive<NodeType>::Get, NodeDerive<NodeType>::Has, NodeDerive<NodeType>::Set, \
-      NodeDerive<NodeType>::GetAll, NodeDerive<NodeType>::SetAll, NodeDerive<NodeType>::DefaultValue,                 \
-      NodeDerive<NodeType>::Ensure
+#define CG_NODE_COMMON(NodeType, Name, Desc)                                                 \
+  CG_STRONG_INLINE explicit NodeType(NodeDescriptor const &descriptor) noexcept              \
+      : NodeDerive<NodeType>(descriptor) {                                                   \
+    ::compute_graph::intern::call_on_construct_if_presented<NodeType>::exec(*this);          \
+  }                                                                                          \
+                                                                                             \
+public:                                                                                      \
+  friend class NodeDescriptorBuilder<NodeType>;                                              \
+  static std::string name() { return (Name); }                                               \
+  static std::string desc() { return (Desc); }                                               \
+  CG_NODE_REGISTER_BODY(NodeType);                                                           \
+  using NodeDerive<NodeType>::GetOr, NodeDerive<NodeType>::Get, NodeDerive<NodeType>::Has,   \
+      NodeDerive<NodeType>::Set, NodeDerive<NodeType>::GetAll, NodeDerive<NodeType>::SetAll, \
+      NodeDerive<NodeType>::DefaultValue, NodeDerive<NodeType>::Ensure

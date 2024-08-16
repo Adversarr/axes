@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <range/v3/view/filter.hpp>
 
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
@@ -42,9 +43,10 @@ namespace ax::graph {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 GraphRendererOptions opt_;
-ed::EditorContext* context_;
+ed::EditorContext* context_ = nullptr;
 ed::PinId hovered_pin_ = ed::PinId::Invalid;
 ed::NodeId hovered_node_ = ed::NodeId::Invalid;
+ed::LinkId hovered_link_ = ed::LinkId::Invalid;
 std::string ax_blueprint_root;
 bool is_open_;
 bool has_cycle;
@@ -60,10 +62,12 @@ std::unique_ptr<GraphExecutorBase>& ensure_executor() {
     if_likely(&(ptr->get()->GetGraph()) == &g) { return *ptr; }
     else {
       erase_resource<std::unique_ptr<GraphExecutorBase>>();
-      return add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+      return add_resource<std::unique_ptr<GraphExecutorBase>>(
+          std::make_unique<GraphExecutorBase>(g));
     }
   } else {
-    auto& r = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+    auto& r
+        = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
     return r;
   }
 }
@@ -76,11 +80,12 @@ void draw_node_content_default(NodeBase* node) {
   auto const& in = node->GetInputs();
   auto const& out = node->GetOutputs();
   size_t n_max_io = std::max(in.size(), out.size());
-  std::vector<float> input_widths;
-  std::vector<float> output_widths;
   float max_input_width = 0;
+  float max_output_width = 0;
   const auto& input_sockets = node->GetDescriptor().GetInputs();
   const auto& output_sockets = node->GetDescriptor().GetOutputs();
+
+  float title_width = ImGui::CalcTextSize(node->GetDescriptor().Name().c_str()).x;
 
   for (const auto& in_sock : node->GetDescriptor().GetInputs()) {
     const char* name = in_sock.Name().c_str();
@@ -91,29 +96,32 @@ void draw_node_content_default(NodeBase* node) {
   for (const auto& out_sock : node->GetDescriptor().GetOutputs()) {
     const char* name = out_sock.Name().c_str();
     ImVec2 size = ImGui::CalcTextSize(name);
-    output_widths.push_back(size.x);
+    max_output_width = std::max(max_output_width, size.x);
   }
 
+  float width = std::max(max_input_width + max_output_width, title_width) + 20;
+
   for (size_t i = 0; i < n_max_io; ++i) {
+    auto line_start_cursor = ImGui::GetCursorScreenPos();
     if (i < in.size()) {
       ed::PinId id{&in[i]};
       ed::BeginPin(id, ed::PinKind::Input);
       ImGui::TextUnformatted(input_sockets[i].Name().c_str());
       ed::EndPin();
-      // ImGui::SameLine();
-      // ImGui::Dummy(ImVec2(max_input_width + 10 - input_widths[i], 0));
-      // ImGui::SameLine();
     } else {
-      // ImGui::Dummy(ImVec2(max_input_width + 10, 0));
-      // ImGui::SameLine();
+      ImGui::Dummy({0, 0});
     }
+
     if (i < out.size()) {
+      ImGui::SameLine();
       ed::PinId id{&out[i]};
+      float current_size = ImGui::CalcTextSize(output_sockets[i].Name().c_str()).x;
+      float required_cursor = line_start_cursor.x + width - current_size;
+
+      ImGui::SetCursorScreenPos({required_cursor, line_start_cursor.y});
       ed::BeginPin(id, ed::PinKind::Output);
       ImGui::TextUnformatted(output_sockets[i].Name().c_str());
       ed::EndPin();
-    } else {
-      // ImGui::Dummy(ImVec2(0, 0));
     }
   }
 }
@@ -130,7 +138,7 @@ void end_draw_node() {
 }
 
 void draw_node(NodeBase* node) {
-  if (auto render = get_custom_node_render(node->GetDescriptor().Name()); render) {
+  if (const auto* render = get_custom_node_render(node->GetDescriptor().Name()); render) {
     render->widget_(node);
   } else {
     begin_draw_node(node);
@@ -141,41 +149,55 @@ void draw_node(NodeBase* node) {
 }
 
 static void draw_link(Link<> const& link) {
-  ed::PinId in_sock{link.From().operator->()};
-  ed::PinId out_sock{link.To().operator->()};
-
+  ed::PinId out_sock{link.From().operator->()};
+  ed::PinId in_sock{link.To().operator->()};
   ed::LinkId id{link.To().operator->()};
-  ed::Link(id, in_sock, out_sock);
+  if (!ed::Link(id, in_sock, out_sock)) {
+    AX_ERROR("Failed to draw link: {}, {}", fmt::ptr(in_sock.AsPointer<>()),
+             fmt::ptr(out_sock.AsPointer<>()));
+  }
 }
 
-static void add_node(Graph& g, char const* name) {
+static NodeBase* add_node(Graph& g, char const* name) {
   auto const& reg = NodeRegistry::instance();
   auto node_ptr = reg.Create(name);  // May throw?
-  g.PushBack(std::move(node_ptr));
+  auto nh = g.PushBack(std::move(node_ptr));
+  draw_node(nh.operator->());
+  return nh.operator->();
 }
 
-static void do_connect_sockets(Graph& g, OutputSocket const* out, InputSocket const* in) try {
+static bool do_connect_sockets(Graph& g, OutputSocket const* out, InputSocket const* in) try {
   auto out_nh = g.Get(&out->Node());
   auto in_nh = g.Get(&in->Node());
-  AX_DCHECK(out_nh, "Output node handle not found.");
-  AX_DCHECK(in_nh, "Input node handle not found.");
+  AX_CHECK(out_nh, "Output node handle not found.");
+  AX_CHECK(in_nh, "Input node handle not found.");
   auto out_sock_handle = out_nh->GetOutput(out->Index());
   auto in_sock_handle = in_nh->GetInput(in->Index());
-  auto link = g.Connect(out_sock_handle, in_sock_handle);
-  draw_link(link);
+  g.Connect(out_sock_handle, in_sock_handle);
+  AX_INFO("Connected: {} -> {}", fmt::ptr(out), fmt::ptr(in));
+  return true;
 } catch (std::exception const& e) {
   AX_ERROR("Cannot create link: {}", e.what());
+  return false;
 }
 
-static void do_erase_link(Graph& g, InputSocket* in) {
+static bool do_erase_link(Graph& g, InputSocket* in) {
   auto in_nh = g.Get(&in->Node());
+  if (!in_nh) {
+    AX_ERROR("Node not found.");
+    return false;
+  }
   auto in_sock_handle = in_nh->GetInput(in->Index());
-  AX_CHECK(in_sock_handle->IsConnected(), "Socket is not connected.");
+  if (!in_sock_handle->IsConnected()) {
+    AX_ERROR("Socket is not connected.");
+    return false;
+  }
   OutputSocket const* out = in_sock_handle->From();
   auto out_nh = g.Get(&out->Node());
   auto out_sock_handle = out_nh->GetOutput(out->Index());
   auto link = g.GetConnect(out_sock_handle, in_sock_handle);
   g.Erase(link.value());
+  return true;
 }
 
 static void do_erase_node(Graph& g, NodeBase* node) {
@@ -184,10 +206,10 @@ static void do_erase_node(Graph& g, NodeBase* node) {
 }
 
 static void query_then_erase(Graph& g) {
-  ed::LinkId link_id = 0;
+  ed::LinkId link_id = ed::LinkId::Invalid;
   while (ed::QueryDeletedLink(&link_id)) {
     if (ed::AcceptDeletedItem()) {
-      AX_INFO("delete link: {}", link_id.Get());
+      AX_INFO("delete link: {}", fmt::ptr(link_id.AsPointer<>()));
       do_erase_link(g, link_id.AsPointer<InputSocket>());
     }
   }
@@ -195,11 +217,24 @@ static void query_then_erase(Graph& g) {
   ed::NodeId node_id = 0;
   while (ed::QueryDeletedNode(&node_id)) {
     if (ed::AcceptDeletedItem()) {
-      AX_INFO("delete node: {}", node_id.Get());
+      AX_INFO("delete node: {}", fmt::ptr(node_id.AsPointer<>()));
       do_erase_node(g, node_id.AsPointer<NodeBase>());
     }
   }
 }
+
+static bool try_do_connect_pin(Graph& g, ed::PinId input_id, ed::PinId output_id) {
+  SocketBase const* out = input_id.AsPointer<SocketBase>();
+  SocketBase const* in = output_id.AsPointer<SocketBase>();
+  if (!out->IsInput() && in->IsInput()) {
+    return do_connect_sockets(g, static_cast<OutputSocket const*>(out),
+                              static_cast<InputSocket const*>(in));
+  } else {
+    return do_connect_sockets(g, static_cast<OutputSocket const*>(in),
+                              static_cast<InputSocket const*>(out));
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Handling User Input
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -210,13 +245,7 @@ static void handle_inputs() {
     if (ed::QueryNewLink(&input_id, &output_id)) {
       if (input_id && output_id) {
         if (ed::AcceptNewItem()) {
-          SocketBase const* out = input_id.AsPointer<SocketBase>();
-          SocketBase const* in = output_id.AsPointer<SocketBase>();
-          if (!out->IsInput() && in->IsInput()) {
-            do_connect_sockets(g, static_cast<OutputSocket const*>(out), static_cast<InputSocket const*>(in));
-          } else {
-            do_connect_sockets(g, static_cast<OutputSocket const*>(in), static_cast<InputSocket const*>(out));
-          }
+          try_do_connect_pin(g, input_id, output_id);
         }
       }
     }
@@ -227,25 +256,40 @@ static void handle_inputs() {
     query_then_erase(g);
   }
   ed::EndDelete();
+
+  // Handle other keyboard shortcuts.
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
+      && !ImGui::IsMouseClicked(0)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
+      if (!ImGui::IsWindowCollapsed()) {
+        ImGui::OpenPopup("Create New Node");
+      }
+    }
+  }
 }
 
 static void show_create_node_window(Graph& g) {
   ImGui::TextUnformatted("Create New Node");
   ImGui::Separator();
-  static char name_input[256]{0};
+  static char name_input[256]{};
+  static ImVec2 position;
+  position = ImGui::GetMousePos();
+
   static size_t current_size = 0;
   const char* front_name = nullptr;
 
   if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
-      && !ImGui::IsMouseClicked(0))
+      && !ImGui::IsMouseClicked(0)) {
     ImGui::SetKeyboardFocusHere();
+  }
 
-  if (ImGui::InputText("name", name_input, 256)) {
+  if (ImGui::InputText("Name", name_input, 256)) {
     current_size = strlen(name_input);
   }
 
   auto const& desc = NodeRegistry::instance().GetDescriptors();
 
+  NodeBase* ptr = nullptr;
   for (auto const& [name, _] : desc) {
     if (!partially_match(name, name_input, current_size)) {
       continue;
@@ -254,32 +298,38 @@ static void show_create_node_window(Graph& g) {
       front_name = name.c_str();
     }
     if (ImGui::MenuItem(name.c_str())) {
-      add_node(g, name.c_str());
+      ptr = add_node(g, name.c_str());
     }
   }
 
   // If pressed enter and there is only one item, then create it.
-  if (ImGui::IsKeyPressed(ImGuiKey_Enter) && front_name != nullptr) {
-    add_node(g, front_name);
-    name_input[0] = 0;
-    current_size = 0;
+  if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+    if (front_name != nullptr) {
+      ptr = add_node(g, front_name);
+      name_input[0] = 0;
+      current_size = 0;
+    } else {
+      AX_ERROR("Cannot find node: {}", name_input);
+    }
     ImGui::CloseCurrentPopup();
+  }
+
+  if (ptr) {
+    ed::SetNodePosition(ed::NodeId(ptr), ed::ScreenToCanvas(position));
   }
 }
 
-// TODO: static void show_link_context_menu(ed::LinkId select_link0, Socket* link) {
-//   ImGui::TextUnformatted("Link Context Menu");
-//   if (link) {
-//     ImGui::Text("Link ID: %ld", link->id_);
-//     ImGui::Text("Link Input: %ld", link->input_->id_);
-//     ImGui::Text("Link Output: %ld", link->output_->id_);
-//     ImGui::Text("Link Type: %s", link->input_->descriptor_->type_.name());
-//     ImGui::Separator();
-//     if (ImGui::MenuItem("Delete?")) {
-//       ed::DeleteLink(select_link0);
-//     }
-//   }
-// }
+static void show_link_context_menu(ed::LinkId select_link0, InputSocket* link) {
+  ImGui::TextUnformatted("Link Context Menu");
+  if (link) {
+    ImGui::Text("InputSocket addr: {}", fmt::ptr(link));
+    ImGui::Text("OutputSocket addr: {}", fmt::ptr(link->From()));
+    ImGui::Separator();
+    if (ImGui::MenuItem("Delete?")) {
+      ed::DeleteLink(select_link0);
+    }
+  }
+}
 
 static void show_node_context_menu(ed::NodeId select_node0, NodeBase const* node) {
   ImGui::TextUnformatted("Node Context Menu");
@@ -306,6 +356,7 @@ static void handle_selection() {
   ed::LinkId select_link0 = links[0];
   hovered_pin_ = ed::GetHoveredPin();
   hovered_node_ = ed::GetHoveredNode();
+  hovered_link_ = ed::GetHoveredLink();
 
   ed::Suspend();
   if (ed::ShowNodeContextMenu(&select_node0)) {
@@ -336,8 +387,10 @@ static void handle_selection() {
 
 static void serialize_graph(std::ostream& out) {
   auto& g = ensure_resource<Graph>();
+  g.ShrinkToFit();
   Serializer ser(g);
-  for (auto const& node : g.GetNodes()) {
+  for (auto const& node :
+       g.GetNodes() | ranges::views::filter([](auto const& n) -> bool { return n != nullptr; })) {
     NodeBase const* ptr = node.get();
     ImVec2 const pos = ed::GetNodePosition(ed::NodeId(ptr));
     boost::json::object meta = node->Serialize();
@@ -354,30 +407,67 @@ static void serialize_graph(std::ostream& out) {
   }
 }
 
+static void show_pin_descriptor(std::vector<SocketDescriptor>::value_type const& pin_desc) {
+  ImGui::Text("Name: %s", pin_desc.Name().c_str());
+  ImGui::Text("Desc: %s", pin_desc.Desc().c_str());
+  ImGui::Text("Pretty Type: %s", pin_desc.PrettyTypename().c_str());
+  ImGui::Text("RAII Type: %s", pin_desc.Type().name());
+}
+
 static void draw_hovered() {
+  ed::Suspend();
   auto& g = ensure_resource<Graph>();
   if (hovered_pin_) {
-    // TODO: impl?
-    //
-    // if (auto const* pin = g.GetPin(hovered_pin_.Get())) {
-    //   if (ImGui::BeginTooltip()) {
-    //     ImGui::TextUnformatted(pin->descriptor_->description_.c_str());
-    //     ImGui::EndTooltip();
-    //   }
-    // }
-    // return;
+    auto p = hovered_pin_.AsPointer<SocketBase>();
+    if (p->IsInput()) {
+      auto in = static_cast<InputSocket*>(p);
+      if (ImGui::BeginTooltip()) {
+        ImGui::Text("InputSocket addr: %p", in);
+        if (auto nh = g.Get(&(in->Node()))) {
+          auto const& node_desc = nh->Node().GetDescriptor();
+          auto const& pin_desc = node_desc.GetInputs()[in->Index()];
+          show_pin_descriptor(pin_desc);
+        }
+        ImGui::EndTooltip();
+      }
+    } else {
+      auto out = static_cast<OutputSocket*>(p);
+      if (ImGui::BeginTooltip()) {
+        ImGui::Text("OutputSocket addr: %p", out);
+        if (auto nh = g.Get(&(out->Node()))) {
+          auto const& node_desc = nh->Node().GetDescriptor();
+          auto const& pin_desc = node_desc.GetOutputs()[out->Index()];
+          show_pin_descriptor(pin_desc);
+        }
+        ImGui::EndTooltip();
+      }
+    }
+  } else if (hovered_node_) {
+    if (const auto* node = hovered_node_.AsPointer<NodeBase>()) {
+      if (ImGui::BeginTooltip()) {
+        if (auto nh = g.Get(node)) {
+          ImGui::Text("Name: %s", node->GetDescriptor().Name().c_str());
+          ImGui::Text("Description: %s", node->GetDescriptor().Desc().c_str());
+          ImGui::Text("Index: %ld", nh->Index());
+        }
+        ImGui::EndTooltip();
+      }
+    }
+  } else if (hovered_link_) {
+    if (auto const* sock = hovered_link_.AsPointer<InputSocket>()) {
+      if (ImGui::BeginTooltip()) {
+        ImGui::Text("InputSocket addr: %p", sock);
+        ImGui::Text("OutputSocket addr: %p", sock->From());
+        ImGui::EndTooltip();
+      }
+    }
   }
+  ed::Resume();
+}
 
-  if (hovered_node_) {
-    // TODO: impl?
-    //
-    // if (auto const* node = g.GetNode(hovered_node_.Get())) {
-    //   if (ImGui::BeginTooltip()) {
-    //     ImGui::TextUnformatted(node->GetDescriptor()->description_.c_str());
-    //     ImGui::EndTooltip();
-    //   }
-    // }
-  }
+void run_once() {
+  auto& executor = ensure_executor();
+  executor->ExecuteOnce(executor->GetCurrentFrame());
 }
 
 static void draw_config_window(gl::UiRenderEvent) {
@@ -385,7 +475,8 @@ static void draw_config_window(gl::UiRenderEvent) {
     return;
   }
   if (!ImGui::Begin("Graph Commander", &is_config_open_,
-                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize)) {
+                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar
+                        | ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::End();
     return;
   }
@@ -437,8 +528,7 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Execute Once")) {
-    // run_once();
-    AX_ERROR("Not Implemented");
+    run_once();
   }
   ImGui::Checkbox("Running", &running_);
   ImGui::SameLine();
@@ -473,7 +563,7 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
 }
 
-static void deserialize_graph(Graph& g, std::ifstream& file) {
+static void deserialize_graph(Graph& g, std::ifstream& file) try {
   boost::json::stream_parser p;
   file.seekg(0, std::ios::end);
   auto size = file.tellg();
@@ -499,13 +589,7 @@ static void deserialize_graph(Graph& g, std::ifstream& file) {
   boost::json::value json = p.release();
 
   Serializer d(g);
-  try {
-    d.Deserialize(json.as_object());
-  } catch (std::exception const& e) {
-    AX_CRITICAL("Failed to deserialize: {}", e.what());
-    g.Clear();
-    return;
-  }
+  d.Deserialize(json.as_object());
 
   has_cycle = ensure_executor()->HasCycle();
 
@@ -520,13 +604,42 @@ static void deserialize_graph(Graph& g, std::ifstream& file) {
     ed::SetNodePosition(ed::NodeId(ptr), pos);
     (*nh)->Deserialize(obj);
   }
+} catch (std::exception const& e) {
+  AX_CRITICAL("Failed to deserialize: {}", e.what());
+  g.Clear();
+  return;
+}
+
+static void do_draw_graph(Graph& g) {
+  for (auto const& n :
+       g.GetNodes() | ranges::views::filter([](auto const& n) -> bool { return n != nullptr; })) {
+    draw_node(n.get());
+  }
+
+  for (auto const& n :
+       g.GetNodes() | ranges::views::filter([](auto const& n) -> bool { return n != nullptr; })) {
+    auto handle = g.Get(n.get());
+    for (auto const& in_sock : n->GetInputs()) {
+      auto in_handle = handle->GetInput(in_sock.Index());
+      if (in_handle->IsConnected()) {
+        const auto* out_sock = in_handle->From();
+        auto out_nh = g.Get(&out_sock->Node());
+        AX_CHECK(out_nh, "Cannot find node.");
+        auto out_handle = out_nh->GetOutput(out_sock->Index());
+        auto link = g.GetConnect(out_handle, in_handle);
+        AX_CHECK(link, "Cannot find link.");
+        draw_link(*link);
+      }
+    }
+  }
 }
 
 static void draw_once(gl::UiRenderEvent) {
   if (!is_open_) {
     return;
   }
-  if (!ImGui::Begin("Node editor", &is_open_, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+  if (!ImGui::Begin("Node editor", &is_open_,
+                    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
     ImGui::End();
     return;
   }
@@ -545,24 +658,7 @@ static void draw_once(gl::UiRenderEvent) {
     need_load_json = false;
   }
 
-  // g.ForeachNode(draw_node);
-  for (auto const& n : g.GetNodes()) {
-    draw_node(n.get());
-
-    auto handle = g.Get(n.get());
-    for (auto const& in_sock : n->GetInputs()) {
-      auto in_handle = handle->GetInput(in_sock.Index());
-      if (in_handle->IsConnected()) {
-        const auto* out_sock = in_handle->From();
-        auto out_nh = g.Get(&out_sock->Node());
-        AX_CHECK(out_nh, "Cannot find node.");
-        auto out_handle = out_nh->GetOutput(out_sock->Index());
-        auto link = g.GetConnect(out_handle, in_handle);
-        AX_CHECK(link, "Cannot find link.");
-        draw_link(*link);
-      }
-    }
-  }
+  do_draw_graph(g);
   handle_inputs();
   handle_selection();
 
@@ -574,16 +670,6 @@ static void draw_once(gl::UiRenderEvent) {
       serialize_graph(file);
     }
     need_export_json = false;
-  }
-
-  // Handle other keyboard shortcuts.
-  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()
-      && !ImGui::IsMouseClicked(0)) {
-    if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
-      if (!ImGui::IsWindowCollapsed()) {
-        ImGui::OpenPopup("Create New Node");
-      }
-    }
   }
   draw_hovered();
   ed::End();

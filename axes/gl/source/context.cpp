@@ -280,6 +280,19 @@ void Context::Impl::UpdateAxes() {
 
 Context::Context(Context&&) noexcept = default;
 
+float get_hidpi_scale() {
+  auto scale = 1.0f;
+  auto const& prog_option = get_parse_result();
+  for (auto const& option : prog_option) {
+    if (option.key() == "gl_hidpi_scale") {
+      scale = prog_option["gl_hidpi_scale"].as<float>();
+      AX_TRACE("Setting HiDPI scale to {}", scale);
+      break;
+    }
+  }
+  return scale;
+}
+
 Context::Context() {
   impl_ = std::make_unique<Impl>();
   AX_THROW_IF_FALSE(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)),
@@ -314,23 +327,18 @@ Context::Context() {
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
   AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG), "Failed to Initialize ImGUI_OpenGL3");
+
+
   auto fb_scale = impl_->window_.GetFrameBufferScale();
   ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
   ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-  auto const& prog_option = get_parse_result();
-  float scale = 1.0f;
-  for (auto const& option : prog_option) {
-    if (option.key() == "gl_hidpi_scale") {
-      scale = prog_option["gl_hidpi_scale"].as<float>();
-      AX_TRACE("Setting HiDPI scale to {}", scale);
-      break;
-    }
-  }
+  float scale = get_hidpi_scale();
   ImGui::GetStyle().ScaleAllSizes(scale);
   ImGui::GetIO().FontGlobalScale = scale;
+
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
   impl_->renderers_.emplace_back(std::make_unique<MeshRenderer>());

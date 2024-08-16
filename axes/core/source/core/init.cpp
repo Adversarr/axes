@@ -4,13 +4,40 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#if defined(_MSC_VER)
+    #define DISABLE_WARNING_PUSH           __pragma(warning( push ))
+    #define DISABLE_WARNING_POP            __pragma(warning( pop ))
+    #define DISABLE_WARNING(warningNumber) __pragma(warning( disable : warningNumber ))
+
+#elif defined(__GNUC__) || defined(__clang__)
+    #define DO_PRAGMA(X) _Pragma(#X)
+    #define DISABLE_WARNING_PUSH           DO_PRAGMA(GCC diagnostic push)
+    #define DISABLE_WARNING_POP            DO_PRAGMA(GCC diagnostic pop)
+    #define DISABLE_WARNING(warningName)   DO_PRAGMA(GCC diagnostic ignored #warningName)
+
+#else
+    #define DISABLE_WARNING_PUSH
+    #define DISABLE_WARNING_POP
+#endif
 #include <Eigen/Core>
 #include <algorithm>
 #include <cxxopts.hpp>
+
+// backward: [-Wzero-as-null-pointer-constant] [-Wold-style-cast] should disable
 #ifdef AX_HAS_LIBDW
 #  define BACKWARD_HAS_DW 1
 #endif
+DISABLE_WARNING_PUSH
+#ifdef _MSC_VER
+DISABLE_WARNING(4265)
+DISABLE_WARNING(5031)
+#else
+DISABLE_WARNING(-Wzero-as-null-pointer-constant)
+DISABLE_WARNING(-Wold-style-cast)
+#endif
 #include "3rdparty/backward/backward.hpp"
+DISABLE_WARNING_POP
+
 #include "ax/core/entt.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/math/init_parallel.hpp"

@@ -8,7 +8,7 @@ namespace ax::graph {
 
 class Serializer {
 public:
-  Serializer(Graph& g);
+  explicit Serializer(Graph& g);
   void SetNodeMetadata(ConstNodePtr n, boost::json::object const& obj);
 
   boost::json::object Serialize() const;

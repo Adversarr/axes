@@ -210,5 +210,5 @@ CheckOptions:
     value: CamelCase
 
   - key: readability-identifier-naming.ClassIgnoredRegexp
-    value: "([a-z_]_t)|([A-Za-z0-9]+_[A-Za-z0-9]+)"
+    value: "([a-z_]+_t)|([A-Za-z0-9]+_[A-Za-z0-9]+)"
 

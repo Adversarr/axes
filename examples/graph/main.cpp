@@ -25,12 +25,15 @@
 //   return 0;
 // }
 
+#include <imgui.h>
+
 #include <iomanip>
 #include <iostream>
 
-#include "ax/gl/utils.hpp"
 #include "ax/core/init.hpp"
+#include "ax/gl/utils.hpp"
 #include "ax/graph/render.hpp"
+#include "ax/nodes/stl_types.hpp"
 
 using namespace compute_graph;
 
@@ -40,9 +43,23 @@ public:
   CG_NODE_INPUTS();
   CG_NODE_OUTPUTS((int, value, "The constant integer value"));
 
-  void OnConstruct() /* optional */ { Set(out::value, 5); }
+  static void RenderThis(NodeBase* ptr) {
+    ax::graph::begin_draw_node(ptr);
+    ax::graph::draw_node_header_default(ptr);
+    ImGui::SetNextItemWidth(200);
+    ImGui::InputInt("Value", &static_cast<ConstIntegerNode*>(ptr)->value_);
+    ax::graph::draw_node_content_default(ptr);
+    ax::graph::end_draw_node();
+  }
 
-  void operator()(Context &) final { SetAll(5); }
+  static void OnRegister() {
+    ax::graph::add_custom_node_render(name(), {RenderThis});
+  }
+
+  void OnConstruct() /* optional */ { Set(out::value, value_); }
+
+  void operator()(Context &) final { SetAll(value_); }
+  int value_ {5};
 };
 
 class WhateverNode : public NodeDerive<WhateverNode> {
@@ -147,6 +164,8 @@ template class ReadContext<std::string>;
 
 }
 
+
+
 int main(int argc, char **argv) {
   Graph g;
   ax::gl::init(argc, argv);
@@ -171,6 +190,7 @@ int main(int argc, char **argv) {
   g.TopologySort();
 
   Context rt;
+  rt.PushStack();
   rt.Emplace("what", std::string("is?"));
 
   for (auto const &node : g.GetNodes()) {

@@ -14,7 +14,7 @@ namespace ax::fem::elasticity {
  *
  * @tparam dim
  */
-template <idx dim> class StableNeoHookean
+template <Index dim> class StableNeoHookean
     : public ElasticityBase<dim, StableNeoHookean<dim>> {
 public:
   using base_t = ElasticityBase<dim, StableNeoHookean<dim>>;
@@ -58,7 +58,7 @@ public:
     real const del= delta();
     real alpha = (1 - 1 / (dim + del)) * mu / lambda + 1;
     real const Jminus1 = math::det(F) - alpha;
-    math::matr<dim, dim> dJdF = details::partial_determinant(F);
+    math::RealMatrix<dim, dim> dJdF = details::partial_determinant(F);
     return lambda * Jminus1 * dJdF  + mu * (1.0 - 1.0 / (Ic + del)) * F;
   }
 
@@ -69,10 +69,10 @@ public:
     real const I2 = math::norm2(F);
     real const del= delta();
     real alpha = (1 - 1 / (dim + del)) * mu / lambda + 1;
-    math::vecr<dim * dim> dJdF = math::flatten(details::partial_determinant(F));
+    math::RealVector<dim * dim> dJdF = math::flatten(details::partial_determinant(F));
     real I3 = math::det(F);
     real scale = lambda * (I3 - alpha);
-    math::vecr<dim * dim> F_flat = math::flatten(F);
+    math::RealVector<dim * dim> F_flat = math::flatten(F);
     hessian_t hess = mu * (1 - 1 / (I2 + del)) * math::eye<dim * dim>()
                   + mu * (2.0 / math::square(I2 + del)) * (F_flat * F_flat.transpose())
                   + lambda * dJdF * dJdF.transpose();

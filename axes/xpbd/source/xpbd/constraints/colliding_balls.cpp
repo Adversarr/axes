@@ -7,8 +7,8 @@ namespace ax::xpbd {
 
 ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
   // For each collition, project to the closest point on the surface.
-  idx const nC = this->GetNumConstraints();
-  idx const nV = this->GetNumConstrainedVertices();
+  Index const nC = this->GetNumConstraints();
+  Index const nV = this->GetNumConstrainedVertices();
   // std::cout << "SolveDistributed: " << nC << " " << nV << std::endl;
   ConstraintSolution sol(nV);
 
@@ -27,7 +27,7 @@ ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
     auto const& dold = dual_old[i];
     sol.sqr_dual_residual_ += (d - dold).squaredNorm();
     ConstraintMap::ConstVisitor v = constraint_mapping_[i];
-    for (idx i = 0; i < 2; ++i) {
+    for (Index i = 0; i < 2; ++i) {
       sol.weighted_position_.col(v[i]) += rhogd.col(i);
       sol.weights_[v[i]] += rho;
     }
@@ -80,16 +80,16 @@ void Constraint_CollidingBalls::UpdateRhoConsensus(real scale) {
 void Constraint_CollidingBalls::UpdatePositionConsensus() {
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
-  std::vector<std::pair<idx, idx>> new_collisions;
-  std::vector<idx> new_colliding_vertices;
+  std::vector<std::pair<Index, Index>> new_collisions;
+  std::vector<Index> new_colliding_vertices;
 
-  auto put_vert = [&](idx v) {
+  auto put_vert = [&](Index v) {
     if (colliding_vertices_.insert(v).second) {
       new_colliding_vertices.push_back(v);
     }
   };
 
-  auto put_coll = [this](std::pair<idx, idx> vv) -> bool {
+  auto put_coll = [this](std::pair<Index, Index> vv) -> bool {
     auto it = collidings_.find(vv);
     if (it == collidings_.end()) {
       collidings_.emplace(vv, 1);
@@ -101,9 +101,9 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
   };
 
   // Current implementation is brute force.
-  idx const nV = g.vertices_.cols();
-  for (idx i : utils::iota(nV)) {
-    for (idx j = i + 1; j < nV; ++j) {
+  Index const nV = g.vertices_.cols();
+  for (Index i : utils::iota(nV)) {
+    for (Index j = i + 1; j < nV; ++j) {
       v3 const& pi = g.vertices_.col(i);
       v3 const& pj = g.vertices_.col(j);
       real distance = math::norm(pi - pj);
@@ -127,8 +127,8 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
     }
 
     for (auto [i, j] : new_collisions) {
-      idx const vi = global_to_local_.at(i);
-      idx const vj = global_to_local_.at(j);
+      Index const vi = global_to_local_.at(i);
+      Index const vj = global_to_local_.at(j);
       constraint_mapping_.emplace_back(vi, vj);
       auto& dual = dual_.emplace_back();
       auto& gap = gap_.emplace_back();
@@ -146,9 +146,9 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
   }
 
   // now update the position.
-  idx nCV = GetNumConstrainedVertices();
-  for (idx i = 0; i < nCV; ++i) {
-    idx const v = constrained_vertices_ids_[i];
+  Index nCV = GetNumConstrainedVertices();
+  for (Index i = 0; i < nCV; ++i) {
+    Index const v = constrained_vertices_ids_[i];
     local[i] = g.vertices_.col(v);
   }
 }

@@ -6,12 +6,12 @@ namespace ax::gl {
 
 class Lines {
 public:
-  math::field3r vertices_;
-  math::field4r colors_;
-  math::field2i indices_;
+  math::RealField3 vertices_;
+  math::RealField4 colors_;
+  math::IndexField2 indices_;
 
-  math::field3r instance_offset_;
-  math::field4r instance_color_;
+  math::RealField3 instance_offset_;
+  math::RealField4 instance_color_;
 
   bool use_global_model_{true};
 

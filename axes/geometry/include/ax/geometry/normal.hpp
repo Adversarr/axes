@@ -12,15 +12,15 @@ constexpr details::face_uniform_avg_t face_uniform_avg{};
 constexpr details::face_area_avg_t face_area_avg{};
 constexpr details::face_angle_avg_t face_angle_avg{};
 
-math::field3r normal_per_face(math::field3r const& vertices, math::field3i const& indices);
+math::RealField3 normal_per_face(math::RealField3 const& vertices, math::IndexField3 const& indices);
 
-math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i const& indices,
+math::RealField3 normal_per_vertex(math::RealField3 const& vertices, math::IndexField3 const& indices,
                                 details::face_uniform_avg_t = {});
 
-math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i const& indices,
+math::RealField3 normal_per_vertex(math::RealField3 const& vertices, math::IndexField3 const& indices,
                                 details::face_area_avg_t);
 
-math::field3r normal_per_vertex(math::field3r const& vertices, math::field3i const& indices,
+math::RealField3 normal_per_vertex(math::RealField3 const& vertices, math::IndexField3 const& indices,
                                 details::face_angle_avg_t);
 
 }  // namespace ax::geo

@@ -23,7 +23,7 @@ void GraphExecutorBase::Execute() {
              utils::reflect_name(stage_).value_or("???"));
   }
   stage_ = GraphExecuteStage::kRunning;
-  for (idx i = 0; i < end_; ++i) {
+  for (Index i = 0; i < end_; ++i) {
     AX_INFO("Executing frame: {}", i);
     ExecuteOnce(i);
     if (stage_ == GraphExecuteStage::kError) {
@@ -36,7 +36,7 @@ void GraphExecutorBase::Execute() {
   }
 }
 
-void GraphExecutorBase::ExecuteOnly(idx frame_id) {
+void GraphExecutorBase::ExecuteOnly(Index frame_id) {
   if (stage_ != GraphExecuteStage::kIdle) {
     AX_ERROR("GraphExecutor is not in idle state, current stage: {}",
              utils::reflect_name(stage_).value_or("???"));
@@ -53,14 +53,14 @@ void GraphExecutorBase::ExecuteOnly(idx frame_id) {
   }
 }
 
-void GraphExecutorBase::ExecuteOnce(idx frame_id) {
+void GraphExecutorBase::ExecuteOnce(Index frame_id) {
   stage_ = GraphExecuteStage::kRunning;
   error_msg_.clear();
 
   graph_.TopologySort();
   run_ctx_.Clear();
   run_ctx_.PushStack();
-  run_ctx_.Emplace<idx>("frame_index", frame_id);
+  run_ctx_.Emplace<Index>("frame_index", frame_id);
 
   for (auto [i, n] : ranges::views::enumerate(graph_.GetNodes())) {
     if (n) {

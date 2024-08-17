@@ -5,7 +5,7 @@
 namespace ax::optim {
 
 using LbfgsHessianApproximator
-    = std::function<math::vecxr(Gradient const& /*r, solve this*/,
+    = std::function<math::RealVectorX(Gradient const& /*r, solve this*/,
                                 Variable const& /*x_k+1 - x_k, if possible else empty*/,
                                 Variable const& /*g_k+1 - g_k, if possible else empty*/)>;
 
@@ -23,7 +23,7 @@ public:
 
   utils::Options GetOptions() const override;
 
-  idx history_size_{20};
+  Index history_size_{20};
 
   void SetApproxSolve(LbfgsHessianApproximator approximator);
 

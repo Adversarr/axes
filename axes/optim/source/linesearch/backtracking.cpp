@@ -24,7 +24,7 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, Variable con
     throw make_runtime_error("Invalid descent direction: Dot[grad, dir]={}", expected_descent);
   }
 
-  idx iter = 0;
+  Index iter = 0;
   Variable x;
   real f = math::inf<real>;
   for (; iter < max_iter_; ++iter) {

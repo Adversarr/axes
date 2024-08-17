@@ -28,18 +28,18 @@
 using namespace ax;
 ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
 ABSL_FLAG(real, voxel_size, -1, "The voxel size for the point cloud");
-ABSL_FLAG(idx, sample, 10, "Number of points sampled each face");
+ABSL_FLAG(Index, sample, 10, "Number of points sampled each face");
 
 Entity original, vdb_tree, reconstructed;
 
 std::string file;
-math::field3r vertices;
-math::field3i indices;
-math::field3r point_cloud_position, point_cloud_normal;
+math::RealField3 vertices;
+math::IndexField3 indices;
+math::RealField3 point_cloud_position, point_cloud_normal;
 
 float ratio = 0;
 
-idx N_sample = 10;
+Index N_sample = 10;
 
 real voxel_size;
 vdb::Vec3rGridPtr normal_grid;
@@ -101,14 +101,14 @@ int main(int argc, char** argv) {
     wf.colors_.setConstant(.3);
     mesh.flush_ = false;
 
-    math::field3r interp;
+    math::RealField3 interp;
     N_sample = absl::GetFlag(FLAGS_sample);
     interp.resize(3, N_sample);
     for (auto p: math::each(interp)) {
       real x = rand() / ((real) RAND_MAX);
       real y = rand() / ((real) RAND_MAX) * (1 - x);
       real z = 1 - x - y;
-      p = math::vec3r(x, y, z);
+      p = math::RealVector3(x, y, z);
     }
 
     geo::MeshPointCloudSampler<3> sampler({vertices, indices}, interp);
@@ -129,21 +129,21 @@ int main(int argc, char** argv) {
   point_index_grid = pg.IndexGrid();
   transform = pg.Transform();
 
-  ax::math::field1r ones = math::ones<1>(point_cloud_position.cols());
+  ax::math::RealField1 ones = math::ones<1>(point_cloud_position.cols());
   normal_grid = pg.TransferCellCenter("normal", point_cloud_normal);
   auto ones_grid = pg.TransferCellCenter("ones", ones);
 
   { // Visualize the normal grid
-    idx active_cnt = normal_grid->activeVoxelCount();
+    Index active_cnt = normal_grid->activeVoxelCount();
     auto &quiver = add_component<gl::Quiver>(original);
     quiver.positions_.resize(3, active_cnt);
     quiver.directions_.resize(3, active_cnt);
-    idx cnt = 0;
+    Index cnt = 0;
     for (auto iter = normal_grid->beginValueOn(); iter; ++iter) {
       auto val = *iter;
       auto position = transform->indexToWorld(iter.getCoord());
-      quiver.positions_.col(cnt) = math::vec3r(position.x(), position.y(), position.z());
-      quiver.directions_.col(cnt) = math::vec3r(val.x(), val.y(), val.z());
+      quiver.positions_.col(cnt) = math::RealVector3(position.x(), position.y(), position.z());
+      quiver.directions_.col(cnt) = math::RealVector3(val.x(), val.y(), val.z());
       cnt++;
     }
     quiver.colors_.resize(4, active_cnt);
@@ -160,16 +160,16 @@ int main(int argc, char** argv) {
 
   {
     vdb_tree = cmpt::create_named_entity("Vdb Tree");
-    idx active_cnt = normal_grid->activeVoxelCount();
+    Index active_cnt = normal_grid->activeVoxelCount();
     auto& points = add_component<gl::Points>(vdb_tree);
     points.colors_.resize(4, active_cnt);
     points.colors_.setConstant(1);
     points.vertices_.resize(3, active_cnt);
     points.point_size_ = 3;
-    idx cnt = 0;
+    Index cnt = 0;
     for (auto iter = normal_grid->beginValueOn(); iter.test(); ++iter) {
       auto position = transform->indexToWorld(iter.getCoord());
-      points.vertices_.col(cnt++) = math::vec3r(position.x(), position.y(), position.z());
+      points.vertices_.col(cnt++) = math::RealVector3(position.x(), position.y(), position.z());
     }
   }
 

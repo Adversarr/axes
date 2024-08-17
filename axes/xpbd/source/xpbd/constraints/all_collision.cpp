@@ -19,8 +19,8 @@ using namespace geo;
 // 3. e-e
 // for each type of collision, we need to define the `relax` method.
 
-using I4 = math::vec4i;
-using v3 = math::vec3r;
+using I4 = math::IndexVec4;
+using v3 = math::RealVector3;
 
 std::pair<CollisionKind, I4> determine_collision(v3 const& v_start, v3 const& v_end,
                                                  v3 const& f0_start, v3 const& f1_start,
@@ -31,7 +31,7 @@ std::pair<CollisionKind, I4> determine_collision(v3 const& v_start, v3 const& v_
 }
 
 ConstraintSolution Constraint_AllCollision::SolveDistributed() {
-  idx const nV = GetNumConstrainedVertices();
+  Index const nV = GetNumConstrainedVertices();
   ConstraintSolution solution(nV);
   std::map<CollisionKind, std::vector<I4>> collisions_to_resolve;
 
@@ -48,25 +48,25 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
   std::vector<I2> new_vt, new_ee;
 
   // detect vt ee
-  idx const nV = g.vertices_.cols(), nT = static_cast<idx>(g.faces_.size()),
-            nE = static_cast<idx>(g.edges_.size());
+  Index const nV = g.vertices_.cols(), nT = static_cast<Index>(g.faces_.size()),
+            nE = static_cast<Index>(g.edges_.size());
 
   size_t const num_last_vt = vt_.size(), num_last_ee = ee_.size();
 
-  auto put_vt_collision = [&](idx v, idx f) {
+  auto put_vt_collision = [&](Index v, Index f) {
     if (auto it = vt_.find({v, f}); it == vt_.end()) {
       vt_.insert({v, f});
       new_vt.push_back({v, f});
     }
   };
 
-  auto put_ee_collision = [&](idx e1, idx e2) {
+  auto put_ee_collision = [&](Index e1, Index e2) {
     if (auto it = ee_.find({e1, e2}); it == ee_.end()) {
       ee_.insert({e1, e2});
       new_ee.push_back({e1, e2});
     }
   };
-  auto put_vertex = [&](idx v) -> bool {
+  auto put_vertex = [&](Index v) -> bool {
     if (auto it = colliding_vertices_.find(v); it == colliding_vertices_.end()) {
       colliding_vertices_.insert(v);
       global_to_local_[v] = GetNumConstrainedVertices();
@@ -78,7 +78,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
     }
   };
 
-  for (idx i = 0; i < nV; ++i) {
+  for (Index i = 0; i < nV; ++i) {
     for (auto [j, f] : utils::enumerate(g.faces_)) {
       auto const& x0 = g.last_vertices_.col(i);
       auto const& fx0 = g.last_vertices_.col(f.x());
@@ -97,7 +97,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
       if (info) {
         put_vt_collision(i, j);
         put_vertex(i);
-        for (idx v : f) put_vertex(v);
+        for (Index v : f) put_vertex(v);
       }
     }
   }
@@ -134,7 +134,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
   // Fetch all the vertex position normally.
   ConstraintBase::UpdatePositionConsensus();
 
-  auto query = [this](idx global) { return global_to_local_.at(global); };
+  auto query = [this](Index global) { return global_to_local_.at(global); };
 
   for (auto [v, f] : new_vt) {
     auto const& face = g.faces_[f];

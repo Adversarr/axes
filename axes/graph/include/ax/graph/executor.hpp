@@ -25,8 +25,8 @@ public:
   explicit GraphExecutorBase(Graph& graph) : graph_(graph) {}
 
   void Execute();
-  void ExecuteOnly(idx frame_id);
-  virtual void ExecuteOnce(idx frame_id);
+  void ExecuteOnly(Index frame_id);
+  virtual void ExecuteOnce(Index frame_id);
 
   GraphExecuteStage GetStage() const noexcept { return stage_; }
 
@@ -36,17 +36,17 @@ public:
 
   Graph& GetGraph() const noexcept;
 
-  void SetEnd(idx end) { end_ = end; }
+  void SetEnd(Index end) { end_ = end; }
 
-  idx GetCurrentFrame() const { return current_frame_id_; }
+  Index GetCurrentFrame() const { return current_frame_id_; }
 
 protected:
   Graph& graph_;
 
   Context run_ctx_;
-  std::vector<idx> toposort_;
-  idx current_frame_id_ = 0;
-  idx end_ = 1;
+  std::vector<Index> toposort_;
+  Index current_frame_id_ = 0;
+  Index end_ = 1;
   GraphExecuteStage stage_ = GraphExecuteStage::kIdle;
   std::string error_msg_;
 };

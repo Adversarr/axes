@@ -11,16 +11,16 @@ using namespace ax;
 constexpr real MASS_PER_VERTEX = 1;
 constexpr real DELTA_TIME = 0.01;
 constexpr real STIFFNESS = 1e3;
-constexpr idx MAX_ITER = 3;
+constexpr Index MAX_ITER = 3;
 
-math::field2i springs;
-math::field3r vertices;
-math::field1r initial;
-math::field3r velocities;
-std::vector<idx> fixed;
+math::IndexField2 springs;
+math::RealField3 vertices;
+math::RealField1 initial;
+math::RealField3 velocities;
+std::vector<Index> fixed;
 
 
-math::vec3r center_of_ball;
+math::RealVector3 center_of_ball;
 real radius = 0.5;
 
 Entity render;
@@ -28,22 +28,22 @@ Entity render;
 std::unique_ptr<math::SparseSolverBase> solver;
 
 void step() {
-  math::field3r x = vertices + DELTA_TIME * velocities;
-  for (idx dof: fixed) {
+  math::RealField3 x = vertices + DELTA_TIME * velocities;
+  for (Index dof: fixed) {
     x.col(dof) = vertices.col(dof);
   }
-  math::field3r x_expect = x;
+  math::RealField3 x_expect = x;
   x.row(1).array() += -DELTA_TIME * DELTA_TIME * 9.8;
-  for (idx i = 0; i < MAX_ITER; ++i) {
+  for (Index i = 0; i < MAX_ITER; ++i) {
     // by pbd.
-    idx cnt = 0;
+    Index cnt = 0;
     for (auto ij : math::each(springs)) {
-      idx i = ij[0];
-      idx j = ij[1];
-      math::vec3r p0 = x.col(i);
-      math::vec3r p1 = x.col(j);
-      math::vec3r center = (p0 + p1) * 0.5;
-      math::vec3r delta = (p1 - p0).normalized();
+      Index i = ij[0];
+      Index j = ij[1];
+      math::RealVector3 p0 = x.col(i);
+      math::RealVector3 p1 = x.col(j);
+      math::RealVector3 center = (p0 + p1) * 0.5;
+      math::RealVector3 delta = (p1 - p0).normalized();
       real len = initial[cnt];
       x.col(i) = center - delta * len * 0.5;
       x.col(j) = center + delta * len * 0.5;
@@ -51,15 +51,15 @@ void step() {
     }
 
     // collision tests
-    for (idx i = 0; i < x.cols(); i++) {
-      math::vec3r p = x.col(i);
-      math::vec3r dir = p - center_of_ball;
+    for (Index i = 0; i < x.cols(); i++) {
+      math::RealVector3 p = x.col(i);
+      math::RealVector3 dir = p - center_of_ball;
       if (dir.norm() < radius) {
         x.col(i) = center_of_ball + dir.normalized() * radius;
       }
     }
 
-    for (idx dof: fixed) {
+    for (Index dof: fixed) {
       x.col(dof) = vertices.col(dof);
     }
   }
@@ -92,32 +92,32 @@ int main(int argc, char** argv) {
   connect<gl::UiRenderEvent, &ui_render>();
   int ndiv = absl::GetFlag(FLAGS_ndiv);
   // Create a simple spring system
-  springs = math::field2i(2, ndiv * (ndiv - 1) * 2 + (ndiv - 1) * (ndiv - 1));
-  vertices = math::field3r(3, ndiv * ndiv);
-  initial = math::field1r(1, springs.cols());
-  idx cnt = 0;
-  for (idx i = 0; i < ndiv; i++) {
-    for (idx j = 0; j < ndiv; j++) {
-      vertices.col(cnt) = math::vec3r(i, 0, j) / (ndiv - 1);
+  springs = math::IndexField2(2, ndiv * (ndiv - 1) * 2 + (ndiv - 1) * (ndiv - 1));
+  vertices = math::RealField3(3, ndiv * ndiv);
+  initial = math::RealField1(1, springs.cols());
+  Index cnt = 0;
+  for (Index i = 0; i < ndiv; i++) {
+    for (Index j = 0; j < ndiv; j++) {
+      vertices.col(cnt) = math::RealVector3(i, 0, j) / (ndiv - 1);
       cnt++;
     }
   }
   std::cout << vertices << std::endl;
   cnt = 0;
-  for (idx i = 0; i < ndiv; i++) {
-    for (idx j = 0; j < ndiv; j++) {
+  for (Index i = 0; i < ndiv; i++) {
+    for (Index j = 0; j < ndiv; j++) {
       if (i < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j);
+        springs.col(cnt) = math::IndexVec2(i * ndiv + j, (i + 1) * ndiv + j);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j)).norm();
         cnt++;
       }
       if (j < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, i * ndiv + j + 1);
+        springs.col(cnt) = math::IndexVec2(i * ndiv + j, i * ndiv + j + 1);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col(i * ndiv + j + 1)).norm();
         cnt++;
       }
       if (i < ndiv - 1 && j < ndiv - 1) {
-        springs.col(cnt) = math::vec2i(i * ndiv + j, (i + 1) * ndiv + j + 1);
+        springs.col(cnt) = math::IndexVec2(i * ndiv + j, (i + 1) * ndiv + j + 1);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j + 1)).norm();
         cnt++;
       }
@@ -127,10 +127,10 @@ int main(int argc, char** argv) {
   solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLDLT);
   // Fixed points are the first row
   fixed.clear();
-  for (idx i = 0; i < ndiv; i++) {
+  for (Index i = 0; i < ndiv; i++) {
     fixed.push_back(i);
   }
-  velocities = math::field3r(3, ndiv * ndiv);
+  velocities = math::RealField3(3, ndiv * ndiv);
   velocities.setZero();
 
   // Render it.

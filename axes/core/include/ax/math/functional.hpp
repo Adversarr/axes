@@ -193,20 +193,20 @@ template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool all(DBcr<A> mv) { retu
 
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE bool any(DBcr<A> mv) { return mv.any(); }
 
-template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE idx count(DBcr<A> mv) { return mv.count(); }
+template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE Index count(DBcr<A> mv) { return mv.count(); }
 
 /****************************** argxxx ******************************/
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AX_HOST_DEVICE AX_FORCE_INLINE idx argmax(DBcr<Derived> mv) {
-  idx coef = -1;
+AX_HOST_DEVICE AX_FORCE_INLINE Index argmax(DBcr<Derived> mv) {
+  Index coef = -1;
   mv.maxCoeff(coef);
   return coef;
 }
 
 template <typename Derived, typename = std::enable_if_t<cols_v<Derived> == 1>>
-AX_HOST_DEVICE AX_FORCE_INLINE idx argmin(DBcr<Derived> mv) {
-  idx coef = -1;
+AX_HOST_DEVICE AX_FORCE_INLINE Index argmin(DBcr<Derived> mv) {
+  Index coef = -1;
   mv.minCoeff(coef);
   return coef;
 }
@@ -220,13 +220,13 @@ using std::isnan;
 using std::lgamma;
 using std::tgamma;
 
-template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
+template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
                                                                        const math::veci<dim>& b) {
   math::veci<dim> output;
 #ifdef __clang__
 #  pragma unroll
 #endif
-  for (idx d = 0; d < dim; ++d) {
+  for (Index d = 0; d < dim; ++d) {
     output[d] = a[d] % b[d];
   }
   return output;
@@ -237,33 +237,33 @@ struct stride_t {};
 constexpr subscript_t subscript;
 constexpr stride_t stride;
 
-template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
+template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::veci<dim> const& sub,
                                                               math::veci<dim> const& stride,
                                                               stride_t) {
   return dot(sub, stride);
 }
 
-template <idx dim>
+template <Index dim>
 AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> to_stride(math::veci<dim> const& shape) {
   math::veci<dim> stride;
   stride[dim - 1] = 1;
-  for (idx d = dim - 2; d >= 0; --d) {
+  for (Index d = dim - 2; d >= 0; --d) {
     stride[d] = stride[d + 1] * shape[d + 1];
   }
   return stride;
 }
 
-template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE idx sub2ind(math::veci<dim> const& sub,
+template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::veci<dim> const& sub,
                                                               math::veci<dim> const& shape,
                                                               subscript_t = subscript) {
   return sub2ind(sub, math::to_stride<dim>(shape), stride);
 }
 
-template <idx dim>
-AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(idx ind, math::veci<dim> const& stride,
+template <Index dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(Index ind, math::veci<dim> const& stride,
                                                        subscript_t) {
   math::veci<dim> sub;
-  for (idx d = dim - 1; d >= 0; --d) {
+  for (Index d = dim - 1; d >= 0; --d) {
     sub[d] = ind / stride[d];
     ind -= sub[d] * stride[d];
   }

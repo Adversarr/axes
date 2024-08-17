@@ -9,8 +9,8 @@ using namespace ax::graph;
 
 class IntToString : public NodeBase {
 public:
-  IntToString(NodeDescriptor const* descript, idx id) : NodeBase(descript, id) {}
-  Status Apply(idx) override {
+  IntToString(NodeDescriptor const* descript, Index id) : NodeBase(descript, id) {}
+  Status Apply(Index) override {
     AX_RETURN_OK();
   }
 };
@@ -49,7 +49,7 @@ TEST_CASE("Graph") {
   CHECK(graph.GetSocket(node1->GetId(), 0, node2->GetId(), 0) == nullptr);
 
   graph.Clear();
-  std::vector<idx> nodes;
+  std::vector<Index> nodes;
   std::vector<Socket* > sockets;
   for (int i = 0; i < 10; i++) {
     nodes.push_back(graph.AddNode(&node_desc).value()->GetId());

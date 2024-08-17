@@ -18,10 +18,10 @@ namespace ax::gl {
 
 /****************************** PImpl ******************************/
 struct Window::Impl {
-  math::vec2i size_;
-  math::vec2i pos_;
-  math::vec2i fb_size_;
-  math::vec2f fb_scale_;
+  math::IndexVec2 size_;
+  math::IndexVec2 pos_;
+  math::IndexVec2 fb_size_;
+  math::FloatVector2 fb_scale_;
   bool should_close_;
   GLFWwindow* window_ = nullptr;
 
@@ -158,15 +158,15 @@ Window::~Window() {
 }
 
 /****************************** Meta Data Getters ******************************/
-math::vec2i Window::GetSize() const { return impl_->size_; }
+math::IndexVec2 Window::GetSize() const { return impl_->size_; }
 
-math::vec2i Window::GetPos() const { return impl_->pos_; }
+math::IndexVec2 Window::GetPos() const { return impl_->pos_; }
 
-math::vec2i Window::GetFrameBufferSize() const { return impl_->fb_size_; }
+math::IndexVec2 Window::GetFrameBufferSize() const { return impl_->fb_size_; }
 
-math::vec2r Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<real>(); }
+math::RealVector2 Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<real>(); }
 
-math::vec2r Window::GetCursorPos() const {
+math::RealVector2 Window::GetCursorPos() const {
   double pos_x, pos_y;
   glfwGetCursorPos(impl_->window_, &pos_x, &pos_y);
   return {pos_x, pos_y};

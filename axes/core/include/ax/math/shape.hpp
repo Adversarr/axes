@@ -39,7 +39,7 @@ template <typename IndexType, int dim> struct ShapeArray {
 
 namespace details {
 
-template <idx Idx, typename T> using project_t = T;
+template <Index Idx, typename T> using project_t = T;
 
 template <typename IndexType, int dim> struct ShapeTupleImpl;
 template <typename IndexType> struct ShapeTupleImpl<IndexType, 0> {
@@ -256,9 +256,9 @@ AX_CONSTEXPR AX_HOST_DEVICE ShapeArray<IndexType, dim> to_array(ShapeTuple<Index
   return details::shape_tuple_to_array<IndexType, dim>(shape_tuple);
 }
 
-template <typename IndexType, int dim> AX_CONSTEXPR AX_HOST_DEVICE Eigen::Map<const vec<IndexType, dim>> to_vec(
+template <typename IndexType, int dim> AX_CONSTEXPR AX_HOST_DEVICE Eigen::Map<const Vector<IndexType, dim>> to_vec(
     ShapeArray<IndexType, dim> const& shape_array) {
-  return Eigen::Map<const vec<IndexType, dim>>(shape_array.data_);
+  return Eigen::Map<const Vector<IndexType, dim>>(shape_array.data_);
 }
 
 }  // namespace ax::math

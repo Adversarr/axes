@@ -14,11 +14,11 @@ public:
   real min_eigval_{1e-6};
 };
 
-template<idx dim>
-AX_HOST_DEVICE AX_FORCE_INLINE math::matr<dim, dim>
-project_spd_by_eigvals(math::matr<dim, dim> const& A, real min_eigval) {
-  math::matr<dim, dim> V;
-  math::vecr<dim> D;
+template<Index dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<dim, dim>
+project_spd_by_eigvals(math::RealMatrix<dim, dim> const& A, real min_eigval) {
+  math::RealMatrix<dim, dim> V;
+  math::RealVector<dim> D;
   math::eig(A, V, D);
   D = D.cwiseMax(min_eigval);
   return V * D.asDiagonal() * V.transpose();

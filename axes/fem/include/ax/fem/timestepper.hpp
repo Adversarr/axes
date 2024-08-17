@@ -38,9 +38,9 @@ public:
   virtual utils::Options GetOptions() const override;
 
   // External force getter/setter
-  math::fieldr<dim> const &GetExternalAcceleration() const { return ext_accel_; }
-  void SetExternalAcceleration(math::fieldr<dim> const &ext_force) { ext_accel_ = ext_force; }
-  void SetExternalAccelerationUniform(math::vecr<dim> const &ext_force) {
+  math::RealField<dim> const &GetExternalAcceleration() const { return ext_accel_; }
+  void SetExternalAcceleration(math::RealField<dim> const &ext_force) { ext_accel_ = ext_force; }
+  void SetExternalAccelerationUniform(math::RealVector<dim> const &ext_force) {
     SetExternalAcceleration(ext_force.replicate(1, mesh_->GetNumVertices()));
   }
 
@@ -48,25 +48,25 @@ public:
   /*************************
    * SECT: Constant APIs.
    *************************/
-  math::fieldr<dim> const &GetDisplacement() const { return u_; }
-  math::fieldr<dim> const &GetLastDisplacement() const { return u_back_; }
-  math::fieldr<dim> const &GetNextDisplacementDelta() const { return du_; }
-  math::fieldr<dim> const &GetVelocity() const { return velocity_; }
-  math::fieldr<dim> GetPosition() const;
-  math::fieldr<dim> GetLastPosition() const;
+  math::RealField<dim> const &GetDisplacement() const { return u_; }
+  math::RealField<dim> const &GetLastDisplacement() const { return u_back_; }
+  math::RealField<dim> const &GetNextDisplacementDelta() const { return du_; }
+  math::RealField<dim> const &GetVelocity() const { return velocity_; }
+  math::RealField<dim> GetPosition() const;
+  math::RealField<dim> GetLastPosition() const;
 
   // SECT: Density: Will update the mass matrices.
   void SetDensity(real density);
-  void SetDensity(math::field1r const &density);
+  void SetDensity(math::RealField1 const &density);
   math::spmatr const &GetMassMatrix() const noexcept { return mass_matrix_; }
   math::spmatr const &GetMassMatrixOriginal() const noexcept { return mass_matrix_original_; }
 
   // SECT: Lame:
   void SetYoungs(real youngs);
   void SetPoissonRatio(real poisson_ratio);
-  void SetLame(const math::field2r &lame);
-  void SetLame(const math::vec2r &u_lame);
-  math::field2r const &GetLame() const noexcept { return lame_; }
+  void SetLame(const math::RealField2 &lame);
+  void SetLame(const math::RealVector2 &u_lame);
+  math::RealField2 const &GetLame() const noexcept { return lame_; }
 
   void SetupElasticity(std::string name, std::string device);
 
@@ -87,31 +87,31 @@ public:
   virtual void BeginTimestep();
   // Set the mesh to new position
   virtual void EndTimestep();
-  virtual void EndTimestep(math::fieldr<dim> const &du);
+  virtual void EndTimestep(math::RealField<dim> const &du);
   // Solve the timestep
   optim::OptProblem AssembleProblem();
-  void RecomputeInitialGuess(math::fieldr<dim> const &u, math::fieldr<dim> const &u_back,
-                             math::fieldr<dim> const &velocity, math::fieldr<dim> const &velocity_back,
-                             math::fieldr<dim> const &ext_accel);
-  math::fieldr<dim> const &GetInitialGuess() const { return du_inertia_; }
-  math::fieldr<dim> const &GetSolution() const { return du_; }
+  void RecomputeInitialGuess(math::RealField<dim> const &u, math::RealField<dim> const &u_back,
+                             math::RealField<dim> const &velocity, math::RealField<dim> const &velocity_back,
+                             math::RealField<dim> const &ext_accel);
+  math::RealField<dim> const &GetInitialGuess() const { return du_inertia_; }
+  math::RealField<dim> const &GetSolution() const { return du_; }
   virtual void SolveTimestep();
 
   // SECT: During the timestep, optimizers may require such information
 
-  real Energy(math::fieldr<dim> const &u) const;
-  math::fieldr<dim> GetElasticForce(math::fieldr<dim> const &u) const;
-  math::spmatr GetStiffnessMatrix(math::fieldr<dim> const &u, bool project = false) const;
-  math::fieldr<dim> Gradient(math::fieldr<dim> const &u) const;
-  math::vecxr GradientFlat(math::vecxr const &u_flat) const;
-  math::spmatr Hessian(math::fieldr<dim> const &u, bool project = true) const;
+  real Energy(math::RealField<dim> const &u) const;
+  math::RealField<dim> GetElasticForce(math::RealField<dim> const &u) const;
+  math::spmatr GetStiffnessMatrix(math::RealField<dim> const &u, bool project = false) const;
+  math::RealField<dim> Gradient(math::RealField<dim> const &u) const;
+  math::RealVectorX GradientFlat(math::RealVectorX const &u_flat) const;
+  math::spmatr Hessian(math::RealField<dim> const &u, bool project = true) const;
 
-  real ResidualNorm(math::fieldr<dim> const &grad) const;
-  real L2Residual(math::fieldr<dim> const &grad) const;
-  real L1Residual(math::fieldr<dim> const &grad) const;
-  real LinfResidual(math::fieldr<dim> const &grad) const;
+  real ResidualNorm(math::RealField<dim> const &grad) const;
+  real L2Residual(math::RealField<dim> const &grad) const;
+  real L1Residual(math::RealField<dim> const &grad) const;
+  real LinfResidual(math::RealField<dim> const &grad) const;
 
-  std::vector<math::fieldr<dim>> const &GetLastTrajectory() const { return last_trajectory_; }
+  std::vector<math::RealField<dim>> const &GetLastTrajectory() const { return last_trajectory_; }
   std::vector<real> const &GetLastEnergy() const { return last_energy_; }
 
 protected:
@@ -127,18 +127,18 @@ protected:
   real youngs_{1e7}, poisson_ratio_{0.33}, density_{1e3};
 
   // State variables
-  math::fieldr<dim> u_, u_back_;                ///< Displacement
-  math::fieldr<dim> velocity_, velocity_back_;  ///< Velocity
-  math::fieldr<dim> ext_accel_;                 ///< External acceleration
+  math::RealField<dim> u_, u_back_;                ///< Displacement
+  math::RealField<dim> velocity_, velocity_back_;  ///< Velocity
+  math::RealField<dim> ext_accel_;                 ///< External acceleration
   // TODO: we do not need these variables, we can move them to the integration scheme.
 
   /************************* SECT: Solver Results *************************/
   // NOTE: Stores the solution of displacement of displacement.
-  math::fieldr<dim> du_inertia_, du_, u_inertia_;
+  math::RealField<dim> du_inertia_, du_, u_inertia_;
 
   // runtime parameters.
-  // math::vec2r u_lame_;                 ///< Uniform Lame parameters
-  math::field2r lame_;                 ///< Lame parameters
+  // math::RealVector2 u_lame_;                 ///< Uniform Lame parameters
+  math::RealField2 lame_;                 ///< Lame parameters
   math::spmatr mass_matrix_;           ///< The full mass matrix, (N D, N D)
   math::spmatr mass_matrix_original_;  ///< The original mass matrix, (N, N)
 
@@ -151,20 +151,20 @@ protected:
   real rel_tol_grad_{0.02};
   real tol_var_{1e-9};
   TimestepConvergeNormKind converge_kind_{TimestepConvergeNormKind::kLinf};
-  idx max_iter_{1000};
+  Index max_iter_{1000};
   bool record_trajectory_{false};
 
-  std::vector<math::fieldr<dim>> last_trajectory_;
+  std::vector<math::RealField<dim>> last_trajectory_;
   std::vector<real> last_energy_;
-  idx last_iterations_{0};
+  Index last_iterations_{0};
 
 private:
   bool has_time_step_begin_{false};
   bool has_initialized_{false};
   bool has_simulation_begun_{false};
 
-  template <template <idx> class ElasticModelTemplate,
-            template <idx, template <idx> class> class Compute = ElasticityCompute_CPU>
+  template <template <Index> class ElasticModelTemplate,
+            template <Index, template <Index> class> class Compute = ElasticityCompute_CPU>
   void SetupElasticity();
 };
 

@@ -16,20 +16,20 @@ public:
     latent_velocity_.setZero(dim, basis.cols());
   }
 
-  math::fieldr<dim> LatentRestoreX(math::fieldr<dim> const& latent) const {
+  math::RealField<dim> LatentRestoreX(math::RealField<dim> const& latent) const {
     return x0_ + latent * basis_.transpose();
   }
 
-  math::fieldr<dim> LatentRestoreGradient(math::fieldr<dim> const& latent_gradient) const {
+  math::RealField<dim> LatentRestoreGradient(math::RealField<dim> const& latent_gradient) const {
     return latent_gradient * basis_.transpose();
   }
 
 private:
   math::matxxr basis_;
 
-  math::fieldr<dim> latent_;
-  math::fieldr<dim> latent_velocity_;
-  math::fieldr<dim> x0_;
+  math::RealField<dim> latent_;
+  math::RealField<dim> latent_velocity_;
+  math::RealField<dim> x0_;
 };
 
 }

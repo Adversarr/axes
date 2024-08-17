@@ -16,14 +16,14 @@ using namespace ax::graph;
 
 class CubicStylization : public NodeBase {
 public:
-  CubicStylization(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+  CubicStylization(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
     NodeDescriptorFactory<CubicStylization>()
         .SetName("CubicStylization")
         .SetDescription("Stylizes a mesh using cubic splines")
         .AddInput<geo::SurfaceMesh>("mesh", "The mesh to stylize")
-        .AddInput<idx>("steps", "The number of steps to take")
+        .AddInput<Index>("steps", "The number of steps to take")
         .AddInput<real>("rho", "rho")
         .AddInput<real>("lambda", "lambda")
         .AddInput<real>("tau", "tau")
@@ -32,9 +32,9 @@ public:
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx f) override {
+  Status Apply(Index f) override {
     auto *mesh = RetriveInput<geo::SurfaceMesh>(0);
-    auto *steps = RetriveInput<idx>(1);
+    auto *steps = RetriveInput<Index>(1);
     auto *rho = RetriveInput<real>(2);
     auto *lambda = RetriveInput<real>(3);
     auto *tau = RetriveInput<real>(4);

@@ -2,13 +2,13 @@
 #include "ax/math/common.hpp"
 namespace ax::geo {
 
-math::field2i get_edges(math::field3i const& triangles);
-math::field2i get_edges(math::field4i const& tetrahedrons);
+math::IndexField2 get_edges(math::IndexField3 const& triangles);
+math::IndexField2 get_edges(math::IndexField4 const& tetrahedrons);
 
-math::field2i get_boundary_edges(math::field3i const& triangles);
+math::IndexField2 get_boundary_edges(math::IndexField3 const& triangles);
 
-math::field2i get_boundary_edges(math::field3r const& vertices, math::field4i const& tetrahedrons);
+math::IndexField2 get_boundary_edges(math::RealField3 const& vertices, math::IndexField4 const& tetrahedrons);
 
-math::field3i get_boundary_triangles(math::field3r const& vertices, math::field4i const& tetrahedrons);
+math::IndexField3 get_boundary_triangles(math::RealField3 const& vertices, math::IndexField4 const& tetrahedrons);
 
 }  // namespace ax::geo

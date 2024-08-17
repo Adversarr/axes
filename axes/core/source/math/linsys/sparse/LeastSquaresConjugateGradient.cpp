@@ -19,8 +19,8 @@ LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(matxxr const
                                                                     matxxr const &x0) {
   if (!preconditioner_) {
     // TODO: Fix bug
-    // solver_.setMaxIterations(options.GetDefault<idx>("max_iter", 100));
-    vecxr x;
+    // solver_.setMaxIterations(options.GetDefault<Index>("max_iter", 100));
+    RealVectorX x;
     if (x0.size() > 0) {
       x = solver_.solveWithGuess(b, x0);
     } else {

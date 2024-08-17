@@ -13,7 +13,7 @@ namespace ax::pde {
  *
  * @tparam dim The dimension of the problem.
  */
-template <idx dim> class AdvectionProblem {
+template <Index dim> class AdvectionProblem {
 public:
   /**
    * @brief Constructs an AdvectionProblem object.
@@ -42,29 +42,29 @@ private:
  * @param dt The time step.
  * @return The advected lattice.
  */
-template <idx dim>
-math::Lattice<dim, math::vecr<dim>> semi_lagrangian(const math::Lattice<dim, math::vecr<dim>>& u,
-                                                    const math::Lattice<dim, math::vecr<dim>>& v,
+template <Index dim>
+math::Lattice<dim, math::RealVector<dim>> semi_lagrangian(const math::Lattice<dim, math::RealVector<dim>>& u,
+                                                    const math::Lattice<dim, math::RealVector<dim>>& v,
                                                     real dt, bool periodic) {
-  math::Lattice<dim, math::vecr<dim>> output(v.Shape());
+  math::Lattice<dim, math::RealVector<dim>> output(v.Shape());
   for (auto ijk : math::ndrange<dim>(v.Shape())) {
-    math::veci<dim> i = math::tuple_to_vector<idx, dim>(ijk);
-    math::vecr<dim> velocity = v(i);
-    math::vecr<dim> X = backtrace<dim>(i.template cast<real>(), velocity, dt);
+    math::veci<dim> i = math::tuple_to_vector<Index, dim>(ijk);
+    math::RealVector<dim> velocity = v(i);
+    math::RealVector<dim> X = backtrace<dim>(i.template cast<real>(), velocity, dt);
     output(i) = math::lerp_outside<dim>(u, X, periodic);
   }
   return output;
 }
 
-template <idx dim>
-math::Lattice<dim, math::vecr<dim>> bfecc(const math::Lattice<dim, math::vecr<dim>>& u,
-                                          const math::Lattice<dim, math::vecr<dim>>& v, real dt,
+template <Index dim>
+math::Lattice<dim, math::RealVector<dim>> bfecc(const math::Lattice<dim, math::RealVector<dim>>& u,
+                                          const math::Lattice<dim, math::RealVector<dim>>& v, real dt,
                                           bool periodic) {
-  math::Lattice<dim, math::vecr<dim>> x0 = semi_lagrangian<dim>(u, v, dt, periodic);
-  math::Lattice<dim, math::vecr<dim>> x1 = semi_lagrangian<dim>(x0, v, -dt, periodic);
-  math::Lattice<dim, math::vecr<dim>> x2(u.Shape());
+  math::Lattice<dim, math::RealVector<dim>> x0 = semi_lagrangian<dim>(u, v, dt, periodic);
+  math::Lattice<dim, math::RealVector<dim>> x1 = semi_lagrangian<dim>(x0, v, -dt, periodic);
+  math::Lattice<dim, math::RealVector<dim>> x2(u.Shape());
   for (auto ijk : math::ndrange<dim>(u.Shape())) {
-    math::veci<dim> i = math::tuple_to_vector<idx, dim>(ijk);
+    math::veci<dim> i = math::tuple_to_vector<Index, dim>(ijk);
     x2(i) = x0(i) + 0.5 * (x1(i) - u(i));
   }
   return x2;
@@ -80,26 +80,26 @@ math::Lattice<dim, math::vecr<dim>> bfecc(const math::Lattice<dim, math::vecr<di
  * @param periodic Whether the lattice has periodic boundary conditions.
  * @return The advected lattice.
  */
-template <idx dim, typename T>
-math::Lattice<dim, T> semi_lagrangian_staggered(const math::Lattice<dim, math::vecr<dim>>& v,
+template <Index dim, typename T>
+math::Lattice<dim, T> semi_lagrangian_staggered(const math::Lattice<dim, math::RealVector<dim>>& v,
                                                 real dt, bool periodic) {
   math::Lattice<dim, T> output(v.Shape());
   T dv = math::make_zeros<T>();
   for (auto ijk : math::ndrange<dim>(v.Shape())) {
     auto i = math::tuple_to_vector(ijk);
-    math::vecr<dim> velocity;
-    if_likely(all(i < v.Shape())) { velocity = 0.5 * (v(i) + v(i + math::ones<dim, idx>())); }
+    math::RealVector<dim> velocity;
+    if_likely(all(i < v.Shape())) { velocity = 0.5 * (v(i) + v(i + math::ones<dim, Index>())); }
     else if (periodic) {
-      velocity = v(i) + v(math::imod(i + math::ones<dim, idx>(), v.Shape()));
+      velocity = v(i) + v(math::imod(i + math::ones<dim, Index>(), v.Shape()));
     }
     else {
       velocity = v(i);
     }
-    math::vecr<dim> X = backtrace(i.template cast<real>(), velocity, dt);
-    for (idx d = 0; d < dim; ++d) {
-      math::vecr<dim> stagger_position = X + math::unit<dim, real>(d) * 0.5;
+    math::RealVector<dim> X = backtrace(i.template cast<real>(), velocity, dt);
+    for (Index d = 0; d < dim; ++d) {
+      math::RealVector<dim> stagger_position = X + math::unit<dim, real>(d) * 0.5;
       math::veci<dim> sub = to_subscripts(stagger_position);
-      math::veci<dim> sub2 = sub + math::unit<dim, idx>(d);
+      math::veci<dim> sub2 = sub + math::unit<dim, Index>(d);
       real val = 0;
       real weight = stagger_position[d] - math::cast<real>(sub[d]);
       if_likely(all(sub < v.Shape()) || periodic) {

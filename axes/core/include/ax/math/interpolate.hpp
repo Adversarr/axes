@@ -58,14 +58,14 @@ AX_HOST_DEVICE AX_FORCE_INLINE Scalar cubic_kernel(Scalar x) {
   }
 }
 
-template <idx dim>
-AX_HOST_DEVICE AX_FORCE_INLINE vecr<utils::god::pow(3, dim)> quadratic_coefficient(
-    vecr<dim> const& delta) {
-  vecr<utils::god::pow(3, dim)> output;
-  idx cnt = 0;
+template <Index dim>
+AX_HOST_DEVICE AX_FORCE_INLINE RealVector<utils::god::pow(3, dim)> quadratic_coefficient(
+    RealVector<dim> const& delta) {
+  RealVector<utils::god::pow(3, dim)> output;
+  Index cnt = 0;
   for (auto ijk : math::ndrange(veci<dim>::Constant(3))) {
-    veci<dim> sub = tuple_to_vector<idx, 3>(ijk);
-    vecr<dim> pos = sub.template cast<real>() - math::ones<dim>() + delta;
+    veci<dim> sub = tuple_to_vector<Index, 3>(ijk);
+    RealVector<dim> pos = sub.template cast<real>() - math::ones<dim>() + delta;
     output[cnt++] = prod(pos.unaryExpr(&quadratic_kernel<real>));
   }
   return output;

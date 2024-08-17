@@ -8,16 +8,16 @@
 
 namespace ax::gl {
 
-Mesh make_height_field(math::vecxr const& z, idx nx, idx ny) {
+Mesh make_height_field(math::RealVectorX const& z, Index nx, Index ny) {
   Mesh mesh;
   AX_CHECK(z.size() == nx * ny, "Size mismatch");
   mesh.vertices_.resize(3, nx * ny);
-  for (idx i = 0; i < nx; ++i) {
-    for (idx j = 0; j < ny; ++j) {
+  for (Index i = 0; i < nx; ++i) {
+    for (Index j = 0; j < ny; ++j) {
       real x = static_cast<real>(i) / static_cast<real>(nx - 1);
       real y = static_cast<real>(j) / static_cast<real>(ny - 1);
       real zi = z[i * ny + j];
-      mesh.vertices_.col(i * ny + j) = math::vec3r(x, y, zi);
+      mesh.vertices_.col(i * ny + j) = math::RealVector3(x, y, zi);
     }
   }
 

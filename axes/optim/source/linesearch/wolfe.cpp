@@ -33,7 +33,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   // }
   AX_THROW_IF_FALSE(expected_descent >= 0 || !math::isfinite(expected_descent),
                     "Invalid descent direction: df0={}", expected_descent);
-  idx iter = 0;
+  Index iter = 0;
   Gradient g;
   Variable x;
   real f = f0;

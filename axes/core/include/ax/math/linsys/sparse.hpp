@@ -7,7 +7,7 @@
 
 namespace ax::math {
 
-BOOST_DEFINE_FIXED_ENUM_CLASS(SparseSolverKind, idx, kLDLT, kLLT, kLU, kQR, kConjugateGradient,
+BOOST_DEFINE_FIXED_ENUM_CLASS(SparseSolverKind, Index, kLDLT, kLLT, kLU, kQR, kConjugateGradient,
                               kLeastSquaresConjugateGradient, kBiCGSTAB, kCholmod);
 
 class SparseSolverBase : public utils::Tunable {

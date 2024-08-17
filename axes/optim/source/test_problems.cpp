@@ -12,18 +12,18 @@ namespace ax::optim::test {
 
 /************************* SECT: RosenbrockProblem *************************/
 real rosenbrock(Variable const& x_mat) {
-  math::vecxr x = x_mat;
+  math::RealVectorX x = x_mat;
   real f = 0;
-  for (idx i = 0; i < x.size() - 1; ++i) {
+  for (Index i = 0; i < x.size() - 1; ++i) {
     f += math::square(x[i] - 1) + 100 * math::square(x[i + 1] - math::square(x[i]));
   }
   return f;
 }
 
 Gradient rosenbrock_grad(Variable const& x_mat) {
-  math::vecxr x = x_mat;
-  math::vecxr grad(x.size());
-  for (idx i = 0; i < x.size() - 1; ++i) {
+  math::RealVectorX x = x_mat;
+  math::RealVectorX grad(x.size());
+  for (Index i = 0; i < x.size() - 1; ++i) {
     grad[i] = -2 * (1 - x[i]) - 400 * x[i] * (x[i + 1] - math::square(x[i]));
   }
   grad[x.size() - 1] = 200 * (x[x.size() - 1] - math::square(x[x.size() - 2]));
@@ -31,9 +31,9 @@ Gradient rosenbrock_grad(Variable const& x_mat) {
 }
 
 DenseHessian rosenbrock_hessian(Variable const& x_mat) {
-  math::vecxr x = x_mat;
+  math::RealVectorX x = x_mat;
   math::matxxr hessian = math::zeros(x.size(), x.size());
-  for (idx i = 0; i < x.size() - 1; ++i) {
+  for (Index i = 0; i < x.size() - 1; ++i) {
     hessian(i, i) = 2 - 400 * x[i + 1] + 1200 * math::square(x[i]);
     hessian(i, i + 1) = -400 * x[i];
     hessian(i + 1, i) = -400 * x[i];
@@ -47,7 +47,7 @@ DenseHessian rosenbrock_hessian(Variable const& x_mat) {
 }
 
 Variable RosenbrockProblem::Optimal(Variable const& x0) {
-  return math::vecxr::Ones(x0.size());
+  return math::RealVectorX::Ones(x0.size());
 }
 
 RosenbrockProblem::RosenbrockProblem() {

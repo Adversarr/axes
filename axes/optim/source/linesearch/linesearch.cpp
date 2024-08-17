@@ -20,6 +20,6 @@ utils::Options LinesearchBase::GetOptions() const {
   return opt;
 }
 
-void LinesearchBase::SetOptions(const utils::Options& option) { AX_SYNC_OPT(option, idx, max_iter); }
+void LinesearchBase::SetOptions(const utils::Options& option) { AX_SYNC_OPT(option, Index, max_iter); }
 
 }  // namespace ax::optim

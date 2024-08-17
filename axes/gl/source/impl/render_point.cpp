@@ -43,10 +43,10 @@ void PointRenderer::TickRender() {
   }
   prog_.Use();
   auto& ctx = get_resource<Context>();
-  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
-  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
-  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  math::mat4f eye = math::eye<4, f32>();
+  math::FloatMatrix4 model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::FloatMatrix4 view = ctx.GetCamera().LookAt().cast<f32>();
+  math::FloatMatrix4 projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
+  math::FloatMatrix4 eye = math::eye<4, f32>();
   prog_.SetUniform("view", view);
   prog_.SetUniform("projection", projection);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -87,7 +87,7 @@ PointRenderData::PointRenderData(const Points& point) {
   use_global_model_ = point.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
   vertices_.reserve(static_cast<size_t>(point.vertices_.size()));
-  for (idx i = 0; i < point.vertices_.cols(); i++) {
+  for (Index i = 0; i < point.vertices_.cols(); i++) {
     PointRenderVertexData vertex;
     auto position = point.vertices_.col(i);
     auto color = point.colors_.col(i);

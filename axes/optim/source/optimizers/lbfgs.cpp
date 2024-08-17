@@ -27,7 +27,7 @@ struct RotatingHistoryBuffer {
   explicit RotatingHistoryBuffer(size_t size)
       : s_(size), y_(size), rho_(size), alpha_(size), total_(size) {}
 
-  void Reshape(idx rows, idx cols) {
+  void Reshape(Index rows, Index cols) {
     for (auto& v : s_) {
       v.resize(rows, cols);
     }
@@ -102,12 +102,12 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
   AX_THROW_IF_LT(history_size_, 0, "Invalid history size: {}", history_size_);
 
   // SECT: Initialize
-  idx rows = x0.rows(), cols = x0.cols();
+  Index rows = x0.rows(), cols = x0.cols();
   Variable x = x0;
   Gradient grad = problem_.EvalGrad(x);
   real f_iter = problem_.EvalEnergy(x);
 
-  idx iter = 0;
+  Index iter = 0;
   bool converged = false;
   bool converge_grad = false;
   bool converge_var = false;
@@ -129,7 +129,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
   }
 
   auto check_quality
-      = [&](std::string name, Variable const& residual, math::vecxr const& approx) {
+      = [&](std::string name, Variable const& residual, math::RealVectorX const& approx) {
           math::SparseSolver_ConjugateGradient cg;
           cg.SetProblem(sp_hessian).Compute();
           auto result = cg.Solve(residual, approx);
@@ -259,7 +259,7 @@ Optimizer_Lbfgs::Optimizer_Lbfgs() {
 
 void Optimizer_Lbfgs::SetOptions(utils::Options const& options) {
   OptimizerBase::SetOptions(options);
-  AX_SYNC_OPT_IF(options, idx, history_size) {
+  AX_SYNC_OPT_IF(options, Index, history_size) {
     AX_THROW_IF_LT(history_size_, 0, "History size should be positive");
   }
   AX_SYNC_OPT(options, bool, check_approx_quality);

@@ -18,12 +18,12 @@ void establish_pair(HalfedgeEdge* e1, HalfedgeEdge* e2) {
   std::tie(e1->pair_, e2->pair_) = {e2, e1};
 }
 
-HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& indices) {
-  for (idx i = 0; i < vertices.cols(); ++i) {
+HalfedgeMesh::HalfedgeMesh(math::RealField3 const& vertices, math::IndexField3 const& indices) {
+  for (Index i = 0; i < vertices.cols(); ++i) {
     vertices_.emplace_back(std::make_unique<HalfedgeVertex>(vertices.col(i), i));
   }
   for (auto ijk : math::each(indices)) {
-    const idx i = ijk.x(), j = ijk.y(), k = ijk.z();
+    const Index i = ijk.x(), j = ijk.y(), k = ijk.z();
     auto fijk = std::make_unique<HalfedgeFace>();
     auto e_ij = std::make_unique<HalfedgeEdge>();
     auto e_jk = std::make_unique<HalfedgeEdge>();
@@ -115,10 +115,10 @@ HalfedgeMesh::HalfedgeMesh(math::field3r const& vertices, math::field3i const& i
 }
 
 SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
-  math::field3i indices(3, faces_.size());
-  math::field3r vertices(3, vertices_.size());
+  math::IndexField3 indices(3, faces_.size());
+  math::RealField3 vertices(3, vertices_.size());
 
-  std::map<HalfedgeVertex*, idx> vertex_map;
+  std::map<HalfedgeVertex*, Index> vertex_map;
   for (auto [id, v] : utils::enumerate(vertices_)) {
     vertex_map.emplace(v.get(), id);
     vertices.col(id) = v->position_;
@@ -126,8 +126,8 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
 
   for (auto [id, face] : utils::enumerate(faces_)) {
     auto e = face->halfedge_entry_;
-    math::vec3i ijk;
-    for (idx i = 0; i < 3; ++i) {
+    math::IndexVec3 ijk;
+    for (Index i = 0; i < 3; ++i) {
       if (auto it = vertex_map.find(e->vertex_); it == vertex_map.end()) {
         AX_ERROR("Vertex not found in the vertex map: f{}, e{}", id, i);
       } else {
@@ -140,9 +140,9 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
   }
   return SurfaceMesh{vertices, indices};
 }
-HalfedgeFaceHandle HalfedgeMesh::GetFace(idx idx) const {
+HalfedgeFaceHandle HalfedgeMesh::GetFace(Index Index) const {
   for (auto const& f : faces_) {
-    if (f->original_id_ == idx) {
+    if (f->original_id_ == Index) {
       return HalfedgeFaceHandle{f.get()};
     }
   }
@@ -173,15 +173,15 @@ void HalfedgeMesh::RemoveVertexInternal(HalfedgeVertex* vert) {
   vertices_.pop_back();
 }
 
-HalfedgeVertexHandle HalfedgeMesh::GetVertex(idx idx) const {
+HalfedgeVertexHandle HalfedgeMesh::GetVertex(Index Index) const {
   for (auto const& v : vertices_) {
-    if (v->original_id_ == idx) {
+    if (v->original_id_ == Index) {
       return HalfedgeVertexHandle{v.get()};
     }
   }
   return HalfedgeVertexHandle{nullptr};
 }
-void HalfedgeMesh::CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_position) {
+void HalfedgeMesh::CollapseEdge(HalfedgeEdge* edge, math::RealVector3 const& target_position) {
   /**
    *    a
    *  /  \
@@ -289,7 +289,7 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
   }
   // Degree check.
   auto [i, j] = edge->HeadAndTail();
-  idx degree_i = 0, degree_j = 0;
+  Index degree_i = 0, degree_j = 0;
   ForeachEdgeAroundVertex(i, [&degree_i](HalfedgeEdge*) { ++degree_i; });
   ForeachEdgeAroundVertex(j, [&degree_j](HalfedgeEdge*) { ++degree_j; });
   if (degree_i <= 1 || degree_j <= 1) {
@@ -307,7 +307,7 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
   auto c = edge->prev_->vertex_, d = edge->pair_->prev_->vertex_;
   // Convexity check.
   auto flat_triangle_to_plane
-      = [](math::vec3r const& a, math::vec3r const& b, math::vec3r const& c) -> math::vec2r {
+      = [](math::RealVector3 const& a, math::RealVector3 const& b, math::RealVector3 const& c) -> math::RealVector2 {
     real xb = (b - a).norm();
     real xc = (c - a).dot(b - a) / xb;
     real yc = sqrt((c - a).squaredNorm() - xc * xc);
@@ -379,7 +379,7 @@ void HalfedgeMesh::ForeachEdgeAroundVertex(HalfedgeVertex* vert,
                 != vertices_.end(),
             "Vertex {} not found in the mesh.", static_cast<void*>(vert));
   auto beg = vert->halfedge_entry_;
-  idx rec_guard = 100;
+  Index rec_guard = 100;
   do {
     AX_DCHECK(beg != nullptr);
     fn(beg);
@@ -391,7 +391,7 @@ void HalfedgeMesh::ForeachEdgeAroundVertex(HalfedgeVertex* vert,
 void HalfedgeMesh::ForeachEdgeInFace(HalfedgeFace* face,
                                      std::function<void(HalfedgeEdge*)> const& fn) {
   auto beg = face->halfedge_entry_;
-  idx rec_guard = 100;
+  Index rec_guard = 100;
   do {
     AX_DCHECK(beg != nullptr);
     fn(beg);

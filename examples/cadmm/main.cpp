@@ -32,7 +32,7 @@ void render_aabb() {
 
   auto& g = xpbd::ensure_server();
   geo::BroadPhase_FlatOctree otree;
-  for (idx i = 0; i < g.vertices_.cols(); ++i) {
+  for (Index i = 0; i < g.vertices_.cols(); ++i) {
     geo::AlignedBox3 box;
     box.min() = g.vertices_.col(i);
     box.max() = g.vertices_.col(i);
@@ -59,15 +59,15 @@ void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
-  std::vector<std::pair<idx, idx>> edges;
+  std::vector<std::pair<Index, Index>> edges;
   for (auto const& c : g.constraints_) {
-    idx nC = c->GetNumConstraints();
+    Index nC = c->GetNumConstraints();
     auto& ids = c->GetConstrainedVerticesIds();
     edges.reserve(edges.size() + nC);
-    for (idx i = 0; i < nC; ++i) {
+    for (Index i = 0; i < nC; ++i) {
       auto const& ij = c->GetConstraintMapping()[i];
-      for (idx j = 1; j < ij.size(); ++j) {
-        for (idx k = 0; k < j; ++k) {
+      for (Index j = 1; j < ij.size(); ++j) {
+        for (Index k = 0; k < j; ++k) {
           edges.push_back({ids[ij[k]], ids[ij[j]]});
         }
       }
@@ -75,8 +75,8 @@ void update_rendering() {
   }
 
   lines.indices_.resize(2, edges.size());
-  for (idx i = 0; i < edges.size(); ++i) {
-    lines.indices_.col(i) = math::vec2i{edges[i].first, edges[i].second};
+  for (Index i = 0; i < edges.size(); ++i) {
+    lines.indices_.col(i) = math::IndexVec2{edges[i].first, edges[i].second};
   }
   lines.colors_.setOnes(4, g.vertices_.size());
   lines;
@@ -101,7 +101,7 @@ int n_iter = 2;
 
 void step() {
   auto& g = xpbd::ensure_server();
-  idx const nV = g.vertices_.cols();
+  Index const nV = g.vertices_.cols();
   g.last_vertices_.swap(g.vertices_);
 
   // initial guess is inertia position:
@@ -111,8 +111,8 @@ void step() {
     c->BeginStep();
   }
 
-  math::field1r w(1, nV);
-  for (idx i = 0; i < n_iter; ++i) {
+  math::RealField1 w(1, nV);
+  for (Index i = 0; i < n_iter; ++i) {
     g.vertices_.setZero();
     w.setZero(1, nV);
     real sqr_dual_residual = 0;
@@ -121,7 +121,7 @@ void step() {
       auto R = c->SolveDistributed();
       // x_i step:
       for (auto I : utils::iota(R.weights_.size())) {
-        idx iV = c->GetConstrainedVerticesIds()[I];
+        Index iV = c->GetConstrainedVerticesIds()[I];
         g.vertices_.col(iV) += R.weighted_position_.col(I);
         w(iV) += R.weights_[I];
       }
@@ -132,7 +132,7 @@ void step() {
     }
 
     // z_i step:
-    // for (idx iV = 0; iV < nV; ++iV) {
+    // for (Index iV = 0; iV < nV; ++iV) {
     //   g.vertices_.col(iV) /= w(iV);
     // }
     xpbd::global_step_collision_free(g.vertices_, w);
@@ -181,17 +181,17 @@ int main(int argc, char** argv) {
   g.dt_ = 1e-2;
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
-  idx nx = absl::GetFlag(FLAGS_nx);
+  Index nx = absl::GetFlag(FLAGS_nx);
   auto plane = geo::plane(0.5, 0.5, nx, nx);
 
   plane.vertices_.row(2) = plane.vertices_.row(1);
   plane.vertices_.row(1).setZero();
-  // idx nB = nx * nx;
-  idx nV = plane.vertices_.cols();
+  // Index nB = nx * nx;
+  Index nV = plane.vertices_.cols();
 
   g.vertices_.setZero(3, nV);
   g.vertices_.block(0, 0, 3, plane.vertices_.cols()) = plane.vertices_;
-  // g.vertices_.rightCols<1>() = math::vec3r{0.2, 0.1, 0.3};
+  // g.vertices_.rightCols<1>() = math::RealVector3{0.2, 0.1, 0.3};
   // g.vertices_.rightCols(nB).setRandom();
   // g.vertices_.rightCols(nB) *= 0.3;
   // g.vertices_.rightCols(nB).row(1).setConstant(3);
@@ -201,21 +201,21 @@ int main(int argc, char** argv) {
   g.ext_accel_.row(1).setConstant(-9.8);
   g.mass_.setConstant(1, g.vertices_.cols(), 1e-3);
 
-  math::field2i edges = geo::get_edges(plane.indices_);
-  sp->SetSprings(edges, math::field1r::Constant(1, edges.cols(), 1e4));
+  math::IndexField2 edges = geo::get_edges(plane.indices_);
+  sp->SetSprings(edges, math::RealField1::Constant(1, edges.cols(), 1e4));
 
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
   g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kBallCollider));
   auto* bc = reinterpret_cast<xpbd::Constraint_BallCollider*>(g.constraints_.back().get());
-  bc->center_ = math::vec3r{0, -1, 0};
+  bc->center_ = math::RealVector3{0, -1, 0};
   bc->radius_ = 0.4;
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kHard));
   // auto *hard = reinterpret_cast<xpbd::Constraint_Hard*>(g.constraints_.back().get());
-  // math::field1i hard_indices = math::field1i::Zero(1, 4);
-  // idx cnt = 0;
+  // math::IndexField1 hard_indices = math::IndexField1::Zero(1, 4);
+  // Index cnt = 0;
   // hard_indices << 0, nx, nx * (nx + 1), nx * nx + 2 * nx;
   // hard->SetHard(hard_indices);
 

@@ -13,32 +13,32 @@ public:
 
   void SetRotate(f32 yaw, f32 pitch);
 
-  void Move(math::vec3f const& direction);
+  void Move(math::FloatVector3 const& direction);
 
-  void SetPosition(math::vec3f const& position);
+  void SetPosition(math::FloatVector3 const& position);
 
   void SetAspect(f32 aspect);
 
-  void SetAspect(idx x, idx y);
+  void SetAspect(Index x, Index y);
 
-  math::mat4f LookAt() const;
-  math::mat4f Perspective() const;
-  math::mat4f Ortho() const;
-  math::mat4f GetProjectionMatrix() const;
+  math::FloatMatrix4 LookAt() const;
+  math::FloatMatrix4 Perspective() const;
+  math::FloatMatrix4 Ortho() const;
+  math::FloatMatrix4 GetProjectionMatrix() const;
 
   void SetFov(f32 fov);
-  void SetOrthoHorizontal(math::vec2f const& value);
-  void SetOrthoVertical(math::vec2f const& value);
+  void SetOrthoHorizontal(math::FloatVector2 const& value);
+  void SetOrthoVertical(math::FloatVector2 const& value);
   void SetProjectionMode(bool use_perspective);
 
   /****************************** Getters ******************************/
-  math::vec3f& GetPosition();
+  math::FloatVector3& GetPosition();
 
-  math::vec3f& GetFront();
+  math::FloatVector3& GetFront();
 
-  math::vec3f& GetRight();
+  math::FloatVector3& GetRight();
 
-  math::vec3f& GetUp();
+  math::FloatVector3& GetUp();
 
   f32 GetYaw() const;
 
@@ -51,17 +51,17 @@ public:
   bool use_perspective_;
 private:
   // External Parameters
-  math::vec3f position_;
+  math::FloatVector3 position_;
 
   // These will sync with rotation
-  math::vec3f up_;
-  math::vec3f right_;
-  math::vec3f front_;
+  math::FloatVector3 up_;
+  math::FloatVector3 right_;
+  math::FloatVector3 front_;
   f32 yaw_;
   f32 pitch_;
 
-  math::vec2f ortho_horizontal_;
-  math::vec2f ortho_vertical_;
+  math::FloatVector2 ortho_horizontal_;
+  math::FloatVector2 ortho_vertical_;
 
   // Internal Parameters
   f32 fov_;

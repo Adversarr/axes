@@ -13,7 +13,7 @@
 
 namespace ax::fem {
 
-// template <idx dim> Status TimeStepper_ROM<dim>::Step(real dt) {
+// template <Index dim> Status TimeStepper_ROM<dim>::Step(real dt) {
 //   // Get the mesh
 //   AX_TIME_FUNC();
 //   auto &mesh = this->GetMesh();
@@ -21,50 +21,50 @@ namespace ax::fem {
 //   elasticity.SetLame(this->u_lame_);
 //   auto &velocity = this->velocity_;
 //   auto &mass_matrix = this->mass_matrix_;
-//   math::vec2r lame = this->u_lame_;
-//   idx n_vert = mesh.GetNumVertices();
+//   math::RealVector2 lame = this->u_lame_;
+//   Index n_vert = mesh.GetNumVertices();
 //   // Setup the NonLinear Problem.
 //   optim::OptProblem problem;
 
 //   // Setup the initial guess.
-//   math::vecxr y = (latent_velocity_ * dt).reshaped();
-//   math::fieldr<dim> full_space_inertia_position_expectation
+//   math::RealVectorX y = (latent_velocity_ * dt).reshaped();
+//   math::RealField<dim> full_space_inertia_position_expectation
 //       = mesh.GetVertices() 
 //         + dt * velocity
 //         + dt * dt * this->ext_accel_ * this->mass_matrix_original_;
 
-//   real max_tol = (mass_matrix * math::vecxr::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
+//   real max_tol = (mass_matrix * math::RealVectorX::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
 //   AX_LOG(INFO) << "Max Tol: " << max_tol;
 //   // Setup the objective function.
 //   problem
-//       .SetEnergy([&](const math::vecxr &w) -> real {
-//         math::fieldr<dim> dl = w.reshaped(dim, latent_.cols());
-//         math::fieldr<dim> x = LatentRestoreX(dl + latent_);
-//         math::fieldr<dim> xy = (x - full_space_inertia_position_expectation);
+//       .SetEnergy([&](const math::RealVectorX &w) -> real {
+//         math::RealField<dim> dl = w.reshaped(dim, latent_.cols());
+//         math::RealField<dim> x = LatentRestoreX(dl + latent_);
+//         math::RealField<dim> xy = (x - full_space_inertia_position_expectation);
 //         real kinematic = 0.5 * xy.reshaped().dot(mass_matrix * xy.reshaped());
 //         elasticity.Update(x, ElasticityUpdateLevel::kEnergy);
 //         elasticity.UpdateEnergy();
 //         real elastic = elasticity.GetEnergyOnElements().sum() * dt * dt;
 //         return kinematic + elastic;
 //       })
-//       .SetGrad([&](const math::vecxr &w) -> math::vecxr {
-//         math::fieldr<dim> dl = w.reshaped(dim, latent_.cols());
-//         math::fieldr<dim> x = LatentRestoreX(dl + latent_);
-//         math::fieldr<dim> xy = (x - full_space_inertia_position_expectation);
-//         math::fieldr<dim> Mxy = xy * this->mass_matrix_original_;
+//       .SetGrad([&](const math::RealVectorX &w) -> math::RealVectorX {
+//         math::RealField<dim> dl = w.reshaped(dim, latent_.cols());
+//         math::RealField<dim> x = LatentRestoreX(dl + latent_);
+//         math::RealField<dim> xy = (x - full_space_inertia_position_expectation);
+//         math::RealField<dim> Mxy = xy * this->mass_matrix_original_;
 //         elasticity.Update(x, ElasticityUpdateLevel::kStress);
 //         elasticity.UpdateStress();
 //         elasticity.GatherStressToVertices();
-//         math::vecxr grad_full = (dt * dt * elasticity.GetStressOnVertices() + Mxy).reshaped();
+//         math::RealVectorX grad_full = (dt * dt * elasticity.GetStressOnVertices() + Mxy).reshaped();
 //         mesh.FilterVector(grad_full, true);
-//         math::vecxr grad_rom = (grad_full.reshaped(dim, n_vert) * basis_).reshaped();
+//         math::RealVectorX grad_rom = (grad_full.reshaped(dim, n_vert) * basis_).reshaped();
 //         return grad_rom;
 //       })
-//       .SetConvergeGrad([&](const math::vecxr &x, const math::vecxr & g) -> real {
+//       .SetConvergeGrad([&](const math::RealVectorX &x, const math::RealVectorX & g) -> real {
 //         real rv = math::abs(g).maxCoeff() / max_tol / (dt * dt);
 //         return rv;
 //       })
-//       .SetVerbose([&](idx i, const math::vecxr &X, const real energy) {
+//       .SetVerbose([&](Index i, const math::RealVectorX &X, const real energy) {
 //         AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy
 //                      << "|g|=" << problem.EvalGrad(X).norm() << "X=" << X.transpose();
 //       });

@@ -43,8 +43,8 @@ struct Context::Impl {
   f32 model_rotate_x_{0.0f};
   f32 model_rotate_y_{0.0f};
 
-  math::mat4f model_;
-  math::vec4f clear_color_;
+  math::FloatMatrix4 model_;
+  math::FloatVector4 clear_color_;
 
   entt::entity axis_entity_;
   entt::entity light_entity_;
@@ -61,7 +61,7 @@ struct Context::Impl {
   bool is_pressing_space_key_ = false;
   bool is_mouse_button_pressed_ = false;
   bool is_context_window_open_{false};
-  math::vec2r prev_cursor_pos_;
+  math::RealVector2 prev_cursor_pos_;
   float mouse_sensitivity_{1.0f};
 
   std::vector<entt::connection> connections_;
@@ -183,8 +183,8 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       auto up = camera_.GetUp();
       auto right = camera_.GetRight();
 
-      math::mat3f rx = Eigen::AngleAxis<f32>(static_cast<f32>(dy), right).toRotationMatrix();
-      math::mat3f ry = Eigen::AngleAxis<f32>(static_cast<f32>(-dx), up).toRotationMatrix();
+      math::FloatMatrix3 rx = Eigen::AngleAxis<f32>(static_cast<f32>(dy), right).toRotationMatrix();
+      math::FloatMatrix3 ry = Eigen::AngleAxis<f32>(static_cast<f32>(-dx), up).toRotationMatrix();
 
       model_.topLeftCorner<3, 3>() *= rx * ry;
     }
@@ -301,8 +301,8 @@ Context::Context() {
   auto fb_size = impl_->window_.GetFrameBufferSize();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
   impl_->model_ = math::eye<4>().cast<float>();
-  impl_->clear_color_ = math::vec4f{0.1f, 0.1f, 0.1f, 1.0f};
-  impl_->light_.position_ = math::vec3f{0, 2, 2};
+  impl_->clear_color_ = math::FloatVector4{0.1f, 0.1f, 0.1f, 1.0f};
+  impl_->light_.position_ = math::FloatVector3{0, 2, 2};
   impl_->light_.ambient_strength_ = 0.1f;
   impl_->prev_cursor_pos_ = impl_->window_.GetCursorPos();
 
@@ -433,8 +433,8 @@ void Context::AppendEntityRenderer(std::unique_ptr<RenderBase> renderer) {
 
 Light& Context::GetLight() { return impl_->light_; }
 
-math::mat4f const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
+math::FloatMatrix4 const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
 
-void Context::SetGlobalModelMatrix(math::mat4f const& value) { impl_->model_ = value; }
+void Context::SetGlobalModelMatrix(math::FloatMatrix4 const& value) { impl_->model_ = value; }
 
 }  // namespace ax::gl

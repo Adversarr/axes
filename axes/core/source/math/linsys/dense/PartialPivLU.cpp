@@ -4,11 +4,11 @@
 
 namespace ax::math {
 
-math::vecxr DenseSolver_PartialPivLU::Solve(vecxr const& b) {
+math::RealVectorX DenseSolver_PartialPivLU::Solve(RealVectorX const& b) {
   // AX_LOG_FIRST_N(WARNING, 1)
   //     << "This method always assume your matrix is invertible. If you are not sure, use "
   //        "FullPivLU instead.";
-  vecxr x = impl_.solve(b);
+  RealVectorX x = impl_.solve(b);
   return x;
 }
 

@@ -22,7 +22,7 @@
 // const char* cmap_names[] = {
 //     "bwr", "coolwarm", "jet", "plasma", "seismic",
 // };
-// gl::cmap& get_colormap(idx which) {
+// gl::cmap& get_colormap(Index which) {
 //   switch (which) {
 //     case 0:
 //       return gl::colormap_bwr;
@@ -43,9 +43,9 @@
 // public:
 //   AX_NODE_COMMON(Render_Mesh, "Render_mesh", "Renders a mesh entity") {}
 //   AX_NODE_INPUTS((entt::entity, entity, "Entity"), (geo::SurfaceMesh, mesh, "Mesh"),
-//                  (math::field4r, color, "The color of the mesh"),
-//                  (math::vec4r, u_color, "The color of the mesh"),
-//                  (math::field3r, normal, "The normal of the mesh"),
+//                  (math::RealField4, color, "The color of the mesh"),
+//                  (math::RealVector4, u_color, "The color of the mesh"),
+//                  (math::RealField3, normal, "The normal of the mesh"),
 //                  (bool, flat, "If true, the mesh will be rendered flat"),
 //                  (bool, use_lighting, "If true, the mesh will be rendered with lighting"),
 //                  (bool, flush, "If true, the mesh will be rendered to screen."));
@@ -63,17 +63,17 @@
 //     }
 //     const auto* mesh = AX_NODE_INPUT_ENSURE(mesh);
 //
-//     auto* color = RetriveInput<math::field4r>(2);
-//     auto* u_color = RetriveInput<math::vec4r>(3);
+//     auto* color = RetriveInput<math::RealField4>(2);
+//     auto* u_color = RetriveInput<math::RealVector4>(3);
 //
-//     auto* normal = RetriveInput<math::field3r>(4);
+//     auto* normal = RetriveInput<math::RealField3>(4);
 //     auto* flat = RetriveInput<bool>(5);
 //     auto* use_lighting = RetriveInput<bool>(6);
 //     auto* flush = RetriveInput<bool>(7);
 //
 //     const auto* m = AX_NODE_INPUT_ENSURE(mesh);
 //
-//     math::vec4r u_color_inuse = math::vec4r::Constant(0.);
+//     math::RealVector4 u_color_inuse = math::RealVector4::Constant(0.);
 //     if (u_color != nullptr) {
 //       u_color_inuse = *u_color;
 //     }
@@ -85,7 +85,7 @@
 //       mesh_comp.normals_ = *normal;
 //     }
 //
-//     mesh_comp.colors_ = math::field4r::Constant(4, mesh->vertices_.size(), 0.7);
+//     mesh_comp.colors_ = math::RealField4::Constant(4, mesh->vertices_.size(), 0.7);
 //     if (color != nullptr) {
 //       mesh_comp.colors_ = *color;
 //     }
@@ -125,20 +125,20 @@
 // public:
 //   AX_NODE_COMMON_WITH_CTOR(Render_Lines, "Render_Lines", "Renders a line entity");
 //   AX_NODE_INPUTS((entt::entity, entity, "Entity"),
-//                  (math::field3r, vertices, "The points to render"),
-//                  (math::field2i, indices, "The indices of the points"),
-//                  (math::field4r, color, "The color of the line"),
-//                  (math::vec4r, u_color, "The color of the line"));
+//                  (math::RealField3, vertices, "The points to render"),
+//                  (math::IndexField2, indices, "The indices of the points"),
+//                  (math::RealField4, color, "The color of the line"),
+//                  (math::RealVector4, u_color, "The color of the line"));
 //   AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Lines, gl_lines, "Lines in render."));
 //
 //   void Apply(size_t) override {
 //     auto* entity = RetriveInput<entt::entity>(0);
-//     auto* vertices = RetriveInput<math::field3r>(1);
-//     auto* indices = RetriveInput<math::field2i>(2);
-//     auto* color = RetriveInput<math::field4r>(3);
-//     auto* u_color = RetriveInput<math::vec4r>(4);
+//     auto* vertices = RetriveInput<math::RealField3>(1);
+//     auto* indices = RetriveInput<math::IndexField2>(2);
+//     auto* color = RetriveInput<math::RealField4>(3);
+//     auto* u_color = RetriveInput<math::RealVector4>(4);
 //
-//     math::field2i indices_in_use;
+//     math::IndexField2 indices_in_use;
 //
 //     if (vertices == nullptr) {
 //       if (entity == nullptr) {
@@ -158,8 +158,8 @@
 //     }
 //
 //     if (indices == nullptr) {
-//       indices_in_use = math::field2i(2, vertices->cols() - 1);
-//       for (idx i = 0; i < vertices->cols() - 1; ++i) {
+//       indices_in_use = math::IndexField2(2, vertices->cols() - 1);
+//       for (Index i = 0; i < vertices->cols() - 1; ++i) {
 //         indices_in_use(0, i) = i;
 //         indices_in_use(1, i) = i + 1;
 //       }
@@ -179,7 +179,7 @@
 //     lines_comp.vertices_ = *vertices;
 //     lines_comp.indices_ = std::move(indices_in_use);
 //
-//     lines_comp.colors_ = math::field4r::Zero(4, vertices->cols());
+//     lines_comp.colors_ = math::RealField4::Zero(4, vertices->cols());
 //     if (color != nullptr) {
 //       lines_comp.colors_ = *color;
 //     }
@@ -211,17 +211,17 @@
 // public:
 //
 //   AX_NODE_COMMON_WITH_CTOR(Render_Points, "Render_Points", "Renders a point entity");
-//   AX_NODE_INPUTS((entt::entity, entity, "Entity"), (math::field3r, points, "The points to render"),
-//                  (math::field4r, color, "The color of the points"),
-//                  (math::vec4r, u_color, "The color of the points"),
+//   AX_NODE_INPUTS((entt::entity, entity, "Entity"), (math::RealField3, points, "The points to render"),
+//                  (math::RealField4, color, "The color of the points"),
+//                  (math::RealVector4, u_color, "The color of the points"),
 //                  (bool, flush, "Flush the points to screen."));
 //   AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Points, gl_points, "Points in render."));
 //
 //   void Apply(size_t) override {
 //     auto* entity = RetriveInput<entt::entity>(0);
-//     auto* points = RetriveInput<math::field3r>(1);
-//     auto* color = RetriveInput<math::field4r>(2);
-//     auto* u_color = RetriveInput<math::vec4r>(3);
+//     auto* points = RetriveInput<math::RealField3>(1);
+//     auto* color = RetriveInput<math::RealField4>(2);
+//     auto* u_color = RetriveInput<math::RealVector4>(3);
 //
 //     if (points == nullptr) {
 //       throw make_invalid_argument("points is not set.");
@@ -239,7 +239,7 @@
 //     auto& points_comp = add_or_replace_component<gl::Points>(entity_inuse);
 //     points_comp.vertices_ = *points;
 //     if (color == nullptr) {
-//       points_comp.colors_ = math::field4r::Constant(4, points->cols(), 0.7);
+//       points_comp.colors_ = math::RealField4::Constant(4, points->cols(), 0.7);
 //     } else {
 //       if (color->cols() != points->cols()) {
 //         throw make_invalid_argument("The number of colors does not match the number of points.");
@@ -277,7 +277,7 @@
 //   AX_NODE_INPUTS((real, value, "The real value to map"),
 //                  (real, low, "Low value of the map"),
 //                  (real, high, "High value of the map"));
-//   AX_NODE_OUTPUTS((math::vec4r, color, "The color mapped from the value"));
+//   AX_NODE_OUTPUTS((math::RealVector4, color, "The color mapped from the value"));
 //
 //   static void register_render() {
 //     add_custom_node_render<ColorMap_real>([](NodeBase* node) {
@@ -285,14 +285,14 @@
 //       draw_node_header_default(node);
 //       ImGui::Text("Colormap:");
 //       ImGui::SameLine();
-//       idx& n = static_cast<ColorMap_real*>(node)->which_map;
+//       Index& n = static_cast<ColorMap_real*>(node)->which_map;
 //       if (ImGui::Button(cmap_names[n])) {
 //         ImGui::OpenPopup("colormap_select");
 //       }
 //
 //       ed::Suspend();
 //       if (ImGui::BeginPopup("colormap_select")) {
-//         for (idx i = 0; i < 5; i++) {
+//         for (Index i = 0; i < 5; i++) {
 //           if (ImGui::Selectable(cmap_names[i])) {
 //             n = i;
 //           }
@@ -310,7 +310,7 @@
 //
 //     gl::Colormap cmap(low_inuse, high_inuse);
 //     auto rgb = cmap(value_inuse);
-//     math::vec4r rgba;
+//     math::RealVector4 rgba;
 //     rgba << rgb, 1;
 //     Set(out_color, rgba);
 //   }
@@ -321,7 +321,7 @@
 //     return obj;
 //   }
 //
-//   idx which_map = 0;
+//   Index which_map = 0;
 //
 //   void Deserialize(boost::json::object const& obj) override {
 //     if (obj.contains("which_map")) {
@@ -334,25 +334,25 @@
 //   }
 // };
 //
-// class ColorMap_field1r : public NodeBase {
+// class ColorMap_RealField1 : public NodeBase {
 // public:
-//   AX_NODE_COMMON_WITH_CTOR(ColorMap_field1r, "Colormap_field1r", "Maps a field1r to a color");
-//   AX_NODE_INPUTS((math::field1r, data, "The field to map"));
-//   AX_NODE_OUTPUTS((math::field4r, color, "The color mapped from the field"));
+//   AX_NODE_COMMON_WITH_CTOR(ColorMap_RealField1, "Colormap_RealField1", "Maps a RealField1 to a color");
+//   AX_NODE_INPUTS((math::RealField1, data, "The field to map"));
+//   AX_NODE_OUTPUTS((math::RealField4, color, "The color mapped from the field"));
 //
 //   void Apply(size_t) override {
-//     auto* field = RetriveInput<math::field1r>(0);
+//     auto* field = RetriveInput<math::RealField1>(0);
 //
 //     if (field == nullptr) {
 //       throw make_invalid_argument("field is not set.");
 //     }
 //
-//     math::field1r const& field_inuse = *field;
-//     math::field4r out(4, field_inuse.cols());
+//     math::RealField1 const& field_inuse = *field;
+//     math::RealField4 out(4, field_inuse.cols());
 //
 //     out.topRows(3) = field_inuse.replicate(3, 1);
 //     out.row(3).setOnes();
-//     SetOutput<math::field4r>(0, std::move(out));
+//     SetOutput<math::RealField4>(0, std::move(out));
 //   }
 // };
 //
@@ -411,7 +411,7 @@
 //   Render_Points::register_this();
 //
 //   ColorMap_real::register_this();
-//   ColorMap_field1r::register_this();
+//   ColorMap_RealField1::register_this();
 //   GlMeshCachedSequence::register_this();
 // }
 //

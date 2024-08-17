@@ -14,7 +14,7 @@
 namespace ax::fem {
 using namespace elasticity;
 using namespace math;
-template <idx dim> static bool check_cache(DeformationGradientCache<dim> const& cache) {
+template <Index dim> static bool check_cache(DeformationGradientCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
     real detR = R_inv.determinant();
@@ -29,7 +29,7 @@ template <idx dim> static bool check_cache(DeformationGradientCache<dim> const& 
 /***********************************************************************************************
  * P1 Element Implementation.
  ***********************************************************************************************/
-AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
+AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
   const real m = DmInv(0, 0);
   const real n = DmInv(0, 1);
   const real o = DmInv(0, 2);
@@ -42,7 +42,7 @@ AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
   const real t1 = -m - p - s;
   const real t2 = -n - q - t;
   const real t3 = -o - r - u;
-  math::matr<9, 12> PFPx;
+  math::RealMatrix<9, 12> PFPx;
   PFPx.setZero();
   PFPx(0, 0) = t1;
   PFPx(0, 3) = m;
@@ -84,14 +84,14 @@ AX_FORCE_INLINE static math::matr<9, 12> ComputePFPx(const math::mat3r& DmInv) {
 }
 
 // Auto generated code.
-AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
+AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
   const real m = DmInv(0, 0);
   const real n = DmInv(0, 1);
   const real p = DmInv(1, 0);
   const real q = DmInv(1, 1);
   const real t1 = -m - p;
   const real t2 = -n - q;
-  math::matr<4, 6> PFPx;
+  math::RealMatrix<4, 6> PFPx;
   PFPx.setZero();
   PFPx(0, 0) = t1;
   PFPx(0, 2) = m;
@@ -108,17 +108,17 @@ AX_FORCE_INLINE static math::matr<4, 6> ComputePFPx(const math::mat2r& DmInv) {
   return PFPx;
 }
 
-template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
+template <Index dim> static DeformationGradientCache<dim> dg_rpcache_p1(
     TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose) {
   DeformationGradientCache<dim> cache;
-  idx n_elem = mesh.GetNumElements();
+  Index n_elem = mesh.GetNumElements();
   cache.resize(static_cast<size_t>(n_elem));
 
-  for (idx i = 0; i < n_elem; ++i) {
-    matr<dim, dim> rest_local;
+  for (Index i = 0; i < n_elem; ++i) {
+    RealMatrix<dim, dim> rest_local;
     const auto& element = mesh.GetElement(i);
     const auto& local_zero = rest_pose.col(element.x());
-    for (idx I = 1; I <= dim; ++I) {
+    for (Index I = 1; I <= dim; ++I) {
       rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
     }
     cache[static_cast<size_t>(i)] = rest_local.inverse();
@@ -129,21 +129,21 @@ template <idx dim> static DeformationGradientCache<dim> dg_rpcache_p1(
   return cache;
 }
 
-template <idx dim>
-static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> const& pose,
+template <Index dim>
+static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, RealField<dim> const& pose,
                                           DeformationGradientCache<dim> const& Dm_inv) {
-  idx n_elem = mesh.GetNumElements();
+  Index n_elem = mesh.GetNumElements();
   DeformationGradientList<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
   tbb::parallel_for(
-      tbb::blocked_range<idx>(0, n_elem, 50000 / (dim * dim)),
-      [&](tbb::blocked_range<idx> const& r) {
-        for (idx i = r.begin(); i < r.end(); ++i) {
+      tbb::blocked_range<Index>(0, n_elem, 50000 / (dim * dim)),
+      [&](tbb::blocked_range<Index> const& r) {
+        for (Index i = r.begin(); i < r.end(); ++i) {
           size_t const si = static_cast<size_t>(i);
-          math::matr<dim, dim> Ds;
+          math::RealMatrix<dim, dim> Ds;
           math::veci<dim + 1> element = mesh.GetElement(i);
-          math::vecr<dim> local_zero = pose.col(element.x());
-          for (idx I = 1; I <= dim; ++I) {
+          math::RealVector<dim> local_zero = pose.col(element.x());
+          for (Index I = 1; I <= dim; ++I) {
             Ds.col(I - 1) = pose.col(element[I]) - local_zero;
           }
           dg[si] = Ds * Dm_inv[si];
@@ -154,19 +154,19 @@ static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, fieldr<dim> 
   return dg;
 }
 
-template <idx dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
+template <Index dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
     TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     DeformationGradientCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
   // TODO: With Vertex->Element Map, the parallel is possible.
-  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+  for (Index i = 0; i < mesh.GetNumElements(); ++i) {
     // For P1 Element, the force on is easy to compute.
     const auto& ijk = mesh.GetElement(i);
     const auto& stress_i = stress[static_cast<size_t>(i)];
-    math::matr<dim, dim> R = cache[static_cast<size_t>(i)];
-    math::matr<dim, dim> f123 = stress_i * R.transpose();
-    for (idx I = 1; I <= dim; ++I) {
+    math::RealMatrix<dim, dim> R = cache[static_cast<size_t>(i)];
+    math::RealMatrix<dim, dim> f123 = stress_i * R.transpose();
+    for (Index I = 1; I <= dim; ++I) {
       result.col(ijk[I]) += f123.col(I - 1);
       result.col(ijk.x()) -= f123.col(I - 1);
     }
@@ -174,7 +174,7 @@ template <idx dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
   return result;
 }
 
-template <idx dim>
+template <Index dim>
 math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
                               std::vector<elasticity::HessianTensor<dim>> const& hessian,
                               DeformationGradientCache<dim> const& cache) {
@@ -182,29 +182,29 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
   size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   size_t nE = static_cast<size_t>(mesh.GetNumElements());
   coo.reserve(total);
-  std::vector<math::matr<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(nE);
-  tbb::parallel_for(tbb::blocked_range<idx>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
-                    [&](tbb::blocked_range<idx> const& r) {
-                      for (idx i = r.begin(); i < r.end(); ++i) {
+  std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(nE);
+  tbb::parallel_for(tbb::blocked_range<Index>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
+                    [&](tbb::blocked_range<Index> const& r) {
+                      for (Index i = r.begin(); i < r.end(); ++i) {
                         size_t si = static_cast<size_t>(i);
                         const auto& H_i = hessian[si];
-                        math::matr<dim, dim> R = cache[si];
-                        math::matr<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
+                        math::RealMatrix<dim, dim> R = cache[si];
+                        math::RealMatrix<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
                         per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
                       }
                     });
 
-  for (idx i = 0; i < mesh.GetNumElements(); ++i) {
+  for (Index i = 0; i < mesh.GetNumElements(); ++i) {
     const auto& ijk = mesh.GetElement(i);
     const auto& H = per_element_hessian[static_cast<size_t>(i)];
     for (auto [I, J, Di, Dj] : utils::multi_iota(dim + 1, dim + 1, dim, dim)) {
-      idx i_idx = ijk[I];
-      idx j_idx = ijk[J];
-      idx H_idx_i = I * dim + Di;
-      idx H_idx_j = J * dim + Dj;
-      idx global_dof_i_idx = i_idx * dim + Di;
-      idx global_dof_j_idx = j_idx * dim + Dj;
-      coo.push_back({global_dof_i_idx, global_dof_j_idx, H(H_idx_i, H_idx_j)});
+      Index i_Index = ijk[I];
+      Index j_Index = ijk[J];
+      Index H_Index_i = I * dim + Di;
+      Index H_Index_j = J * dim + Dj;
+      Index global_dof_i_Index = i_Index * dim + Di;
+      Index global_dof_j_Index = j_Index * dim + Dj;
+      coo.push_back({global_dof_i_Index, global_dof_j_Index, H(H_Index_i, H_Index_j)});
     }
   }
   return coo;
@@ -214,21 +214,21 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
  * Interfaces
  ***********************************************************************************************/
 
-template <idx dim>
+template <Index dim>
 Deformation<dim>::Deformation(TriMesh<dim> const& mesh,
                               typename TriMesh<dim>::vertex_list_t const& rest_pose)
     : mesh_(mesh) {
   this->UpdateRestPose(rest_pose);
 }
 
-template <idx dim>
+template <Index dim>
 void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const& rest_pose) {
   rest_pose_ = rest_pose;
   deformation_gradient_cache_ = dg_rpcache_p1<dim>(mesh_, rest_pose);
   // There exist an efficient approximation to compute the volume:
   real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
-  for (idx i = 0; i < mesh_.GetNumElements(); ++i) {
+  for (Index i = 0; i < mesh_.GetNumElements(); ++i) {
     real v = coef / math::det(deformation_gradient_cache_[static_cast<size_t>(i)]);
     if (v < 0) {
       AX_WARN("Negative volume detected: {}: {}", i, mesh_.GetElement(i).transpose());
@@ -237,50 +237,50 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   }
 }
 
-template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
+template <Index dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
   return Forward(mesh_.GetVertices());
 }
 
-template <idx dim> DeformationGradientList<dim> Deformation<dim>::Forward(
+template <Index dim> DeformationGradientList<dim> Deformation<dim>::Forward(
     typename TriMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }
 
-template <idx dim>
+template <Index dim>
 elasticity::DeformationGradientCache<dim> const& Deformation<dim>::GetRestPoseCache() const {
   return deformation_gradient_cache_;
 }
 
-template <idx dim> math::field1r dg_tev_p1(TriMesh<dim> const& mesh_, math::field1r const& e) {
-  idx n_element = mesh_.GetNumElements();
-  math::field1r result(1, mesh_.GetNumVertices());
+template <Index dim> math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 const& e) {
+  Index n_element = mesh_.GetNumElements();
+  math::RealField1 result(1, mesh_.GetNumVertices());
   result.setZero();
-  for (idx i = 0; i < n_element; ++i) {
+  for (Index i = 0; i < n_element; ++i) {
     const auto& ijk = mesh_.GetElement(i);
     real energy = e[i] / real(dim + 1);
-    for (idx I = 0; I <= dim; ++I) {
+    for (Index I = 0; I <= dim; ++I) {
       result(ijk[I]) += energy;
     }
   }
   return result;
 }
 
-template <idx dim> math::field1r Deformation<dim>::EnergyToVertices(math::field1r const& e) const {
-  idx n_element = mesh_.GetNumElements();
-  idx e_size = e.size();
+template <Index dim> math::RealField1 Deformation<dim>::EnergyToVertices(math::RealField1 const& e) const {
+  Index n_element = mesh_.GetNumElements();
+  Index e_size = e.size();
   AX_CHECK(e_size == n_element, "#energy != #element");
   return dg_tev_p1<dim>(mesh_, e);
 }
 
-template <idx dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
+template <Index dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
     std::vector<elasticity::StressTensor<dim>> const& stress) const {
-  idx n_element = mesh_.GetNumElements();
-  idx stress_size = static_cast<size_t>(stress.size());
+  Index n_element = mesh_.GetNumElements();
+  Index stress_size = static_cast<size_t>(stress.size());
   AX_DCHECK(stress_size == n_element, "#stress != #element");
   return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
 }
 
-template <idx dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
+template <Index dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
     std::vector<elasticity::HessianTensor<dim>> const& hessian) const {
   return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
 }

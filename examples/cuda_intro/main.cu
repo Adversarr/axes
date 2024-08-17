@@ -20,9 +20,9 @@ using namespace ax::math;
 using real = double;
 
 __global__ void GpuAddKernel(const int num, real* x, real* y) {
-  const int thread_grid_idx = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+  const int thread_grid_Index = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
   const int num_threads_in_grid = static_cast<int>(blockDim.x * gridDim.x);
-  for (int i = thread_grid_idx; i < num; i += num_threads_in_grid) y[i] += x[i];
+  for (int i = thread_grid_Index; i < num; i += num_threads_in_grid) y[i] += x[i];
 }
 
 __global__ void gpu_test_accessor(FieldAccessor<real, 1> accessor) {
@@ -74,21 +74,21 @@ int main(int argc, char** argv) {
   GpuAddKernel<<<1, 32>>>(100, x, y);
   cudaDeviceSynchronize();
 
-  thrust::host_vector<vec2r> h(102400);
+  thrust::host_vector<RealVector2> h(102400);
   for (int i = 0; i < 102400; ++i) h[i].setRandom();
-  thrust::device_vector<vec2r> a = h;
-  thrust::device_vector<vec2r> b = h;
+  thrust::device_vector<RealVector2> a = h;
+  thrust::device_vector<RealVector2> b = h;
   thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(a.begin(), b.begin())),
                     thrust::make_zip_iterator(thrust::make_tuple(a.end(), b.end())), a.begin(),
-                    thrust::make_zip_function(thrust::plus<vec2r>()));
+                    thrust::make_zip_function(thrust::plus<RealVector2>()));
   cudaDeviceSynchronize();
 
-  constexpr idx dim = 3;
+  constexpr Index dim = 3;
 
-  thrust::device_vector<idx> seq_;
+  thrust::device_vector<Index> seq_;
   thrust::device_vector<math::veci<dim + 1>> elements_;
-  thrust::device_vector<math::matr<dim, dim>> deformation_gradient_;
-  thrust::device_vector<math::matr<dim, dim>> rinv_gpu_;
+  thrust::device_vector<math::RealMatrix<dim, dim>> deformation_gradient_;
+  thrust::device_vector<math::RealMatrix<dim, dim>> rinv_gpu_;
   thrust::device_vector<real> rest_volume_gpu_;
 
   HostFieldData<real> host_field_data(24);

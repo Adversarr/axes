@@ -7,14 +7,14 @@ namespace ax::xpbd {
 
 using namespace geo;
 
-void global_step_collision_free(math::field3r const& weighted_position,
-                                math::field1r const& weights) {
+void global_step_collision_free(math::RealField3 const& weighted_position,
+                                math::RealField1 const& weights) {
   auto& g = ensure_server();
-  idx const nV = g.last_vertices_.cols();
+  Index const nV = g.last_vertices_.cols();
   // foreach vertex:
-  math::field1r min_toi(1, nV);
+  math::RealField1 min_toi(1, nV);
   min_toi.setOnes();
-  math::field3r expect_position = weighted_position;
+  math::RealField3 expect_position = weighted_position;
   for (auto i : utils::iota(nV)) {
     expect_position.col(i) /= weights(i);
   }
@@ -36,7 +36,7 @@ void global_step_collision_free(math::field3r const& weighted_position,
   //
   //     // BUG: if vertex is taking off, the collision will also be detected.
   //     if (auto collision = detect_vertex_face(vi_prev, vi_next, fj_prev, fj_next, 1e-5)) {
-  //       for (idx v: {i, f[0], f[1], f[2]}) {
+  //       for (Index v: {i, f[0], f[1], f[2]}) {
   //         min_toi(v) = std::min(min_toi(v), collision.rel_t_);
   //       }
   //       AX_LOG(ERROR) << "Collision detected: " << collision.rel_t_ << " at vertex " << i << "

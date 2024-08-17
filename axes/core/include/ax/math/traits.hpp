@@ -43,14 +43,14 @@ namespace details {
 template <typename Derived, typename> struct EigenInfo;
 
 template <typename Derived, typename = std::enable_if_t<is_eigen_v<Derived>>> struct EigenInfo {
-  static constexpr idx rows = Derived::RowsAtCompileTime;
-  static constexpr idx cols = Derived::ColsAtCompileTime;
-  static constexpr idx size = Derived::SizeAtCompileTime;
+  static constexpr Index rows = Derived::RowsAtCompileTime;
+  static constexpr Index cols = Derived::ColsAtCompileTime;
+  static constexpr Index size = Derived::SizeAtCompileTime;
 };
 }  // namespace details
 
-template <typename Derived> constexpr idx rows_v = details::EigenInfo<Derived>::rows;
-template <typename Derived> constexpr idx cols_v = details::EigenInfo<Derived>::cols;
+template <typename Derived> constexpr Index rows_v = details::EigenInfo<Derived>::rows;
+template <typename Derived> constexpr Index cols_v = details::EigenInfo<Derived>::cols;
 
 template <typename Derived> constexpr bool is_vector_v = (cols_v<Derived> == 1);
 template <typename Derived> constexpr bool is_row_vector_v = (rows_v<Derived> == 1);

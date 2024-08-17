@@ -3,11 +3,11 @@
 
 namespace ax::xpbd {
 
-using v3 = math::vec3r;
-using m32 = math::matr<3, 2>;
-using m3 = math::matr<3, 3>;
-using m34 = math::matr<3, 4>;
-using m4 = math::matr<4, 4>;
+using v3 = math::RealVector3;
+using m32 = math::RealMatrix<3, 2>;
+using m3 = math::RealMatrix<3, 3>;
+using m34 = math::RealMatrix<3, 4>;
+using m4 = math::RealMatrix<4, 4>;
 
 inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho,
                                        real& k, real tol) {
@@ -18,8 +18,8 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
   m34 const zu = z - u;
   // there exist the collision.
   // step 1: find the seperating plane.
-  math::vec3r normal = math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1)));
-  math::vec3r center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
+  math::RealVector3 normal = math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1)));
+  math::RealVector3 center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
   real c = math::dot(normal, center);
   real e = math::dot(normal, zu.col(0)) - c;
   if (e < 0) {
@@ -30,10 +30,10 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
 
   real x0c = math::dot(normal, o.col(0)) - c;
   // project to the plane.
-  auto proj = [&](math::vec3r const& p) -> math::vec3r {
+  auto proj = [&](math::RealVector3 const& p) -> math::RealVector3 {
     return p - math::dot(normal, p - center) * normal;
   };
-  for (idx i = 0; i < 4; ++i) {
+  for (Index i = 0; i < 4; ++i) {
     x.col(i) = proj(zu.col(i));
   }
 
@@ -75,9 +75,9 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
 inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho,
                                  real& k, real tol) {
   m34 const zu = z - u;
-  math::vec3r normal = math::normalized(math::cross(zu.col(1) - zu.col(0), zu.col(3) - zu.col(2)));
+  math::RealVector3 normal = math::normalized(math::cross(zu.col(1) - zu.col(0), zu.col(3) - zu.col(2)));
   // TODO: If normal is zero.
-  math::vec3r center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
+  math::RealVector3 center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
   real c = math::dot(normal, center);
   real e = math::dot(normal, zu.col(3)) - c;
   if (e < 0) {
@@ -87,7 +87,7 @@ inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& 
   }
   auto proj = [&](auto const& p) { return p - math::dot(normal, p - center) * normal; };
 
-  for (idx i = 0; i < 4; ++i) {
+  for (Index i = 0; i < 4; ++i) {
     x.col(i) = proj(zu.col(i));
   }
 
@@ -123,10 +123,10 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   // relax vertex edge.
   // First compute the normal of target positions.
   m3 const zu = z - u;
-  math::vec3r const e1 = zu.col(1), e2 = zu.col(2), v = zu.col(0);
-  math::vec3r const n_unnormalized = math::cross(zu.col(1) - zu.col(0), zu.col(2) - zu.col(0));
-  math::vec3r const o_unnormalized = math::cross(o.col(1) - o.col(0), o.col(2) - o.col(0));
-  math::vec3r const normal = n_unnormalized.squaredNorm() < 1e-9 ? math::normalized(o_unnormalized)
+  math::RealVector3 const e1 = zu.col(1), e2 = zu.col(2), v = zu.col(0);
+  math::RealVector3 const n_unnormalized = math::cross(zu.col(1) - zu.col(0), zu.col(2) - zu.col(0));
+  math::RealVector3 const o_unnormalized = math::cross(o.col(1) - o.col(0), o.col(2) - o.col(0));
+  math::RealVector3 const normal = n_unnormalized.squaredNorm() < 1e-9 ? math::normalized(o_unnormalized)
                                                                  : math::normalized(n_unnormalized);
 
   std::cout << normal.transpose() << std::endl;
@@ -145,19 +145,19 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   }
 
   // the coordinate is y = e2 -> e1, with a normal as z, and the center of mass as origin.
-  math::vec3r const y_c = math::normalized(e1 - e2);
-  math::vec3r const& z_c = normal;
-  math::vec3r const x_c = math::cross(y_c, z_c);
-  math::vec3r const center_of_mass = (e1 + e2 + v) / 3.0;
-  auto to = [&](math::vec3r const& p) -> math::vec2r {
+  math::RealVector3 const y_c = math::normalized(e1 - e2);
+  math::RealVector3 const& z_c = normal;
+  math::RealVector3 const x_c = math::cross(y_c, z_c);
+  math::RealVector3 const center_of_mass = (e1 + e2 + v) / 3.0;
+  auto to = [&](math::RealVector3 const& p) -> math::RealVector2 {
     return {math::dot(p - center_of_mass, x_c), math::dot(p - center_of_mass, y_c)};
   };
 
-  auto from = [&](math::vec2r const& p) -> math::vec3r {
+  auto from = [&](math::RealVector2 const& p) -> math::RealVector3 {
     return center_of_mass + p[0] * x_c + p[1] * y_c;
   };
 
-  math::vec2r e1_c = to(e1), e2_c = to(e2), v_c = to(v);
+  math::RealVector2 e1_c = to(e1), e2_c = to(e2), v_c = to(v);
   std::cout << "n dot o: " << n_unnormalized.dot(o_unnormalized) << std::endl;
   std::cout << "x: " << x_c.transpose() << std::endl;
   std::cout << "y: " << y_c.transpose() << std::endl;

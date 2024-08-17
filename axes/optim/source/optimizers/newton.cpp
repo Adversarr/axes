@@ -27,7 +27,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
   Gradient grad = problem_.EvalGrad(x);
   Variable dir = -grad;
 
-  idx iter = 0;
+  Index iter = 0;
   bool converged = false;
 
   OptResult result;

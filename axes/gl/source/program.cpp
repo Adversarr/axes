@@ -63,32 +63,32 @@ void Program::SetUniform(const std::string& name, float value) {
   AXGL_CALL(glUniform1f(glGetUniformLocation(id_, name.c_str()), value));
 }
 
-void Program::SetUniform(const std::string& name, const math::vec2f& value) {
+void Program::SetUniform(const std::string& name, const math::FloatVector2& value) {
   AXGL_CALL(glUniform2fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
 }
 
-void Program::SetUniform(const std::string& name, const math::vec3f& value) {
+void Program::SetUniform(const std::string& name, const math::FloatVector3& value) {
   AXGL_CALL(glUniform3fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
 }
 
-void Program::SetUniform(const std::string& name, const math::vec4f& value) {
+void Program::SetUniform(const std::string& name, const math::FloatVector4& value) {
   AXGL_CALL(glUniform4fv(glGetUniformLocation(id_, name.c_str()), 1, value.data()));
 }
 
-void Program::SetUniform(const std::string& name, const math::mat2f& value) {
-  math::mat2f transpose = value.transpose();
+void Program::SetUniform(const std::string& name, const math::FloatMatrix2& value) {
+  math::FloatMatrix2 transpose = value.transpose();
   AXGL_CALL(
       glUniformMatrix2fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
 }
 
-void Program::SetUniform(const std::string& name, const math::mat3f& value) {
-  math::mat3f transpose = value.transpose();
+void Program::SetUniform(const std::string& name, const math::FloatMatrix3& value) {
+  math::FloatMatrix3 transpose = value.transpose();
   AXGL_CALL(
       glUniformMatrix3fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
 }
 
-void Program::SetUniform(const std::string& name, const math::mat4f& value) {
-  math::mat4f transpose = value.transpose();
+void Program::SetUniform(const std::string& name, const math::FloatMatrix4& value) {
+  math::FloatMatrix4 transpose = value.transpose();
   AXGL_CALL(
       glUniformMatrix4fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, transpose.data()));
 }

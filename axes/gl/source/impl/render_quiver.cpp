@@ -36,10 +36,10 @@ QuiverRenderer::~QuiverRenderer() { global_registry().on_destroy<Quiver>().disco
 void QuiverRenderer::TickRender() {
   prog_.Use();
   auto& ctx = get_resource<Context>();
-  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
-  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
-  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  math::mat4f eye = math::eye<4, f32>();
+  math::FloatMatrix4 model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::FloatMatrix4 view = ctx.GetCamera().LookAt().cast<f32>();
+  math::FloatMatrix4 projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
+  math::FloatMatrix4 eye = math::eye<4, f32>();
   prog_.SetUniform("view", view);
   prog_.SetUniform("projection", projection);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -74,7 +74,7 @@ QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
   for (auto i = 0; i < quiver.positions_.cols(); ++i) {
     auto position = quiver.positions_.col(i);
     auto color = quiver.colors_.col(i);
-    math::vec3r direction = quiver.directions_.col(i);
+    math::RealVector3 direction = quiver.directions_.col(i);
     if (quiver.normalize_) {
       direction.normalize();
     }

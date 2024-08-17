@@ -9,10 +9,10 @@ using namespace ax;
 // You Can Find Geodesic Paths in Triangle Meshes by Just Flipping Edges
 
 struct PathItem {
-  idx id_;
+  Index id_;
   bool on_edge_;
   real rel_pos_;
-  idx which_;
+  Index which_;
 };
 
 using Path = std::vector<PathItem>;
@@ -21,12 +21,12 @@ class Dijkstra {
 public:
   Dijkstra(geo::SurfaceMesh mesh);
 
-  Path ShortestPath(idx start, idx end);
+  Path ShortestPath(Index start, Index end);
 
 private:
   geo::SurfaceMesh mesh_;
 
-  std::vector<std::vector<idx>> adj_list_;
+  std::vector<std::vector<Index>> adj_list_;
 };
 
 

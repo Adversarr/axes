@@ -44,9 +44,9 @@ real analytical(real x, real y, real z) {
 
 void print_basic_test_case() {
   fem::elements::P1Element3D element;
-  mat4r pfpx_pgpy = math::zeros<4, 4>();
-  for (idx i = 0; i < 4; ++i) {
-    for (idx j = 0; j < 4; ++j) {
+  RealMatrix4 pfpx_pgpy = math::zeros<4, 4>();
+  for (Index i = 0; i < 4; ++i) {
+    for (Index j = 0; j < 4; ++j) {
       pfpx_pgpy(i, j) += element.Integrate_PF_PF(i, j, 0, 0);
       pfpx_pgpy(i, j) += element.Integrate_PF_PF(i, j, 1, 1);
       pfpx_pgpy(i, j) += element.Integrate_PF_PF(i, j, 2, 2);
@@ -54,15 +54,15 @@ void print_basic_test_case() {
   }
   AX_LOG(INFO) << "Local Laplacian Stiffness: \n" << pfpx_pgpy;
 
-  math::field3r vertices(3, 4);
-  vertices.col(0) = vec3r{0, 0, 0};
-  vertices.col(1) = vec3r{1, 0, 0};
-  vertices.col(2) = vec3r{0, 1, 0};
-  vertices.col(3) = vec3r{0, 0, 1};
+  math::RealField3 vertices(3, 4);
+  vertices.col(0) = RealVector3{0, 0, 0};
+  vertices.col(1) = RealVector3{1, 0, 0};
+  vertices.col(2) = RealVector3{0, 1, 0};
+  vertices.col(3) = RealVector3{0, 0, 1};
 
   vertices *= 0.1;
-  math::field4i elements(4, 1);
-  elements.col(0) = vec4i{0, 1, 2, 3};
+  math::IndexField4 elements(4, 1);
+  elements.col(0) = IndexVec4{0, 1, 2, 3};
 
   std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   pmesh->SetMesh(elements, vertices);
@@ -77,17 +77,17 @@ int main(int argc, char** argv) {
   math::matxxr input_mesh_vertices
       = math::read_npy_v10_real(utils::get_asset("/mesh/npy/beam_high_res_vertices.npy"));
   math::matxxi input_mesh_elements
-      = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/beam_high_res_elements.npy"));
+      = math::read_npy_v10_Index(utils::get_asset("/mesh/npy/beam_high_res_elements.npy"));
 
-  math::field3r vertices = input_mesh_vertices.transpose();
-  math::field4i elements = input_mesh_elements.transpose();
+  math::RealField3 vertices = input_mesh_vertices.transpose();
+  math::IndexField4 elements = input_mesh_elements.transpose();
   vertices.row(0) /= vertices.row(0).maxCoeff();
 
-  // idx nx = 5;
+  // Index nx = 5;
   // auto [vertices, elements] = geo::tet_cube(1, nx, nx, nx);
 
   vertices = vertices.array() * 0.5 + 0.5;
-  idx const nVertices = vertices.cols();
+  Index const nVertices = vertices.cols();
 
   std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   std::set<int> dirichlet;
@@ -119,20 +119,20 @@ int main(int argc, char** argv) {
   math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   pmesh->FilterMatrixDof(0, K);
   K.makeCompressed();
-  math::vecxr b(nVertices);
-  math::vecxr accurate(nVertices);
+  math::RealVectorX b(nVertices);
+  math::RealVectorX accurate(nVertices);
   b.setZero();
 
   for (auto const& e : math::each(elements)) {
-    math::vec3r x0 = vertices.col(e[0]);
-    math::vec3r x1 = vertices.col(e[1]);
-    math::vec3r x2 = vertices.col(e[2]);
-    math::vec3r x3 = vertices.col(e[3]);
+    math::RealVector3 x0 = vertices.col(e[0]);
+    math::RealVector3 x1 = vertices.col(e[1]);
+    math::RealVector3 x2 = vertices.col(e[2]);
+    math::RealVector3 x3 = vertices.col(e[3]);
     real volume = (x1 - x0).cross(x2 - x0).dot(x3 - x0);
     volume = fabs(volume) / 6.0;
 
     for (auto const& i : e) {
-      math::vec3r xi = vertices.col(i);
+      math::RealVector3 xi = vertices.col(i);
       real load = neg_laplace(xi(0), xi(1), xi(2));
       b(i) += load * volume / 4;
     }
@@ -152,8 +152,8 @@ int main(int argc, char** argv) {
   spsolve.SetProblem(K).Compute();
 
   auto result = spsolve.Solve(b, {});
-  vecxr x = result.solution_;
-  vecxr error = x - accurate;
+  RealVectorX x = result.solution_;
+  RealVectorX error = x - accurate;
   std::cout << "num vertices: " << nVertices << std::endl;
 
   real l2_error = error.squaredNorm() / nVertices;

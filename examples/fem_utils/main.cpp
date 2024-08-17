@@ -16,19 +16,19 @@
 using namespace ax;
 using namespace ax::graph;
 using namespace ax::fem;
-constexpr idx dim = 3;
+constexpr Index dim = 3;
 
 class Make_P1Mesh3D : public NodeBase {
 public:
-  Make_P1Mesh3D(NodeDescriptor const *descriptor, idx id) : NodeBase(descriptor, id) {}
+  Make_P1Mesh3D(NodeDescriptor const *descriptor, Index id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
     NodeDescriptorFactory<Make_P1Mesh3D>{}
         .SetName("Make_P1Mesh3D")
         .SetDescription("Create a 3D FEM mesh.")
         .AddInput<Entity>("entity", "The entity to attach.")
-        .AddInput<math::field3r>("vertices", "The vertices of the mesh.")
-        .AddInput<math::field4i>("tetras", "The elements of the mesh.")
+        .AddInput<math::RealField3>("vertices", "The vertices of the mesh.")
+        .AddInput<math::IndexField4>("tetras", "The elements of the mesh.")
         .AddInput<bool>("reload", "Reload every frame")
         .AddOutput<Entity>("entity", "The entity attached with mesh.")
         .FinalizeAndRegister();
@@ -36,8 +36,8 @@ public:
 
   Status DoApply() {
     auto *entity = RetriveInput<Entity>(0);
-    auto *vertices = RetriveInput<math::field3r>(1);
-    auto *tetras = RetriveInput<math::field4i>(2);
+    auto *vertices = RetriveInput<math::RealField3>(1);
+    auto *tetras = RetriveInput<math::IndexField4>(2);
 
     if (entity == nullptr || *entity == entt::null) {
       return utils::FailedPreconditionError("Missing input entity");
@@ -53,7 +53,7 @@ public:
     AX_RETURN_OK();
   }
 
-  Status Apply(idx fid) final {
+  Status Apply(Index fid) final {
     if (auto reload = RetriveInput<bool>(1); fid == 0 || (reload != nullptr && *reload)) {
       if (auto e = RetriveInput<Entity>(0); e != nullptr) {
         SetOutput<Entity>(0, *e);
@@ -74,7 +74,7 @@ public:
 
 class ComputeMassMatrix : public NodeBase {
 public:
-  ComputeMassMatrix(NodeDescriptor const *descriptor, idx id) : NodeBase(descriptor, id) {}
+  ComputeMassMatrix(NodeDescriptor const *descriptor, Index id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
     NodeDescriptorFactory<ComputeMassMatrix>{}
@@ -108,14 +108,14 @@ public:
     }
 
     MassMatrixCompute<3> mmc(**mesh);
-    idx dofs = mesh->get()->GetNumVertices() * 3;
+    Index dofs = mesh->get()->GetNumVertices() * 3;
     auto mass_matrix = mmc(u_density);
     real total = mass_matrix.sum();
     SetOutput<real>(1, total / 3.0);
     AX_RETURN_OK();
   }
 
-  Status Apply(idx fid) final {
+  Status Apply(Index fid) final {
     if (auto reload = RetriveInput<bool>(1); fid == 0 || (reload != nullptr && *reload)) {
       return DoApply();
     }

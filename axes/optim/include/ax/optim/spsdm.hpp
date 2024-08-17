@@ -6,7 +6,7 @@
 #include "ax/utils/opt.hpp"
 namespace ax::optim {
 
-BOOST_DEFINE_FIXED_ENUM_CLASS(SpsdModificationKind, idx, 
+BOOST_DEFINE_FIXED_ENUM_CLASS(SpsdModificationKind, Index,
     kEigenvalue,
     kCholesky,
     kIdentity,

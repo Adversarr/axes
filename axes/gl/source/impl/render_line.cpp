@@ -37,10 +37,10 @@ void LineRenderer::Setup() {
 void LineRenderer::TickRender() {
   prog_.Use();
   auto& ctx = get_resource<Context>();
-  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
-  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
-  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  math::mat4f eye = math::eye<4, f32>();
+  math::FloatMatrix4 model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::FloatMatrix4 view = ctx.GetCamera().LookAt().cast<f32>();
+  math::FloatMatrix4 projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
+  math::FloatMatrix4 eye = math::eye<4, f32>();
   prog_.SetUniform("view", view);
   prog_.SetUniform("projection", projection);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -82,17 +82,17 @@ LineRenderData::LineRenderData(const Lines& lines) {
   use_global_model_ = lines.use_global_model_;
   /************************* SECT: Setup Buffers *************************/
   vertices_.reserve(static_cast<size_t>(lines.vertices_.cols()));
-  for (idx i = 0; i < lines.vertices_.cols(); i++) {
+  for (Index i = 0; i < lines.vertices_.cols(); i++) {
     LineRenderVertexData vertex;
-    math::vec3r position = lines.vertices_.col(i);
-    math::vec4r color = lines.colors_.col(i);
+    math::RealVector3 position = lines.vertices_.col(i);
+    math::RealVector4 color = lines.colors_.col(i);
     vertex.position_ = details::to_glm(position);
     vertex.color_ = details::to_glm(color);
     vertices_.push_back(vertex);
   }
 
   indices_.reserve(static_cast<size_t>(lines.indices_.cols()));
-  for (idx i = 0; i < lines.indices_.cols(); i++) {
+  for (Index i = 0; i < lines.indices_.cols(); i++) {
     auto index = lines.indices_.col(i);
     indices_.push_back(math::cast<ui32>(index.x()));
     indices_.push_back(math::cast<ui32>(index.y()));
@@ -100,7 +100,7 @@ LineRenderData::LineRenderData(const Lines& lines) {
   bool has_instance = lines.instance_offset_.size() > 0;
   if (has_instance) {
     instance_data_.reserve(static_cast<size_t>(lines.instance_offset_.cols()));
-    for (idx i = 0; i < lines.instance_offset_.cols(); i++) {
+    for (Index i = 0; i < lines.instance_offset_.cols(); i++) {
       LineInstanceData instance;
       auto offset = lines.instance_offset_.col(i);
       auto color = lines.instance_color_.col(i);

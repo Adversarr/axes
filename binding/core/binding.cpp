@@ -26,7 +26,7 @@ static std::optional<boost::json::value> convert_to_value(py::handle const &src)
   PyObject *source = src.ptr();
   // check the actual type of src
   if (PyLong_Check(source)) {
-    value = static_cast<idx>(PyLong_AsLong(source));
+    value = static_cast<Index>(PyLong_AsLong(source));
     return value;
   }
   PyErr_Clear();
@@ -156,7 +156,7 @@ void bind_core_init(pybind11::module &m) {
       .def("__repr__",
            [](Entity const &e) { return std::format("<Entity id={}>", entt::to_integral(e)); })
       .def("__eq__", [](Entity const &e1, Entity const &e2) { return e1 == e2; })
-      .def("to_integral", [](Entity const &e) -> idx { return entt::to_integral(e); });
+      .def("to_integral", [](Entity const &e) -> Index { return entt::to_integral(e); });
 
   m.def("create_named_entity",
         [](std::string const &name) -> entt::entity { return cmpt::create_named_entity(name); });
@@ -198,7 +198,7 @@ void bind_core_init(pybind11::module &m) {
       .def("__setitem__", [](boost::json::object &obj, std::string const &key,
                              std::string const &val) { obj[key] = val; })
       .def("__setitem__",
-           [](boost::json::object &obj, std::string const &key, idx val) { obj[key] = val; })
+           [](boost::json::object &obj, std::string const &key, Index val) { obj[key] = val; })
       .def("__setitem__",
            [](boost::json::object &obj, std::string const &key, real val) { obj[key] = val; })
       .def("__setitem__",
@@ -241,7 +241,7 @@ void bind_core_init(pybind11::module &m) {
       .def("kind", [](boost::json::value &val) { return boost::json::to_string(val.kind()); })
       .def("as_object",
            [](boost::json::value &val) -> boost::json::object { return val.as_object(); })
-      .def("as_int", [](boost::json::value &val) -> idx { return val.as_int64(); })
+      .def("as_int", [](boost::json::value &val) -> Index { return val.as_int64(); })
       .def("as_real", [](boost::json::value &val) -> real { return val.as_double(); })
       .def("as_string",
            [](boost::json::value &val) -> std::string { return val.as_string().c_str(); })
@@ -250,9 +250,9 @@ void bind_core_init(pybind11::module &m) {
   py::class_<boost::json::array>(m, "JsonArray")
       .def(py::init<>())
       .def("__getitem__",
-           [](boost::json::array &arr, idx i) -> boost::json::value & { return arr[i]; })
+           [](boost::json::array &arr, Index i) -> boost::json::value & { return arr[i]; })
       .def("__setitem__",
-           [](boost::json::array &arr, idx i, boost::json::value const &val) { arr[i] = val; })
+           [](boost::json::array &arr, Index i, boost::json::value const &val) { arr[i] = val; })
       .def("__contains__",
            [](boost::json::array &arr, boost::json::value const &val) -> bool {
              return std::find(arr.begin(), arr.end(), val) != arr.end();
@@ -308,16 +308,16 @@ void bind_core_math(py::module &m) {
   /************************* SECT: sparse matrix manipulation *************************/
   using namespace ax;
   m.def("make_sparse_matrix",
-        static_cast<math::spmatr (*)(idx, idx, math::sp_coeff_list const &)>(
+        static_cast<math::spmatr (*)(Index, Index, math::sp_coeff_list const &)>(
             &math::make_sparse_matrix),
         py::arg("rows"), py::arg("cols"), py::arg("coeff_list"))
       .def(
           "make_sparse_matrix",
-          static_cast<math::spmatr (*)(idx, idx, std::vector<idx> const &, std::vector<idx> const &,
+          static_cast<math::spmatr (*)(Index, Index, std::vector<Index> const &, std::vector<Index> const &,
                                        std::vector<real> const &)>(&math::make_sparse_matrix),
           py::arg("rows"), py::arg("cols"), py::arg("row"), py::arg("col"), py::arg("val"));
 
-  m.def("field_flatten", [](const math::matxxr & field) -> math::vecxr {
+  m.def("field_flatten", [](const math::matxxr & field) -> math::RealVectorX {
     return field.reshaped();
   });
 
@@ -330,7 +330,7 @@ void bind_core_math(py::module &m) {
       .def("AnalyzePattern", &math::SparseSolverBase::AnalyzePattern)
       .def("Factorize", &math::SparseSolverBase::Factorize)
       .def("Compute", &math::SparseSolverBase::Compute)
-      .def("Solve", &math::SparseSolverBase::Solve, py::arg("b"), py::arg("x0") = math::vecxr{})
+      .def("Solve", &math::SparseSolverBase::Solve, py::arg("b"), py::arg("x0") = math::RealVectorX{})
       .def("SetOptions", &math::SparseSolverBase::SetOptions)
       .def("GetOptions", &math::SparseSolverBase::GetOptions)
       .def("__repr__", [](math::SparseSolverBase const &solver) {

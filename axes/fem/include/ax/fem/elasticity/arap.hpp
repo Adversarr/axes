@@ -7,7 +7,7 @@ namespace ax::fem::elasticity {
  * @brief ARAP Elasticity Model
  * @tparam dim
  */
-template <idx dim> class IsotropicARAP final : public ElasticityBase<dim, IsotropicARAP<dim>> {
+template <Index dim> class IsotropicARAP final : public ElasticityBase<dim, IsotropicARAP<dim>> {
 public:
   using base_t = ElasticityBase<dim, IsotropicARAP<dim>>;
   using stress_t = typename base_t::stress_t;
@@ -26,7 +26,7 @@ public:
                   const math::decomp::SvdResult<dim, real>& svd) const {
     const auto& mu = this->mu_;
     // F should be Ut Sigma V,
-    math::matr<dim, dim> R = svd.U_ * svd.V_.transpose();
+    math::RealMatrix<dim, dim> R = svd.U_ * svd.V_.transpose();
     return mu * math::norm2(F - R);
   }
 
@@ -38,8 +38,8 @@ public:
   AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& ,
                   math::decomp::SvdResult<dim, real> const& svd) const {
     real mu = this->mu_;
-    math::matr<dim, dim> R = svd.U_ * svd.V_.transpose();
-    math::matr<dim, dim> S = svd.V_ * svd.sigma_.asDiagonal() * svd.V_.transpose();
+    math::RealMatrix<dim, dim> R = svd.U_ * svd.V_.transpose();
+    math::RealMatrix<dim, dim> S = svd.V_ * svd.sigma_.asDiagonal() * svd.V_.transpose();
     return R * (2 * mu * (S - math::eye<dim>()));
   }
 
@@ -63,7 +63,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGr
   real s2 = svd.sigma_[2];
   auto const& U = svd.U_, V = svd.V_;
   // Twists:
-  math::mat3r t0, t1, t2;
+  math::RealMatrix3 t0, t1, t2;
   t0.setZero(); t0(1, 2) = -1; t0(2, 1) = 1;
   t1.setZero(); t1(0, 2) = 1; t1(2, 0) = -1;
   t2.setZero(); t2(0, 1) = 1; t2(1, 0) = -1;
@@ -74,7 +74,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGr
   t1 = inv_sqrt2 * U * t1 * V.transpose();
   t2 = inv_sqrt2 * U * t2 * V.transpose();
 
-  math::vecr<9> q0 = math::flatten(t0),
+  math::RealVector<9> q0 = math::flatten(t0),
                 q1 = math::flatten(t1),
                 q2 = math::flatten(t2);
 
@@ -82,7 +82,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<3>::HessianImpl(const DeformationGr
        lambda1 = this->mu_ * 4.0 / (s0 + s2),
        lambda2 = this->mu_ * 4.0 / (s0 + s1);
 
-  math::matr<9, 9> dpdf = 2 * this->mu_ * math::eye<9>();
+  math::RealMatrix<9, 9> dpdf = 2 * this->mu_ * math::eye<9>();
   dpdf -= lambda0 * (q0 * q0.transpose());
   dpdf -= lambda1 * (q1 * q1.transpose());
   dpdf -= lambda2 * (q2 * q2.transpose());
@@ -97,15 +97,15 @@ AX_HOST_DEVICE AX_FORCE_INLINE IsotropicARAP<2>::HessianImpl(const DeformationGr
   real s1 = svd.sigma_[1];
   auto const& U = svd.U_, V = svd.V_;
   // Twists:
-  math::mat2r t0;
+  math::RealMatrix2 t0;
   t0(0, 0) = t0(1, 1) = 0;
   t0(0, 1) = -1; t0(1, 0) = 1;
   const real inv_sqrt2 = 1.0 / sqrt(2.0);
-  math::mat2r T = inv_sqrt2 * U * t0 * V.transpose();
-  math::vecr<4> q = math::flatten(T);
+  math::RealMatrix2 T = inv_sqrt2 * U * t0 * V.transpose();
+  math::RealVector<4> q = math::flatten(T);
 
   IsotropicARAP<2>::hessian_t I1 = 2.0 / (s0 + s1) * q * q.transpose();
-  math::matr<4, 4> dpdf = this->mu_ * (2 * math::eye<4>() - 2 * I1);
+  math::RealMatrix<4, 4> dpdf = this->mu_ * (2 * math::eye<4>() - 2 * I1);
   return dpdf;
 }
 

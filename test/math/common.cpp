@@ -7,54 +7,54 @@
 using namespace ax;
 using namespace ax::math;
 TEST_CASE("math-types") {
-  vec2i v2i{1, 2};
+  IndexVec2 v2i{1, 2};
   CHECK(v2i.x() == 1);
   CHECK(v2i.y() == 2);
 }
 
 TEST_CASE("ones") {
-  vec2i v2i = math::ones<2, 1, idx>();
+  IndexVec2 v2i = math::ones<2, 1, Index>();
   CHECK(v2i.x() == 1);
   CHECK(v2i.y() == 1);
 
-  mat2r m2r = math::ones(2, 2);
-  for (idx i = 0; i < 2; ++i) {
-    for (idx j = 0; j < 2; ++j) {
+  RealMatrix2 m2r = math::ones(2, 2);
+  for (Index i = 0; i < 2; ++i) {
+    for (Index j = 0; j < 2; ++j) {
       CHECK(m2r(i, j) == doctest::Approx(1.0));
     }
   }
 }
 
 TEST_CASE("zeros") {
-  vec2i v2i = math::zeros<2, 1, idx>();
+  IndexVec2 v2i = math::zeros<2, 1, Index>();
   CHECK(v2i.x() == 0);
   CHECK(v2i.y() == 0);
 
-  mat2r m2r = math::zeros(2, 2);
-  for (idx i = 0; i < 2; ++i) {
-    for (idx j = 0; j < 2; ++j) {
+  RealMatrix2 m2r = math::zeros(2, 2);
+  for (Index i = 0; i < 2; ++i) {
+    for (Index j = 0; j < 2; ++j) {
       CHECK(m2r(i, j) == doctest::Approx(0.0));
     }
   }
 }
 
 TEST_CASE("linspace") {
-  vec2r v2r = math::linspace(0.0, 1.0, 2);
+  RealVector2 v2r = math::linspace(0.0, 1.0, 2);
   CHECK(v2r.x() == doctest::Approx(0.0));
   CHECK(v2r.y() == doctest::Approx(1.0));
 
-  vec2r v2r2 = math::linspace(0.0, 0.0, 2);
+  RealVector2 v2r2 = math::linspace(0.0, 0.0, 2);
   CHECK(v2r2.x() == doctest::Approx(0.0));
   CHECK(v2r2.y() == doctest::Approx(0.0));
 
-  vec3r v3r3 = math::linspace<3>(4.0);
+  RealVector3 v3r3 = math::linspace<3>(4.0);
   CHECK(v3r3.x() == doctest::Approx(0.0));
   CHECK(v3r3.y() == doctest::Approx(2.0));
   CHECK(v3r3.z() == doctest::Approx(4.0));
 }
 
 TEST_CASE("eye") {
-  mat2r m2r = math::eye(2);
+  RealMatrix2 m2r = math::eye(2);
   CHECK(m2r(0, 0) == doctest::Approx(1.0));
   CHECK(m2r(0, 1) == doctest::Approx(0.0));
   CHECK(m2r(1, 0) == doctest::Approx(0.0));
@@ -62,9 +62,9 @@ TEST_CASE("eye") {
 }
 
 TEST_CASE("diag") {
-  vec2r v2r{1.0, 2.0};
+  RealVector2 v2r{1.0, 2.0};
   v2r.asDiagonal();
-  mat2r m2r = math::diag(v2r);
+  RealMatrix2 m2r = math::diag(v2r);
   CHECK(m2r(0, 0) == doctest::Approx(1.0));
   CHECK(m2r(0, 1) == doctest::Approx(0.0));
   CHECK(m2r(1, 0) == doctest::Approx(0.0));
@@ -77,7 +77,7 @@ TEST_CASE("diag") {
 }
 
 TEST_CASE("iter") {
-  auto f = make_field<field3i>(2);
+  auto f = make_field<IndexField3>(2);
   for (auto v3i: each(f)) {
     v3i.setOnes();
   }
@@ -137,9 +137,9 @@ TEST_CASE("constructor") {
   CHECK(f0 == 0.0f);
   auto f1 = make_ones<float>();
   CHECK(f1 == 1.0f);
-  auto v3f0 = make_zeros<vec3f>();
-  CHECK(v3f0 == vec3f::Zero());
+  auto v3f0 = make_zeros<FloatVector3>();
+  CHECK(v3f0 == FloatVector3::Zero());
 
-  auto v3f1 = make_ones<vec3f>();
-  CHECK(v3f1 == vec3f::Ones());
+  auto v3f1 = make_ones<FloatVector3>();
+  CHECK(v3f1 == FloatVector3::Ones());
 }

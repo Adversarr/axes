@@ -3,7 +3,7 @@
 namespace ax::graph {
 
 struct CacheSequenceUpdateEvent {
-  idx required_frame_id_;
+  Index required_frame_id_;
   bool is_cleanup_;
 };
 

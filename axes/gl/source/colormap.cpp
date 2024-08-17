@@ -651,19 +651,19 @@ real const colormap_seismic[256][3]
        {0.52352941, 0.00000000, 0.00000000}, {0.51568627, 0.00000000, 0.00000000},
        {0.50784314, 0.00000000, 0.00000000}, {0.50000000, 0.00000000, 0.00000000}};
 
-math::vec3r Colormap::operator()(real value) const {
+math::RealVector3 Colormap::operator()(real value) const {
   if (periodic_) {
     value = math::fmod(value - low_, high_ - low_) + low_;
   } else {
     value = math::clamp(value, low_, high_);
   }
   value = (value - low_) / (high_ - low_ + math::epsilon<real>);
-  return math::vec3r{colormap_[static_cast<int>(value * 255)]};
+  return math::RealVector3{colormap_[static_cast<int>(value * 255)]};
 }
 
-math::field3r Colormap::operator()(math::vecxr const &values) const {
-  math::field3r colors(3, values.size());
-  for (idx i = 0; i < values.size(); ++i) {
+math::RealField3 Colormap::operator()(math::RealVectorX const &values) const {
+  math::RealField3 colors(3, values.size());
+  for (Index i = 0; i < values.size(); ++i) {
     colors.col(i) = operator()(values[i]);
   }
   return colors;

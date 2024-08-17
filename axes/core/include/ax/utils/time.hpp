@@ -36,7 +36,7 @@ public:
 
   struct Desc {
     duration_t total_;
-    idx cnt_ = 0;
+    Index cnt_ = 0;
   };
 
   inline void AddDuration(const char* name, duration_t duration) {

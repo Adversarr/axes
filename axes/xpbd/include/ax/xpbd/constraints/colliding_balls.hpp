@@ -18,16 +18,16 @@ public:
   void UpdatePositionConsensus() override;
 
   real ball_radius_ = 1e-1; ///< Tolerance for the collision detection. cannnot be too small for stability.
-  std::vector<math::matr<3, 2>> dual_;
-  std::vector<math::matr<3, 2>> gap_;
+  std::vector<math::RealMatrix<3, 2>> dual_;
+  std::vector<math::RealMatrix<3, 2>> gap_;
   std::vector<real> stiffness_;
-  std::vector<math::matr<3, 2>> origin_;
+  std::vector<math::RealMatrix<3, 2>> origin_;
 
-  std::map<std::pair<idx, idx>, idx> collidings_;
-  std::map<std::pair<idx, idx>, idx> colliding_map_;
-  std::map<idx, idx> global_to_local_;
-  std::set<idx> colliding_vertices_;
-  idx iteration_;
+  std::map<std::pair<Index, Index>, Index> collidings_;
+  std::map<std::pair<Index, Index>, Index> colliding_map_;
+  std::map<Index, Index> global_to_local_;
+  std::set<Index> colliding_vertices_;
+  Index iteration_;
   real initial_rho_ = 1e4;
   real tol_ = 1e-4;
 };

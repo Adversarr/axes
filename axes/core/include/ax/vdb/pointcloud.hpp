@@ -13,7 +13,7 @@ using openvdb::tools::PointIndexGrid;
 
 class PointGrid {
 public:
-  PointGrid(math::field3r const& position, real voxel_size=-1, idx point_per_voxel=8);
+  PointGrid(math::RealField3 const& position, real voxel_size=-1, Index point_per_voxel=8);
 
   PointDataGrid::Ptr DataGrid() { return point_data_grid_; }
 
@@ -21,10 +21,10 @@ public:
 
   openvdb::math::Transform::Ptr Transform() { return transform_; }
 
-  Vec3rGridPtr TransferStaggered(std::string const& name, math::field3r const& field);
+  Vec3rGridPtr TransferStaggered(std::string const& name, math::RealField3 const& field);
 
-  Vec3rGridPtr TransferCellCenter(std::string const& name, math::field3r const& field);
-  RealGridPtr TransferCellCenter(std::string const& name, math::field1r const& field);
+  Vec3rGridPtr TransferCellCenter(std::string const& name, math::RealField3 const& field);
+  RealGridPtr TransferCellCenter(std::string const& name, math::RealField1 const& field);
 
 private:
   PointDataGrid::Ptr point_data_grid_;

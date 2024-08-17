@@ -26,7 +26,7 @@ std::unique_ptr<OptimizerBase> optimizer;
 
 ABSL_FLAG(std::string, optimizer, "prox_grad", "Optimizer to use");
 ABSL_FLAG(bool, verbose, false, "Verbose mode");
-ABSL_FLAG(idx, max_iter, 1000, "Maximum number of iterations");
+ABSL_FLAG(Index, max_iter, 1000, "Maximum number of iterations");
 ABSL_FLAG(real, tol_var, 1E-6, "Tolerance for variable change");
 ABSL_FLAG(real, mu, 1E-2, "l1 regularity");
 ABSL_FLAG(real, tol_grad, 1E-6, "Tolerance for gradient change");
@@ -38,9 +38,9 @@ ABSL_FLAG(bool, strong_wolfe, false, "Enable strong Wolfe condition");
 ABSL_FLAG(bool, mono, false, "Fista step length is mono");
 
 namespace xx {
-math::vecxr l1_proximator(math::vecxr const& x, real lambda) {
-  math::vecxr y = x;
-  for (idx i = 0; i < x.size(); ++i) {
+math::RealVectorX l1_proximator(math::RealVectorX const& x, real lambda) {
+  math::RealVectorX y = x;
+  for (Index i = 0; i < x.size(); ++i) {
     if (x(i) > lambda) {
       y(i) = x(i) - lambda;
     } else if (x(i) < -lambda) {
@@ -66,23 +66,23 @@ int main(int argc, char** argv) {
   std::cout << "mu: " << splr.mu_ << std::endl;
   OptProblem prob;
 
-  vecxr x0 = vecxr::Zero(xx::PREDEFINED_FEAT);
+  RealVectorX x0 = RealVectorX::Zero(xx::PREDEFINED_FEAT);
   real lr = absl::GetFlag(FLAGS_lr);
   // Optimizer
   std::string opt_name = absl::GetFlag(FLAGS_optimizer);
 
   // History data recording:
-  std::vector<math::vecxr> x_history;
+  std::vector<math::RealVectorX> x_history;
   std::vector<real> tk_history;
   std::vector<real> energy_history;
 
-  prob.SetProximator([&](vecxr const& x, real lambda) -> math::vecxr {
+  prob.SetProximator([&](RealVectorX const& x, real lambda) -> math::RealVectorX {
         tk_history.push_back(lambda);
         return xx::l1_proximator(x, splr.mu_ * lambda);
       })
       .SetGrad(
-          [&](vecxr const& x) -> vecxr { return splr.Gradient_Loss(x) + splr.Gradient_Loss_L2(x); })
-      .SetEnergy([&](vecxr const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); })
+          [&](RealVectorX const& x) -> RealVectorX { return splr.Gradient_Loss(x) + splr.Gradient_Loss_L2(x); })
+      .SetEnergy([&](RealVectorX const& x) -> real { return splr.Energy_Loss(x) + splr.Energy_L2(x); })
       .SetConvergeVar(nullptr);
 
   if (!absl::GetFlag(FLAGS_fista)) {
@@ -116,13 +116,13 @@ int main(int argc, char** argv) {
                          {"verbose", absl::GetFlag(FLAGS_verbose)}});
   AX_LOG(WARNING) << "Optimizer Options: " << optimizer->GetOptions();
 
-  prob.SetVerbose([&, verb = absl::GetFlag(FLAGS_verbose)](idx iter, vecxr const& x, real energy) {
+  prob.SetVerbose([&, verb = absl::GetFlag(FLAGS_verbose)](Index iter, RealVectorX const& x, real energy) {
     real e = splr.Energy(x);
     if (iter % 100 == 0 || verb) {
       std::cout << "Iter " << iter << ": " << e << std::endl;
       // print sparsity.
-      idx n = 0;
-      for (idx i = 0; i < x.size(); ++i) {
+      Index n = 0;
+      for (Index i = 0; i < x.size(); ++i) {
         if (std::abs(x(i)) > 1E-7) {
           ++n;
         }
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
   }
   {
     // export |xk-xk+1|/tk
-    math::vecxr diffs(tk_history.size());
+    math::RealVectorX diffs(tk_history.size());
     size_t n = std::min(x_history.size() - 1, tk_history.size());
     for (auto i : utils::iota(n)) {
       diffs(i) = (x_history[i] - x_history[i + 1]).norm() / tk_history[i];
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
   }
   // export energy.
   {
-    math::vecxr energies(energy_history.size());
+    math::RealVectorX energies(energy_history.size());
     for (auto i : utils::iota(energy_history.size())) {
       energies(i) = energy_history[i];
     }

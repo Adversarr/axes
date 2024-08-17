@@ -10,7 +10,7 @@ AX_FORCE_INLINE real compute_mu(real E, real nu) { return E / (2 * (1 + nu)); }
 
 AX_FORCE_INLINE real compute_lambda(real E, real nu) { return E * nu / ((1 + nu) * (1 - 2 * nu)); }
 
-AX_FORCE_INLINE math::vec2r compute_lame(real E, real nu) {
+AX_FORCE_INLINE math::RealVector2 compute_lame(real E, real nu) {
   return {compute_lambda(E, nu), compute_mu(E, nu)};
 }
 
@@ -19,11 +19,11 @@ AX_FORCE_INLINE math::vec2r compute_lame(real E, real nu) {
  * @note CRTP have a better performance than virtual function. And we can use virtual function
  *       to compute the hole energy, stress and hessian on mesh.
  */
-template <idx dim, typename Derived> class ElasticityBase {
+template <Index dim, typename Derived> class ElasticityBase {
 public:
-  static constexpr idx dof_cnt = dim * dim;
-  using stress_t = math::matr<dim, dim>;
-  using hessian_t = math::matr<dof_cnt, dof_cnt>;
+  static constexpr Index dof_cnt = dim * dim;
+  using stress_t = math::RealMatrix<dim, dim>;
+  using hessian_t = math::RealMatrix<dof_cnt, dof_cnt>;
   /**
    * @brief Construct a new Elasticity Base object
    *
@@ -46,7 +46,7 @@ public:
     return static_cast<Derived const*>(this)->StressImpl(F, svdr);
   }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE math::mat<real, dof_cnt, dof_cnt> Hessian(
+  AX_HOST_DEVICE AX_FORCE_INLINE math::Matrix<real, dof_cnt, dof_cnt> Hessian(
       DeformationGradient<dim> const& F, math::decomp::SvdResult<dim, real> const& svdr) const {
     return static_cast<Derived const*>(this)->HessianImpl(F, svdr);
   }
@@ -56,7 +56,7 @@ public:
     mu_ = mu;
   }
 
-  AX_HOST_DEVICE void SetLame(math::vec2r const& lame) { SetLame(lame[0], lame[1]); }
+  AX_HOST_DEVICE void SetLame(math::RealVector2 const& lame) { SetLame(lame[0], lame[1]); }
 
   virtual bool EnergyRequiresSvd() const noexcept { return false; }
   virtual bool StressRequiresSvd() const noexcept { return false; }

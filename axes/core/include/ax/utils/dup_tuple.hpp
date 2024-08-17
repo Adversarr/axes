@@ -27,7 +27,7 @@ template <typename T, size_t dim> using dup_tuple =
 // @brief Alias for tuple of duplicated types.
 template <typename T, size_t dim> using DupTuple = details::dup_tuple<T, dim>;
 
-template <size_t dim> using idx_tuple = DupTuple<idx, dim>;
+template <size_t dim> using Index_tuple = DupTuple<Index, dim>;
 template <size_t dim> using real_tuple = DupTuple<real, dim>;
 
 template <typename T, typename... Args>
@@ -36,7 +36,7 @@ AX_FORCE_INLINE DupTuple<T, sizeof...(Args)> dup_tuple(Args... args) {
 }
 
 template <typename... Args> AX_FORCE_INLINE auto ituple(Args... args) {
-  return dup_tuple<idx>(std::forward<Args>(args)...);
+  return dup_tuple<Index>(std::forward<Args>(args)...);
 }
 
 template <typename... Args> AX_FORCE_INLINE auto rtuple(Args... args) {

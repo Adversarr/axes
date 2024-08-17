@@ -4,10 +4,10 @@
 
 namespace ax::math::decomp {
 
-template <idx dim, typename Scalar = real> struct SvdResult {
+template <Index dim, typename Scalar = real> struct SvdResult {
   using scalar_t = Scalar;
-  using vec_t = vecr<dim>;
-  using mat_t = matr<dim, dim>;
+  using vec_t = RealVector<dim>;
+  using mat_t = RealMatrix<dim, dim>;
 
   vec_t sigma_;
   mat_t U_;

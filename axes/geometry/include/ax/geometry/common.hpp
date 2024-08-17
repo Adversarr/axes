@@ -11,9 +11,9 @@ namespace ax::geo {
 
 /****************************** Point ******************************/
 
-template <idx dim> class VertexN {
+template <Index dim> class VertexN {
 public:
-  using value_type = math::vecr<dim>;
+  using value_type = math::RealVector<dim>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit VertexN(value_type const& position)
       : position_(position) {}
@@ -31,9 +31,9 @@ using Vertex3 = VertexN<3>;
 
 /****************************** Line segment ******************************/
 
-template <idx dim> class SegmentN {
+template <Index dim> class SegmentN {
 public:
-  using value_type = math::vecr<dim>;
+  using value_type = math::RealVector<dim>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit SegmentN(value_type const& origin,
                                                    value_type const& direction)
@@ -63,9 +63,9 @@ using Segment3 = SegmentN<3>;
 
 /****************************** Triangle Face ******************************/
 
-template <idx dim> class TriangleN {
+template <Index dim> class TriangleN {
 public:
-  using value_type = math::vecr<dim>;
+  using value_type = math::RealVector<dim>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit TriangleN(value_type const& a, value_type const& b,
                                                     value_type const& c)
@@ -89,7 +89,7 @@ public:
 
   AX_HOST_DEVICE AX_FORCE_INLINE auto Area() const noexcept { return math::norm(Normal()) / 2; }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE auto Angle(idx i) const noexcept {
+  AX_HOST_DEVICE AX_FORCE_INLINE auto Angle(Index i) const noexcept {
     auto const& a = i == 0 ? a_ : (i == 1 ? b_ : c_);
     auto const& b = i == 0 ? b_ : (i == 1 ? c_ : a_);
     auto const& c = i == 0 ? c_ : (i == 1 ? a_ : b_);
@@ -112,7 +112,7 @@ using Triangle3 = TriangleN<3>;
  */
 class Tetrahedron {
 public:
-  using value_type = math::vecr<3>;
+  using value_type = math::RealVector<3>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit Tetrahedron(value_type const& a, value_type const& b,
                                                       value_type const& c, value_type const& d)
@@ -143,17 +143,17 @@ private:
 
 /****************************** Simplex ******************************/
 
-template <idx dim> class SimplexN {
+template <Index dim> class SimplexN {
 public:
-  using value_type = math::vecr<dim>;
+  using value_type = math::RealVector<dim>;
   using container = std::array<value_type, dim + 1>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit SimplexN(container const& vertices)
       : vertices_(vertices) {}
 
-  AX_HOST_DEVICE AX_FORCE_INLINE value_type const& operator[](idx i) const { return vertices_[i]; }
+  AX_HOST_DEVICE AX_FORCE_INLINE value_type const& operator[](Index i) const { return vertices_[i]; }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE value_type& operator[](idx i) { return vertices_[i]; }
+  AX_HOST_DEVICE AX_FORCE_INLINE value_type& operator[](Index i) { return vertices_[i]; }
 
 private:
   container vertices_;
@@ -172,17 +172,17 @@ using Simplex3 = SimplexN<3>;
  *
  * @tparam dim The dimension of the quadrahedron.
  */
-template <idx dim> class Quadrahedron {
+template <Index dim> class Quadrahedron {
 public:
-  using value_type = math::vec3r;
+  using value_type = math::RealVector3;
   using container = std::array<value_type, (1 << dim)>;
 
   AX_HOST_DEVICE AX_FORCE_INLINE explicit Quadrahedron(container const& vertices)
       : vertices_(vertices) {}
 
-  AX_HOST_DEVICE AX_FORCE_INLINE value_type const& operator[](idx i) const { return vertices_[i]; }
+  AX_HOST_DEVICE AX_FORCE_INLINE value_type const& operator[](Index i) const { return vertices_[i]; }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE value_type& operator[](idx i) { return vertices_[i]; }
+  AX_HOST_DEVICE AX_FORCE_INLINE value_type& operator[](Index i) { return vertices_[i]; }
 
   AX_HOST_DEVICE AX_FORCE_INLINE auto begin() const { return vertices_.begin(); }
 
@@ -202,20 +202,20 @@ using Quadrahedron2 = Quadrahedron<2>;
 using Quadrahedron3 = Quadrahedron<3>;
 
 struct SurfaceMesh {
-  math::field3r vertices_;
-  math::field3i indices_;
+  math::RealField3 vertices_;
+  math::IndexField3 indices_;
   SurfaceMesh() = default;
-  SurfaceMesh(math::field3r const& vertices, math::field3i const& indices)
+  SurfaceMesh(math::RealField3 const& vertices, math::IndexField3 const& indices)
       : vertices_(vertices), indices_(indices) {}
 
   AX_DECLARE_CONSTRUCTOR(SurfaceMesh, default, default);
 };
 
 struct TetraMesh {
-  math::field3r vertices_;
-  math::field4i indices_;
+  math::RealField3 vertices_;
+  math::IndexField4 indices_;
   TetraMesh() = default;
-  TetraMesh(math::field3r const& vertices, math::field4i const& indices)
+  TetraMesh(math::RealField3 const& vertices, math::IndexField4 const& indices)
       : vertices_(vertices), indices_(indices) {}
   AX_DECLARE_CONSTRUCTOR(TetraMesh, default, default);
 };
@@ -225,7 +225,7 @@ struct TetraMesh {
  *
  * @tparam dim The dimension of the point cloud.
  */
-template <idx dim> using PointCloudN = math::fieldr<dim>;
+template <Index dim> using PointCloudN = math::RealField<dim>;
 
 using PointCloud2 = PointCloudN<2>;
 using PointCloud3 = PointCloudN<3>;
@@ -235,6 +235,6 @@ using PointCloud3 = PointCloudN<3>;
  *
  * @tparam dim The dimension of the point cloud.
  */
-template <idx dim> using PointCloudWithNormal = std::pair<PointCloudN<dim>, math::fieldr<dim>>;
+template <Index dim> using PointCloudWithNormal = std::pair<PointCloudN<dim>, math::RealField<dim>>;
 
 }  // namespace ax::geo

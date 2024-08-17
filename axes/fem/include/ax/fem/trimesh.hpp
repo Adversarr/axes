@@ -15,18 +15,18 @@ namespace ax::fem {
  *
  * @tparam dim The dimension of the mesh.
  */
-template <idx dim> class TriMesh final {
+template <Index dim> class TriMesh final {
 public:
   using element_t = math::veci<dim + 1>;        /**< Type for storing mesh elements. */
-  using element_list_t = math::fieldi<dim + 1>; /**< Type for storing a list of mesh elements. */
+  using element_list_t = math::IndexField<dim + 1>; /**< Type for storing a list of mesh elements. */
 
-  using vertex_t = math::vecr<dim>;        /**< Type for storing mesh vertices. */
-  using vertex_list_t = math::fieldr<dim>; /**< Type for storing a list of mesh vertices. */
+  using vertex_t = math::RealVector<dim>;        /**< Type for storing mesh vertices. */
+  using vertex_list_t = math::RealField<dim>; /**< Type for storing a list of mesh vertices. */
 
   using boundary_value_t = vertex_t;           /**< Type for storing boundary values. */
-  using boundary_value_list_t = math::fieldxr; /**< Type for storing a list of boundary values. */
+  using boundary_value_list_t = math::RealFieldX; /**< Type for storing a list of boundary values. */
 
-  using ElementPositionPair = std::pair<idx, idx>;
+  using ElementPositionPair = std::pair<Index, Index>;
   /**
    * @brief Constructs a MeshBase object of the specified type.
    *
@@ -54,7 +54,7 @@ public:
    * @param i The index of the vertex.
    * @param vertex The vertex to set.
    */
-  void SetVertex(idx i, vertex_t const& vertex);
+  void SetVertex(Index i, vertex_t const& vertex);
 
   /**
    * @brief Sets the list of mesh vertices.
@@ -70,7 +70,7 @@ public:
    * @param i The index of the vertex.
    * @return The vertex at the specified index.
    */
-  vertex_t GetVertex(idx i) const noexcept;
+  vertex_t GetVertex(Index i) const noexcept;
 
   /**
    * @brief Gets the list of mesh vertices.
@@ -84,7 +84,7 @@ public:
    *
    * @return The flattened list of mesh vertices.
    */
-  math::vecxr GetVerticesFlattened() const noexcept;
+  math::RealVectorX GetVerticesFlattened() const noexcept;
 
   /**
    * @brief Gets the element at the specified index.
@@ -92,7 +92,7 @@ public:
    * @param i The index of the element.
    * @return The element at the specified index.
    */
-  auto GetElement(idx i) const noexcept;
+  auto GetElement(Index i) const noexcept;
 
   /**
    * @brief Gets the list of mesh elements.
@@ -108,15 +108,15 @@ public:
    */
   geo::SurfaceMesh ExtractSurface() const;
 
-  idx GetNumVertices() const noexcept;
-  idx GetNumElements() const noexcept;
+  Index GetNumVertices() const noexcept;
+  Index GetNumElements() const noexcept;
 
   /**
    * @brief Resets the boundary at the specified index.
    *
    * @param i The index of the boundary.
    */
-  void ResetBoundary(idx i, idx dof);
+  void ResetBoundary(Index i, Index dof);
 
   /**
    * @brief Marks the boundary at the specified index as a Dirichlet boundary with the given value.
@@ -124,7 +124,7 @@ public:
    * @param i The index of the boundary.
    * @param value The value of the Dirichlet boundary.
    */
-  void MarkDirichletBoundary(idx i, idx dof, const real& value);
+  void MarkDirichletBoundary(Index i, Index dof, const real& value);
 
   /**
    * @brief Resets all the boundaries.
@@ -137,7 +137,7 @@ public:
    * @param i The index of the boundary.
    * @return The boundary value at the specified index.
    */
-  real GetBoundaryValue(idx i, idx dof) const noexcept;
+  real GetBoundaryValue(Index i, Index dof) const noexcept;
 
   /**
    * @brief Checks if the boundary at the specified index is a Dirichlet boundary.
@@ -145,7 +145,7 @@ public:
    * @param i The index of the boundary.
    * @return True if the boundary is a Dirichlet boundary, false otherwise.
    */
-  bool IsDirichletBoundary(idx i, idx dof) const noexcept;
+  bool IsDirichletBoundary(Index i, Index dof) const noexcept;
 
   /**
    * @brief Returns an iterator to the beginning of the mesh elements.
@@ -193,17 +193,17 @@ public:
 
   void FilterMatrixFull(math::spmatr& mat) const;
 
-  void FilterMatrixDof(idx dof, math::spmatr& mat) const;
+  void FilterMatrixDof(Index dof, math::spmatr& mat) const;
 
-  void FilterMatrixDof(idx dif, math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
+  void FilterMatrixDof(Index dif, math::sp_coeff_list const& input, math::sp_coeff_list& out) const;
 
-  void FilterVector(math::vecxr& inout, bool set_zero = false) const;
+  void FilterVector(math::RealVectorX& inout, bool set_zero = false) const;
 
-  void FilterField(math::fieldr<dim>& inout, bool set_zero = false) const;
+  void FilterField(math::RealField<dim>& inout, bool set_zero = false) const;
 
-  void SetNumDofPerVertex(idx n_dof_per_vertex) noexcept;
+  void SetNumDofPerVertex(Index n_dof_per_vertex) noexcept;
 
-  idx GetNumDofPerVertex() const noexcept { return n_dof_per_vertex_; }
+  Index GetNumDofPerVertex() const noexcept { return n_dof_per_vertex_; }
 
   std::vector<std::vector<ElementPositionPair>> const& GetVertexToElementMap() const noexcept {
     return v_e_map_;
@@ -213,7 +213,7 @@ public:
     return dirichlet_boundary_mask_;
   }
 
-  void ApplyPermutation(std::vector<idx> const& perm, std::vector<idx> const& inverse_perm);
+  void ApplyPermutation(std::vector<Index> const& perm, std::vector<Index> const& inverse_perm);
 
 protected:
   element_list_t elements_; /**< The list of mesh elements. */
@@ -222,7 +222,7 @@ protected:
   // We may need to compute the inverse mapping, i.e. the vertex->elements connected to it.
   std::vector<std::vector<ElementPositionPair>> v_e_map_;
 
-  idx n_dof_per_vertex_;                  /**< The number of degrees of freedom per vertex. */
+  Index n_dof_per_vertex_;                  /**< The number of degrees of freedom per vertex. */
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
   boundary_value_list_t dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };
@@ -230,74 +230,74 @@ protected:
 // NOTE: Some member functions does not have a FRIENDLY return value, we provide it as
 //       a template implementation to avoid the need of defining it in the cpp file.
 // NOTE: Also, some member functions should be defined in header file to achieve inlining.
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::GetElement(idx i) const noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::GetElement(Index i) const noexcept {
   AX_DCHECK(i < elements_.cols(), "Index out of bounds.");
   return elements_.col(i);
 }
 
-template <idx dim>
-AX_FORCE_INLINE typename TriMesh<dim>::vertex_t TriMesh<dim>::GetVertex(idx i) const noexcept {
+template <Index dim>
+AX_FORCE_INLINE typename TriMesh<dim>::vertex_t TriMesh<dim>::GetVertex(Index i) const noexcept {
   AX_DCHECK(i < vertices_.cols(), "Index out of bounds.");
   return vertices_.col(i);
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() const noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() const noexcept {
   return math::each(elements_).begin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::end() const noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::end() const noexcept {
   return math::each(elements_).end();
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::cbegin() const noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::cbegin() const noexcept {
   return math::each(elements_).cbegin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::cend() const noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::cend() const noexcept {
   return math::each(elements_).cend();
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() noexcept {
   return math::each(elements_).begin();
 }
 
-template <idx dim> AX_FORCE_INLINE auto TriMesh<dim>::end() noexcept {
+template <Index dim> AX_FORCE_INLINE auto TriMesh<dim>::end() noexcept {
   return math::each(elements_).end();
 }
 
-template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumVertices() const noexcept {
+template <Index dim> AX_FORCE_INLINE Index TriMesh<dim>::GetNumVertices() const noexcept {
   return vertices_.cols();
 }
 
-template <idx dim> AX_FORCE_INLINE idx TriMesh<dim>::GetNumElements() const noexcept {
+template <Index dim> AX_FORCE_INLINE Index TriMesh<dim>::GetNumElements() const noexcept {
   return elements_.cols();
 }
 
-template <idx dim>
-AX_FORCE_INLINE real TriMesh<dim>::GetBoundaryValue(idx i, idx dof) const noexcept {
+template <Index dim>
+AX_FORCE_INLINE real TriMesh<dim>::GetBoundaryValue(Index i, Index dof) const noexcept {
   AX_DCHECK(0 <= i && i < boundary_values_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return boundary_values_(dof, i);
 }
 
-template <idx dim>
-AX_FORCE_INLINE bool TriMesh<dim>::IsDirichletBoundary(idx i, idx dof) const noexcept {
+template <Index dim>
+AX_FORCE_INLINE bool TriMesh<dim>::IsDirichletBoundary(Index i, Index dof) const noexcept {
   AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
-template <idx dim>
+template <Index dim>
 typename TriMesh<dim>::vertex_list_t const& TriMesh<dim>::GetVertices() const noexcept {
   return vertices_;
 }
 
-template <idx dim>
+template <Index dim>
 typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const noexcept {
   return elements_;
 }
 
-template <idx dim> void TriMesh<dim>::SetVertex(idx i, vertex_t const& vertex) {
+template <Index dim> void TriMesh<dim>::SetVertex(Index i, vertex_t const& vertex) {
   AX_DCHECK(0 <= i && i < vertices_.size(), "Index out of range.");
   vertices_.col(i) = vertex;
 }

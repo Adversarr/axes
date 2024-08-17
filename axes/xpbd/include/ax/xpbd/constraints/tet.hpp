@@ -12,14 +12,14 @@ public:
   real UpdateDuality() override;
   void EndStep() override;
   void UpdateRhoConsensus(real scale) override;
-  void SetTetrahedrons(math::field4i const& tetrahedrons, math::field1r const& stiff);
+  void SetTetrahedrons(math::IndexField4 const& tetrahedrons, math::RealField1 const& stiff);
 
-  math::field1r stiffness_;
-  std::vector<math::matr<3, 4>> dual_;
-  std::vector<math::matr<3, 4>> gap_;
-  std::vector<math::matr<3, 4>> x0_;
-  std::vector<math::matr<3, 3>> rotation_;
-  idx substeps_{2};
+  math::RealField1 stiffness_;
+  std::vector<math::RealMatrix<3, 4>> dual_;
+  std::vector<math::RealMatrix<3, 4>> gap_;
+  std::vector<math::RealMatrix<3, 4>> x0_;
+  std::vector<math::RealMatrix<3, 3>> rotation_;
+  Index substeps_{2};
 };
 
 }  // namespace ax::xpbd

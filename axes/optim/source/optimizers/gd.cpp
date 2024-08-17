@@ -20,7 +20,7 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem, const V
   real last_step_length = 1;
   bool converged_grad = false;
   bool converged_var = false;
-  idx iter = 0;
+  Index iter = 0;
   for (iter = 0; iter < max_iter_; ++iter) {
     problem.EvalVerbose(iter, x, energy);
     AX_THROW_IF_FALSE(math::isfinite(energy), "Energy function returns Infinite number!");

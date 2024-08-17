@@ -5,8 +5,8 @@
 using namespace ax;
 using namespace math;
 
-double launch_test_abc(idx n, idx test_iteration) {
-  vecxr a, b, c, d;
+double launch_test_abc(Index n, Index test_iteration) {
+  RealVectorX a, b, c, d;
   // Test a * b + c.
   a.setRandom(n);
   b.setRandom(n);
@@ -14,7 +14,7 @@ double launch_test_abc(idx n, idx test_iteration) {
   d.setRandom(n);
 
   auto start_time = std::chrono::high_resolution_clock::now();
-  for (idx i = 0; i < test_iteration; i++) {
+  for (Index i = 0; i < test_iteration; i++) {
     d.noalias() = a * b + c;
   }
   auto end_time = std::chrono::high_resolution_clock::now();
@@ -23,10 +23,10 @@ double launch_test_abc(idx n, idx test_iteration) {
 
 int main(int argc, char* argv[]) {
   ax::init(argc, argv);
-  math::vecxr gflops_list(26-4);
-  for (idx i = 4; i < 26; i++) {
-    idx n = 1 << i;
-    idx test_iteration = 512;
+  math::RealVectorX gflops_list(26-4);
+  for (Index i = 4; i < 26; i++) {
+    Index n = 1 << i;
+    Index test_iteration = 512;
     double time = launch_test_abc(n, test_iteration);
     printf("i = %ld, n = %ld, time = %lf\n", i, n, time);
     // how many operations?

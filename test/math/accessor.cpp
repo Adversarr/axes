@@ -49,7 +49,7 @@ TEST_CASE("shape1d") {
 TEST_CASE("accessor3d_eigen") {
   using namespace ax::math;
   auto s = make_shape<ptrdiff_t>(3, 4, 5);
-  field3r f(3, s.Size());
+  RealField3 f(3, s.Size());
   auto fa = make_accessor(f, s);
   {
     for (auto [i, j, k] : iter(s)) {
@@ -95,7 +95,7 @@ TEST_CASE("accessor3d_eigen") {
 TEST_CASE("accessor3d_stlvec") {
   using namespace ax::math;
   auto s = make_shape<size_t>(3, 4, 5);
-  std::vector<vec3r> f(s.Size());
+  std::vector<RealVector3> f(s.Size());
   auto fa = make_accessor(f, s);
   {
     for (auto [i, j, k] : iter(s)) {
@@ -115,7 +115,7 @@ TEST_CASE("accessor3d_stlvec") {
       CHECK_EQ(f[ind].z(), k);
     }
   }
-  std::fill(fa.begin(), fa.end(), vec3r::Zero());
+  std::fill(fa.begin(), fa.end(), RealVector3::Zero());
 
   {  // enumerate
     for (auto [ijk, colvec] : enumerate(fa)) {
@@ -141,7 +141,7 @@ TEST_CASE("accessor3d_stlvec") {
 TEST_CASE("accessor1d3d") {
   using namespace ax;
   using namespace ax::math;
-  field3r f(3, 8);
+  RealField3 f(3, 8);
 
   auto a3 = make_accessor(f, make_shape(2, 2, 2));
   auto a1 = make_accessor(f);
@@ -166,7 +166,7 @@ TEST_CASE("accessor1d3d") {
 TEST_CASE("accessor_span1d") {
   using namespace ax;
   using namespace ax::math;
-  field1r f(8);
+  RealField1 f(8);
   real* data = f.data();
   size_t size = static_cast<size_t>(f.size());
   Span chk(data, size);
@@ -177,7 +177,7 @@ TEST_CASE("accessor_span1d") {
   }
 
   // assert that the data is same
-  for (idx i = 0; i < f.size(); ++i) {
+  for (Index i = 0; i < f.size(); ++i) {
     CHECK_EQ(f[i], i);
   }
 }
@@ -185,7 +185,7 @@ TEST_CASE("accessor_span1d") {
 TEST_CASE("accessor_span3d") {
   using namespace ax;
   using namespace ax::math;
-  std::vector<vec3r> f(8);
+  std::vector<RealVector3> f(8);
   auto* data = f.data();
   size_t size = f.size();
   Span chk(data, size);
@@ -208,12 +208,12 @@ using namespace ax;
 using namespace ax::math;
 
 TEST_CASE("const_accessor2d") {
-  std::vector<vec3r> f(8);
+  std::vector<RealVector3> f(8);
   auto shape = make_shape(2, 4);
   auto acc = make_accessor(f, shape);
 
   for (auto [i, j] : iter(shape)) {
-    acc(i, j) = vec3r(static_cast<real>(i), static_cast<real>(j), 0);
+    acc(i, j) = RealVector3(static_cast<real>(i), static_cast<real>(j), 0);
   }
 
   auto const_acc = make_accessor(std::as_const(f), shape);
@@ -236,7 +236,7 @@ template <typename Rng, typename F> void for_each(Rng&& r, F fun) {
 }
 
 TEST_CASE("for_each3d") {
-  std::vector<vec3r> f(8);
+  std::vector<RealVector3> f(8);
   auto shape = make_shape(2, 2, 2);
   auto acc = make_accessor(f, shape);
 

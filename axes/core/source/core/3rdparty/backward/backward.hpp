@@ -594,7 +594,7 @@ public:
   typedef const typename rm_ptr<T>::type &const_ref_t;
   ref_t operator*() { return *_val; }
   const_ref_t operator*() const { return *_val; }
-  ref_t operator[](size_t idx) { return _val[idx]; }
+  ref_t operator[](size_t Index) { return _val[Index]; }
 
   // Watch out, we've got a badass over here
   T *operator&() {
@@ -662,11 +662,11 @@ inline std::vector<std::string> split_source_prefixes(const std::string &s) {
 
 struct Trace {
   void *addr;
-  size_t idx;
+  size_t Index;
 
-  Trace() : addr(nullptr), idx(0) {}
+  Trace() : addr(nullptr), Index(0) {}
 
-  explicit Trace(void *_addr, size_t _idx) : addr(_addr), idx(_idx) {}
+  explicit Trace(void *_addr, size_t _Index) : addr(_addr), Index(_Index) {}
 };
 
 struct ResolvedTrace : public Trace {
@@ -778,11 +778,11 @@ public:
                ? _stacktrace.size() - skip_n_firsts()
                : 0;
   }
-  Trace operator[](size_t idx) const {
-    if (idx >= size()) {
+  Trace operator[](size_t Index) const {
+    if (Index >= size()) {
       return Trace();
     }
-    return Trace(_stacktrace[idx + skip_n_firsts()], idx);
+    return Trace(_stacktrace[Index + skip_n_firsts()], Index);
   }
   void *const *begin() const {
     if (size()) {
@@ -891,7 +891,7 @@ private:
     StackTraceImpl &self;
     callback(StackTraceImpl &_self) : self(_self) {}
 
-    void operator()(size_t idx, void *addr) { self._stacktrace[idx] = addr; }
+    void operator()(size_t Index, void *addr) { self._stacktrace[Index] = addr; }
   };
 };
 
@@ -1325,7 +1325,7 @@ public:
   }
 
   ResolvedTrace resolve(ResolvedTrace trace) override {
-    char *filename = _symbols[trace.idx];
+    char *filename = _symbols[trace.Index];
     char *funcname = filename;
     while (*funcname && *funcname != '(') {
       funcname += 1;
@@ -2064,11 +2064,11 @@ private:
 
   static const char *die_call_file(Dwarf_Die *die) {
     Dwarf_Attribute attr_mem;
-    Dwarf_Word file_idx = 0;
+    Dwarf_Word file_Index = 0;
 
-    dwarf_formudata(dwarf_attr(die, DW_AT_call_file, &attr_mem), &file_idx);
+    dwarf_formudata(dwarf_attr(die, DW_AT_call_file, &attr_mem), &file_Index);
 
-    if (file_idx == 0) {
+    if (file_Index == 0) {
       return 0;
     }
 
@@ -2085,7 +2085,7 @@ private:
       return 0;
     }
 
-    return dwarf_filesrc(files, file_idx, 0, 0);
+    return dwarf_filesrc(files, file_Index, 0, 0);
   }
 };
 #endif // BACKWARD_HAS_DW == 1
@@ -3488,7 +3488,7 @@ public:
   ResolvedTrace resolve(ResolvedTrace trace) override {
     // parse:
     // <n>  <file>  <addr>  <mangled-name> + <offset>
-    char *filename = _symbols[trace.idx];
+    char *filename = _symbols[trace.Index];
 
     // skip "<n>  "
     while (*filename && *filename != ' ')
@@ -3722,9 +3722,9 @@ public:
     _file->clear();
     _file->seekg(0);
     string line;
-    unsigned line_idx;
+    unsigned line_Index;
 
-    for (line_idx = 1; line_idx < line_start; ++line_idx) {
+    for (line_Index = 1; line_Index < line_start; ++line_Index) {
       std::getline(*_file, line);
       if (!*_file) {
         return lines;
@@ -3739,7 +3739,7 @@ public:
     };
 
     bool started = false;
-    for (; line_idx < line_start + line_count; ++line_idx) {
+    for (; line_Index < line_start + line_count; ++line_Index) {
       getline(*_file, line);
       if (!*_file) {
         return lines;
@@ -3749,7 +3749,7 @@ public:
           continue;
         started = true;
       }
-      lines.push_back(make_pair(line_idx, line));
+      lines.push_back(make_pair(line_Index, line));
     }
 
     lines.erase(
@@ -4030,8 +4030,8 @@ private:
   void print_stacktrace(ST &st, std::ostream &os, Colorize &colorize) {
     print_header(os, st.thread_id());
     _resolver.load_stacktrace(st);
-    for (size_t trace_idx = st.size(); trace_idx > 0; --trace_idx) {
-      print_trace(os, _resolver.resolve(st[trace_idx - 1]), colorize);
+    for (size_t trace_Index = st.size(); trace_Index > 0; --trace_Index) {
+      print_trace(os, _resolver.resolve(st[trace_Index - 1]), colorize);
     }
   }
 
@@ -4054,7 +4054,7 @@ private:
 
   void print_trace(std::ostream &os, const ResolvedTrace &trace,
                    Colorize &colorize) {
-    os << "#" << std::left << std::setw(2) << trace.idx << std::right;
+    os << "#" << std::left << std::setw(2) << trace.Index << std::right;
     bool already_indented = true;
 
     if (!trace.source.filename.size() || object) {
@@ -4063,13 +4063,13 @@ private:
       already_indented = false;
     }
 
-    for (size_t inliner_idx = trace.inliners.size(); inliner_idx > 0;
-         --inliner_idx) {
+    for (size_t inliner_Index = trace.inliners.size(); inliner_Index > 0;
+         --inliner_Index) {
       if (!already_indented) {
         os << "   ";
       }
       const ResolvedTrace::SourceLoc &inliner_loc =
-          trace.inliners[inliner_idx - 1];
+          trace.inliners[inliner_Index - 1];
       print_source_loc(os, " | ", inliner_loc);
       if (snippet) {
         print_snippet(os, "    | ", inliner_loc, colorize, Color::purple,

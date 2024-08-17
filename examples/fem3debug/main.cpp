@@ -21,21 +21,21 @@ ABSL_FLAG(bool, flip_yz, false, "flip yz");
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec3f stretching;
-math::vec2r lame;
+math::FloatVector3 stretching;
+math::RealVector2 lame;
 
 void update_entity() {
   gl::Mesh& msh = add_or_replace_component<gl::Mesh>(out);
   msh.vertices_ = input_mesh.vertices_;
   msh.indices_.resize(3, input_mesh.indices_.cols() * 4);
-  for (idx i = 0; i < input_mesh.indices_.cols(); ++i) {
-    msh.indices_.col(i * 4 + 0) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+  for (Index i = 0; i < input_mesh.indices_.cols(); ++i) {
+    msh.indices_.col(i * 4 + 0) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
                                               input_mesh.indices_(2, i)};
-    msh.indices_.col(i * 4 + 1) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+    msh.indices_.col(i * 4 + 1) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
                                               input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 2) = math::vec3i{input_mesh.indices_(0, i), input_mesh.indices_(2, i),
+    msh.indices_.col(i * 4 + 2) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(2, i),
                                               input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 3) = math::vec3i{input_mesh.indices_(1, i), input_mesh.indices_(2, i),
+    msh.indices_.col(i * 4 + 3) = math::IndexVec3{input_mesh.indices_(1, i), input_mesh.indices_(2, i),
                                               input_mesh.indices_(3, i)};
   }
   for (auto v : math::each(msh.vertices_)) {

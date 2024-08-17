@@ -4,18 +4,18 @@
 
 namespace ax::geo {
 
-math::mat4r look_at(math::vec3r const& eye, math::vec3r const& center, math::vec3r const& up);
+math::RealMatrix4 look_at(math::RealVector3 const& eye, math::RealVector3 const& center, math::RealVector3 const& up);
 
-math::mat4r perspective(real fov, real aspect, real near, real far);
+math::RealMatrix4 perspective(real fov, real aspect, real near, real far);
 
-math::mat4r ortho(real left, real right, real bottom, real top, real near, real far);
+math::RealMatrix4 ortho(real left, real right, real bottom, real top, real near, real far);
 
-math::mat4r rotate_x(real angle_rad);
+math::RealMatrix4 rotate_x(real angle_rad);
 
-math::mat4r rotate_y(real angle_rad);
+math::RealMatrix4 rotate_y(real angle_rad);
 
-math::mat4r rotate_z(real angle_rad);
+math::RealMatrix4 rotate_z(real angle_rad);
 
-math::mat4r translate(math::vec3r const& v);
+math::RealMatrix4 translate(math::RealVector3 const& v);
 
 }  // namespace ax::geo

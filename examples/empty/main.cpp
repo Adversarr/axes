@@ -16,8 +16,8 @@ using namespace ax;
 
 static void benchmark_mm(int scale) {
   int rows = 1 << scale;
-  math::mat<f32, math::dynamic, math::dynamic> m1(rows, rows);
-  math::mat<f32, math::dynamic, math::dynamic> m2(rows, rows);
+  math::Matrix<f32, math::dynamic, math::dynamic> m1(rows, rows);
+  math::Matrix<f32, math::dynamic, math::dynamic> m2(rows, rows);
   m1.setRandom();
   m2.setRandom();
 
@@ -30,7 +30,7 @@ static void benchmark_mm(int scale) {
 
 static void benchmark_transpose_inplace(int scale) {
   int rows = 1 << scale;
-  math::mat<f32, math::dynamic, math::dynamic> m(rows, rows);
+  math::Matrix<f32, math::dynamic, math::dynamic> m(rows, rows);
   m.setRandom();
 
   auto start = utils::now();
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
   //   AX_CHECK(i < 3 && j < 4, "Error shape!");
   // }
 
-  field3r f;
+  RealField3 f;
   f.resize(3, 4);
   for (auto [i, j] : iter(make_shape(3, 4))) {
     f(i, j) = i + j;
@@ -117,8 +117,8 @@ int main(int argc, char** argv) {
 
   AX_INFO("{}, {} == {}", r, c, extent_end);
 
-  vec3r d{3, 2, 1};
-  auto [x, y, z] = unpack(vec3r{3, 2, 1});
+  RealVector3 d{3, 2, 1};
+  auto [x, y, z] = unpack(RealVector3{3, 2, 1});
   AX_INFO("{}, {}, {}", x, y, z);
   AX_INFO("d={}", d);
 

@@ -6,11 +6,11 @@ namespace ax::fem {
 
 // computes Integrate[u_i, u_j] for i, j = 0,...,dim
 // Take the result from the p12_element_f_f array
-template <idx dim>
-static math::matr<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real density) {
-  math::matr<dim + 1, dim + 1> result;
-  for (idx i = 0; i <= dim; ++i) {
-    for (idx j = 0; j <= dim; ++j) {
+template <Index dim>
+static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real density) {
+  math::RealMatrix<dim + 1, dim + 1> result;
+  for (Index i = 0; i <= dim; ++i) {
+    for (Index j = 0; j <= dim; ++j) {
       result(i, j) = E.Integrate_F_F(i, j) * density;
     }
   }
@@ -22,17 +22,17 @@ static math::matr<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real 
   return result;
 }
 
-template <idx dim> math::spmatr MassMatrixCompute<dim>::operator()(real density) {
+template <Index dim> math::spmatr MassMatrixCompute<dim>::operator()(real density) {
   math::sp_coeff_list result;
   for (auto const& ijk : mesh_) {
-    std::array<math::vecr<dim>, dim + 1> vert;
-    for (idx i = 0; i <= dim; ++i) {
+    std::array<math::RealVector<dim>, dim + 1> vert;
+    for (Index i = 0; i <= dim; ++i) {
       vert[static_cast<size_t>(i)] = mesh_.GetVertex(ijk[i]);
     }
     elements::P1Element<dim> E(vert);
     auto element_mass = p1_e<dim>(E, density);
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         result.push_back({ijk[i], ijk[j], element_mass(i, j)});
       }
     }
@@ -40,20 +40,20 @@ template <idx dim> math::spmatr MassMatrixCompute<dim>::operator()(real density)
   return math::make_sparse_matrix(mesh_.GetNumVertices(), mesh_.GetNumVertices(), result);
 }
 
-template <idx dim>
-math::spmatr MassMatrixCompute<dim>::operator()(math::field1r const& density) {
+template <Index dim>
+math::spmatr MassMatrixCompute<dim>::operator()(math::RealField1 const& density) {
   math::sp_coeff_list result;
-  for (idx i = 0; i < mesh_.GetElements().cols(); ++i) {
+  for (Index i = 0; i < mesh_.GetElements().cols(); ++i) {
     const auto& ijk = mesh_.GetElement(i);
-    std::array<math::vecr<dim>, dim + 1> vert;
-    for (idx i = 0; i <= dim; ++i) {
+    std::array<math::RealVector<dim>, dim + 1> vert;
+    for (Index i = 0; i <= dim; ++i) {
       vert[static_cast<size_t>(i)] = mesh_.GetVertex(ijk[i]);
     }
     elements::P1Element<dim> E(vert);
-    math::matr<dim + 1, dim + 1> element_mass;
+    math::RealMatrix<dim + 1, dim + 1> element_mass;
     element_mass = p1_e<dim>(E, density(i));
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         result.push_back({ijk[i], ijk[j], element_mass(i, j)});
       }
     }

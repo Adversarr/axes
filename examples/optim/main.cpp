@@ -8,23 +8,23 @@
 #include "ax/utils/time.hpp"
 
 using namespace ax;
-idx n = 2;
+Index n = 2;
 math::matxxr A;
-math::vecxr b;
+math::RealVectorX b;
 
 int main(int argc, char** argv) {
   get_program_options().add_options()
     ("problem", "Problem to solve", cxxopts::value<std::string>()->default_value("sp_lstsq"))
     ("optimizer", "Optimizer", cxxopts::value<std::string>()->default_value("lbfgs"))
     ("verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("dof", "Degrees of freedom", cxxopts::value<idx>()->default_value("2"));
+    ("dof", "Degrees of freedom", cxxopts::value<Index>()->default_value("2"));
 
   init(argc, argv);
 
   std::shared_ptr<optim::OptimizerBase> optimizer;
   std::shared_ptr<optim::OptProblem> prob;
   optim::Variable optimal, x0;
-  n = get_parse_result()["dof"].as<idx>();
+  n = get_parse_result()["dof"].as<Index>();
   bool verbose = get_parse_result()["verbose"].as<bool>();
   std::string problem = get_parse_result()["problem"].as<std::string>();
   std::string optimizer_name = get_parse_result()["optimizer"].as<std::string>();
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   /************************* SECT: Optimizer Options *************************/
   utils::Options opt{
     {"verbose", verbose},
-    {"max_iter", idx(200)},
+    {"max_iter", Index(200)},
     {"linesearch", "kBacktracking"},
     {"linesearch_opt", utils::Options{
       {"required_descent_rate", real(1e-4)},
@@ -57,20 +57,20 @@ int main(int argc, char** argv) {
   /************************* SECT: Setup Problems *************************/
   if (problem == "rosenbrock") {
     prob = std::make_shared<optim::test::RosenbrockProblem>();
-    x0 = math::vecxr::Constant(n, 1.2);
+    x0 = math::RealVectorX::Constant(n, 1.2);
     optimal = optim::test::RosenbrockProblem{}.Optimal(x0);
   } else if (problem == "lstsq") {
     A = math::matxxr::Random(n, n);
     A = (math::eye(n) + A * A.transpose()).eval();
-    b = math::vecxr::Random(n);
+    b = math::RealVectorX::Random(n);
     prob = std::make_shared<optim::test::LeastSquareProblem>(A, b);
     optimal = optim::test::LeastSquareProblem{A, b}.Optimal(b);
     x0.setRandom(n, 1);
   } else if (problem == "sp_lstsq") {
     math::sp_coeff_list A_sparse;
     A_sparse.reserve(n * 10);
-    for (idx i = 0; i < n; ++i) {
-      for (idx j = 0; j < 9; ++j) {
+    for (Index i = 0; i < n; ++i) {
+      for (Index j = 0; j < 9; ++j) {
         A_sparse.push_back({i, rand() % n, real(rand() % 100) / 100.0});
       }
       A_sparse.push_back({i, i, real(1.0)});
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     A2.setFromTriplets(A_sparse.begin(), A_sparse.end());
     A2.makeCompressed();
     A2 = A2.transpose() * A2;
-    for (idx i = 0; i < n; ++i) {
+    for (Index i = 0; i < n; ++i) {
       A2.coeffRef(i, i) += 1;
     }
     A2 /= 10;

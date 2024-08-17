@@ -12,14 +12,14 @@ public:
   void EndStep() override;
   ConstraintSolution SolveDistributed() override;
 
-  void SetHard(math::field1i const& indices,
-               math::field3r const& target_position);
-  void SetHard(math::field1i const& indices);
+  void SetHard(math::IndexField1 const& indices,
+               math::RealField3 const& target_position);
+  void SetHard(math::IndexField1 const& indices);
 
   // x_i: For hard constraint, just the target position because
   //      f_i is the indicator fn.
-  math::field3r dual_;
-  math::field3r gap_;
+  math::RealField3 dual_;
+  math::RealField3 gap_;
   real initial_rho_ = 1e4;
 };
 

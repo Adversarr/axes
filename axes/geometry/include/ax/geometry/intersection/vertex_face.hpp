@@ -11,13 +11,13 @@ namespace ax::geo {
 AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(Vertex3 const& a,
                                                                 Triangle3 const& b, real tol,
                                                                 real dt = 0.0) {
-  math::vec3r normal = math::normalized(b.Normal());
+  math::RealVector3 normal = math::normalized(b.Normal());
   real d = math::dot(normal, a.Position() - b.A());
   if (math::abs(d) < tol) {
     // project the vertex onto the face
-    math::vec3r const projected = a.Position() - d * normal;
+    math::RealVector3 const projected = a.Position() - d * normal;
     // baricentric coordinates
-    math::vec3r const bary = math::barycentric(projected, b.A(), b.B(), b.C());
+    math::RealVector3 const bary = math::barycentric(projected, b.A(), b.B(), b.C());
     if (bary[0] >= 0 && bary[1] >= 0 && bary[2] >= 0) {
       // std::cout << "Vertex Face Collision: " << bary.transpose() << std::endl;
       // std::cout << "Vertex: " << a.Position().transpose() << std::endl;
@@ -35,12 +35,12 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(Vertex3 const& a
                                                                 Triangle3 const& b0,
                                                                 Triangle3 const& b1, real tol) {
   // Derived from the notebooks/distance.ipynb
-  math::vec3r const abc = b0.A() - a0.Position();
-  math::vec3r const ABC = b1.A() - a1.Position();
-  math::vec3r const def = b0.B() - a0.Position();
-  math::vec3r const DEF = b1.B() - a1.Position();
-  math::vec3r const ghi = b0.C() - a0.Position();
-  math::vec3r const GHI = b1.C() - a1.Position();
+  math::RealVector3 const abc = b0.A() - a0.Position();
+  math::RealVector3 const ABC = b1.A() - a1.Position();
+  math::RealVector3 const def = b0.B() - a0.Position();
+  math::RealVector3 const DEF = b1.B() - a1.Position();
+  math::RealVector3 const ghi = b0.C() - a0.Position();
+  math::RealVector3 const GHI = b1.C() - a1.Position();
   real const a = abc[0], b = abc[1], c = abc[2], A = ABC[0], B = ABC[1], C = ABC[2];
   real const d = def[0], e = def[1], f = def[2], D = DEF[0], E = DEF[1], F = DEF[2];
   real const g = ghi[0], h = ghi[1], i = ghi[2], G = GHI[0], H = GHI[1], I = GHI[2];
@@ -66,7 +66,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_face(Vertex3 const& a
                    + 3 * a * f * h + 3 * b * d * i - 3 * b * f * g - 3 * c * d * h + 3 * c * e * g);
   real const k1 = a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
   auto toi = math::solve_cubic(k4, k3, k2, k1, 0, 1, tol * tol, 32);
-  for (idx i = 0; i < 3; ++i) {
+  for (Index i = 0; i < 3; ++i) {
     if (!toi.valid_[i]) continue;
     real t = toi.root_[i];
     Vertex3 a{math::lerp(a0.Position(), a1.Position(), t)};

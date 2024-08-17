@@ -18,9 +18,9 @@ using namespace std;
 
 namespace ax::nodes {
 
-class Input_idx final : public NodeDerive<Input_idx> {
+class Input_Index final : public NodeDerive<Input_Index> {
 public:
-  CG_NODE_COMMON(Input_idx, "Input/idx", "ImGui Input integer");
+  CG_NODE_COMMON(Input_Index, "Input/Index", "ImGui Input integer");
   CG_NODE_INPUTS();
   CG_NODE_OUTPUTS((int, value, "value from UI input."));
 
@@ -28,7 +28,7 @@ public:
     begin_draw_node(ptr);
     draw_node_header_default(ptr);
     ImGui::SetNextItemWidth(100);
-    auto* p = static_cast<Input_idx*>(ptr);
+    auto* p = static_cast<Input_Index*>(ptr);
     if (ImGui::InputScalar("value", ImGuiDataType_S64, &p->value_)) {
       p->SetAll(p->value_);
     }
@@ -38,19 +38,19 @@ public:
 
   static void OnRegister() { add_custom_node_render(name(), {RenderThis}); }
 
-  boost::json::object Serialize() const override { return {{"idx", value_}}; }
+  boost::json::object Serialize() const override { return {{"Index", value_}}; }
 
   void Deserialize(boost::json::object const& from) override try {
-    value_ = from.at("idx").as_int64();
+    value_ = from.at("Index").as_int64();
     SetAll(value_);
   } catch (std::exception const& e) {
-    AX_ERROR("Failed to deserialize Input_idx: {}", e.what());
+    AX_ERROR("Failed to deserialize Input_Index: {}", e.what());
   }
 
   void operator()(Context&) override { SetAll(value_); }
 
 private:
-  idx value_ = 0;
+  Index value_ = 0;
 };
 
 class Input_real final : public NodeDerive<Input_real> {

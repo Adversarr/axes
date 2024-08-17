@@ -38,19 +38,19 @@ template <typename T> void print_stl_vector() {
 int main(int argc, char** argv) {
   ax::init(argc, argv);
 
-  print_field<field1r>();
-  print_field<field2r>();
-  print_field<field3r>();
-  print_field<field4r>();
+  print_field<RealField1>();
+  print_field<RealField2>();
+  print_field<RealField3>();
+  print_field<RealField4>();
 
-  print_stl_vector<vec2r>();
-  print_stl_vector<vec3r>();
-  print_stl_vector<vec4r>();
-  print_stl_vector<vec2i>();
-  print_stl_vector<vec3i>();
-  print_stl_vector<vec4i>();
+  print_stl_vector<RealVector2>();
+  print_stl_vector<RealVector3>();
+  print_stl_vector<RealVector4>();
+  print_stl_vector<IndexVec2>();
+  print_stl_vector<IndexVec3>();
+  print_stl_vector<IndexVec4>();
 
-  field4r f;
+  RealField4 f;
   Eigen::Block<Eigen::Matrix<double, 4, -1>, 4, 1, true> t = f.col(0);
 
   ax::clean_up();

@@ -7,9 +7,9 @@ namespace ax::xpbd {
 // Because f_i is the indicator function, the solution is x = x_hard.
 
 ConstraintSolution Constraint_Hard::SolveDistributed() {
-  idx n_v = this->GetNumConstrainedVertices();
+  Index n_v = this->GetNumConstrainedVertices();
   ConstraintSolution result(n_v);
-  for (idx i = 0; i < n_v; ++i) {
+  for (Index i = 0; i < n_v; ++i) {
     result.weighted_position_.col(i) = (dual_.col(i) + gap_.col(i)) * this->rho_[i];
     result.weights_[i] = this->rho_[i];
   }
@@ -22,8 +22,8 @@ real Constraint_Hard::UpdateDuality() {
   // auto const prim_res = dual_ - fetch_from_global;
   // gap_ += dual_ - fetch_from_global;
   real prim_res = 0;
-  for (idx i = 0; i < this->GetNumConstrainedVertices(); ++i) {
-    math::vec3r residual = dual_.col(i) - fetch_from_global[i];
+  for (Index i = 0; i < this->GetNumConstrainedVertices(); ++i) {
+    math::RealVector3 residual = dual_.col(i) - fetch_from_global[i];
     gap_.col(i) += residual;
 
     prim_res += residual.squaredNorm();
@@ -32,7 +32,7 @@ real Constraint_Hard::UpdateDuality() {
 }
 
 void Constraint_Hard::BeginStep() {
-  idx nV = this->GetNumConstrainedVertices();
+  Index nV = this->GetNumConstrainedVertices();
   gap_.setZero(3, nV);
   auto const& g = ensure_server();
   this->rho_.resize(nV, initial_rho_);
@@ -41,19 +41,19 @@ void Constraint_Hard::BeginStep() {
 
 void Constraint_Hard::EndStep() {}
 
-void Constraint_Hard::SetHard(math::field1i const& indices, math::field3r const& target_position) {
+void Constraint_Hard::SetHard(math::IndexField1 const& indices, math::RealField3 const& target_position) {
   this->constraint_mapping_ = indices;
   this->constrained_vertices_ids_ = this->constraint_mapping_.Mapping();
   dual_ = target_position;
 }
 
-void Constraint_Hard::SetHard(math::field1i const& indices) {
+void Constraint_Hard::SetHard(math::IndexField1 const& indices) {
   this->constraint_mapping_ = indices;
   this->constrained_vertices_ids_ = this->constraint_mapping_.Mapping();
   dual_.setZero(3, indices.size());
 
   this->UpdatePositionConsensus();
-  for (idx i = 0; i < indices.size(); ++i) {
+  for (Index i = 0; i < indices.size(); ++i) {
     dual_.col(i) = this->constrained_vertices_position_[i];
   }
 }

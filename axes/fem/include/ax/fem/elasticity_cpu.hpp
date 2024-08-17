@@ -10,14 +10,14 @@ namespace ax::fem {
  * @tparam dim
  * @tparam ElasticModelTemplate
  */
-template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute_CPU
+template <Index dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_CPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::matr<dim, dim>>;
-  using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::matr<dim * dim, dim * dim>>;
+  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using vert_stress_t = math::RealField<dim>;
+  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
@@ -32,7 +32,7 @@ public:
   void GatherEnergyToVertices() final;
   void GatherStressToVertices() final;
   void GatherHessianToVertices() final;
-  void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void Update(math::RealField<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
 
 protected:

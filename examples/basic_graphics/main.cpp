@@ -43,17 +43,17 @@ void render_ui_dummy() { ImGui::ShowDemoWindow(); }
 gl::Lines create_dummy_line() {
   gl::Lines lines;
   lines.vertices_.resize(3, 3);
-  lines.vertices_.col(0) = math::vec3r::Zero();
-  lines.vertices_.col(1) = math::vec3r{0.5, 0.5, 0.};
-  lines.vertices_.col(2) = math::vec3r{0.5, -0.5, 0.};
-  lines.vertices_.colwise() += math::vec3r::UnitY();
+  lines.vertices_.col(0) = math::RealVector3::Zero();
+  lines.vertices_.col(1) = math::RealVector3{0.5, 0.5, 0.};
+  lines.vertices_.col(2) = math::RealVector3{0.5, -0.5, 0.};
+  lines.vertices_.colwise() += math::RealVector3::UnitY();
   lines.colors_.resize(4, 3);
   lines.colors_.setRandom();
   lines.colors_ = lines.colors_ * 0.5;
   lines.colors_.colwise() += math::ones<4>();
   lines.indices_.resize(2, 2);
-  lines.indices_.col(0) = math::vec2i{0, 1};
-  lines.indices_.col(1) = math::vec2i{1, 2};
+  lines.indices_.col(0) = math::IndexVec2{0, 1};
+  lines.indices_.col(1) = math::IndexVec2{1, 2};
   lines;
   return lines;
 }
@@ -72,9 +72,9 @@ gl::Mesh create_dummy_cube() {
   mesh;
 
   mesh.instance_offset_.resize(3, 3);
-  mesh.instance_offset_.col(0) = math::vec3r{0.5, 0.5, 0};
-  mesh.instance_offset_.col(1) = math::vec3r{-0.5, 0.5, 0};
-  mesh.instance_offset_.col(2) = math::vec3r{0.5, -0.5, 0};
+  mesh.instance_offset_.col(0) = math::RealVector3{0.5, 0.5, 0};
+  mesh.instance_offset_.col(1) = math::RealVector3{-0.5, 0.5, 0};
+  mesh.instance_offset_.col(2) = math::RealVector3{0.5, -0.5, 0};
   mesh.instance_color_.setZero(4, 3);
 
   return mesh;
@@ -85,10 +85,10 @@ gl::Mesh create_dummy_sphere() {
   auto sp = geo::sphere(0.5, 10, 10);
   mesh.vertices_ = sp.vertices_;
   mesh.indices_ = sp.indices_;
-  math::each(mesh.vertices_) += math::vec3r{1.5, 0, 0};
+  math::each(mesh.vertices_) += math::RealVector3{1.5, 0, 0};
   mesh.colors_.resize(4, mesh.vertices_.cols());
-  for (idx i = 0; i < mesh.vertices_.cols(); ++i) {
-    mesh.colors_.topRows<3>().col(i) = math::vec3r(gl::colormap_coolwarm[i % 256]);
+  for (Index i = 0; i < mesh.vertices_.cols(); ++i) {
+    mesh.colors_.topRows<3>().col(i) = math::RealVector3(gl::colormap_coolwarm[i % 256]);
   }
   mesh.normals_ = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   mesh.use_lighting_ = true;
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
     i64 current = utils::get_current_time_nanos();
     real dt = (current - start) / 1.0e9;
     if (rotate) {
-      math::mat4r model = geo::rotate_y(dt * 0.3);
+      math::RealMatrix4 model = geo::rotate_y(dt * 0.3);
       ctx.SetGlobalModelMatrix(model.cast<f32>());
     }
   }

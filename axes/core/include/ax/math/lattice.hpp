@@ -27,7 +27,7 @@ constexpr staggered_t staggered;
  * @tparam N
  * @tparam Scalar
  */
-template <idx D, typename T> class Lattice {
+template <Index D, typename T> class Lattice {
 public:
   using Container = std::vector<T>;
 
@@ -64,7 +64,7 @@ public:
   void Reshape(veci<D> const& shape, cell_center_t = cell_center) {
     shape_ = shape;
     strides_[D - 1] = 1;
-    for (idx i = D - 1; i > 0; --i) {
+    for (Index i = D - 1; i > 0; --i) {
       strides_[i - 1] = strides_[i] * shape_[i];
     }
     field_.resize(math::prod(shape));
@@ -75,7 +75,7 @@ public:
     shape_ = shape;
     auto shape_plus_one = shape + veci<D>::Ones();
     strides_[D - 1] = 1;
-    for (idx i = D - 1; i > 0; --i) {
+    for (Index i = D - 1; i > 0; --i) {
       strides_[i - 1] = strides_[i] * shape_plus_one[i];
     }
     field_.resize(math::prod(shape_plus_one));
@@ -86,12 +86,12 @@ public:
   T& operator()(veci<D> const& sub) { return field_[sub2ind(strides_, sub)]; }
   T const& operator()(veci<D> const& sub) const { return field_[sub2ind(strides_, sub)]; }
   template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
-  T& operator()(Idx... idx) {
-    return field_[sub2ind(strides_, veci<D>{idx...})];
+  T& operator()(Idx... Index) {
+    return field_[sub2ind(strides_, veci<D>{Index...})];
   }
   template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>
-  T const& operator()(Idx... idx) const {
-    return field_[sub2ind(strides_, veci<D>{idx...})];
+  T const& operator()(Idx... Index) const {
+    return field_[sub2ind(strides_, veci<D>{Index...})];
   }
 
   Container& Raw() { return field_; }
@@ -158,7 +158,7 @@ public:
   }
 
   AX_FORCE_INLINE auto Iterate() const {
-    return math::ndrange<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<idx, D>);
+    return math::ndrange<D>(shape_) | utils::ranges::views::transform(tuple_to_vector<Index, D>);
   }
 
   AX_FORCE_INLINE auto begin() const { return field_.begin(); }
@@ -182,8 +182,8 @@ public:
                                                                && std::is_same_v<Dummy, Dummy>>>
   matxxr ToMatrix() const {
     matxxr mat(shape_[0], shape_[1]);
-    for (idx i = 0; i < shape_[0]; ++i) {
-      for (idx j = 0; j < shape_[1]; ++j) {
+    for (Index i = 0; i < shape_[0]; ++i) {
+      for (Index j = 0; j < shape_[1]; ++j) {
         mat(i, j) = operator()(i, j);
       }
     }
@@ -201,7 +201,7 @@ private:
     // }
   }
 
-  AX_FORCE_INLINE idx sub2ind(veci<D> const& strides, veci<D> const& sub) const {
+  AX_FORCE_INLINE Index sub2ind(veci<D> const& strides, veci<D> const& sub) const {
     // Check if sub is within the shape.
     CheckInRange(sub);
     return (sub.dot(strides));
@@ -213,37 +213,37 @@ private:
   bool is_staggered_ = false;
 };
 
-template <idx D, typename T>
-T lerp_inside(Lattice<D, T> const& lattice, vecr<D> const& pos, cell_center_t = cell_center) {
-  veci<D> sub = floor(pos).template cast<idx>();
-  vecr<D> rel_pos = pos - sub.template cast<real>();
+template <Index D, typename T>
+T lerp_inside(Lattice<D, T> const& lattice, RealVector<D> const& pos, cell_center_t = cell_center) {
+  veci<D> sub = floor(pos).template cast<Index>();
+  RealVector<D> rel_pos = pos - sub.template cast<real>();
   T result = math::make_zeros<T>();
-  for (idx i = 0; i < (1 << D); ++i) {
+  for (Index i = 0; i < (1 << D); ++i) {
     veci<D> offset;
-    for (idx j = 0; j < D; ++j) {
+    for (Index j = 0; j < D; ++j) {
       offset[j] = (i >> j) & 1;
     }
     veci<D> off_sub = sub + offset;
-    vecr<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
+    RealVector<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
     auto weight = abs(prod(opposite_rel_pos));
     result += lattice(off_sub) * weight;
   }
   return result;
 }
 
-template <idx D, typename T> T lerp_outside(Lattice<D, T> const& lattice, vecr<D> const& pos,
+template <Index D, typename T> T lerp_outside(Lattice<D, T> const& lattice, RealVector<D> const& pos,
                                             bool periodic, T default_value = {},
                                             cell_center_t = cell_center) {
-  veci<D> sub = floor(pos).template cast<idx>();
-  vecr<D> rel_pos = pos - sub.template cast<real>();
+  veci<D> sub = floor(pos).template cast<Index>();
+  RealVector<D> rel_pos = pos - sub.template cast<real>();
   T result = math::make_zeros<T>();
-  for (idx i = 0; i < (1 << D); ++i) {
+  for (Index i = 0; i < (1 << D); ++i) {
     veci<D> offset;
-    for (idx j = 0; j < D; ++j) {
+    for (Index j = 0; j < D; ++j) {
       offset[j] = (i >> j) & 1;
     }
     veci<D> off_sub = sub + offset;
-    vecr<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
+    RealVector<D> opposite_rel_pos = math::ones<D>() - offset.template cast<real>() - rel_pos;
     auto weight = abs(prod(opposite_rel_pos));
     if (lattice.IsSubValid(off_sub) || periodic) {
       result += lattice(math::imod<D>(off_sub + lattice.Shape(), lattice.Shape())) * weight;

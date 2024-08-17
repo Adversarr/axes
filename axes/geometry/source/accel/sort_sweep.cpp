@@ -11,8 +11,8 @@ void BroadPhase_SortSweep::DetectCollisions() {
   ClearCollidingPairs();
 
   // sweep
-  for (idx i = 0; i < (idx)colliders.size(); ++i) {
-    for (idx j = i + 1; j < (idx)colliders.size(); ++j) {
+  for (Index i = 0; i < (Index)colliders.size(); ++i) {
+    for (Index j = i + 1; j < (Index)colliders.size(); ++j) {
       if (colliders[j].aabb_.min().x() > colliders[i].aabb_.max().x()) {
         break;
       }

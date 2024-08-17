@@ -15,7 +15,7 @@ using SparseHessian = math::spmatr;  // type of sparse hessian.
 /****************************** Function Handles ******************************/
 using ConvergeVarFn = std::function<real(const Variable&, const Variable&)>;
 using ConvergeGradFn = std::function<real(const Gradient&, const Gradient&)>;
-using VerboseFn = std::function<void(idx, const Variable&, real)>;
+using VerboseFn = std::function<void(Index, const Variable&, real)>;
 using EnergyFn = std::function<real(const Variable&)>;
 using GradFn = std::function<Gradient(const Variable&)>;
 using HessianFn = std::function<DenseHessian(const Variable&)>;
@@ -44,7 +44,7 @@ public:
   SparseHessian EvalSparseHessian(const Variable& x) const;
   real EvalConvergeVar(const Variable& x0, const Variable& x1) const;
   real EvalConvergeGrad(const Gradient& grad0, const Gradient& grad1) const;
-  void EvalVerbose(idx iter, const Variable& x, real energy) const;
+  void EvalVerbose(Index iter, const Variable& x, real energy) const;
   Variable EvalProximator(const Variable& x, real step_length) const;
 
   /****************************** Setters ******************************/
@@ -95,7 +95,7 @@ struct OptResult {
   real f_opt_;
   real step_length_{1.0}; // for linesarchers.
   // For Iterative Solver:
-  idx n_iter_;
+  Index n_iter_;
   // Indicates whether the optimization algorithm has converged.
   bool converged_grad_{false};
   bool converged_var_{false};
@@ -105,7 +105,7 @@ struct OptResult {
 
   OptResult() = default;
 
-  OptResult(Variable const& x_opt, real f_opt, idx n_iter)
+  OptResult(Variable const& x_opt, real f_opt, Index n_iter)
       : x_opt_(x_opt), f_opt_(f_opt), n_iter_(n_iter) {}
 
   std::pair<Variable, real> GetResult() const;

@@ -18,10 +18,10 @@ utils::Options DiagonalModification::GetOptions() const {
 }
 
 math::matxxr DiagonalModification::Modify(math::matxxr const& A) {
-  math::vecxr row_sum(A.rows());
-  math::vecxr col_sum(A.cols());
-  for (idx i = 0; i < A.rows(); ++i) {
-    for (idx j = 0; j < A.cols(); ++j) {
+  math::RealVectorX row_sum(A.rows());
+  math::RealVectorX col_sum(A.cols());
+  for (Index i = 0; i < A.rows(); ++i) {
+    for (Index j = 0; j < A.cols(); ++j) {
       real abs_aij = std::abs(A(i, j));
       row_sum[i] += abs_aij;
       col_sum[j] += abs_aij;
@@ -29,7 +29,7 @@ math::matxxr DiagonalModification::Modify(math::matxxr const& A) {
   }
 
   math::matxxr A_mod = A;
-  for (idx i = 0; i < A.rows(); ++i) {
+  for (Index i = 0; i < A.rows(); ++i) {
     real diag = abs(A(i, i));
     diag = std::max(diag, row_sum[i] - diag + additional_offset_);
     diag = std::max(diag, col_sum[i] - diag + additional_offset_);
@@ -40,9 +40,9 @@ math::matxxr DiagonalModification::Modify(math::matxxr const& A) {
 }
 
 math::spmatr DiagonalModification::Modify(math::spmatr const& A) {
-  math::vecxr row_sum(A.rows());
-  math::vecxr col_sum(A.cols());
-  for (idx i = 0; i < A.outerSize(); ++i) {
+  math::RealVectorX row_sum(A.rows());
+  math::RealVectorX col_sum(A.cols());
+  for (Index i = 0; i < A.outerSize(); ++i) {
     for (math::spmatr::InnerIterator it(A, i); it; ++it) {
       real abs_aij = std::abs(it.value());
       row_sum[it.row()] += abs_aij;
@@ -51,7 +51,7 @@ math::spmatr DiagonalModification::Modify(math::spmatr const& A) {
   }
 
   math::spmatr A_mod = A;
-  for (idx i = 0; i < A.rows(); ++i) {
+  for (Index i = 0; i < A.rows(); ++i) {
     real diag = abs(A.coeff(i, i));
     diag = std::max(diag, row_sum[i] - diag + additional_offset_);
     diag = std::max(diag, col_sum[i] - diag + additional_offset_);

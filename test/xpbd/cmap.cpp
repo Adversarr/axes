@@ -39,7 +39,7 @@ TEST_CASE("ConstraintMap tests") {
     map.emplace_back(1, 2, 3);
     map.emplace_back(4, 5, 6);
 
-    CHECK(map.Mapping() == std::vector<ax::idx>{1, 2, 3, 4, 5, 6});
+    CHECK(map.Mapping() == std::vector<ax::Index>{1, 2, 3, 4, 5, 6});
     CHECK(map.Entries() == std::vector<size_t>{0, 3});
   }
 

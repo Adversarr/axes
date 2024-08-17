@@ -17,9 +17,9 @@ public:
   Colormap(real low, real high, bool periodic = false, cmap& colormap = colormap_jet)
       : low_(low), high_(high), periodic_(periodic), colormap_(colormap) {}
 
-  math::vec3r operator()(real value) const;
+  math::RealVector3 operator()(real value) const;
 
-  math::field3r operator()(math::vecxr const &values) const;
+  math::RealField3 operator()(math::RealVectorX const &values) const;
 
 private:
   real low_;

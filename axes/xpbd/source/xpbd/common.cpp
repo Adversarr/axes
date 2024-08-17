@@ -46,13 +46,13 @@ std::unique_ptr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
 }
 
 void ConstraintBase::UpdatePositionConsensus() {
-  idx n_v = this->GetNumConstrainedVertices();
+  Index n_v = this->GetNumConstrainedVertices();
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = constrained_vertices_position_;
   local.resize(n_v);
   auto const& g = ensure_server();
-  for (idx i : utils::iota(n_v)) {
-    idx iV = cmap[i];
+  for (Index i : utils::iota(n_v)) {
+    Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }
 }

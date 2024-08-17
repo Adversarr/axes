@@ -4,15 +4,15 @@
 
 namespace ax::math::decomp {
 
-AX_DEVICE AX_FORCE_INLINE void svd(math::mat3f const& A, math::mat3f& U, math::mat3f& V,
-                                   math::vec3f& Sigma) {
+AX_DEVICE AX_FORCE_INLINE void svd(math::FloatMatrix3 const& A, math::FloatMatrix3& U, math::FloatMatrix3& V,
+                                   math::FloatVector3& Sigma) {
   ::svd(A(0, 0), A(0, 1), A(0, 2), A(1, 0), A(1, 1), A(1, 2), A(2, 0), A(2, 1), A(2, 2), U(0, 0),
         U(0, 1), U(0, 2), U(1, 0), U(1, 1), U(1, 2), U(2, 0), U(2, 1), U(2, 2), Sigma[0], Sigma[1],
         Sigma[2], V(0, 0), V(0, 1), V(0, 2), V(1, 0), V(1, 1), V(1, 2), V(2, 0), V(2, 1), V(2, 2));
 }
 
-AX_DEVICE AX_FORCE_INLINE void svd(math::mat2f const& A, math::mat2f& U, math::mat2f& V,
-                                   math::vec2f& Sigma) {
+AX_DEVICE AX_FORCE_INLINE void svd(math::FloatMatrix2 const& A, math::FloatMatrix2& U, math::FloatMatrix2& V,
+                                   math::FloatVector2& Sigma) {
   float a = A(0, 0), b = A(0, 1), c = A(1, 0), d = A(1, 1);
   float t1 = a * a + b * b - c * c - d * d;
   float t2 = a * c + b * d;

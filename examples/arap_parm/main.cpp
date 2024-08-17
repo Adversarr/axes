@@ -70,7 +70,7 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
         real r = math::fmod(math::abs(x), 0.1) * 10;
         return x < 0 ? 1-r : r;
       };
-      for (idx i = 0; i < sm.vertices_.cols(); ++i) {
+      for (Index i = 0; i < sm.vertices_.cols(); ++i) {
         orimesh.colors_.col(i).x() = to_color(mesh.vertices_.col(i).x());
         orimesh.colors_.col(i).y() = to_color(mesh.vertices_.col(i).y());
         orimesh.colors_.col(i).z() = 0;

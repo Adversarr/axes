@@ -23,7 +23,7 @@ ABSL_FLAG(std::string, strategy, "kReservedForExperimental", "");
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 int prolongation;
 
 std::unique_ptr<fem::Timestepper_QuasiNewton<3>> ts;
@@ -59,16 +59,16 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
+math::RealVectorX fps;
 bool disable_original;
 
-std::vector<math::vecxr> uk, gk, sk, inertia;
+std::vector<math::RealVectorX> uk, gk, sk, inertia;
 std::unique_ptr<math::SparseSolverBase> solver;
 
 void setup_spai();
 
 void ui_callback(gl::UiRenderEvent) {
-  static idx frame = 0;
+  static Index frame = 0;
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::Text("dt=%lf", dt);
@@ -78,7 +78,7 @@ void ui_callback(gl::UiRenderEvent) {
     const auto& vert = ts->GetMesh()->GetVertices();
     auto time_start = ax::utils::GetCurrentTimeNanos();
     for (auto i : utils::iota(input_mesh.vertices_.cols())) {
-      math::vec3r position = input_mesh.vertices_.col(i);
+      math::RealVector3 position = input_mesh.vertices_.col(i);
       if (position.x()> 4.9) {
         position.x() += dt * frame; 
         ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
@@ -86,7 +86,7 @@ void ui_callback(gl::UiRenderEvent) {
         ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());
       }
     }
-    ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
+    ts->SetExternalAccelerationUniform(math::RealVector3{0, -9.8, 0});
 
 
     ts->BeginTimestep();
@@ -97,19 +97,19 @@ void ui_callback(gl::UiRenderEvent) {
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
     std::cout << frame << " Dt=" << time_elapsed
-              << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+              << "s, FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
 }
 
-void fix_negative_volume(math::field4i& tets, math::field3r const& verts) {
+void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
   for (auto i : utils::iota(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
     auto d = verts.col(tets(3, i));
-    math::mat4r tet;
+    math::RealMatrix4 tet;
     tet << a, b, c, d, 0, 0, 0, 1;
     if (math::det(tet) < 0) {
       std::swap(tets(1, i), tets(2, i));
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
   tet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_elements.npy");
   vet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_vertices.npy");
 
-  auto tet = math::read_npy_v10_idx(tet_file);
+  auto tet = math::read_npy_v10_Index(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   input_mesh.indices_ = tet.transpose();
   input_mesh.vertices_ = vet.transpose();
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
       ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());
     }
   }
-  ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
+  ts->SetExternalAccelerationUniform(math::RealVector3{0, -9.8, 0});
 
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
@@ -183,17 +183,17 @@ void setup_spai() {
   if (sia.A_.nonZeros() == 0) {
     // Empty, set according to prolongation.
     math::spmatr M = ts->GetMassMatrix();
-    math::spmatr_for_each(M, [](idx, idx, real& value) { value = 1.0; });
+    math::spmatr_for_each(M, [](Index, Index, real& value) { value = 1.0; });
     for (int i = 0; i < prolongation; ++i) {
       M = M * M;
       M.makeCompressed();
-      math::spmatr_for_each(M, [](idx, idx, real& value) { value = 1.0; });
+      math::spmatr_for_each(M, [](Index, Index, real& value) { value = 1.0; });
     }
     sia.A_ = M;
   }
 
   // set the sparse fill-ins.
-  math::spmatr_for_each(sia.A_, [&H_inv](idx i, idx j, real& value) { 
+  math::spmatr_for_each(sia.A_, [&H_inv](Index i, Index j, real& value) { 
       value = H_inv(i, j);
   });
 }

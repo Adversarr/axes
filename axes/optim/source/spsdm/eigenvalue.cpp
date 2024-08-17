@@ -10,7 +10,7 @@ math::matxxr EigenvalueModification::Modify(math::matxxr const& A) {
   Eigen::SelfAdjointEigenSolver<math::matxxr> es;
   es.compute(A, Eigen::ComputeEigenvectors);
   AX_THROW_IF_FALSE(es.info() == Eigen::Success, "Eigenvalue decomposition failed.");
-  math::vecxr eigvals_mod = es.eigenvalues();
+  math::RealVectorX eigvals_mod = es.eigenvalues();
 
   if ((eigvals_mod.array() > min_eigval_).all()) {
     return A;

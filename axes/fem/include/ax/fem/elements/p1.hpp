@@ -79,25 +79,25 @@ struct P1Element2D {
     det_jacobi_ = 1;
   }
 
-  AX_FORCE_INLINE P1Element2D(std::array<math::vec2r, 3> const& nodes) {
+  AX_FORCE_INLINE P1Element2D(std::array<math::RealVector2, 3> const& nodes) {
     jacobi_ << (nodes[1] - nodes[0]), (nodes[2] - nodes[0]);
     inverse_jacobi_ = jacobi_.inverse();
     det_jacobi_ = abs(jacobi_.determinant());
   }
 
-  AX_FORCE_INLINE real Integrate_F_F(idx i, idx j) const noexcept {
+  AX_FORCE_INLINE real Integrate_F_F(Index i, Index j) const noexcept {
     return det_jacobi_ * p12_element_f_f[i][j];
   }
 
-  AX_FORCE_INLINE real Integrate_PF_F(idx i, idx j, idx i_pf) const noexcept {
+  AX_FORCE_INLINE real Integrate_PF_F(Index i, Index j, Index i_pf) const noexcept {
     real pfi_pu = p12_element_pfpx_f[0][i_pf][j];
     real pfi_pv = p12_element_pfpx_f[1][i_pf][j];
     return det_jacobi_ * (pfi_pu * inverse_jacobi_(0, i) + pfi_pv * inverse_jacobi_(1, i));
   }
 
-  AX_FORCE_INLINE real Integrate_PF_PF(idx i, idx j, idx k, idx l) const noexcept {
+  AX_FORCE_INLINE real Integrate_PF_PF(Index i, Index j, Index k, Index l) const noexcept {
     AX_DCHECK(i < 3 && j < 3 && k < 2 && l < 2, "Invalid index i:{} j:{} k:{} l:{}", i, j, k, l);
-    math::mat2r pfi_pu_pu;
+    math::RealMatrix2 pfi_pu_pu;
     pfi_pu_pu << p12_pfpx_pfpx[i][j][0][0], p12_pfpx_pfpx[i][j][0][1], p12_pfpx_pfpx[i][j][1][0],
         p12_pfpx_pfpx[i][j][1][1];
     auto puv_pxk = inverse_jacobi_.col(k);
@@ -105,8 +105,8 @@ struct P1Element2D {
     return det_jacobi_ * puv_pxk.dot(pfi_pu_pu * puv_pxl);
   }
 
-  math::mat2r jacobi_;
-  math::mat2r inverse_jacobi_;
+  math::RealMatrix2 jacobi_;
+  math::RealMatrix2 inverse_jacobi_;
   real det_jacobi_;
 };
 
@@ -117,17 +117,17 @@ struct P1Element3D {
     det_jacobi_ = 1;
   }
 
-  explicit AX_FORCE_INLINE P1Element3D(std::array<math::vec3r, 4> const& nodes) {
+  explicit AX_FORCE_INLINE P1Element3D(std::array<math::RealVector3, 4> const& nodes) {
     jacobi_ << (nodes[1] - nodes[0]), (nodes[2] - nodes[0]), (nodes[3] - nodes[0]);
     inverse_jacobi_ = jacobi_.inverse();
     det_jacobi_ = abs(jacobi_.determinant());
   }
 
-  AX_FORCE_INLINE real Integrate_F_F(idx i, idx j) const noexcept {
+  AX_FORCE_INLINE real Integrate_F_F(Index i, Index j) const noexcept {
     return det_jacobi_ * p13_f_f[i][j];
   }
 
-  AX_FORCE_INLINE real Integrate_PF_F(idx i, idx j, idx i_pf) const noexcept {
+  AX_FORCE_INLINE real Integrate_PF_F(Index i, Index j, Index i_pf) const noexcept {
     real pfi_pu = p13_pfpx_f[0][i_pf][j];
     real pfi_pv = p13_pfpx_f[1][i_pf][j];
     real pfi_pw = p13_pfpx_f[2][i_pf][j];
@@ -136,9 +136,9 @@ struct P1Element3D {
               + pfi_pw * inverse_jacobi_(2, i));
   }
 
-  AX_FORCE_INLINE real Integrate_PF_PF(idx i, idx j, idx k, idx l) const noexcept {
+  AX_FORCE_INLINE real Integrate_PF_PF(Index i, Index j, Index k, Index l) const noexcept {
     AX_DCHECK(i < 4 && j < 4 && k < 3 && l < 3, "Invalid index i:{} j:{} k:{} l:{}", i, j, k, l);
-    math::mat3r pfi_pu_pu;
+    math::RealMatrix3 pfi_pu_pu;
     pfi_pu_pu << p13_pfpx_pfpx[i][j][0][0], p13_pfpx_pfpx[i][j][0][1], p13_pfpx_pfpx[i][j][0][2],
         p13_pfpx_pfpx[i][j][1][0], p13_pfpx_pfpx[i][j][1][1], p13_pfpx_pfpx[i][j][1][2],
         p13_pfpx_pfpx[i][j][2][0], p13_pfpx_pfpx[i][j][2][1], p13_pfpx_pfpx[i][j][2][2];
@@ -147,12 +147,12 @@ struct P1Element3D {
     return det_jacobi_ * puv_pxk.dot(pfi_pu_pu * puv_pxl);
   }
 
-  math::mat3r jacobi_;
-  math::mat3r inverse_jacobi_;
+  math::RealMatrix3 jacobi_;
+  math::RealMatrix3 inverse_jacobi_;
   real det_jacobi_;
 };
 
-template <idx dim> struct P1Element;
+template <Index dim> struct P1Element;
 template <> struct P1Element<2> : public P1Element2D {
   using P1Element2D::P1Element2D;
 };

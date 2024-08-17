@@ -20,8 +20,8 @@
 // class MakeSurfaceMesh : public NodeBase {
 // public:
 //   AX_NODE_COMMON_WITH_CTOR(MakeSurfaceMesh, "Make_SurfaceMesh", "Creates a surface mesh");
-//   AX_NODE_INPUTS((math::field3r, vertices, "The vertices of the mesh"),
-//                  (math::field3i, faces, "The faces of the mesh"));
+//   AX_NODE_INPUTS((math::RealField3, vertices, "The vertices of the mesh"),
+//                  (math::IndexField3, faces, "The faces of the mesh"));
 //   AX_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The resulting surface mesh"));
 //
 //   void Apply(size_t) override {
@@ -36,13 +36,13 @@
 //   AX_NODE_COMMON_WITH_CTOR(DecomposeSurfaceMesh, "Decompose_SurfaceMesh",
 //                            "Decomposes a surface mesh");
 //   AX_NODE_INPUTS((geo::SurfaceMesh, mesh, "The mesh to decompose"));
-//   AX_NODE_OUTPUTS((math::field3r, vertices, "The vertices of the mesh"),
-//                   (math::field3i, faces, "The faces of the mesh"));
+//   AX_NODE_OUTPUTS((math::RealField3, vertices, "The vertices of the mesh"),
+//                   (math::IndexField3, faces, "The faces of the mesh"));
 //
 //   void Apply(size_t) override {
 //     auto const& mesh = AX_NODE_INPUT_ENSURE_EXTRACT(mesh);
-//     SetOutput<math::field3r>(0, mesh.vertices_);
-//     SetOutput<math::field3i>(1, mesh.indices_);
+//     SetOutput<math::RealField3>(0, mesh.vertices_);
+//     SetOutput<math::IndexField3>(1, mesh.indices_);
 //   }
 // };
 //
@@ -51,7 +51,7 @@
 //   AX_NODE_COMMON_WITH_CTOR(Normal_PerVertex, "Normal_PerVertex", "Computes per vertex normals",
 //                            register_render);
 //   AX_NODE_INPUTS((geo::SurfaceMesh, mesh, "The mesh to compute normals for"));
-//   AX_NODE_OUTPUTS((math::field3r, normals, "The normals of the mesh"));
+//   AX_NODE_OUTPUTS((math::RealField3, normals, "The normals of the mesh"));
 //
 //   static void register_render() {
 //     add_custom_node_render<Normal_PerVertex>([](NodeBase* node) {
@@ -82,7 +82,7 @@
 //   void Apply(size_t ) override {
 //     auto const& mesh = AX_NODE_INPUT_ENSURE_EXTRACT(mesh);
 //
-//     math::field3r normals;
+//     math::RealField3 normals;
 //     if (selected_option_ == 0) {
 //       normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_, geo::face_uniform_avg);
 //     } else if (selected_option_ == 1) {
@@ -90,24 +90,24 @@
 //     } else if (selected_option_ == 2) {
 //       normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_, geo::face_angle_avg);
 //     }
-//     SetOutput<math::field3r>(0, std::move(normals));
+//     SetOutput<math::RealField3>(0, std::move(normals));
 //   }
 //
 //   const char* options_[3]{"uniform", "area", "angle"};
-//   idx selected_option_ = 0;
+//   Index selected_option_ = 0;
 // };
 //
 // class Make_XyPlane : public NodeBase {
 // public:
 //   AX_NODE_COMMON_WITH_CTOR(Make_XyPlane, "Make_XyPlane",
 //                            "Creates a xy plane (Default = [0,1]x[0,1] with 1x1 resolution)");
-//   AX_NODE_INPUTS((math::vec2r, size, "The size of the plane"),
-//                  (math::vec2i, resolution, "The resolution of the plane"));
+//   AX_NODE_INPUTS((math::RealVector2, size, "The size of the plane"),
+//                  (math::IndexVec2, resolution, "The resolution of the plane"));
 //   AX_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The resulting surface mesh"));
 //
 //   void Apply(size_t ) override {
-//     math::vec2r size_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(size, math::vec2r(1, 1));
-//     math::vec2i resolution_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(resolution, math::vec2i(1, 1));
+//     math::RealVector2 size_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(size, math::RealVector2(1, 1));
+//     math::IndexVec2 resolution_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(resolution, math::IndexVec2(1, 1));
 //     if (resolution_inuse.x() < 1 || resolution_inuse.y() < 1) {
 //       throw make_out_of_range("Resolution must be at least 1x1.");
 //     }
@@ -121,10 +121,10 @@
 // public:
 //   AX_NODE_COMMON_WITH_CTOR(ExtractBoundary_Tetrahedrons, "ExtractBoundary_Tetrahedrons_pre",
 //                            "Extracts the boundary of a tetrahedral mesh");
-//   AX_NODE_INPUTS((math::field3r, vertices, "The vertices of the mesh"),
-//                  (math::field4i, tetras, "The tetrahedrons of the mesh"),
+//   AX_NODE_INPUTS((math::RealField3, vertices, "The vertices of the mesh"),
+//                  (math::IndexField4, tetras, "The tetrahedrons of the mesh"),
 //                  (bool, reload, "Whether to recompute the boundary every frame"));
-//   AX_NODE_OUTPUTS((math::field3i, bd_faces, "The boundary of the mesh"));
+//   AX_NODE_OUTPUTS((math::IndexField3, bd_faces, "The boundary of the mesh"));
 //
 //   void PreApply() override {
 //     const auto& V = AX_NODE_INPUT_ENSURE_EXTRACT(vertices);
@@ -135,7 +135,7 @@
 //     }
 //
 //     auto boundary = geo::get_boundary_triangles(V, T);
-//     SetOutput<math::field3i>(0, std::move(boundary));
+//     SetOutput<math::IndexField3>(0, std::move(boundary));
 //   }
 //
 //   void Apply(size_t frame) final {

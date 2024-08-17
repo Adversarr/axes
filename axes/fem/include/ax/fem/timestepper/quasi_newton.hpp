@@ -37,7 +37,7 @@ protected:
 
 struct SparseInverseApproximator {
   math::spmatr A_;
-  math::vecxr precond_;
+  math::RealVectorX precond_;
   real eig_modification_{0.};
   bool require_check_secant_{false};
 };

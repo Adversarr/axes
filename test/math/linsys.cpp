@@ -31,8 +31,8 @@ TEST_CASE("Solve Invertible") {
   using namespace ax::math;
   matxxr A(2, 2);
   A << 1, 2, 3, 4;
-  vecxr b = vecxr::Ones(2);
-  vecxr x = A.inverse() * b;
+  RealVectorX b = RealVectorX::Ones(2);
+  RealVectorX x = A.inverse() * b;
   for (auto kind : kinds) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
@@ -46,7 +46,7 @@ TEST_CASE("Solve Non-Invertible") {
   using namespace ax::math;
   matxxr A(2, 2);
   A << 1, 2, 2, 4;
-  vecxr b = vecxr::Ones(2);
+  RealVectorX b = RealVectorX::Ones(2);
   for (auto kind : {
            DenseSolverKind::kFullPivLU,
            DenseSolverKind::kFullPivHouseHolderQR,
@@ -89,7 +89,7 @@ TEST_CASE("Sparse LU") {
   A.insert(1, 0) = 1;
   A.insert(1, 1) = 4;
   A.makeCompressed();
-  matxxr x = vecxr::Ones(2);
+  matxxr x = RealVectorX::Ones(2);
   matxxr b = A * x;
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,

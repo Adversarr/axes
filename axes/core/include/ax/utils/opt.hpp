@@ -71,16 +71,16 @@ template <typename T> struct SyncToFieldHelper {
   }
 };
 
-template <> struct SyncToFieldHelper<idx> {
-  bool Apply(idx& value, Options const& options, const char* name) {
+template <> struct SyncToFieldHelper<Index> {
+  bool Apply(Index& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       return false;
     } else {
-      idx old_val = value;
+      Index old_val = value;
       if (it->value().is_int64()) {
-        value = static_cast<idx>(it->value().as_int64());
+        value = static_cast<Index>(it->value().as_int64());
       } else if (it->value().is_uint64()) {
-        value = static_cast<idx>(it->value().as_uint64());
+        value = static_cast<Index>(it->value().as_uint64());
       } else {
         throw std::invalid_argument("Expect [" + std::string(name) + "] to be a int or uint.");
       }
@@ -164,7 +164,7 @@ inline bool extract_bool(boost::json::value const& v) {
   return v.as_bool();
 }
 
-inline idx extract_idx(boost::json::value const& v) {
+inline Index extract_Index(boost::json::value const& v) {
   AX_THROW_IF_FALSE(v.is_int64(), "Expect a int64.");
   return v.as_int64();
 }

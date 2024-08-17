@@ -17,8 +17,8 @@ using namespace ax;
 //    u_t + (1/2 u^2)_x = 0
 // with
 //    u(x, t = 0) = sin(x) + 1/2
-math::field1r current;
-idx Nx;
+math::RealField1 current;
+Index Nx;
 real dx;
 real M = 1;
 real lf_alpha = 2;
@@ -60,7 +60,7 @@ real godunuv_flux(real u_l, real u_r) {
 
 void determine_lf_alpha() {
   lf_alpha = 1.5;
-  for (idx i = 0; i < Nx; ++i) {
+  for (Index i = 0; i < Nx; ++i) {
     real u_l = current(i);
     lf_alpha = std::max(lf_alpha, std::abs(u_l));
   }
@@ -146,11 +146,11 @@ real no_limiter(real /* u_l */, real /* u_c */, real /* u_r */, real u_reconstru
   return u_reconstruct;
 }
 
-math::field2r reconstruct_3rd_order_direct(math::field1r const& in) {
-  math::field2r out(2, in.cols());
+math::RealField2 reconstruct_3rd_order_direct(math::RealField1 const& in) {
+  math::RealField2 out(2, in.cols());
   // out(0, i) = u_{i+1/2}^-
   // out(1, i) = u_{i+1/2}^+
-  for (idx i = 0; i < Nx; ++i) {
+  for (Index i = 0; i < Nx; ++i) {
     real u_l = in((i + Nx - 1) % Nx);
     real u_c = in(i);
     real u_r = in((i + 1) % Nx);
@@ -161,9 +161,9 @@ math::field2r reconstruct_3rd_order_direct(math::field1r const& in) {
   return out;
 }
 
-math::field3r weno_smooth_indicator(math::field1r const& u) {
-  math::field3r beta(3, u.cols());
-  for (idx i = 0; i < u.cols(); ++i) {
+math::RealField3 weno_smooth_indicator(math::RealField1 const& u) {
+  math::RealField3 beta(3, u.cols());
+  for (Index i = 0; i < u.cols(); ++i) {
     real u_ll = u((i + Nx - 2) % Nx);
     real u_l = u((i + Nx - 1) % Nx);
     real u_c = u(i);
@@ -188,9 +188,9 @@ math::field3r weno_smooth_indicator(math::field1r const& u) {
   return beta;
 }
 
-math::field3r reconstruct_3rd_order_weno_left(math::field1r const& in) {
-  math::field3r left(3, in.cols());
-  for (idx i = 0; i < Nx; ++i) {
+math::RealField3 reconstruct_3rd_order_weno_left(math::RealField1 const& in) {
+  math::RealField3 left(3, in.cols());
+  for (Index i = 0; i < Nx; ++i) {
     real u_ll = in((i + Nx - 2) % Nx);
     real u_l = in((i + Nx - 1) % Nx);
     real u_c = in(i);
@@ -204,9 +204,9 @@ math::field3r reconstruct_3rd_order_weno_left(math::field1r const& in) {
   return left;
 }
 
-math::field3r reconstruct_3rd_order_weno_right(math::field1r const& in) {
-  math::field3r right(3, in.cols());
-  for (idx i = 0; i < Nx; ++i) {
+math::RealField3 reconstruct_3rd_order_weno_right(math::RealField1 const& in) {
+  math::RealField3 right(3, in.cols());
+  for (Index i = 0; i < Nx; ++i) {
     real u_ll = in((i + Nx - 2) % Nx);
     real u_l = in((i + Nx - 1) % Nx);
     real u_c = in(i);
@@ -221,29 +221,29 @@ math::field3r reconstruct_3rd_order_weno_right(math::field1r const& in) {
   return right;
 }
 
-math::field2r reconstruct_3rd_order_weno(math::field1r const& in) {
-  math::field3r left = reconstruct_3rd_order_weno_left(in);
-  math::field3r right = reconstruct_3rd_order_weno_right(in);
-  math::field3r beta = weno_smooth_indicator(in);
-  math::field2r out(2, in.cols());
-  for (idx i = 0; i < Nx; ++i) {
+math::RealField2 reconstruct_3rd_order_weno(math::RealField1 const& in) {
+  math::RealField3 left = reconstruct_3rd_order_weno_left(in);
+  math::RealField3 right = reconstruct_3rd_order_weno_right(in);
+  math::RealField3 beta = weno_smooth_indicator(in);
+  math::RealField2 out(2, in.cols());
+  for (Index i = 0; i < Nx; ++i) {
     out(0, i) = math::dot(right.col(i), beta.col(i));
     out(1, i) = math::dot(left.col((i + 1) % Nx), beta.col((i + 1) % Nx));
   }
   return out;
 }
 
-math::field1r rk1(math::field1r const& in, real dt) {
-  math::field1r out = in;
+math::RealField1 rk1(math::RealField1 const& in, real dt) {
+  math::RealField1 out = in;
   real dtdx = dt / dx;
-  math::field2r u_c;
+  math::RealField2 u_c;
   if (is_weno) {
     u_c = reconstruct_3rd_order_weno(in);
   } else {
     u_c = reconstruct_3rd_order_direct(in);
     if (limiter_type != LIMITER_NONE) {
-      math::field2r u_c_mod = u_c;
-      for (idx i = 0; i < Nx; ++i) {
+      math::RealField2 u_c_mod = u_c;
+      for (Index i = 0; i < Nx; ++i) {
         real ui_rec_left = u_c(1, (i - 1 + Nx) % Nx);
         real ui_rec_right = u_c(0, i);
         if (limiter_type == LIMITER_TVD) {
@@ -262,7 +262,7 @@ math::field1r rk1(math::field1r const& in, real dt) {
     }
   }
 
-  for (idx i = 0; i < Nx; ++i) {
+  for (Index i = 0; i < Nx; ++i) {
     real ui_minus = u_c(0, i);
     real ui_plus = u_c(1, i);
     real ui_1_minus = u_c(0, (i + Nx - 1) % Nx);
@@ -277,18 +277,18 @@ math::field1r rk1(math::field1r const& in, real dt) {
   return out;
 }
 
-math::field1r rk3(real dt) {
+math::RealField1 rk3(real dt) {
   if (flux_type == LF_FLUX) {
     determine_lf_alpha();
   }
-  math::field1r u1 = rk1(current, dt);
-  math::field1r u2 = 0.75 * current + 0.25 * rk1(u1, dt);
-  math::field1r u = (1.0 / 3.0) * current + (2.0 / 3.0) * rk1(u2, dt);
+  math::RealField1 u1 = rk1(current, dt);
+  math::RealField1 u2 = 0.75 * current + 0.25 * rk1(u1, dt);
+  math::RealField1 u = (1.0 / 3.0) * current + (2.0 / 3.0) * rk1(u2, dt);
   return u;
 }
 
-ABSL_FLAG(idx, Nx, 100, "Number of grid points");
-ABSL_FLAG(idx, Nt, 100, "Number of time steps");
+ABSL_FLAG(Index, Nx, 100, "Number of grid points");
+ABSL_FLAG(Index, Nt, 100, "Number of time steps");
 ABSL_FLAG(real, T, 1, "Final time");
 ABSL_FLAG(int, flux_type, GODUNOV_FLUX, "Flux type");
 ABSL_FLAG(int, limiter_type, LIMITER_NONE, "Limiter type");
@@ -325,10 +325,10 @@ int main(int argc, char** argv) {
   AX_LOG(INFO) << "CFL: " << cfl();
 
   // Do the algorithm.
-  std::vector<math::vecxr> final_result_list;
+  std::vector<math::RealVectorX> final_result_list;
   /* 1. Setup the initial data */
-  current = math::field1r(Nx);
-  for (idx i = 0; i < Nx; ++i) {
+  current = math::RealField1(Nx);
+  for (Index i = 0; i < Nx; ++i) {
     current(i) = initial_data(i * dx, dx);
   }
   if (std::string file = absl::GetFlag(FLAGS_input); !file.empty()) {
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
   }
   uxt.row(Nx) = uxt.row(0);  // apply the periodic boundary condition
 
-  std::string path = "u" + std::to_string(Nx) + "_" + std::to_string(idx(10 * T)) + ".npy";
+  std::string path = "u" + std::to_string(Nx) + "_" + std::to_string(Index(10 * T)) + ".npy";
   (math::write_npy_v10(path, uxt));
 
   ax::clean_up();

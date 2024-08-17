@@ -7,15 +7,15 @@ namespace ax::gl {
 /****************************** Events ******************************/
 
 struct WindowSizeEvent {
-  math::vec2i size_;
+  math::IndexVec2 size_;
 };
 
 struct WindowPosEvent {
-  math::vec2i pos_;
+  math::IndexVec2 pos_;
 };
 
 struct FrameBufferSizeEvent {
-  math::vec2i size_;
+  math::IndexVec2 size_;
 };
 
 struct DropEvent {
@@ -30,11 +30,11 @@ struct KeyboardEvent {
 };
 
 struct CursorMoveEvent {
-  math::vec2r pos_;
+  math::RealVector2 pos_;
 };
 
 struct ScrollEvent {
-  math::vec2r offset_;
+  math::RealVector2 offset_;
 };
 
 struct MouseButtonEvent {
@@ -56,15 +56,15 @@ public:
 
   /****************************** Meta Data Getters ******************************/
 
-  math::vec2i GetSize() const;
+  math::IndexVec2 GetSize() const;
 
-  math::vec2i GetPos() const;
+  math::IndexVec2 GetPos() const;
 
-  math::vec2i GetFrameBufferSize() const;
+  math::IndexVec2 GetFrameBufferSize() const;
 
-  math::vec2r GetFrameBufferScale() const;
+  math::RealVector2 GetFrameBufferScale() const;
 
-  math::vec2r GetCursorPos() const;
+  math::RealVector2 GetCursorPos() const;
 
   void* GetWindowInternal() const;
 

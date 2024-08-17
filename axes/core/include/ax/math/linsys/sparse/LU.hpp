@@ -14,6 +14,6 @@ public:
   SparseSolverKind GetKind() const final { return SparseSolverKind::kLU; }
 
 private:
-  Eigen::SparseLU<spmatr, Eigen::COLAMDOrdering<idx>> solver_;
+  Eigen::SparseLU<spmatr, Eigen::COLAMDOrdering<Index>> solver_;
 };
 }  // namespace ax::math

@@ -4,18 +4,18 @@
 
 namespace ax::fem {
 
-template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
+template <Index dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
   math::sp_coeff_list l_coef;
   auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   l_coef.reserve(total);
-  idx nE = mesh_.GetNumElements();
-  for (idx i = 0; i < nE; ++i) {
+  Index nE = mesh_.GetNumElements();
+  for (Index i = 0; i < nE; ++i) {
     math::veci<dim + 1> elem = mesh_.GetElement(i);
     // Should be faster than you integrate the Partial Partial...
-    math::matr<dim + 1, dim + 1> C;
-    for (idx i = 0; i <= dim; ++i) {
-      math::vecr<dim> v = mesh_.GetVertex(elem[i]);
-      for (idx j = 0; j < dim; ++j) {
+    math::RealMatrix<dim + 1, dim + 1> C;
+    for (Index i = 0; i <= dim; ++i) {
+      math::RealVector<dim> v = mesh_.GetVertex(elem[i]);
+      for (Index j = 0; j < dim; ++j) {
         C(i, j) = v[j];
       }
       C(i, dim) = 1;
@@ -25,11 +25,11 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
     real const volume = abs(C.determinant()) * volume_of_unit_simplex;
     C = C.inverse().eval();
 
-    math::matr<dim + 1, dim + 1> L_dense_local;
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    math::RealMatrix<dim + 1, dim + 1> L_dense_local;
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         real lap = 0.;
-        for (idx D = 0; D < dim; ++D) {
+        for (Index D = 0; D < dim; ++D) {
           lap += C(D, i) * C(D, j);
         }
         L_dense_local(i, j) = lap * volume;
@@ -40,33 +40,33 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(real W) {
     auto [eigen_vectors, eigen_values] = math::eig(L_dense_local);
     eigen_values = eigen_values.cwiseMax(0);
     L_dense_local = W * eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         l_coef.push_back({elem[i], elem[j], L_dense_local(i, j)});
       }
     }
   }
-  idx dofs = mesh_.GetNumVertices();
+  Index dofs = mesh_.GetNumVertices();
   return math::make_sparse_matrix(dofs, dofs, l_coef);
 }
 
-template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::field1r const& W) {
+template <Index dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::RealField1 const& W) {
   math::sp_coeff_list l_coef;
   auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   l_coef.reserve(total);
-  idx nE = mesh_.GetNumElements();
-  for (idx iElem = 0; iElem < nE; ++iElem) {
+  Index nE = mesh_.GetNumElements();
+  for (Index iElem = 0; iElem < nE; ++iElem) {
     math::veci<dim + 1> elem = mesh_.GetElement(iElem);
-    std::array<math::vecr<dim>, dim + 1> vert;
-    for (idx i = 0; i <= dim; ++i) {
+    std::array<math::RealVector<dim>, dim + 1> vert;
+    for (Index i = 0; i <= dim; ++i) {
       vert[static_cast<size_t>(i)] = mesh_.GetVertex(elem[i]);
     }
     elements::P1Element<dim> E(vert);
-    math::matr<dim + 1, dim + 1> L_dense_local;
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    math::RealMatrix<dim + 1, dim + 1> L_dense_local;
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         real lap = 0.;
-        for (idx D = 0; D < dim; ++D) {
+        for (Index D = 0; D < dim; ++D) {
           lap += E.Integrate_PF_PF(i, j, D, D);
         }
         L_dense_local(i, j) = lap;
@@ -77,13 +77,13 @@ template <idx dim> math::spmatr LaplaceMatrixCompute<dim>::operator()(math::fiel
     auto [eigen_vectors, eigen_values] = math::eig(L_dense_local);
     eigen_values = eigen_values.cwiseMax(0);
     L_dense_local = W(iElem) * eigen_vectors * eigen_values.asDiagonal() * eigen_vectors.transpose();
-    for (idx i = 0; i <= dim; ++i) {
-      for (idx j = 0; j <= dim; ++j) {
+    for (Index i = 0; i <= dim; ++i) {
+      for (Index j = 0; j <= dim; ++j) {
         l_coef.push_back({elem[i], elem[j], L_dense_local(i, j)});
       }
     }
   }
-  idx dofs = mesh_.GetNumVertices();
+  Index dofs = mesh_.GetNumVertices();
   return math::make_sparse_matrix(dofs, dofs, l_coef);
 }
 

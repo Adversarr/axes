@@ -64,13 +64,13 @@ struct LinsysSolveResult {
   bool converged_;
 
   // For iterative solver
-  idx num_iter_{-1};
+  Index num_iter_{-1};
 
   // May be not set?
   real l2_err_{-1};
   real linf_err_{-1};
 
-  LinsysSolveResult(idx rows, idx cols = 1) : solution_(rows, cols), converged_{false} {}
+  LinsysSolveResult(Index rows, Index cols = 1) : solution_(rows, cols), converged_{false} {}
   LinsysSolveResult(matxxr const& solution, bool converged = true)
       : solution_{solution}, converged_{converged} {}
 };

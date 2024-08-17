@@ -7,7 +7,7 @@
 namespace ax::gl::details {
 
 template <typename Scalar, int rows>
-glm::vec<rows, float> to_glm(math::vec<Scalar, rows> const& m) {
+glm::vec<rows, float> to_glm(math::Vector<Scalar, rows> const& m) {
   glm::vec<rows, float> result;
   for (int i = 0; i < rows; ++i) {
     result[i] = static_cast<float>(m[i]);
@@ -15,7 +15,7 @@ glm::vec<rows, float> to_glm(math::vec<Scalar, rows> const& m) {
   return result;
 }
 
-inline glm::mat4 lookat(math::vec3r const& eye, math::vec3r const& center, math::vec3r const& up) {
+inline glm::mat4 lookat(math::RealVector3 const& eye, math::RealVector3 const& center, math::RealVector3 const& up) {
   return glm::lookAt(to_glm(eye), to_glm(center), to_glm(up));
 }
 

@@ -7,7 +7,7 @@
 #include "ax/math/init.hpp"
 
 using namespace ax;
-idx N = 10;
+Index N = 10;
 real dx = 1.0 / N;
 ABSL_FLAG(int, N, 10, "Number of cells in each direction");
 
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 
 
   math::Lattice<2, std::array<pde::PoissonProblemBoundaryType, 2>> bd_t({N, N}, math::staggered);
-  math::Lattice<2, math::vec2r> bd_v({N, N}, math::staggered);
+  math::Lattice<2, math::RealVector2> bd_v({N, N}, math::staggered);
   bd_v = math::zeros<2>();
 
   for (auto& t: bd_t) {
@@ -46,14 +46,14 @@ int main(int argc, char* argv[]) {
   }
 
   // Left & Right bd:
-  for (idx j = 0; j < N; ++j) {
+  for (Index j = 0; j < N; ++j) {
     bd_t(0, j)[0] = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 0
     bd_t(N, j)[0] = pde::PoissonProblemBoundaryType::kDirichlet;  // x = 1
     bd_v(0, j)[0] = exact_solution(0, (0.5 + j) * dx);
     bd_v(N, j)[0] = exact_solution(1, (0.5 + j) * dx);
   }
   // Top & Bottom bd:
-  for (idx i = 0; i < N; ++i) {
+  for (Index i = 0; i < N; ++i) {
     bd_t(i, 0)[1] = pde::PoissonProblemBoundaryType::kNeumann;  // y = 0
     bd_t(i, N)[1] = pde::PoissonProblemBoundaryType::kNeumann;  // y = 1
     bd_v(i, 0)[1] = -grad_y_exact_solution((0.5 + i) * dx, 0);
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
 
   // Visualize the solution
   auto ent = create_entity();
-  math::vecxr val = sol.ToMatrix().reshaped();
+  math::RealVectorX val = sol.ToMatrix().reshaped();
   auto height_field = gl::make_height_field(val, N, N);
   AX_CHECK_OK(height_field);
   auto& mesh = add_component<gl::Mesh>(ent, height_field.value());

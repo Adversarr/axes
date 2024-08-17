@@ -14,7 +14,7 @@ public:
   SparseSolverKind GetKind() const final { return SparseSolverKind::kQR; }
 
 private:
-  Eigen::SparseQR<spmatr, Eigen::COLAMDOrdering<idx>> solver_;
+  Eigen::SparseQR<spmatr, Eigen::COLAMDOrdering<Index>> solver_;
 };
 
 }  // namespace ax::math

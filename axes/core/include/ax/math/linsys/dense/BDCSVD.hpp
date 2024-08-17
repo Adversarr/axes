@@ -4,7 +4,7 @@ namespace ax::math {
 
 class DenseSolver_BDCSVD : public DenseSolverBase {
 public:
-  vecxr Solve(vecxr const& b) final;
+  RealVectorX Solve(RealVectorX const& b) final;
   void Compute() override;
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kBDCSVD; }
 

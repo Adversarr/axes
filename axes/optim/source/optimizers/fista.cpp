@@ -22,7 +22,7 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const Variable &x
   real theta_old = 1, step_length_old = 0;
   real energy = problem.EvalEnergy(x);
   bool converged_grad = false, converged_var = false;
-  idx iter;
+  Index iter;
 
   auto select_theta = [&iter, &theta_old, &step_length_old](real t) -> real {
     // t_(k-1) theta^2 = t theta_(k-1)^2 (1-theta), use positive root.

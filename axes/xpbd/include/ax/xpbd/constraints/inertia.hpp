@@ -15,13 +15,13 @@ public:
   void EndStep() override;
   void UpdateRhoConsensus(real scale) override;
  
-  math::field3r inertia_position_;
-  math::field1r vertex_mass_;
+  math::RealField3 inertia_position_;
+  math::RealField1 vertex_mass_;
 
   // x_i: For Inertia constraint, f_i(x_i) = ||x - x_inertia||
-  math::field3r dual_;
+  math::RealField3 dual_;
   // y_i
-  math::field3r gap_;
+  math::RealField3 gap_;
 };
 
 }

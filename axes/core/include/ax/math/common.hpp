@@ -21,8 +21,8 @@ namespace ax::math {
  * @tparam Scalar The scalar type of the vector.
  * @tparam dim The dimension of the vector.
  */
-template <typename Scalar, int dim> using vec = Eigen::Vector<Scalar, dim>;
-template <typename Scalar, int dim> using rowvec = Eigen::RowVector<Scalar, dim>;
+template <typename Scalar, int dim> using Vector = Eigen::Vector<Scalar, dim>;
+template <typename Scalar, int dim> using RowVector = Eigen::RowVector<Scalar, dim>;
 
 /****************************** Helper Class and Constants ******************************/
 
@@ -47,27 +47,28 @@ template <typename T> using ABcr = AB<T> const &;
 /**
  * @brief Most commonly used is `standard` realVector.
  */
-template <int dim> using vecr = vec<real, dim>;
-template <int dim> using vecf = vec<float, dim>;
-using vec2r = vec<real, 2>;  ///< Alias for 2D vector with double precision floating point number.
-using vec3r = vec<real, 3>;  ///< Alias for 3D vector with double precision floating point number.
-using vec4r = vec<real, 4>;  ///< Alias for 4D vector with double precision floating point number.
-using vecxr = vec<real, dynamic>;  ///< Alias for vector with double precision float point number.
-using vec2f = vecf<2>;  ///< Alias for 2D vector with single precision floating point number.
-using vec3f = vecf<3>;  ///< Alias for 3D vector with single precision floating point number.
-using vec4f = vecf<4>;  ///< Alias for 4D vector with single precision floating point number.
+template <int dim> using RealVector = Vector<real, dim>;
+template <int dim> using FloatVector = Vector<float, dim>;
+using RealVector2 = RealVector<2>;  ///< Alias for 2D vector with double precision floating point number
+using RealVector3 = RealVector<3>;  ///< Alias for 3D vector with double precision floating point number
+using RealVector4 = RealVector<4>;  ///< Alias for 4D vector with double precision floating point number
+using RealVectorX = RealVector<dynamic>;  ///< Alias for vector with double precision float point number
+using FloatVector2 = FloatVector<2>;  ///< Alias for 2D vector with single precision floating point number
+using FloatVector3 = FloatVector<3>;  ///< Alias for 3D vector with single precision floating point number
+using FloatVector4 = FloatVector<4>;  ///< Alias for 4D vector with single precision floating point number
+using FloatVectorX = FloatVector<dynamic>;  ///< Alias for vector with single precision float point number
 
 /**
- * @brief idx vector type.
+ * @brief Index vector type.
  *
- * @tparam dim The dimension of the idx vector.
+ * @tparam dim The dimension of the Index vector.
  */
-template <int dim> using veci = vec<idx, dim>;
+template <int dim> using veci = Vector<Index, dim>;
 
-using vecxi = veci<dynamic>;
-using vec2i = veci<2>;  ///< Alias for 2D idx vector.
-using vec3i = veci<3>;  ///< Alias for 3D idx vector.
-using vec4i = veci<4>;  ///< Alias for 4D idx vector.
+using IndexVecX = veci<dynamic>;
+using IndexVec2 = veci<2>;  ///< Alias for 2D Index vector.
+using IndexVec3 = veci<3>;  ///< Alias for 3D Index vector.
+using IndexVec4 = veci<4>;  ///< Alias for 4D Index vector.
 
 /****************************** Matrices ******************************/
 
@@ -79,66 +80,46 @@ using vec4i = veci<4>;  ///< Alias for 4D idx vector.
  * @tparam rows The number of rows of the matrix.
  * @tparam cols The number of columns of the matrix.
  */
-template <typename Scalar, int rows, int cols> using mat = Eigen::Matrix<Scalar, rows, cols>;
+template <typename Scalar, int rows, int cols> using Matrix = Eigen::Matrix<Scalar, rows, cols>;
 
-template <int rows, int cols> using matr = mat<real, rows, cols>;
-template <int rows, int cols> using matf = mat<float, rows, cols>;
-template <int rows, int cols> using mati = mat<idx, rows, cols>;
-using matxxr = matr<dynamic, dynamic>;
-using matxxf = matf<dynamic, dynamic>;
-using matxxi = mati<dynamic, dynamic>;
+template <int rows, int cols> using RealMatrix = Matrix<real, rows, cols>;
+template <int rows, int cols> using FloatMatrix = Matrix<float, rows, cols>;
+template <int rows, int cols> using IndexMatrix = Matrix<Index, rows, cols>;
+using matxxr = RealMatrix<dynamic, dynamic>;
+using matxxf = FloatMatrix<dynamic, dynamic>;
+using matxxi = IndexMatrix<dynamic, dynamic>;
 
-using mat2r = matr<2, 2>;
-using mat3r = matr<3, 3>;
-using mat4r = matr<4, 4>;
-using mat2f = matf<2, 2>;
-using mat3f = matf<3, 3>;
-using mat4f = matf<4, 4>;
-using mat2i = mati<2, 2>;
-using mat3i = mati<3, 3>;
-using mat4i = mati<4, 4>;
-
-using mat2xr = matr<2, dynamic>;
-using mat3xr = matr<3, dynamic>;
-using mat4xr = matr<4, dynamic>;
-using matx2r = matr<dynamic, 2>;
-using matx3r = matr<dynamic, 3>;
-using matx4r = matr<dynamic, 4>;
-using mat2xf = matf<2, dynamic>;
-using mat3xf = matf<3, dynamic>;
-using mat4xf = matf<4, dynamic>;
-using matx2f = matf<dynamic, 2>;
-using matx3f = matf<dynamic, 3>;
-using matx4f = matf<dynamic, 4>;
-
-using mat2xi = mati<2, dynamic>;
-using mat3xi = mati<3, dynamic>;
-using mat4xi = mati<4, dynamic>;
-using matx2i = mati<dynamic, 2>;
-using matx3i = mati<dynamic, 3>;
-using matx4i = mati<dynamic, 4>;
+using RealMatrix2 = RealMatrix<2, 2>;
+using RealMatrix3 = RealMatrix<3, 3>;
+using RealMatrix4 = RealMatrix<4, 4>;
+using FloatMatrix2 = FloatMatrix<2, 2>;
+using FloatMatrix3 = FloatMatrix<3, 3>;
+using FloatMatrix4 = FloatMatrix<4, 4>;
+using IndexMatrix2 = IndexMatrix<2, 2>;
+using IndexMatrix3 = IndexMatrix<3, 3>;
+using IndexMatrix4 = IndexMatrix<4, 4>;
 
 /****************************** Field ******************************/
 
 /**
  * @brief Field is the most important type in axes.
  */
-template <typename Scalar, int dim> using field = mat<Scalar, dim, dynamic>;
+template <typename Scalar, int dim> using Field = Matrix<Scalar, dim, dynamic>;
 
-template <int dim> using fieldr = field<real, dim>;
-template <int dim> using fieldi = field<idx, dim>;
+template <int dim> using RealField = Field<real, dim>;
+template <int dim> using IndexField = Field<Index, dim>;
 
-using field1r = fieldr<1>;
-using field2r = fieldr<2>;
-using field3r = fieldr<3>;
-using field4r = fieldr<4>;
-using fieldxr = fieldr<dynamic>;
+using RealField1 = RealField<1>;
+using RealField2 = RealField<2>;
+using RealField3 = RealField<3>;
+using RealField4 = RealField<4>;
+using RealFieldX = RealField<dynamic>;
 
-using field1i = fieldi<1>;
-using field2i = fieldi<2>;
-using field3i = fieldi<3>;
-using field4i = fieldi<4>;
-using fieldxi = fieldi<dynamic>;
+using IndexField1 = IndexField<1>;
+using IndexField2 = IndexField<2>;
+using IndexField3 = IndexField<3>;
+using IndexField4 = IndexField<4>;
+using IndexFieldX = IndexField<dynamic>;
 
 /******************************************************************************
  * Matrix Meta data getter.
@@ -147,7 +128,7 @@ using fieldxi = fieldi<dynamic>;
 /**
  * @brief Alias for the shape of a matrix.
  */
-using MatShape = std::pair<idx, idx>;
+using MatShape = std::pair<Index, Index>;
 
 /**
  * @brief Get the number of rows of a matrix at compile time.
@@ -157,7 +138,7 @@ using MatShape = std::pair<idx, idx>;
  * @return The number of rows of the matrix.
  */
 template <typename Derived>
-AX_CONSTEVAL AX_HOST_DEVICE idx rows_static(const Eigen::EigenBase<Derived> &) {
+AX_CONSTEVAL AX_HOST_DEVICE Index rows_static(const Eigen::EigenBase<Derived> &) {
   return Derived::RowsAtCompileTime;
 }
 
@@ -169,7 +150,7 @@ AX_CONSTEVAL AX_HOST_DEVICE idx rows_static(const Eigen::EigenBase<Derived> &) {
  * @return The number of columns of the matrix.
  */
 template <typename Derived>
-AX_CONSTEVAL AX_HOST_DEVICE idx cols_static(const Eigen::EigenBase<Derived> &) {
+AX_CONSTEVAL AX_HOST_DEVICE Index cols_static(const Eigen::EigenBase<Derived> &) {
   return Derived::ColsAtCompileTime;
 }
 
@@ -181,7 +162,7 @@ AX_CONSTEVAL AX_HOST_DEVICE idx cols_static(const Eigen::EigenBase<Derived> &) {
  * @return The number of rows of the matrix.
  */
 template <typename Derived>
-AX_CONSTEXPR AX_HOST_DEVICE idx rows(const Eigen::EigenBase<Derived> &mat) {
+AX_CONSTEXPR AX_HOST_DEVICE Index rows(const Eigen::EigenBase<Derived> &mat) {
   return mat.rows();
 }
 
@@ -193,7 +174,7 @@ AX_CONSTEXPR AX_HOST_DEVICE idx rows(const Eigen::EigenBase<Derived> &mat) {
  * @return The number of columns of the matrix.
  */
 template <typename Derived>
-AX_CONSTEXPR AX_HOST_DEVICE idx cols(const Eigen::EigenBase<Derived> &mat) {
+AX_CONSTEXPR AX_HOST_DEVICE Index cols(const Eigen::EigenBase<Derived> &mat) {
   return mat.cols();
 }
 
@@ -231,9 +212,9 @@ namespace details {
  * @return A vector with the same elements as the tuple.
  */
 template <typename T, size_t... seq>
-AX_HOST_DEVICE AX_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
+AX_HOST_DEVICE AX_FORCE_INLINE Vector<T, sizeof...(seq)> tuple_to_vector_impl(
     const utils::details::dup_tuple<T, sizeof...(seq)> &tuple, std::index_sequence<seq...>) {
-  return vec<T, sizeof...(seq)>{std::get<seq>(tuple)...};
+  return Vector<T, sizeof...(seq)>{std::get<seq>(tuple)...};
 }
 
 /**
@@ -246,7 +227,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE vec<T, sizeof...(seq)> tuple_to_vector_impl(
  */
 template <typename T, size_t... seq>
 AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tuple_impl(
-    const vec<T, sizeof...(seq)> &vec, std::index_sequence<seq...>) {
+    const Vector<T, sizeof...(seq)> &vec, std::index_sequence<seq...>) {
   return utils::DupTuple<T, sizeof...(seq)>{vec[seq]...};
 }
 
@@ -261,7 +242,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, sizeof...(seq)> vector_to_tupl
  * @return A vector with the same elements as the DupTuple.
  */
 template <typename T, int dim>
-AX_HOST_DEVICE AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
+AX_HOST_DEVICE AX_FORCE_INLINE Vector<T, dim> tuple_to_vector(const utils::DupTuple<T, dim> &tuple) {
   return details::tuple_to_vector_impl<T>(tuple, std::make_index_sequence<dim>());
 }
 
@@ -274,7 +255,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE vec<T, dim> tuple_to_vector(const utils::DupTuple
  * @return A DupTuple with the same elements as the vector.
  */
 template <typename T, size_t dim>
-AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(const vec<T, dim> &vec) {
+AX_HOST_DEVICE AX_FORCE_INLINE utils::DupTuple<T, dim> vector_to_tuple(const Vector<T, dim> &vec) {
   return details::vector_to_tuple_impl<T>(vec, std::make_index_sequence<dim>());
 }
 
@@ -324,7 +305,7 @@ template <typename Scalar = real> constexpr Scalar epsilon = std::numeric_limits
  */
 template <int rows, int cols = 1, typename Scalar = real>
 AX_HOST_DEVICE AX_FORCE_INLINE auto ones() {
-  return mat<Scalar, rows, cols>::Ones();
+  return Matrix<Scalar, rows, cols>::Ones();
 }
 
 /**
@@ -335,8 +316,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto ones() {
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with ones.
  */
-template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto ones(idx cols) {
-  return mat<Scalar, rows, dynamic>::Ones(rows, cols);
+template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto ones(Index cols) {
+  return Matrix<Scalar, rows, dynamic>::Ones(rows, cols);
 }
 
 /**
@@ -347,8 +328,8 @@ template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with ones.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto ones(idx rows, idx cols) {
-  return mat<Scalar, dynamic, dynamic>::Ones(rows, cols);
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto ones(Index rows, Index cols) {
+  return Matrix<Scalar, dynamic, dynamic>::Ones(rows, cols);
 }
 
 /**
@@ -360,7 +341,7 @@ template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto ones(idx r
  * @param mat The matrix to be filled.
  */
 template <typename Scalar, int r, int c>
-AX_HOST_DEVICE AX_FORCE_INLINE void ones_(const mat<Scalar, r, c> &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE void ones_(const Matrix<Scalar, r, c> &mat) {
   mat.setOnes();
 }
 
@@ -401,7 +382,7 @@ template <typename T> AX_HOST_DEVICE AX_FORCE_INLINE T make_ones() {
  */
 template <int rows, int cols = 1, typename Scalar = real>
 AX_HOST_DEVICE AX_FORCE_INLINE auto zeros() {
-  return mat<Scalar, rows, cols>::Zero();
+  return Matrix<Scalar, rows, cols>::Zero();
 }
 
 /**
@@ -412,8 +393,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto zeros() {
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with zeros.
  */
-template <idx rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(idx cols) {
-  return mat<Scalar, rows, dynamic>::Zero(rows, cols);
+template <Index rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(Index cols) {
+  return Matrix<Scalar, rows, dynamic>::Zero(rows, cols);
 }
 
 /**
@@ -424,8 +405,8 @@ template <idx rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return A matrix filled with zeros.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(idx rows, idx cols) {
-  return mat<Scalar, dynamic, dynamic>::Zero(rows, cols);
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(Index rows, Index cols) {
+  return Matrix<Scalar, dynamic, dynamic>::Zero(rows, cols);
 }
 
 /**
@@ -437,7 +418,7 @@ template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto zeros(idx 
  * @param mat The matrix to be filled.
  */
 template <typename Scalar, int r, int c>
-AX_HOST_DEVICE AX_FORCE_INLINE void zeros_(const mat<Scalar, r, c> &mat) {
+AX_HOST_DEVICE AX_FORCE_INLINE void zeros_(const Matrix<Scalar, r, c> &mat) {
   mat.setZero();
 }
 
@@ -479,7 +460,7 @@ template <typename T> AX_HOST_DEVICE AX_FORCE_INLINE T make_zeros() {
  */
 template <int rows, int cols = 1, typename Scalar = real>
 AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value) {
-  return mat<Scalar, rows, cols>::Constant(value);
+  return Matrix<Scalar, rows, cols>::Constant(value);
 }
 
 /**
@@ -492,8 +473,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value) {
  * @return A matrix filled with the constant value.
  */
 template <int rows, typename Scalar = real>
-AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
-  return mat<Scalar, rows, dynamic>::Constant(rows, cols, value);
+AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, Index cols) {
+  return Matrix<Scalar, rows, dynamic>::Constant(rows, cols, value);
 }
 
 /**
@@ -506,8 +487,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx cols) {
  * @return A matrix filled with the constant value.
  */
 template <typename Scalar = real>
-AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
-  return mat<Scalar, dynamic, dynamic>::Constant(rows, cols, value);
+AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, Index rows, Index cols) {
+  return Matrix<Scalar, dynamic, dynamic>::Constant(rows, cols, value);
 }
 
 /**
@@ -520,7 +501,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto constant(Scalar value, idx rows, idx cols) {
  * @param value The constant value.
  */
 template <typename Scalar, int r, int c>
-AX_HOST_DEVICE AX_FORCE_INLINE void constant_(const mat<Scalar, r, c> &mat, Scalar value) {
+AX_HOST_DEVICE AX_FORCE_INLINE void constant_(const Matrix<Scalar, r, c> &mat, Scalar value) {
   mat.setConstant(value);
 }
 
@@ -565,7 +546,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE T make_constant(Scalar value) {
  */
 template <int rows, typename Scalar = real>
 AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end) {
-  return vec<Scalar, rows>::LinSpaced(rows, start, end);
+  return Vector<Scalar, rows>::LinSpaced(rows, start, end);
 }
 
 /**
@@ -590,8 +571,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar end) {
  * @return A vector filled with linearly spaced values.
  */
 template <typename Scalar = real>
-AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows) {
-  return vec<Scalar, dynamic>::LinSpaced(rows, start, end);
+AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, Index rows) {
+  return Vector<Scalar, dynamic>::LinSpaced(rows, start, end);
 }
 
 /****************************** 5. arange ******************************/
@@ -603,7 +584,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto linspace(Scalar start, Scalar end, idx rows)
  * @param stop The stop value.
  * @return A vector filled with values from start to stop.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx stop) {
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(Index stop) {
   return linspace<Scalar>(stop);
 }
 
@@ -615,7 +596,7 @@ template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx
  * @param stop The stop value.
  * @return A vector filled with values from start to stop.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx start, idx stop) {
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(Index start, Index stop) {
   return linspace<Scalar>(start, stop, stop - start);
 }
 
@@ -630,7 +611,7 @@ template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto arange(idx
  * @return An identity matrix.
  */
 template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto eye() {
-  return mat<Scalar, rows, rows>::Identity();
+  return Matrix<Scalar, rows, rows>::Identity();
 }
 
 /**
@@ -641,8 +622,8 @@ template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return An identity matrix.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto eye(idx rows) {
-  return mat<Scalar, dynamic, dynamic>::Identity(rows, rows);
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto eye(Index rows) {
+  return Matrix<Scalar, dynamic, dynamic>::Identity(rows, rows);
 }
 
 /**
@@ -665,7 +646,7 @@ template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return An identity matrix.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto identity(idx rows) {
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto identity(Index rows) {
   return eye<Scalar>(rows);
 }
 
@@ -722,7 +703,7 @@ template <typename Derived> AX_HOST_DEVICE AX_FORCE_INLINE auto diag(
  */
 template <int rows, int cols = 1, typename Scalar = real>
 AX_HOST_DEVICE AX_FORCE_INLINE auto empty() {
-  return mat<Scalar, rows, cols>{};
+  return Matrix<Scalar, rows, cols>{};
 }
 
 /**
@@ -733,8 +714,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto empty() {
  * @param cols The number of columns of the matrix.
  * @return An empty matrix.
  */
-template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto empty(idx cols) {
-  return mat<Scalar, rows, dynamic>(rows, cols);
+template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto empty(Index cols) {
+  return Matrix<Scalar, rows, dynamic>(rows, cols);
 }
 
 /**
@@ -745,8 +726,8 @@ template <int rows, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto 
  * @param cols The number of columns of the matrix.
  * @return An empty matrix.
  */
-template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto empty(idx rows, idx cols) {
-  return mat<Scalar, dynamic, dynamic>{rows, cols};
+template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto empty(Index rows, Index cols) {
+  return Matrix<Scalar, dynamic, dynamic>{rows, cols};
 }
 
 /****************************** 9. from buffer ******************************/
@@ -762,8 +743,8 @@ template <typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto empty(idx 
  * @param i The index of the unit vector.
  * @return A unit vector.
  */
-template <int dim, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto unit(idx i) {
-  return vec<Scalar, dim>::Unit(i);
+template <int dim, typename Scalar = real> AX_HOST_DEVICE AX_FORCE_INLINE auto unit(Index i) {
+  return Vector<Scalar, dim>::Unit(i);
 }
 
 /****************************** Iter methods ******************************/
@@ -969,7 +950,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
  * @return The reshaped matrix.
  */
 template <typename Derived>
-AX_HOST AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
+AX_HOST AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, Index rows, Index cols) noexcept {
   // NOLINTBEGIN: The first parameter is used but reported unused.
   return mat.template reshaped<Eigen::AutoOrder>(rows, cols);
   // NOLINTEND
@@ -1000,7 +981,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto reshape(MBcr<Derived> mat) noexcept {
  */
 template <int rows, typename Derived>
 AX_HOST_DEVICE AX_FORCE_INLINE Eigen::Reshaped<const Derived, rows, dynamic> reshape(
-    MBcr<Derived> mat, idx cols) noexcept {
+    MBcr<Derived> mat, Index cols) noexcept {
   return Eigen::Reshaped<const Derived, rows, dynamic>(mat.derived(), rows, cols);
 }
 
@@ -1039,17 +1020,17 @@ template <typename Derived> AX_HOST_DEVICE AX_FORCE_INLINE auto flatten(MBr<Deri
  * @param dofs The number of degrees of freedom of the field.
  * @return The created field.
  */
-template <typename Derived> AX_FORCE_INLINE auto make_field(idx dofs) {
-  return field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
+template <typename Derived> AX_FORCE_INLINE auto make_field(Index dofs) {
+  return Field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
                                                                      dofs};
 }
 
-template <int rows> AX_FORCE_INLINE fieldr<rows> make_real_field(idx dofs) {
-  return fieldr<rows>{rows, dofs};
+template <int rows> AX_FORCE_INLINE RealField<rows> make_real_field(Index dofs) {
+  return RealField<rows>{rows, dofs};
 }
 
-template <int rows> AX_FORCE_INLINE fieldi<rows> make_index_field(idx dofs) {
-  return fieldi<rows>{rows, dofs};
+template <int rows> AX_FORCE_INLINE IndexField<rows> make_index_field(Index dofs) {
+  return IndexField<rows>{rows, dofs};
 }
 
 /**

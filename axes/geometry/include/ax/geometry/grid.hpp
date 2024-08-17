@@ -13,13 +13,13 @@ namespace ax::geo {
  * @param y The y vector.
  * @return A 2D field of points representing the meshgrid.
  */
-inline math::field2r meshgrid(math::vecxr const& x, math::vecxr const& y) {
-  idx nx = math::rows(x);
-  idx ny = math::rows(y);
-  math::field2r X(2, nx * ny);
-  for (idx i = 0; i < nx; ++i) {
-    for (idx j = 0; j < ny; ++j) {
-      X.col(i * ny + j) = math::vec2r{x(i), y(j)};
+inline math::RealField2 meshgrid(math::RealVectorX const& x, math::RealVectorX const& y) {
+  Index nx = math::rows(x);
+  Index ny = math::rows(y);
+  math::RealField2 X(2, nx * ny);
+  for (Index i = 0; i < nx; ++i) {
+    for (Index j = 0; j < ny; ++j) {
+      X.col(i * ny + j) = math::RealVector2{x(i), y(j)};
     }
   }
   return X;
@@ -35,17 +35,17 @@ inline math::field2r meshgrid(math::vecxr const& x, math::vecxr const& y) {
  * @param ny The number of points in the y direction.
  * @return A 2D field of triangles representing the grid.
  */
-inline math::field3i make_grid_triangles(idx nx, idx ny) {
-  math::field3i triangles(3, 2 * (nx - 1) * (ny - 1));
-  idx id = 0;
-  for (idx i = 0; i < nx - 1; ++i) {
-    for (idx j = 0; j < ny - 1; ++j) {
-      idx idx00 = i * ny + j;
-      idx idx01 = i * ny + j + 1;
-      idx idx10 = (i + 1) * ny + j;
-      idx idx11 = (i + 1) * ny + j + 1;
-      triangles.col(id++) = math::vec3i{idx00, idx11, idx01};
-      triangles.col(id++) = math::vec3i{idx00, idx11, idx10};
+inline math::IndexField3 make_grid_triangles(Index nx, Index ny) {
+  math::IndexField3 triangles(3, 2 * (nx - 1) * (ny - 1));
+  Index id = 0;
+  for (Index i = 0; i < nx - 1; ++i) {
+    for (Index j = 0; j < ny - 1; ++j) {
+      Index Index00 = i * ny + j;
+      Index Index01 = i * ny + j + 1;
+      Index Index10 = (i + 1) * ny + j;
+      Index Index11 = (i + 1) * ny + j + 1;
+      triangles.col(id++) = math::IndexVec3{Index00, Index11, Index01};
+      triangles.col(id++) = math::IndexVec3{Index00, Index11, Index10};
     }
   }
   return triangles;

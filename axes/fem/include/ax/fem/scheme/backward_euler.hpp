@@ -3,7 +3,7 @@
 
 namespace ax::fem {
 
-template <idx dim> class TimestepScheme_BackwardEuler : public TimestepSchemeBase<dim> {
+template <Index dim> class TimestepScheme_BackwardEuler : public TimestepSchemeBase<dim> {
 public:
   TimestepScheme_BackwardEuler() = default;
   ~TimestepScheme_BackwardEuler() = default;
@@ -14,19 +14,19 @@ public:
 
   real ComposeEnergy(real inertia_term, real stiffness_term) const final;
 
-  math::fieldr<dim> ComposeGradient(math::spmatr const& M,
-                                    math::fieldr<dim> const& u_next,
-                                    math::fieldr<dim> const& internal_neg_force,
-                                    math::fieldr<dim> const& precomputed) const final;
+  math::RealField<dim> ComposeGradient(math::spmatr const& M,
+                                    math::RealField<dim> const& u_next,
+                                    math::RealField<dim> const& internal_neg_force,
+                                    math::RealField<dim> const& precomputed) const final;
 
-  math::fieldr<dim> Precomputed(math::spmatr const& M, math::fieldr<dim> const& u_current,
-                                math::fieldr<dim> const& u_old, math::fieldr<dim> const& v_current,
-                                math::fieldr<dim> const& v_old,
-                                math::fieldr<dim> const& ext_accel) const final;
+  math::RealField<dim> Precomputed(math::spmatr const& M, math::RealField<dim> const& u_current,
+                                math::RealField<dim> const& u_old, math::RealField<dim> const& v_current,
+                                math::RealField<dim> const& v_old,
+                                math::RealField<dim> const& ext_accel) const final;
 
-  math::fieldr<dim> NewVelocity(math::fieldr<dim> const& u_current, math::fieldr<dim> const& u_old,
-                                math::fieldr<dim> const& v_current, math::fieldr<dim> const& v_old,
-                                math::fieldr<dim> const& du) const final;
+  math::RealField<dim> NewVelocity(math::RealField<dim> const& u_current, math::RealField<dim> const& u_old,
+                                math::RealField<dim> const& v_current, math::RealField<dim> const& v_old,
+                                math::RealField<dim> const& du) const final;
 };
 
 }

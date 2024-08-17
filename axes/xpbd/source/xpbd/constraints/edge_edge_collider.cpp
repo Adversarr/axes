@@ -25,12 +25,12 @@ void Constraint_EdgeEdgeCollider::BeginStep() {
   this->UpdatePositionConsensus();
 }
 
-using m34 = math::matr<3, 4>;
-using m4 = math::mat4r;
+using m34 = math::RealMatrix<3, 4>;
+using m4 = math::RealMatrix4;
 
 ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
-  idx const nC = GetNumConstraints();
-  idx const nV = GetNumConstrainedVertices();
+  Index const nC = GetNumConstraints();
+  Index const nV = GetNumConstrainedVertices();
 
   ConstraintSolution sol(nV);
   for (auto i : utils::iota(nC)) {
@@ -41,11 +41,11 @@ ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
     real& k = stiffness_[i];
     real& rho = rho_[i];
     m34 z;
-    for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
+    for (Index i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
     relax_edge_edge_impl(z, u, origin_[i], x, rho_[i], k, tol_);
     rho *= ratio_;
     u /= ratio_;
-    for (idx i = 0; i < 4; ++i) {
+    for (Index i = 0; i < 4; ++i) {
       sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
       sol.weights_[C[i]] += rho;
     }
@@ -62,8 +62,8 @@ real Constraint_EdgeEdgeCollider::UpdateDuality() {
   for (auto i : utils::iota(this->GetNumConstraints())) {
     auto cons = constraint_mapping_[i];
     auto const& d = dual_[i];
-    math::matr<3, 4> z, du;
-    for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
+    math::RealMatrix<3, 4> z, du;
+    for (Index i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
     du = d - z;
     gap_[i] += du;
     sqr_prim_res += du.squaredNorm();
@@ -83,10 +83,10 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
-  std::vector<std::pair<idx, idx>> new_collisions;
-  std::vector<idx> new_colliding_vertices;
+  std::vector<std::pair<Index, Index>> new_collisions;
+  std::vector<Index> new_colliding_vertices;
 
-  auto put_vert = [&](idx v) {
+  auto put_vert = [&](Index v) {
     if (colliding_vertices_.insert(v).second) {
       new_colliding_vertices.push_back(v);
     }
@@ -159,9 +159,9 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
     }
   }
 
-  idx n_v = this->GetNumConstrainedVertices();
-  for (idx i : utils::iota(n_v)) {
-    idx iV = cmap[i];
+  Index n_v = this->GetNumConstrainedVertices();
+  for (Index i : utils::iota(n_v)) {
+    Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }
 }

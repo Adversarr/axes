@@ -4,7 +4,7 @@ namespace ax::math {
 
 class DenseSolver_CompleteOrthognalDecomposition : public DenseSolverBase {
 public:
-  vecxr Solve(const vecxr &b) override;
+  RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kCompleteOrthognalDecomposition; }
 

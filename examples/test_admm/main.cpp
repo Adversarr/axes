@@ -39,7 +39,7 @@ void render_aabb() {
 
   auto& g = xpbd::ensure_server();
   geo::BroadPhase_FlatOctree otree;
-  for (idx i = 0; i < g.vertices_.cols(); ++i) {
+  for (Index i = 0; i < g.vertices_.cols(); ++i) {
     geo::AlignedBox3 box;
     box.min() = g.vertices_.col(i);
     box.max() = g.vertices_.col(i);
@@ -78,15 +78,15 @@ void update_rendering() {
   auto& lines = add_or_replace_component<gl::Lines>(ent);
   auto& g = xpbd::ensure_server();
   lines.vertices_ = g.vertices_;
-  std::vector<std::pair<idx, idx>> edges;
+  std::vector<std::pair<Index, Index>> edges;
   for (auto const& c : g.constraints_) {
-    idx nC = c->GetNumConstraints();
+    Index nC = c->GetNumConstraints();
     auto& ids = c->GetConstrainedVerticesIds();
     edges.reserve(edges.size() + nC);
-    for (idx i = 0; i < nC; ++i) {
+    for (Index i = 0; i < nC; ++i) {
       auto const& ij = c->GetConstraintMapping()[i];
-      for (idx j = 1; j < ij.size(); ++j) {
-        for (idx k = 0; k < j; ++k) {
+      for (Index j = 1; j < ij.size(); ++j) {
+        for (Index k = 0; k < j; ++k) {
           edges.push_back({ids[ij[k]], ids[ij[j]]});
         }
       }
@@ -94,8 +94,8 @@ void update_rendering() {
   }
 
   lines.indices_.resize(2, edges.size());
-  for (idx i = 0; i < edges.size(); ++i) {
-    lines.indices_.col(i) = math::vec2i{edges[i].first, edges[i].second};
+  for (Index i = 0; i < edges.size(); ++i) {
+    lines.indices_.col(i) = math::IndexVec2{edges[i].first, edges[i].second};
   }
   lines.colors_.setOnes(4, g.vertices_.size());
   lines;
@@ -120,7 +120,7 @@ int n_iter = 2;
 
 void step() {
   auto& g = xpbd::ensure_server();
-  idx const nV = g.vertices_.cols();
+  Index const nV = g.vertices_.cols();
   g.last_vertices_.swap(g.vertices_);
 
   // initial guess is inertia position:
@@ -130,8 +130,8 @@ void step() {
     c->BeginStep();
   }
 
-  math::field1r w(1, nV);
-  for (idx i = 0; i < n_iter; ++i) {
+  math::RealField1 w(1, nV);
+  for (Index i = 0; i < n_iter; ++i) {
     g.vertices_.setZero();
     w.setZero(1, nV);
     real sqr_dual_residual = 0;
@@ -140,7 +140,7 @@ void step() {
       auto R = c->SolveDistributed();
       // x_i step:
       for (auto I : utils::iota(R.weights_.size())) {
-        idx iV = c->GetConstrainedVerticesIds()[I];
+        Index iV = c->GetConstrainedVerticesIds()[I];
         g.vertices_.col(iV) += R.weighted_position_.col(I);
         w(iV) += R.weights_[I];
       }
@@ -224,21 +224,21 @@ int main(int argc, char** argv) {
   ent = create_entity();
   auto& g = xpbd::ensure_server();
   g.dt_ = 1e-3;
-  idx nx = absl::GetFlag(FLAGS_nx);
+  Index nx = absl::GetFlag(FLAGS_nx);
   auto cube = geo::tet_cube(0.2, 3, 3, 3);
   auto nv_cube = cube.vertices_.cols();
 
-  idx nB = nx;
-  idx nV = 5;
+  Index nB = nx;
+  Index nV = 5;
 
   g.vertices_.setZero(3, nV);
   g.velocities_.setZero(3, nV);
   g.last_vertices_ = g.vertices_;
   g.ext_accel_.setZero(3, nV);
   g.vertices_.leftCols<3>().setIdentity();
-  g.vertices_.col(3) = math::vec3r{0, 0, -1};
-  g.vertices_.col(4) = math::vec3r{.5, 1.00000, 0};
-  g.velocities_.col(4) = math::vec3r{0, -1, 0};
+  g.vertices_.col(3) = math::RealVector3{0, 0, -1};
+  g.vertices_.col(4) = math::RealVector3{.5, 1.00000, 0};
+  g.velocities_.col(4) = math::RealVector3{0, -1, 0};
 
   g.faces_.push_back({0, 1, 2});
   g.faces_.push_back({0, 1, 3});

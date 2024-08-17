@@ -177,16 +177,16 @@ template <typename T, typename Alloc> struct FieldDataTraits<std::vector<T, Allo
   static AX_FORCE_INLINE const_iterator end(const_borrowing v) noexcept { return v.end(); }
 };
 
-template <typename Scalar, int rows> struct FieldDataTraits<field<Scalar, rows>> {
-  using index_type = idx;
-  using difference_type = std::make_signed_t<idx>;
-  using type = field<Scalar, rows>;
+template <typename Scalar, int rows> struct FieldDataTraits<Field<Scalar, rows>> {
+  using index_type = Index;
+  using difference_type = std::make_signed_t<Index>;
+  using type = Field<Scalar, rows>;
   using value_type = typename type::ColXpr;
   using const_type = typename type::ConstColXpr;
   using reference = value_type;
   using const_reference = const_type;
-  using borrowing = field<Scalar, rows>&;
-  using const_borrowing = const field<Scalar, rows>&;
+  using borrowing = Field<Scalar, rows>&;
+  using const_borrowing = const Field<Scalar, rows>&;
   using colwise_type = typename Eigen::DenseBase<type>::ColwiseReturnType;
   using const_colwise_type = typename Eigen::DenseBase<type>::ConstColwiseReturnType;
 

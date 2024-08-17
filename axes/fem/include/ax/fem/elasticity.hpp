@@ -12,11 +12,11 @@ AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
  * @brief Base class for general elasticity computation.
  * @tparam dim
  */
-template <idx dim> class ElasticityComputeBase {
+template <Index dim> class ElasticityComputeBase {
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::matr<dim, dim>>;
-  using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::matr<dim * dim, dim * dim>>;
+  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using vert_stress_t = math::RealField<dim>;
+  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
 
@@ -26,10 +26,10 @@ public:
   void SetMesh(MeshPtr const& mesh);
   virtual void RecomputeRestPose();
 
-  virtual void SetLame(math::vec2r const& u_lame);
-  virtual void SetLame(math::field2r const& e_lame);
+  virtual void SetLame(math::RealVector2 const& u_lame);
+  virtual void SetLame(math::RealField2 const& e_lame);
 
-  virtual void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) = 0;
+  virtual void Update(math::RealField<dim> const& pose, ElasticityUpdateLevel update_type) = 0;
 
   virtual void UpdateEnergy() = 0;
   virtual void UpdateStress() = 0;
@@ -43,17 +43,17 @@ public:
   virtual vert_hessian_t const& GetHessianOnVertices() { return hessian_on_vertices_; }
   virtual elem_stress_t const& GetStressOnElements() { return stress_on_elements_; }
   virtual vert_stress_t const& GetStressOnVertices() { return stress_on_vertices_; }
-  virtual math::field1r const& GetEnergyOnElements() { return energy_on_elements_; }
-  virtual math::field1r const& GetEnergyOnVertices() { return energy_on_vertices_; }
+  virtual math::RealField1 const& GetEnergyOnElements() { return energy_on_elements_; }
+  virtual math::RealField1 const& GetEnergyOnVertices() { return energy_on_vertices_; }
 
 protected:
   std::shared_ptr<TriMesh<dim>> mesh_;
   elasticity::DeformationGradientCache<dim> rinv_;
-  math::field1r rest_volume_;
-  math::field2r lame_;
+  math::RealField1 rest_volume_;
+  math::RealField2 lame_;
 
-  math::field1r energy_on_elements_;
-  math::field1r energy_on_vertices_;
+  math::RealField1 energy_on_elements_;
+  math::RealField1 energy_on_vertices_;
   elem_stress_t stress_on_elements_;
   vert_stress_t stress_on_vertices_;
   elem_hessian_t hessian_on_elements_;

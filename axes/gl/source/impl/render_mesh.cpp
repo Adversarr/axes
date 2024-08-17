@@ -38,12 +38,12 @@ void MeshRenderer::Setup() {
 void MeshRenderer::TickRender() {
   prog_.Use();
   auto& ctx = get_resource<Context>();
-  math::mat4f model = ctx.GetGlobalModelMatrix().cast<float>();
-  math::mat4f eye = math::eye<4, f32>();
-  math::mat4f view = ctx.GetCamera().LookAt().cast<f32>();
-  math::mat4f projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
-  math::vec3f light_pos = ctx.GetLight().position_;
-  math::vec3f view_pos = ctx.GetCamera().GetPosition().cast<f32>();
+  math::FloatMatrix4 model = ctx.GetGlobalModelMatrix().cast<float>();
+  math::FloatMatrix4 eye = math::eye<4, f32>();
+  math::FloatMatrix4 view = ctx.GetCamera().LookAt().cast<f32>();
+  math::FloatMatrix4 projection = ctx.GetCamera().GetProjectionMatrix().cast<f32>();
+  math::FloatVector3 light_pos = ctx.GetLight().position_;
+  math::FloatVector3 view_pos = ctx.GetCamera().GetPosition().cast<f32>();
   prog_.SetUniform("view", view);
   prog_.SetUniform("projection", projection);
   prog_.SetUniform("lightPos", light_pos);
@@ -58,7 +58,7 @@ void MeshRenderer::TickRender() {
       prog_.SetUniform("model", eye);
     }
     AXGL_WITH_BIND(md.vao_) {
-      math::vec4f light_coef = math::zeros<4, 1, f32>();
+      math::FloatVector4 light_coef = math::zeros<4, 1, f32>();
       if (md.is_flat_) {
         light_coef.w() = 1;
       }
@@ -106,7 +106,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
     AX_WARN("Mesh Normal not set. Compute automatically");
     normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   }
-  for (idx i = 0; i < mesh.vertices_.cols(); i++) {
+  for (Index i = 0; i < mesh.vertices_.cols(); i++) {
     MeshRenderVertexData vertex;
     auto position = mesh.vertices_.col(i);
     auto color = mesh.colors_.col(i);
@@ -119,7 +119,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   }
 
   indices_.reserve(static_cast<size_t>(mesh.indices_.size()));
-  for (idx i = 0; i < mesh.indices_.cols(); i++) {
+  for (Index i = 0; i < mesh.indices_.cols(); i++) {
     auto index = mesh.indices_.col(i);
     indices_.push_back(math::cast<ui32>(index.x()));
     indices_.push_back(math::cast<ui32>(index.y()));
@@ -128,7 +128,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
 
   if (mesh.instance_offset_.cols() > 0) {
     instances_.reserve(static_cast<size_t>(mesh.instance_offset_.cols()));
-    for (idx i = 0; i < mesh.instance_offset_.cols(); i++) {
+    for (Index i = 0; i < mesh.instance_offset_.cols(); i++) {
       MeshInstanceData instance;
       auto position_offset = mesh.instance_offset_.col(i);
       instance.position_offset_ = glm::vec3(position_offset.x(), position_offset.y(), position_offset.z());

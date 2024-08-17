@@ -4,13 +4,13 @@
 
 namespace ax::geo {
 
-math::field2i get_edges(math::field3i const& triangles) {
-  std::vector<utils::DupTuple<idx, 2>> edges;
+math::IndexField2 get_edges(math::IndexField3 const& triangles) {
+  std::vector<utils::DupTuple<Index, 2>> edges;
   edges.reserve(triangles.cols() * 3);
-  for (idx i = 0; i < triangles.cols(); ++i) {
-    for (idx j = 0; j < 3; ++j) {
-      idx a = triangles(j, i);
-      idx b = triangles((j + 1) % 3, i);
+  for (Index i = 0; i < triangles.cols(); ++i) {
+    for (Index j = 0; j < 3; ++j) {
+      Index a = triangles(j, i);
+      Index b = triangles((j + 1) % 3, i);
       if (a > b) std::swap(a, b);
       edges.emplace_back(a, b);
     }
@@ -19,22 +19,22 @@ math::field2i get_edges(math::field3i const& triangles) {
   std::sort(edges.begin(), edges.end());
   auto end = std::unique_copy(edges.begin(), edges.end(), edges.begin());
 
-  math::field2i edges_field(2, end - edges.begin());
-  for (idx i = 0; i < edges_field.cols(); ++i) {
+  math::IndexField2 edges_field(2, end - edges.begin());
+  for (Index i = 0; i < edges_field.cols(); ++i) {
     edges_field(0, i) = std::get<0>(edges[static_cast<size_t>(i)]);
     edges_field(1, i) = std::get<1>(edges[static_cast<size_t>(i)]);
   }
   return edges_field;
 }
 
-math::field2i get_edges(math::field4i const& tetrahedrons) {
-  std::vector<utils::DupTuple<idx, 2>> edges;
+math::IndexField2 get_edges(math::IndexField4 const& tetrahedrons) {
+  std::vector<utils::DupTuple<Index, 2>> edges;
   edges.reserve(static_cast<size_t>(tetrahedrons.cols() * 6));
-  for (idx i = 0; i < tetrahedrons.cols(); ++i) {
-    for (idx j = 0; j < 4; ++j) {
-      for (idx k = j + 1; k < 4; ++k) {
-        idx a = tetrahedrons(j, i);
-        idx b = tetrahedrons(k, i);
+  for (Index i = 0; i < tetrahedrons.cols(); ++i) {
+    for (Index j = 0; j < 4; ++j) {
+      for (Index k = j + 1; k < 4; ++k) {
+        Index a = tetrahedrons(j, i);
+        Index b = tetrahedrons(k, i);
         if (a > b) std::swap(a, b);
         edges.emplace_back(a, b);
       }
@@ -44,21 +44,21 @@ math::field2i get_edges(math::field4i const& tetrahedrons) {
   std::sort(edges.begin(), edges.end());
   auto end = std::unique_copy(edges.begin(), edges.end(), edges.begin());
 
-  math::field2i edges_field(2, end - edges.begin());
-  for (idx i = 0; i < edges_field.cols(); ++i) {
+  math::IndexField2 edges_field(2, end - edges.begin());
+  for (Index i = 0; i < edges_field.cols(); ++i) {
     edges_field(0, i) = std::get<0>(edges[static_cast<size_t>(i)]);
     edges_field(1, i) = std::get<1>(edges[static_cast<size_t>(i)]);
   }
   return edges_field;
 }
 
-math::field2i get_boundary_edges(math::field3i const& triangles) {
-  std::vector<utils::DupTuple<idx, 2>> edges;
+math::IndexField2 get_boundary_edges(math::IndexField3 const& triangles) {
+  std::vector<utils::DupTuple<Index, 2>> edges;
 
-  for (idx i = 0; i < triangles.cols(); ++i) {
-    for (idx j = 0; j < 3; ++j) {
-      idx a = triangles(j, i);
-      idx b = triangles((j + 1) % 3, i);
+  for (Index i = 0; i < triangles.cols(); ++i) {
+    for (Index j = 0; j < 3; ++j) {
+      Index a = triangles(j, i);
+      Index b = triangles((j + 1) % 3, i);
       if (a > b) std::swap(a, b);
       edges.emplace_back(a, b);
     }
@@ -67,17 +67,17 @@ math::field2i get_boundary_edges(math::field3i const& triangles) {
   std::sort(edges.begin(), edges.end());
   auto end = std::unique_copy(edges.begin(), edges.end(), edges.begin());
 
-  math::field2i boundary_edges(2, end - edges.begin());
-  for (idx i = 0; i < boundary_edges.cols(); ++i) {
+  math::IndexField2 boundary_edges(2, end - edges.begin());
+  for (Index i = 0; i < boundary_edges.cols(); ++i) {
     boundary_edges(0, i) = std::get<0>(edges[i]);
     boundary_edges(1, i) = std::get<1>(edges[i]);
   }
   return boundary_edges;
 }
 
-math::field2i get_boundary_edges(math::field3r const&, math::field4i const& tetrahedrons) {
-  std::set<std::tuple<idx, idx, idx>> triangles;
-  auto put_triangle = [&](idx a, idx b, idx c) {
+math::IndexField2 get_boundary_edges(math::RealField3 const&, math::IndexField4 const& tetrahedrons) {
+  std::set<std::tuple<Index, Index, Index>> triangles;
+  auto put_triangle = [&](Index a, Index b, Index c) {
     if (a > b) std::swap(a, b);
     if (a > c) std::swap(a, c);
     if (b > c) std::swap(b, c);
@@ -88,15 +88,15 @@ math::field2i get_boundary_edges(math::field3r const&, math::field4i const& tetr
     }
   };
 
-  for (idx i = 0; i < tetrahedrons.cols(); ++i) {
+  for (Index i = 0; i < tetrahedrons.cols(); ++i) {
     put_triangle(tetrahedrons(0, i), tetrahedrons(1, i), tetrahedrons(2, i));
     put_triangle(tetrahedrons(0, i), tetrahedrons(1, i), tetrahedrons(3, i));
     put_triangle(tetrahedrons(0, i), tetrahedrons(2, i), tetrahedrons(3, i));
     put_triangle(tetrahedrons(1, i), tetrahedrons(2, i), tetrahedrons(3, i));
   }
 
-  std::set<std::pair<idx, idx>> edges;
-  auto put_edge = [&](idx a, idx b) {
+  std::set<std::pair<Index, Index>> edges;
+  auto put_edge = [&](Index a, Index b) {
     if (a > b) std::swap(a, b);
     edges.insert({a, b});
   };
@@ -107,8 +107,8 @@ math::field2i get_boundary_edges(math::field3r const&, math::field4i const& tetr
     put_edge(c, a);
   }
 
-  math::field2i boundary_edges(2, edges.size());
-  idx i = 0;
+  math::IndexField2 boundary_edges(2, edges.size());
+  Index i = 0;
   for (auto const& [a, b] : edges) {
     boundary_edges(0, i) = a;
     boundary_edges(1, i) = b;
@@ -118,20 +118,20 @@ math::field2i get_boundary_edges(math::field3r const&, math::field4i const& tetr
   return boundary_edges;
 }
 
-math::field3i get_boundary_triangles(math::field3r const& vertices, 
-  math::field4i const& tetrahedrons) {
-  std::vector<utils::DupTuple<idx, 3>> triangles;
+math::IndexField3 get_boundary_triangles(math::RealField3 const& vertices,
+  math::IndexField4 const& tetrahedrons) {
+  std::vector<utils::DupTuple<Index, 3>> triangles;
 
-  for (idx i = 0; i < tetrahedrons.cols(); ++i) {
-    for (idx j = 0; j < 4; ++j) {
-      idx o = tetrahedrons(j, i);
-      idx a = tetrahedrons((j + 1) % 4, i);
-      idx b = tetrahedrons((j + 2) % 4, i);
-      idx c = tetrahedrons((j + 3) % 4, i);
+  for (Index i = 0; i < tetrahedrons.cols(); ++i) {
+    for (Index j = 0; j < 4; ++j) {
+      Index o = tetrahedrons(j, i);
+      Index a = tetrahedrons((j + 1) % 4, i);
+      Index b = tetrahedrons((j + 2) % 4, i);
+      Index c = tetrahedrons((j + 3) % 4, i);
       // check det[oabc]
-      math::vec3r oa = vertices.col(a) - vertices.col(o);
-      math::vec3r ob = vertices.col(b) - vertices.col(o);
-      math::vec3r oc = vertices.col(c) - vertices.col(o);
+      math::RealVector3 oa = vertices.col(a) - vertices.col(o);
+      math::RealVector3 ob = vertices.col(b) - vertices.col(o);
+      math::RealVector3 oc = vertices.col(c) - vertices.col(o);
       if (math::cross(oa, ob).dot(oc) > 0) {
         triangles.push_back({a, b, c});
       } else {
@@ -141,31 +141,31 @@ math::field3i get_boundary_triangles(math::field3r const& vertices,
   }
 
   auto equal = [](auto const& a, auto const& b) -> bool {
-    idx min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
-    idx min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
-    idx max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
-    idx max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
-    idx mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
-    idx mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
+    Index min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    Index min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    Index max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    Index max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    Index mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
+    Index mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
     if (min_a != min_b) return false;
     if (max_a != max_b) return false;
     return mid_a == mid_b;
   };
 
   auto less = [](auto const& a, auto const& b) -> bool {
-    idx min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
-    idx min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    Index min_a = std::min({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    Index min_b = std::min({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
     if (min_a != min_b) return min_a < min_b;
-    idx max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
-    idx max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
-    idx mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
-    idx mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
+    Index max_a = std::max({std::get<0>(a), std::get<1>(a), std::get<2>(a)});
+    Index max_b = std::max({std::get<0>(b), std::get<1>(b), std::get<2>(b)});
+    Index mid_a = std::get<0>(a) + std::get<1>(a) + std::get<2>(a) - min_a - max_a;
+    Index mid_b = std::get<0>(b) + std::get<1>(b) + std::get<2>(b) - min_b - max_b;
     if (mid_a != mid_b) return mid_a < mid_b;
     return max_a < max_b;
   };
 
   std::sort(triangles.begin(), triangles.end(), less);
-  std::vector<utils::DupTuple<idx, 3>> unique;
+  std::vector<utils::DupTuple<Index, 3>> unique;
   unique.reserve(triangles.size() / 4);
   for (size_t i = 1; i < triangles.size(); ++i) {
     if (!equal(triangles[i], triangles[i - 1])) {
@@ -175,8 +175,8 @@ math::field3i get_boundary_triangles(math::field3r const& vertices,
     }
   }
 
-  math::field3i boundary_triangles(3, unique.size());
-  for (idx i = 0; i < boundary_triangles.cols(); ++i) {
+  math::IndexField3 boundary_triangles(3, unique.size());
+  for (Index i = 0; i < boundary_triangles.cols(); ++i) {
     boundary_triangles(0, i) = std::get<0>(unique[i]);
     boundary_triangles(1, i) = std::get<1>(unique[i]);
     boundary_triangles(2, i) = std::get<2>(unique[i]);

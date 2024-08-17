@@ -81,7 +81,7 @@ real OptProblem::EvalEnergy(const Variable& x) const {
   return energy_(x);
 }
 
-void OptProblem::EvalVerbose(idx iter, const Variable& x, real f) const {
+void OptProblem::EvalVerbose(Index iter, const Variable& x, real f) const {
   if (verbose_) {
     verbose_(iter, x, f);
   }

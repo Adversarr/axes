@@ -27,7 +27,7 @@ int nx;
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
@@ -94,16 +94,16 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
-math::vecxr cs_dist_eigen, eval, l2_dist_eigen, relative_l2_dist_eigen;
-math::vecxr cs_dist_invs, l2_dist_invs, relative_l2_dist_invs;
-math::vecxr cs_dist_units, l2_dist_units, relative_l2_dist_units;
-math::vecxr cs_dist_randoms, l2_dist_randoms, relative_l2_dist_randoms;
-math::field3r u0, u1;
+math::RealVectorX fps;
+math::RealVectorX cs_dist_eigen, eval, l2_dist_eigen, relative_l2_dist_eigen;
+math::RealVectorX cs_dist_invs, l2_dist_invs, relative_l2_dist_invs;
+math::RealVectorX cs_dist_units, l2_dist_units, relative_l2_dist_units;
+math::RealVectorX cs_dist_randoms, l2_dist_randoms, relative_l2_dist_randoms;
+math::RealField3 u0, u1;
 
 void update_eigen_evaluation() {
-  idx const dofs = ts->GetMesh()->GetNumVertices() * 3;
-  math::vecxr dx = (u1 - u0).reshaped();
+  Index const dofs = ts->GetMesh()->GetNumVertices() * 3;
+  math::RealVectorX dx = (u1 - u0).reshaped();
   ts->GetMesh()->FilterVector(dx, true);
   // stiffness:
   // find the eigen values of K
@@ -119,19 +119,19 @@ void update_eigen_evaluation() {
   static int distance_measurement = 0;  // 0 => l2, 1 => cosine_similarity
 
   auto cosine_similarity
-      = [](const math::vecxr& a, const math::vecxr& b) { return a.dot(b) / (a.norm() * b.norm()); };
+      = [](const math::RealVectorX& a, const math::RealVectorX& b) { return a.dot(b) / (a.norm() * b.norm()); };
 
-  auto l2 = [](const math::vecxr& a, const math::vecxr& b) { return math::norm(a - b) / a.size(); };
+  auto l2 = [](const math::RealVectorX& a, const math::RealVectorX& b) { return math::norm(a - b) / a.size(); };
 
   auto relative_l2
-      = [l2](const math::vecxr& a, const math::vecxr& b) { return l2(a, b) / math::norm(b); };
+      = [l2](const math::RealVectorX& a, const math::RealVectorX& b) { return l2(a, b) / math::norm(b); };
 
   cs_dist_eigen.resize(val.size());
   l2_dist_eigen.resize(val.size());
   relative_l2_dist_eigen.resize(val.size());
   for (auto i : utils::iota(val.size())) {
-    math::vecxr laplacian_applied = laplacian * vec.col(i);
-    math::vecxr stiffness_applied = A * vec.col(i);
+    math::RealVectorX laplacian_applied = laplacian * vec.col(i);
+    math::RealVectorX stiffness_applied = A * vec.col(i);
     l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied);
     cs_dist_eigen(i) = cosine_similarity(laplacian_applied, stiffness_applied);
     relative_l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied) / val(i);
@@ -142,13 +142,13 @@ void update_eigen_evaluation() {
   cs_dist_invs.resize(val.size());
   l2_dist_invs.resize(val.size());
   relative_l2_dist_invs.resize(val.size());
-  idx const nDof = ts->GetMesh()->GetNumVertices() * 3;
+  Index const nDof = ts->GetMesh()->GetNumVertices() * 3;
   math::matxxr A_inverse = A.toDense().inverse();
   std::tie(vec, val) = math::eig(A_inverse);
   for (auto i : utils::iota(val.size())) {
-    math::vecxr evec = math::normalized(vec.col(i));
-    auto laplacian_applied = laplacian_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
-    auto stiffness_applied = hyper_solver->Solve(evec, math::vecxr::Zero(nDof)).solution_;
+    math::RealVectorX evec = math::normalized(vec.col(i));
+    auto laplacian_applied = laplacian_solver->Solve(evec, math::RealVectorX::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(evec, math::RealVectorX::Zero(nDof)).solution_;
 
     l2_dist_invs(i) = l2(laplacian_applied, stiffness_applied);
     cs_dist_invs(i) = cosine_similarity(laplacian_applied, stiffness_applied);
@@ -159,10 +159,10 @@ void update_eigen_evaluation() {
   l2_dist_units.resize(val.size());
   relative_l2_dist_units.resize(val.size());
   for (auto i : utils::iota(val.size())) {
-    math::vecxr unit_i = math::vecxr::Zero(val.size());
+    math::RealVectorX unit_i = math::RealVectorX::Zero(val.size());
     unit_i(i) = 1;
-    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-    auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
 
     l2_dist_units(i) = l2(laplacian_applied, stiffness_applied);
     cs_dist_units(i) = cosine_similarity(laplacian_applied, stiffness_applied);
@@ -173,10 +173,10 @@ void update_eigen_evaluation() {
   l2_dist_randoms.resize(val.size());
   relative_l2_dist_randoms.resize(val.size());
   for (auto i : utils::iota(val.size())) {
-    math::vecxr unit_i = math::vecxr::Zero(val.size());
+    math::RealVectorX unit_i = math::RealVectorX::Zero(val.size());
     unit_i.setRandom().normalize();
-    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
-    auto stiffness_applied = hyper_solver->Solve(unit_i, math::vecxr::Zero(nDof)).solution_;
+    auto laplacian_applied = laplacian_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
+    auto stiffness_applied = hyper_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
 
     l2_dist_randoms(i) = l2(laplacian_applied, stiffness_applied);
     cs_dist_randoms(i) = cosine_similarity(laplacian_applied, stiffness_applied);
@@ -239,14 +239,14 @@ void ui_callback(gl::UiRenderEvent) {
 
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
-      math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
+      math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
       u0 = ts->GetPosition();
       auto m = ts->GetMesh();
       for (auto i : utils::iota(u0.cols())) {
         const auto& position = u0.col(i);
         if (-position.x() > 1.9) {
           // Mark as dirichlet bc.
-          math::vec3r p = rotate * position;
+          math::RealVector3 p = rotate * position;
           m->MarkDirichletBoundary(i, 0, p.x());
           m->MarkDirichletBoundary(i, 1, p.y());
           m->MarkDirichletBoundary(i, 2, p.z());
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
   tet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_elements.npy");
   vet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_vertices.npy");
 
-  auto tet = math::read_npy_v10_idx(tet_file);
+  auto tet = math::read_npy_v10_Index(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   input_mesh.indices_ = tet.transpose();
   input_mesh.vertices_ = vet.transpose();
@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
   ts->BeginSimulation(dt);
   std::cout << "==> Initialized" << std::endl;
   std::cout << "Timestepper Options: " << ts->GetOptions() << std::endl;
-  ts->SetExternalAccelerationUniform(math::vec3r(0, -9.8, 0));
+  ts->SetExternalAccelerationUniform(math::RealVector3(0, -9.8, 0));
 
   {
     real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];

@@ -4,7 +4,7 @@
 
 namespace ax::vdb {
 
-PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_per_voxel) {
+PointGrid::PointGrid(math::RealField3 const& position, real voxel_size, Index point_per_voxel) {
   std::vector<openvdb::Vec3R> positions;
   positions.reserve(static_cast<size_t>(position.cols()));
   for (auto p : math::each(position)) {
@@ -29,7 +29,7 @@ PointGrid::PointGrid(math::field3r const& position, real voxel_size, idx point_p
   point_data_grid_->setName("Points");
 }
 
-Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r const& field) {
+Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::RealField3 const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
   std::vector<openvdb::Vec3R> values;
   values.reserve(static_cast<size_t>(cnt));
@@ -53,7 +53,7 @@ Vec3rGridPtr PointGrid::TransferStaggered(std::string const& name, math::field3r
   return transferred_grid;
 }
 
-Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3r const& field) {
+Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::RealField3 const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
   std::vector<openvdb::Vec3R> values;
   values.reserve(cnt);
@@ -78,7 +78,7 @@ Vec3rGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field3
 }
 
 
-RealGridPtr PointGrid::TransferCellCenter(std::string const& name, math::field1r const& field) {
+RealGridPtr PointGrid::TransferCellCenter(std::string const& name, math::RealField1 const& field) {
   size_t cnt = static_cast<size_t>(field.cols());
   std::vector<real> values;
   values.reserve(cnt);

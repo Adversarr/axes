@@ -10,7 +10,7 @@ namespace ax::fem::elasticity {
  * @note See Page 33 of "Dynamic Deformables", 3.6.2 The Complete St. Venant Kirchhoff
  * @tparam dim
  */
-template <idx dim> class StVK : public ElasticityBase<dim, StVK<dim>> {
+template <Index dim> class StVK : public ElasticityBase<dim, StVK<dim>> {
 public:
   using base_t = ElasticityBase<dim, StVK<dim>>;
   using stress_t = typename base_t::stress_t;
@@ -24,7 +24,7 @@ public:
                   const math::decomp::SvdResult<dim, real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
-    math::matr<dim, dim> const E = green_strain(F);
+    math::RealMatrix<dim, dim> const E = green_strain(F);
     return mu * math::norm2(E) + 0.5 * lambda * math::square(math::trace(E));
   }
 
@@ -33,7 +33,7 @@ public:
                   math::decomp::SvdResult<dim, real> const& ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
-    math::matr<dim, dim> const E = green_strain(F);
+    math::RealMatrix<dim, dim> const E = green_strain(F);
     return 2.0 * mu * F * E + lambda * math::trace(E) * F;
   }
 
@@ -49,11 +49,11 @@ public:
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     // This is the first part, i.e. norm(E)
-    math::matr<dim, dim> const FtF = F.transpose() * F;
+    math::RealMatrix<dim, dim> const FtF = F.transpose() * F;
     // HII = 4(I ⊗ FFT + FTF ⊗ I +D)
     auto I = math::eye<dim>();
-    for (idx i = 0; i < dim; ++i) {
-      for (idx j = 0; j < dim; ++j) {
+    for (Index i = 0; i < dim; ++i) {
+      for (Index j = 0; j < dim; ++j) {
         real fij = F(i, j);
         auto Dij = F.col(j) * F.col(i).transpose();
         H.template block<dim, dim>(i * dim, j * dim) += (FtF + fij * I) + Dij;

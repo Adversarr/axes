@@ -83,13 +83,13 @@ void SparseSolver_Cholmod::AnalyzePattern() {
       throw std::runtime_error("Unknown CholmodSupernodalKind");
   }
 
-  idx const rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
-  std::vector<idx> rowvec, colvec;
+  Index const rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
+  std::vector<Index> rowvec, colvec;
   std::vector<real> valvec;
   rowvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   colvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   valvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
-  for (idx i = 0; i < cols; ++i) {
+  for (Index i = 0; i < cols; ++i) {
     for (spmatr::InnerIterator it(A, i); it; ++it) {
       if (it.row() <= it.col()) {
         rowvec.push_back(it.row());

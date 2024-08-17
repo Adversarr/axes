@@ -2,8 +2,8 @@
 
 namespace ax::math {
 
-math::vecxr DenseSolver_LDLT::Solve(const math::vecxr &b) {
-  vecxr x = impl_.solve(b);
+math::RealVectorX DenseSolver_LDLT::Solve(const math::RealVectorX &b) {
+  RealVectorX x = impl_.solve(b);
   AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "Eigen::LDLT: Solve failed.");
   return x;
 }

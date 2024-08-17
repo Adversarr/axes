@@ -5,7 +5,7 @@
 
 namespace ax::fem {
 
-template <idx dim> class Deformation {
+template <Index dim> class Deformation {
 public:
   /**
    * @brief Compute the deformation gradient for each element in the mesh. Will automatically
@@ -48,9 +48,9 @@ public:
   /**
    * @brief Transfer the energy from the elements to the vertices.
    * 
-   * @return math::field1r 
+   * @return math::RealField1
    */
-  math::field1r EnergyToVertices(math::field1r const& ) const;
+  math::RealField1 EnergyToVertices(math::RealField1 const& ) const;
 
   /**
    * @brief Transfer the stress from the elements to the vertices.
@@ -72,7 +72,7 @@ public:
    * @brief Transfer the stress from the elements to the vertices.
    * 
    * @param stress 
-   * @return math::field1r 
+   * @return math::RealField1
    */
   TriMesh<dim> const& GetMesh() const { return mesh_; }
 
@@ -81,22 +81,22 @@ public:
    *
    * @return std::vector of rest volumes.
    */
-  AX_FORCE_INLINE math::field1r const& GetRestPoseVolume() const { return rest_pose_volume_; }
+  AX_FORCE_INLINE math::RealField1 const& GetRestPoseVolume() const { return rest_pose_volume_; }
 
   /**
    * @brief Get the rest volume of the some element.
    *
    * @return Volume
    */
-  AX_FORCE_INLINE real GetElementVolume(idx element_idx) const {
-    return rest_pose_volume_(0, element_idx);
+  AX_FORCE_INLINE real GetElementVolume(Index element_Index) const {
+    return rest_pose_volume_(0, element_Index);
   }
 
 private:
   TriMesh<dim> const& mesh_;
   elasticity::DeformationGradientCache<dim> deformation_gradient_cache_;
   typename TriMesh<dim>::vertex_list_t rest_pose_;
-  math::field1r rest_pose_volume_;
+  math::RealField1 rest_pose_volume_;
 };
 
 }  // namespace ax::fem

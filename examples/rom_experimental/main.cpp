@@ -36,7 +36,7 @@ int nx;
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
@@ -77,7 +77,7 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
+math::RealVectorX fps;
 void ui_callback(gl::UiRenderEvent ) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
@@ -87,12 +87,12 @@ void ui_callback(gl::UiRenderEvent ) {
     const auto& vert = ts->GetMesh()->GetVertices();
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
-    //   math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
+    //   math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
     //   for (auto i : utils::iota(vert.cols())) {
     //     const auto& position = vert.col(i);
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
-    //       math::vec3r p = rotate * position;
+    //       math::RealVector3 p = rotate * position;
     //       ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
     //       ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
     //       ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
@@ -101,7 +101,7 @@ void ui_callback(gl::UiRenderEvent ) {
     // }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    static idx frame = 0;
+    static Index frame = 0;
     auto p = (fem::TimeStepper_ROM<3>*) ts.get();
     auto K = ts->GetStiffnessMatrix(ts->GetMesh()->GetVertices(), true);
     ts->GetMesh()->FilterMatrixFull(K);
@@ -111,7 +111,7 @@ void ui_callback(gl::UiRenderEvent ) {
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
-    std::cout << frame << ": FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+    std::cout << frame << ": FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
 //     m = geo::tet_cube(1, 2, 2, 2);
 //   } else {
 //     auto vert = math::read_npy_v10_real(utils::get_asset("/mesh/npy/" + name + "_vertices.npy"));
-//     auto indi = math::read_npy_v10_idx(utils::get_asset("/mesh/npy/" + name + "_elements.npy"));
+//     auto indi = math::read_npy_v10_Index(utils::get_asset("/mesh/npy/" + name + "_elements.npy"));
 //     m = geo::TetraMesh(vert.value().transpose(), indi.value().transpose());
 //   }
 //   mesh->SetMesh(m.indices_, m.vertices_);
@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
 //   // compute the General Eigen value problem for M and L.
 //   Eigen::GeneralizedSelfAdjointEigenSolver solver(L, M);
 //   // compute the first 10 eigen values.
-//   math::vecxr eigen_values = solver.eigenvalues().head(10);
+//   math::RealVectorX eigen_values = solver.eigenvalues().head(10);
 //   AX_CHECK_OK(math::write_npy_v10("eigen_values.npy", eigen_values));
 //   // compute the first 10 eigen vectors.
 //   math::matxxr eigen_vectors = solver.eigenvectors().leftCols(10);
@@ -220,9 +220,9 @@ int main(int argc, char** argv) {
 //   std::cout << "Laplace's eigen values: " << adj.eigenvalues().transpose() << std::endl;
 //   std::cout << "Laplace's eigen vectors: " << adj.eigenvectors() << std::endl;
 
-//   math::vecxr X0 = mesh->GetVertices().reshaped();
-//   math::vecxr M_X0 = M * X0;
-//   math::vecxr L_X0 = L * X0;
+//   math::RealVectorX X0 = mesh->GetVertices().reshaped();
+//   math::RealVectorX M_X0 = M * X0;
+//   math::RealVectorX L_X0 = L * X0;
 //   // real portion = M_X0[0] / L_X0[0];
 //   std::cout << "M_X0[0] / L_X0[0] = " << M_X0[0] / L_X0[0] << std::endl;
 //   std::cout << M_X0.transpose() << std::endl;

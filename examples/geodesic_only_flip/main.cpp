@@ -16,31 +16,31 @@ using namespace ax::graph;
 
 class DijkstraPath : public NodeBase {
   public:
-  DijkstraPath(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) { }
+  DijkstraPath(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) { }
 
   static void register_this() {
     NodeDescriptorFactory<DijkstraPath>()
       .SetName("Compute_dijkstra_path")
       .SetDescription("Compute geodesic path between two points on a triangle mesh")
       .AddInput<geo::SurfaceMesh>("mesh", "Triangle mesh")
-      .AddInput<idx>("start", "Start vertex index")
-      .AddInput<idx>("end", "End vertex index")
+      .AddInput<Index>("start", "Start vertex index")
+      .AddInput<Index>("end", "End vertex index")
       .AddOutput<Path>("path", "Geodesic path between two points")
       .FinalizeAndRegister();
   }
 
-  Status Apply(idx) final {
+  Status Apply(Index) final {
     auto mesh = RetriveInput<geo::SurfaceMesh>(0);
     if (!mesh) {
       return utils::FailedPreconditionError("Input mesh is not connected");
     }
 
-    idx start = 0;
-    idx end = 1;
-    if (auto start_input = RetriveInput<idx>(1)) {
+    Index start = 0;
+    Index end = 1;
+    if (auto start_input = RetriveInput<Index>(1)) {
       start = *start_input;
     }
-    if (auto end_input = RetriveInput<idx>(2)) {
+    if (auto end_input = RetriveInput<Index>(2)) {
       end = *end_input;
     }
 
@@ -54,23 +54,23 @@ class DijkstraPath : public NodeBase {
 
 class PathToLines : public NodeBase {
 public:
-  PathToLines(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) { }
+  PathToLines(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) { }
 
   static void register_this() {
     NodeDescriptorFactory<PathToLines>()
       .SetName("Path_to_lines")
       .SetDescription("Convert geodesic path to lines")
       .AddInput<Path>("path", "Geodesic path between two points")
-      .AddInput<math::field3r>("vertices", "Trimesh")
-      .AddInput<math::field3i>("faces", "Trimesh")
-      .AddOutput<math::field3r>("vertices", "")
+      .AddInput<math::RealField3>("vertices", "Trimesh")
+      .AddInput<math::IndexField3>("faces", "Trimesh")
+      .AddOutput<math::RealField3>("vertices", "")
       .FinalizeAndRegister();
   }
 
-  Status Apply(idx) final {
+  Status Apply(Index) final {
     auto path = RetriveInput<Path>(0);
-    auto vertices_in = RetriveInput<math::field3r>(1);
-    auto faces = RetriveInput<math::field3i>(2);
+    auto vertices_in = RetriveInput<math::RealField3>(1);
+    auto faces = RetriveInput<math::IndexField3>(2);
     if (!path) {
       return utils::FailedPreconditionError("Input path is not connected");
     } else if (!vertices_in) {
@@ -79,19 +79,19 @@ public:
       return utils::FailedPreconditionError("Input faces is not connected");
     }
 
-    math::field3r vertices(3, path->size());
+    math::RealField3 vertices(3, path->size());
     if (path->empty()) {
-      SetOutput<math::field3r>(0, math::vec3r::Zero(3, 0));
+      SetOutput<math::RealField3>(0, math::RealVector3::Zero(3, 0));
       std::cout << "empty path" << std::endl;
       AX_RETURN_OK();
     }
     for (size_t i = 0; i < path->size(); ++i) {
       auto p = (*path)[i];
       if (p.on_edge_) {
-        idx fid = p.id_;
-        idx eid = p.which_;
-        idx I = (*faces)(eid, fid);
-        idx J = (*faces)((eid + 1) % 3, fid);
+        Index fid = p.id_;
+        Index eid = p.which_;
+        Index I = (*faces)(eid, fid);
+        Index J = (*faces)((eid + 1) % 3, fid);
         auto p0 = (*vertices_in).col(I);
         auto p1 = (*vertices_in).col(J);
         vertices.col(i) = p.rel_pos_ * p1 + (1 - p.rel_pos_) * p0;
@@ -100,7 +100,7 @@ public:
       }
     }
     std::cout << vertices << std::endl;
-    SetOutput<math::field3r>(0, vertices);
+    SetOutput<math::RealField3>(0, vertices);
     AX_RETURN_OK();
   }
 };

@@ -14,41 +14,41 @@
 #include "ax/math/approx.hpp"
 using namespace ax;
 
-constexpr idx DIM = 3;
+constexpr Index DIM = 3;
 
 std::shared_ptr<fem::TriMesh<DIM>> mesh;
 auto kE = fem::ElasticityUpdateLevel::kEnergy;
 int main(int argc, char** argv) {
   init(argc, argv);
 
-  math::vec2r lame = ax::fem::elasticity::compute_lame(1e4, 0.3);
+  math::RealVector2 lame = ax::fem::elasticity::compute_lame(1e4, 0.3);
 
-  math::fieldi<DIM + 1> indices(DIM + 1, 1);
-  for (idx i = 0; i <= DIM; ++i) {
+  math::IndexField<DIM + 1> indices(DIM + 1, 1);
+  for (Index i = 0; i <= DIM; ++i) {
     indices(i, 0) = i;
   }
 
-  math::fieldr<DIM> original_vertices(DIM, DIM + 1);
+  math::RealField<DIM> original_vertices(DIM, DIM + 1);
   if constexpr (DIM == 3) {
-    original_vertices.col(0) = math::vec3r{0, 0, 0};
-    original_vertices.col(1) = math::vec3r{1, 0, 0};
-    original_vertices.col(2) = math::vec3r{0, 1, 0};
-    original_vertices.col(3) = math::vec3r{0, 0, 1};
+    original_vertices.col(0) = math::RealVector3{0, 0, 0};
+    original_vertices.col(1) = math::RealVector3{1, 0, 0};
+    original_vertices.col(2) = math::RealVector3{0, 1, 0};
+    original_vertices.col(3) = math::RealVector3{0, 0, 1};
   } else {
-    original_vertices.col(0) = math::vec2r(0, 0);
-    original_vertices.col(1) = math::vec2r(1, 0);
-    original_vertices.col(2) = math::vec2r(0, 1);
+    original_vertices.col(0) = math::RealVector2(0, 0);
+    original_vertices.col(1) = math::RealVector2(1, 0);
+    original_vertices.col(2) = math::RealVector2(0, 1);
   }
 
   // Apply Random Rotation:
-  // math::mat3r R = Eigen::AngleAxis(math::pi<> / 4, math::vec3r::UnitX()).toRotationMatrix();
+  // math::RealMatrix3 R = Eigen::AngleAxis(math::pi<> / 4, math::RealVector3::UnitX()).toRotationMatrix();
   // original_vertices = R * original_vertices;
   mesh = std::make_unique<fem::TriMesh<DIM>>();
   mesh->SetNumDofPerVertex(1);
   mesh->SetMesh(indices, original_vertices);
   // randomly perturb the vertices.
-  for (idx i = 0; i <= DIM; ++i) {
-    for (idx d = 0; d < DIM; ++d) {
+  for (Index i = 0; i <= DIM; ++i) {
+    for (Index d = 0; d < DIM; ++d) {
       original_vertices(d, i) += (rand() % 1000 - 500) * 1e-4;  // Range: [-0.05, 0.05]
     }
   }
@@ -81,10 +81,10 @@ int main(int argc, char** argv) {
   std::cout << "=======================================================================\n"
             << "  TEST STRESS\n"
             << "=======================================================================\n";
-  for (idx i = 0; i <= DIM; ++i) {
-    for (idx d = 0; d < DIM; ++d) {
+  for (Index i = 0; i <= DIM; ++i) {
+    for (Index d = 0; d < DIM; ++d) {
       for (real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
-        math::fieldr<DIM> vertices_p = mesh->GetVertices();
+        math::RealField<DIM> vertices_p = mesh->GetVertices();
         vertices_p(d, i) += delta_d;
         elast.Update(vertices_p, kE);
         // EnergyImpl:
@@ -106,27 +106,27 @@ int main(int argc, char** argv) {
   std::cout << "Stiffness:\n" << stiffness << std::endl;
 
   // Compute: partial^2 EnergyImpl / (partial x_id partial x_jk)
-  for (idx i = 0; i <= DIM; ++i) {
-    for (idx d = 0; d < DIM; ++d) {
-      for (idx j = 0; j <= DIM; ++j) {
-        for (idx k = 0; k < DIM; ++k) {
+  for (Index i = 0; i <= DIM; ++i) {
+    for (Index d = 0; d < DIM; ++d) {
+      for (Index j = 0; j <= DIM; ++j) {
+        for (Index k = 0; k < DIM; ++k) {
           std::cout << ">>> Vertex [" << i << "] Dof[" << d << "], Vertex [" << j << "] Dof[" << k
                     << "]" << std::endl;
           std::cout << "Reference: " << stiffness(i * DIM + d, j * DIM + k) << std::endl;
           real clothest = 1e10;
           for (real delta_id = 1e-6; delta_id >= 1e-8; delta_id *= 0.1) {
-            math::fieldr<DIM> vertices_id = original_vertices;
+            math::RealField<DIM> vertices_id = original_vertices;
             vertices_id(d, i) += delta_id;
             elast.Update(vertices_id, kE);
             elast.UpdateEnergy();
             real e_id = elast.GetEnergyOnElements().sum();
             for (real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
-              math::fieldr<DIM> vertices_id_jk = vertices_id;
+              math::RealField<DIM> vertices_id_jk = vertices_id;
               vertices_id_jk(k, j) += delta_jk;
               elast.Update(vertices_id_jk, kE);
               elast.UpdateEnergy();
               real e_id_jk = elast.GetEnergyOnElements().sum();
-              math::fieldr<DIM> vertices_jk = original_vertices;
+              math::RealField<DIM> vertices_jk = original_vertices;
               vertices_jk(k, j) += delta_jk;
               elast.Update(vertices_jk, kE);
               elast.UpdateEnergy();

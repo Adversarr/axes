@@ -18,8 +18,8 @@ using namespace ax;
 //    u_t + (1/2 u^2)_x = 0
 // with
 //    u(x, t = 0) = sin(x) + 1/2 x
-math::field1r current;
-idx Nx, Nt;
+math::RealField1 current;
+Index Nx, Nt;
 real dx;
 
 // Godunov's numerical flux:
@@ -57,10 +57,10 @@ real cfl() {
   // return 0.5 * dx;
 }
 
-math::field1r step() {
-  math::field1r next = current;
+math::RealField1 step() {
+  math::RealField1 next = current;
   real dtdx = cfl() / dx;
-  for (idx i = 0; i < Nx; ++i) {
+  for (Index i = 0; i < Nx; ++i) {
     real u_l = current(i);
     real u_r = current((i + 1) % Nx);
     real u_l_next = current((i - 1 + Nx) % Nx);
@@ -76,11 +76,11 @@ void render(gl::UiRenderEvent) {
     }
     ImGui::SameLine();
     if (ImGui::Button("Reset")) {
-      for (idx i = 0; i < Nx; ++i) {
+      for (Index i = 0; i < Nx; ++i) {
         current(i) = initial_data(i * dx, dx);
       }
     }
-    math::field<float, 1> current_f = current.cast<float>();
+    math::Field<float, 1> current_f = current.cast<float>();
     if (ImPlot::BeginPlot("u")) {
       ImPlot::PlotLine("u", current_f.data(), current.size());
       ImPlot::EndPlot();
@@ -89,8 +89,8 @@ void render(gl::UiRenderEvent) {
   ImGui::End();
 }
 
-ABSL_FLAG(idx, Nx, 100, "Number of grid points");
-ABSL_FLAG(idx, Nt, 100, "Number of time steps");
+ABSL_FLAG(Index, Nx, 100, "Number of grid points");
+ABSL_FLAG(Index, Nt, 100, "Number of time steps");
 ABSL_FLAG(real, T, 1, "Final time");
 ABSL_FLAG(bool, render, false, "Render the simulation");
 
@@ -103,12 +103,12 @@ int main(int argc, char** argv) {
   math::matxxr u_x_t(Nx, Nt+1);
   AX_LOG(INFO) << "Delta x: " << dx;
   AX_LOG(INFO) << "CFL: " << cfl();
-  current = math::field1r(Nx);
-  for (idx i = 0; i < Nx; ++i) {
+  current = math::RealField1(Nx);
+  for (Index i = 0; i < Nx; ++i) {
     current(i) = initial_data(i * dx, dx);
   }
   u_x_t.col(0) = current.transpose();
-  for (idx t = 1; t <= Nt; ++t) {
+  for (Index t = 1; t <= Nt; ++t) {
     current = step();
     u_x_t.col(t) = current.transpose();
   }
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
   }
 
   std::string path;
-  path = "u" + std::to_string(Nx) + "_" + std::to_string(idx(10*T)) + ".npy";
+  path = "u" + std::to_string(Nx) + "_" + std::to_string(Index(10*T)) + ".npy";
 
   (math::write_npy_v10(path, u_x_t));
 

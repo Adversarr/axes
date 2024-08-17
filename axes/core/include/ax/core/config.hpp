@@ -6,7 +6,7 @@
 namespace ax {
 
 using size_t = std::size_t;  ///< Alias for size type.
-using idx = std::ptrdiff_t;  ///< Alias for index type.
+using Index = std::ptrdiff_t;  ///< Alias for index type.
 using i8 = std::int8_t;      ///< Alias for 8-bit signed integer.
 using i16 = std::int16_t;    ///< Alias for 16-bit signed integer.
 using i32 = std::int32_t;    ///< Alias for 32-bit signed integer.
@@ -22,9 +22,9 @@ using real = f64;    ///< Alias for double precision floating point number.
 
 using EnumUnderlyingType = std::int32_t;  ///< Alias for enum underlying type.
 
-constexpr idx INVALID_ID = -1;  ///< The invalid index value. commonly used.
+constexpr Index INVALID_ID = -1;  ///< The invalid index value. commonly used.
 
 using tpl_size_t = int;  ///< Alias for template integer type.
-using vec_size_t = idx;  ///< Alias for vector size type.
+using vec_size_t = Index;  ///< Alias for vector size type.
 
 }  // namespace ax

@@ -27,27 +27,27 @@ using namespace ax;
 using namespace ax::math;
 using namespace ax::graph;
 
-bool is_diriclet(idx id, idx n) {
-  idx i = id / n;
-  idx j = id % n;
+bool is_diriclet(Index id, Index n) {
+  Index i = id / n;
+  Index j = id % n;
   return i == 0 || i == n - 1 || j == 0 || j == n - 1;
 }
 
-field3i make_triangles(idx nx, idx ny) {
-  field3i triangles(3, 2 * (nx - 1) * (ny - 1));
-  idx id = 0;
-  for (idx i = 0; i < nx - 1; ++i) {
-    for (idx j = 0; j < ny - 1; ++j) {
-      idx idx00 = i * ny + j;
-      idx idx01 = i * ny + j + 1;
-      idx idx10 = (i + 1) * ny + j;
-      idx idx11 = (i + 1) * ny + j + 1;
+IndexField3 make_triangles(Index nx, Index ny) {
+  IndexField3 triangles(3, 2 * (nx - 1) * (ny - 1));
+  Index id = 0;
+  for (Index i = 0; i < nx - 1; ++i) {
+    for (Index j = 0; j < ny - 1; ++j) {
+      Index Index00 = i * ny + j;
+      Index Index01 = i * ny + j + 1;
+      Index Index10 = (i + 1) * ny + j;
+      Index Index11 = (i + 1) * ny + j + 1;
       if (j % 2 == 0) {
-        triangles.col(id++) = vec3i{idx00, idx11, idx01};
-        triangles.col(id++) = vec3i{idx00, idx11, idx10};
+        triangles.col(id++) = IndexVec3{Index00, Index11, Index01};
+        triangles.col(id++) = IndexVec3{Index00, Index11, Index10};
       } else {
-        triangles.col(id++) = vec3i{idx00, idx01, idx10};
-        triangles.col(id++) = vec3i{idx01, idx11, idx10};
+        triangles.col(id++) = IndexVec3{Index00, Index01, Index10};
+        triangles.col(id++) = IndexVec3{Index01, Index11, Index10};
       }
     }
   }
@@ -56,7 +56,7 @@ field3i make_triangles(idx nx, idx ny) {
 
 class SolvePoissionWithZeroDirichlet : public NodeBase {
 public:
-  SolvePoissionWithZeroDirichlet(NodeDescriptor const* descriptor, idx id)
+  SolvePoissionWithZeroDirichlet(NodeDescriptor const* descriptor, Index id)
       : NodeBase(descriptor, id) {}
 
   static void register_this() {
@@ -64,39 +64,39 @@ public:
         .SetName("Solve_Poission_With_Zero_Dirichlet_01_01")
         .SetDescription("Solves the Poission equation with zero Dirichlet boundary condition")
         .AddInput<matxxr>("rhs", "Rhs of -laplace U = f")
-        .AddInput<idx>("N", "Resolution of XY Dim")
+        .AddInput<Index>("N", "Resolution of XY Dim")
         .AddOutput<matxxr>("solution", "The solution of the Poission equation")
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) {
+  Status Apply(Index /* frame_id */) {
     auto* rhs = RetriveInput<matxxr>(0);
-    auto* n = RetriveInput<idx>(1);
+    auto* n = RetriveInput<Index>(1);
     if (!rhs || !n) {
       return utils::FailedPreconditionError("Missing input");
     }
 
-    math::field2r vertices(2, *n * *n);
-    math::field3i faces = make_triangles(*n, *n);
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        vertices.col(i * *n + j) = math::vec2r{i / real(*n - 1), j / real(*n - 1)};
+    math::RealField2 vertices(2, *n * *n);
+    math::IndexField3 faces = make_triangles(*n, *n);
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        vertices.col(i * *n + j) = math::RealVector2{i / real(*n - 1), j / real(*n - 1)};
       }
     }
 
     // SECT: Make a P1 element:
     sp_coeff_list coefficients;
     for (auto elem : each(faces)) {
-      idx idx00 = elem[0];
-      idx idx01 = elem[1];
-      idx idx10 = elem[2];
+      Index Index00 = elem[0];
+      Index Index01 = elem[1];
+      Index Index10 = elem[2];
       fem::elements::P1Element2D element({
-          vertices.col(idx00),
-          vertices.col(idx01),
-          vertices.col(idx10),
+          vertices.col(Index00),
+          vertices.col(Index01),
+          vertices.col(Index10),
       });
-      for (idx i = 0; i < 3; ++i) {
-        for (idx j = 0; j < 3; ++j) {
+      for (Index i = 0; i < 3; ++i) {
+        for (Index j = 0; j < 3; ++j) {
           coefficients.push_back(
               sp_coeff(elem[i], elem[j],
                        element.Integrate_PF_PF(i, j, 0, 0) + element.Integrate_PF_PF(i, j, 1, 1)));
@@ -111,29 +111,29 @@ public:
         coef_no_dirichlet.push_back(trip);
       }
     }
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        idx idx00 = i * *n + j;
-        if (is_diriclet(idx00, *n)) {
-          coef_no_dirichlet.push_back(sp_coeff(idx00, idx00, 1));
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        Index Index00 = i * *n + j;
+        if (is_diriclet(Index00, *n)) {
+          coef_no_dirichlet.push_back(sp_coeff(Index00, Index00, 1));
         }
       }
     }
 
-    vecxr b(*n * *n);
+    RealVectorX b(*n * *n);
     b.setZero();
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        idx idx00 = i * *n + j;
-        b[idx00] = rhs->operator()(i, j);
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        Index Index00 = i * *n + j;
+        b[Index00] = rhs->operator()(i, j);
       }
     }
 
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        idx idx00 = i * *n + j;
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        Index Index00 = i * *n + j;
         if (i == 0 || i == *n - 1 || j == 0 || j == *n - 1) {
-          b[idx00] = 0;
+          b[Index00] = 0;
         }
       }
     }
@@ -147,12 +147,12 @@ public:
     SparseSolver_LDLT ldlt;
     ldlt.SetProblem(A).Compute();
     auto solution = ldlt.Solve(b, {});
-    vecxr x = solution.solution_;
+    RealVectorX x = solution.solution_;
     math::matxxr solution_field(*n, *n);
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        idx idx00 = i * *n + j;
-        solution_field(i, j) = x[idx00];
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        Index Index00 = i * *n + j;
+        solution_field(i, j) = x[Index00];
       }
     }
 
@@ -166,44 +166,44 @@ real gaussian(real x, real y, real mean_x, real mean_y, real std_x, real std_y) 
                           + (y - mean_y) * (y - mean_y) / (std_y * std_y)));
 }
 
-real gaussian(vec2r const& x, vec2r const& mean, vec2r const& std) {
+real gaussian(RealVector2 const& x, RealVector2 const& mean, RealVector2 const& std) {
   return gaussian(x.x(), x.y(), mean.x(), mean.y(), std.x(), std.y());
 }
 
 class GenerateRhsByGaussian : public NodeBase {
 public:
-  GenerateRhsByGaussian(NodeDescriptor const* descriptor, idx id)
+  GenerateRhsByGaussian(NodeDescriptor const* descriptor, Index id)
       : NodeBase(descriptor, id) {}
 
   static void register_this() {
     NodeDescriptorFactory<GenerateRhsByGaussian>()
         .SetName("Generate_Random_Rhs_By_Gaussian_01")
         .SetDescription("Generates a random right-hand-side by Gaussian distribution")
-        .AddInput<idx>("N", "Resolution of XY Dim")
-        .AddInput<vec2r>("mean", "Mean of the Gaussian distribution")
-        .AddInput<vec2r>("std", "Standard deviation of the Gaussian distribution")
+        .AddInput<Index>("N", "Resolution of XY Dim")
+        .AddInput<RealVector2>("mean", "Mean of the Gaussian distribution")
+        .AddInput<RealVector2>("std", "Standard deviation of the Gaussian distribution")
         .AddInput<real>("scale", "Scale of the Gaussian distribution")
         .AddOutput<matxxr>("rhs", "The right-hand-side of the Poission equation")
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) {
-    auto* n = RetriveInput<idx>(0);
-    auto* mean = RetriveInput<vec2r>(1);
-    auto* std = RetriveInput<vec2r>(2);
+  Status Apply(Index /* frame_id */) {
+    auto* n = RetriveInput<Index>(0);
+    auto* mean = RetriveInput<RealVector2>(1);
+    auto* std = RetriveInput<RealVector2>(2);
     auto* scale = RetriveInput<real>(3);
     if (!n) {
       return utils::FailedPreconditionError("Missing input");
     }
 
-    vec2r mean_inuse = mean ? *mean : vec2r{0.5, 0.5};
-    vec2r std_inuse = std ? *std : vec2r{1, 1};
+    RealVector2 mean_inuse = mean ? *mean : RealVector2{0.5, 0.5};
+    RealVector2 std_inuse = std ? *std : RealVector2{1, 1};
     real scale_inuse = scale ? *scale : 1.0;
 
     math::matxxr rhs(*n, *n);
-    for (idx i = 0; i < *n; ++i) {
-      for (idx j = 0; j < *n; ++j) {
-        rhs(i, j) = gaussian(vec2r{i / real(*n - 1), j / real(*n - 1)}, mean_inuse, std_inuse);
+    for (Index i = 0; i < *n; ++i) {
+      for (Index j = 0; j < *n; ++j) {
+        rhs(i, j) = gaussian(RealVector2{i / real(*n - 1), j / real(*n - 1)}, mean_inuse, std_inuse);
       }
     }
     SetOutput<matxxr>(0, scale_inuse * rhs);
@@ -213,7 +213,7 @@ public:
 
 class VisualizeHeightField : public NodeBase {
 public:
-  VisualizeHeightField(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+  VisualizeHeightField(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 
   static void register_this() {
     NodeDescriptorFactory<VisualizeHeightField>()
@@ -221,11 +221,11 @@ public:
         .SetDescription("Visualizes the height field")
         .AddInput<matxxr>("data", "The height field to visualize")
         .AddOutput<geo::SurfaceMesh>("mesh", "The mesh of the height field")
-        .AddOutput<field4r>("color", "The color of the height field")
+        .AddOutput<RealField4>("color", "The color of the height field")
         .FinalizeAndRegister();
   }
 
-  Status Apply(idx /* frame_id */) {
+  Status Apply(Index /* frame_id */) {
     auto* height_field = RetriveInput<matxxr>(0);
     if (!height_field) {
       return utils::FailedPreconditionError("Missing input");
@@ -237,7 +237,7 @@ public:
     mesh.indices_ = height_field_gl->indices_;
     auto color = height_field_gl->colors_;
     SetOutput<geo::SurfaceMesh>(0, mesh);
-    SetOutput<field4r>(1, color);
+    SetOutput<RealField4>(1, color);
     AX_RETURN_OK();
   }
 };

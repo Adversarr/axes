@@ -21,7 +21,7 @@ std::unique_ptr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
   }
 }
 
-void OptimizerBase::SetMaxIter(idx max_iter) {
+void OptimizerBase::SetMaxIter(Index max_iter) {
   AX_THROW_IF_LT(max_iter, 1, "max_iter must be positive");
   max_iter_ = max_iter;
 }
@@ -37,7 +37,7 @@ void OptimizerBase::SetTolGrad(real tol_grad) {
 }
 
 void OptimizerBase::SetOptions(utils::Options const& options) {
-  AX_SYNC_OPT_IF(options, idx, max_iter) {
+  AX_SYNC_OPT_IF(options, Index, max_iter) {
     AX_THROW_IF_LT(max_iter_, 1, "max_iter must be positive");
   }
 
@@ -54,7 +54,7 @@ void OptimizerBase::SetOptions(utils::Options const& options) {
   utils::Tunable::SetOptions(options);
 }
 
-// void OptimizerBase::RecordTrajectory(math::vecxr const& x, math::vecxr const& grad,
+// void OptimizerBase::RecordTrajectory(math::RealVectorX const& x, math::RealVectorX const& grad,
 //                                      real energy) const {
 //   if (record_trajectory_) {
 //     x_history_.push_back(x);
@@ -74,8 +74,8 @@ utils::Options OptimizerBase::GetOptions() const {
       {"max_iter", max_iter_},
       {"tol_var", tol_var_},
       {"tol_grad", tol_grad_},
-      {"verbose", idx(verbose_ ? 1 : 0)},
-      // {"record_trajectory", idx(record_trajectory_ ? 1 : 0)},
+      {"verbose", Index(verbose_ ? 1 : 0)},
+      // {"record_trajectory", Index(record_trajectory_ ? 1 : 0)},
   };
   return options;
 }

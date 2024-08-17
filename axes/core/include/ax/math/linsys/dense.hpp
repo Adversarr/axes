@@ -5,7 +5,7 @@
 namespace ax::math {
 
 /****************************** Embedded Solver Kinds ******************************/
-BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, idx,
+BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, Index,
   // SPSD
   kLDLT,
   kLLT,
@@ -45,7 +45,7 @@ public:
   }
 
   virtual void Compute() = 0;
-  virtual vecxr Solve(vecxr const &b) = 0;
+  virtual RealVectorX Solve(RealVectorX const &b) = 0;
   virtual DenseSolverKind GetKind() const = 0;
 
 

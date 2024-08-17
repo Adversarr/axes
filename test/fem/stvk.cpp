@@ -16,7 +16,7 @@ TEST_CASE("stress") {
   auto mesh = std::make_shared<fem::TriMesh<2>>();
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto elastic = fem::ElasticityCompute_CPU<2, elasticity::StVK>(mesh);
-  math::vec2r lame = {1.0, 1.0};
+  math::RealVector2 lame = {1.0, 1.0};
   elastic.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   auto stress = elastic.Stress(lame);
   for (auto const& s : stress) {
@@ -33,7 +33,7 @@ TEST_CASE("Hessian") {
   auto mesh = std::make_shared<fem::TriMesh<2>>();
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto stress = fem::ElasticityCompute_CPU<2, elasticity::StVK>(mesh);
-  math::vec2r lame = {1.0, 1.0};
+  math::RealVector2 lame = {1.0, 1.0};
   stress.Update(mesh->GetVertices(),ax::fem::ElasticityUpdateLevel::kHessian);
   CHECK(doctest::Approx(stress.Energy(lame).sum()) == 0);
 }

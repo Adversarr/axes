@@ -3,24 +3,24 @@
 
 namespace ax::fem {
 
-template <idx dim, template <idx> class ElasticModelTemplate> class ElasticityCompute_GPU
+template <Index dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_GPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::matr<dim, dim>>;
-  using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::matr<dim * dim, dim * dim>>;
+  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using vert_stress_t = math::RealField<dim>;
+  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   explicit ElasticityCompute_GPU(MeshPtr const& mesh);
 
   ~ElasticityCompute_GPU() override;
 
-  void Update(math::fieldr<dim> const& pose, ElasticityUpdateLevel update_type) final;
+  void Update(math::RealField<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
-  void SetLame(math::vec2r const& u_lame) final;
-  void SetLame(math::field2r const& e_lame) final;
+  void SetLame(math::RealVector2 const& u_lame) final;
+  void SetLame(math::RealField2 const& e_lame) final;
 
   void UpdateEnergy() final;
   void UpdateStress() final;
@@ -34,8 +34,8 @@ public:
   vert_hessian_t const& GetHessianOnVertices() final;
   elem_stress_t const& GetStressOnElements() final;
   vert_stress_t const& GetStressOnVertices() final;
-  math::field1r const& GetEnergyOnElements() final;
-  math::field1r const& GetEnergyOnVertices() final;
+  math::RealField1 const& GetEnergyOnElements() final;
+  math::RealField1 const& GetEnergyOnVertices() final;
 
 private:
   struct Impl;

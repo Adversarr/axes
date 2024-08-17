@@ -34,7 +34,7 @@ int nx;
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
@@ -72,7 +72,7 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
+math::RealVectorX fps;
 void ui_callback(gl::UiRenderEvent) {
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
@@ -83,12 +83,12 @@ void ui_callback(gl::UiRenderEvent) {
     const auto& vert = ts->GetMesh()->GetVertices();
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
-    //   math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
+    //   math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
     //   for (auto i : utils::iota(vert.cols())) {
     //     const auto& position = vert.col(i);
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
-    //       math::vec3r p = rotate * position;
+    //       math::RealVector3 p = rotate * position;
     //       ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
     //       ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
     //       ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
@@ -97,14 +97,14 @@ void ui_callback(gl::UiRenderEvent) {
     // }
 
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    static idx frame = 0;
+    static Index frame = 0;
     ts->BeginTimestep();
     ts->SolveTimestep();
     ts->EndTimestep();
     auto time_end = ax::utils::GetCurrentTimeNanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
-    std::cout << frame << ": FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+    std::cout << frame << ": FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
   input_mesh.vertices_.row(0) *= 4;
   // std::string tet_file = utils::get_asset("/mesh/npy/beam_high_res_elements.npy"),
   //             vet_file = utils::get_asset("/mesh/npy/beam_high_res_vertices.npy");
-  // auto tet = math::read_npy_v10_idx(tet_file);
+  // auto tet = math::read_npy_v10_Index(tet_file);
   // auto vet = math::read_npy_v10_real(vet_file);
   // input_mesh.indices_ = tet->transpose();
   // input_mesh.vertices_ = vet->transpose();
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
       }}});
 
   AX_CHECK_OK(ts->Initialize());
-  ts->SetExternalAccelerationUniform(math::vec3r::UnitY() * -9.8);
+  ts->SetExternalAccelerationUniform(math::RealVector3::UnitY() * -9.8);
   std::cout << ts->GetOptions() << std::endl;
   ts->SetDensity(1e3);
   ts->BeginSimulation(dt);

@@ -39,7 +39,7 @@ int nx;
 using namespace ax;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
@@ -84,17 +84,17 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
+math::RealVectorX fps;
 
 void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
   using namespace ax::math;
-  static std::vector<idx> dirichlet_handles;
+  static std::vector<Index> dirichlet_handles;
   static std::vector<real> y_vals;
   if (dirichlet_handles.empty()) {
     // first time call.
-    vec3r center{0, 0.2, 0};
+    RealVector3 center{0, 0.2, 0};
     real radius = 0.2;
-    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+    for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
         dirichlet_handles.push_back(i);
@@ -107,7 +107,7 @@ void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
   }
 
   for (size_t i = 0; i < dirichlet_handles.size(); ++i) {
-    idx iv = dirichlet_handles[i];
+    Index iv = dirichlet_handles[i];
     real v = y_vals[i] + sin(10 * T) * 0.5;
     mesh.MarkDirichletBoundary(iv, 1, v);
   }
@@ -115,14 +115,14 @@ void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
 
 void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
   using namespace ax::math;
-  static std::vector<idx> l_dirichlet_handles;
-  static std::vector<idx> r_dirichlet_handles;
+  static std::vector<Index> l_dirichlet_handles;
+  static std::vector<Index> r_dirichlet_handles;
   static std::vector<real> x_vals_l, x_vals_r;
   if (l_dirichlet_handles.empty()) {
     // first time call.
-    vec3r center{0.7, 0.6, 0.6};
+    RealVector3 center{0.7, 0.6, 0.6};
     real radius = 0.1;
-    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+    for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
         mesh.MarkDirichletBoundary(i, 0, X.x());
@@ -136,9 +136,9 @@ void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
 
   if (r_dirichlet_handles.empty()) {
     // first time call.
-    vec3r center{-0.7, 0.77, 0.4};
+    RealVector3 center{-0.7, 0.77, 0.4};
     real radius = 0.1;
-    for (idx i = 0; i < mesh.GetNumVertices(); ++i) {
+    for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
         mesh.MarkDirichletBoundary(i, 0, X.x());
@@ -150,19 +150,19 @@ void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
     }
   }
   for (size_t i = 0; i < l_dirichlet_handles.size(); ++i) {
-    idx iv = l_dirichlet_handles[i];
+    Index iv = l_dirichlet_handles[i];
     real v = x_vals_l[i] + T * 0.5;
     mesh.MarkDirichletBoundary(iv, 0, v);
   }
   for (size_t i = 0; i < r_dirichlet_handles.size(); ++i) {
-    idx iv = r_dirichlet_handles[i];
+    Index iv = r_dirichlet_handles[i];
     real v = x_vals_r[i] - T * 0.5;
     mesh.MarkDirichletBoundary(iv, 0, v);
   }
 }
 
 void ui_callback(gl::UiRenderEvent) {
-  static idx frame = 0;
+  static Index frame = 0;
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::Text("dt=%lf", dt);
@@ -172,12 +172,12 @@ void ui_callback(gl::UiRenderEvent) {
     const auto& vert = ts->GetMesh()->GetVertices();
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
-      math::mat3r rotate = Eigen::AngleAxis<real>(dt, math::vec3r::UnitX()).matrix();
+      math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
       for (auto i : utils::iota(vert.cols())) {
         const auto& position = vert.col(i);
         if (-position.x() > 4.9) {
           // Mark as dirichlet bc.
-          math::vec3r p = rotate * position;
+          math::RealVector3 p = rotate * position;
           ts->GetMesh()->MarkDirichletBoundary(i, 0, p.x());
           ts->GetMesh()->MarkDirichletBoundary(i, 1, p.y());
           ts->GetMesh()->MarkDirichletBoundary(i, 2, p.z());
@@ -197,19 +197,19 @@ void ui_callback(gl::UiRenderEvent) {
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
     std::cout << frame << " Dt=" << time_elapsed
-              << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+              << "s, FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
     update_rendering();
   }
   ImGui::End();
 }
 
-void fix_negative_volume(math::field4i& tets, math::field3r const& verts) {
+void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
   for (auto i : utils::iota(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
     auto d = verts.col(tets(3, i));
-    math::mat4r tet;
+    math::RealMatrix4 tet;
     tet << a, b, c, d, 0, 0, 0, 1;
     if (math::det(tet) < 0) {
       std::swap(tets(1, i), tets(2, i));
@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
   }
 
-  auto tet = math::read_npy_v10_idx(tet_file);
+  auto tet = math::read_npy_v10_Index(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   auto cube = geo::tet_cube(0.5, 10 * nx, nx, nx);
   cube.vertices_.row(0) *= 10;
@@ -328,9 +328,9 @@ int main(int argc, char** argv) {
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
 
   if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
-    ts->SetExternalAcceleration(math::field3r::Zero(3, ts->GetMesh()->GetNumVertices()));
+    ts->SetExternalAcceleration(math::RealField3::Zero(3, ts->GetMesh()->GetNumVertices()));
   } else {
-    ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
+    ts->SetExternalAccelerationUniform(math::RealVector3{0, -9.8, 0});
   }
 
   ts->BeginSimulation(dt);

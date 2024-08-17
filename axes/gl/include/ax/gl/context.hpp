@@ -37,9 +37,9 @@ public:
   Camera& GetCamera();
   Light& GetLight();
 
-  math::mat4f const& GetGlobalModelMatrix() const;
+  math::FloatMatrix4 const& GetGlobalModelMatrix() const;
 
-  void SetGlobalModelMatrix(math::mat4f const& value);
+  void SetGlobalModelMatrix(math::FloatMatrix4 const& value);
 
 private:
   std::unique_ptr<Impl> impl_;

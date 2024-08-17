@@ -10,45 +10,45 @@
 Dijkstra::Dijkstra(geo::SurfaceMesh mesh) : mesh_(std::move(mesh)) {
   // Initialize the edge flipper
   adj_list_.resize(mesh_.vertices_.cols(), {});
-  for (idx i = 0; i < mesh_.indices_.cols(); ++i) {
-    for (idx j = 0; j < 3; ++j) {
-      idx u = mesh_.indices_(j, i);
-      idx v = mesh_.indices_((j + 1) % 3, i);
+  for (Index i = 0; i < mesh_.indices_.cols(); ++i) {
+    for (Index j = 0; j < 3; ++j) {
+      Index u = mesh_.indices_(j, i);
+      Index v = mesh_.indices_((j + 1) % 3, i);
       adj_list_[u].push_back(v);
       adj_list_[v].push_back(u);
     }
   }
 
-  for (idx i = 0; i < mesh_.vertices_.cols(); ++i) {
+  for (Index i = 0; i < mesh_.vertices_.cols(); ++i) {
     std::sort(adj_list_[i].begin(), adj_list_[i].end());
     adj_list_[i].erase(std::unique(adj_list_[i].begin(), adj_list_[i].end()), adj_list_[i].end());
   }
 }
 
 struct LESS_FOR_PATH {
-  LESS_FOR_PATH(math::field1r& distances) : distances_(distances) {}
-  bool operator()(idx l, idx r) const { return distances_(l) > distances_(r); }
-  math::field1r& distances_;
+  LESS_FOR_PATH(math::RealField1& distances) : distances_(distances) {}
+  bool operator()(Index l, Index r) const { return distances_(l) > distances_(r); }
+  math::RealField1& distances_;
 };
 
-Path Dijkstra::ShortestPath(idx start, idx end) {
+Path Dijkstra::ShortestPath(Index start, Index end) {
   // Find the shortest path by Dijkstra's algorithm
   // and return the path as a list of PathItem
 
   Path path;
-  math::field1r distances(1, mesh_.vertices_.cols());
-  math::field1i from(1, mesh_.vertices_.cols());
-  math::field1i visited(1, mesh_.vertices_.cols());
+  math::RealField1 distances(1, mesh_.vertices_.cols());
+  math::IndexField1 from(1, mesh_.vertices_.cols());
+  math::IndexField1 visited(1, mesh_.vertices_.cols());
   distances.setConstant(math::inf<>);
   visited.setConstant(0);
   from.setConstant(-1);
   // Initialize the distances
   distances(start) = 0;
   // Initialize the priority queue
-  std::priority_queue<idx, std::vector<idx>, LESS_FOR_PATH> pq(LESS_FOR_PATH{distances});
+  std::priority_queue<Index, std::vector<Index>, LESS_FOR_PATH> pq(LESS_FOR_PATH{distances});
   pq.push(start);
   while (!pq.empty()) {
-    idx u = pq.top();
+    Index u = pq.top();
     pq.pop();
     if (u == end) {
       break;
@@ -58,7 +58,7 @@ Path Dijkstra::ShortestPath(idx start, idx end) {
     }
     visited(u) = 1;
 
-    for (idx v : adj_list_[u]) {
+    for (Index v : adj_list_[u]) {
       if (visited(v)) {
         continue;
       }
@@ -72,7 +72,7 @@ Path Dijkstra::ShortestPath(idx start, idx end) {
   }
 
   // Reconstruct the path
-  idx u = end;
+  Index u = end;
   while (u != -1) {
     path.push_back({u, false, 0, 0});
     u = from(u);
@@ -92,14 +92,14 @@ struct Widge {
 // 2. flip edge. [Widge] -> Path
 
 struct Edge {
-  idx from, to;
+  Index from, to;
   real len;
 };
 
 struct Graph {
   std::vector<std::vector<Edge>> adj;
 
-  Edge* operator()(idx from, idx to) {
+  Edge* operator()(Index from, Index to) {
     if (from >= to) {
       std::swap(from, to);
     }
@@ -112,7 +112,7 @@ struct Graph {
     return nullptr;
   }
 
-  void Emplace(idx from, idx to, real len) {
+  void Emplace(Index from, Index to, real len) {
     if (from >= to) {
       std::swap(from, to);
     }
@@ -125,7 +125,7 @@ struct Graph {
     adj[from].push_back({from, to, len});
   }
 
-  void Remove(idx from, idx to) {
+  void Remove(Index from, Index to) {
     if (from >= to) {
       std::swap(from, to);
     }
@@ -138,13 +138,13 @@ struct Graph {
 
 std::map<geo::HalfedgeEdge*, real> edge_length_cache;
 
-Widge unfold(geo::HalfedgeMesh mesh, Path p0, idx va_in_path, idx vb_in_path, idx vc_in_path) {
+Widge unfold(geo::HalfedgeMesh mesh, Path p0, Index va_in_path, Index vb_in_path, Index vc_in_path) {
   // Unfold the mesh to a widge
   Widge w;
   w.mesh = &mesh;
-  idx va = p0[va_in_path].id_;
-  idx vb = p0[vb_in_path].id_;
-  idx vc = p0[vc_in_path].id_;
+  Index va = p0[va_in_path].id_;
+  Index vb = p0[vb_in_path].id_;
+  Index vc = p0[vc_in_path].id_;
   if (va == vc) {
     w.valid = false;
     return w;
@@ -174,8 +174,8 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, idx va_in_path, idx vb_in_path, id
     // Determine the position.
     auto from = e->Tail();
     auto oppo = e->next_->Head();
-    math::vec3r e1 = from->position_ - B->position_;
-    math::vec3r e2 = oppo->position_ - B->position_;
+    math::RealVector3 e1 = from->position_ - B->position_;
+    math::RealVector3 e2 = oppo->position_ - B->position_;
     real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
     sum_angles += angle12;
     abc_widge_vertices.push_back(oppo);
@@ -201,8 +201,8 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, idx va_in_path, idx vb_in_path, id
     do {
       auto from = e->Tail();
       auto oppo = e->next_->Head();
-      math::vec3r e1 = from->position_ - B->position_;
-      math::vec3r e2 = oppo->position_ - B->position_;
+      math::RealVector3 e1 = from->position_ - B->position_;
+      math::RealVector3 e2 = oppo->position_ - B->position_;
       real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
       sum_angles += angle12;
       abc_widge_vertices.push_back(oppo);
@@ -239,7 +239,7 @@ void flip_out(geo::HalfedgeMesh& m, Widge const& w) {
   while (changed) {
     changed = false;
     // find the first beta_i < pi.
-    math::field2r angles(2, w.associated_faces.size());
+    math::RealField2 angles(2, w.associated_faces.size());
     geo::HalfedgeVertex const *L = w.associated_vertices[0], *R = w.associated_vertices[1],
                               *C = w.center;
 
@@ -265,9 +265,9 @@ Path make_shortest_geodesic(geo::SurfaceMesh mesh, Path p0) {
   }
 
   for (auto t: math::each(mesh.indices_)) {
-    for (idx d = 0; d < 3; ++d) {
-      idx e = (d + 1) % 3;
-      idx i = t(d), j = t(e);
+    for (Index d = 0; d < 3; ++d) {
+      Index e = (d + 1) % 3;
+      Index i = t(d), j = t(e);
       auto edge = he_mesh.TryGetEdgeBetween(he_mesh.GetVertex(i).vertex_,
                                             he_mesh.GetVertex(j).vertex_);
       edge_length_cache[edge] = (mesh.vertices_.col(i) - mesh.vertices_.col(j)).norm();

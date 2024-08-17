@@ -27,7 +27,7 @@ using namespace ax;
 int seperation, nrandomgk, n_save_sp_inverse;
 Entity out;
 geo::TetraMesh input_mesh;
-math::vec2r lame;
+math::RealVector2 lame;
 std::string dest;
 
 std::unique_ptr<fem::Timestepper_QuasiNewton<3>> ts;
@@ -63,10 +63,10 @@ void update_rendering() {
 
 static bool running = false;
 float dt = 1e-2;
-math::vecxr fps;
+math::RealVectorX fps;
 bool disable_original;
 
-std::vector<math::vecxr> uk, gk, sk, inertia;
+std::vector<math::RealVectorX> uk, gk, sk, inertia;
 std::unique_ptr<math::SparseSolverBase> solver;
 
 void put_into_data() {
@@ -74,11 +74,11 @@ void put_into_data() {
   solver = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
   auto H = ts->Hessian(ts->GetDisplacement(), true);
   solver->SetProblem(H).Compute();
-  math::field3r iner = traj.front();
-  idx const ndof = iner.size();
+  math::RealField3 iner = traj.front();
+  Index const ndof = iner.size();
   if (!disable_original) {
     for (auto const& u : traj) {
-      math::vecxr g = ts->Gradient(u).reshaped();
+      math::RealVectorX g = ts->Gradient(u).reshaped();
       auto result = solver->Solve(g);
       if (g.dot(result.solution_) < 0) {
         continue;
@@ -93,9 +93,9 @@ void put_into_data() {
     }
   }
 
-  math::vecxr u = ts->GetDisplacement().reshaped();
-  for (auto _ : utils::iota(static_cast<idx>(nrandomgk))) {
-    math::vecxr g = math::vecxr::Random(ndof) * dt * 0.1;
+  math::RealVectorX u = ts->GetDisplacement().reshaped();
+  for (auto _ : utils::iota(static_cast<Index>(nrandomgk))) {
+    math::RealVectorX g = math::RealVectorX::Random(ndof) * dt * 0.1;
     g *= ts->GetMesh()->GetDirichletBoundaryMask().reshaped();
     auto result = solver->Solve(g);
     if (g.allFinite() && result.solution_.allFinite()) {
@@ -118,31 +118,31 @@ void put_into_data() {
 void write_into_seps() {
   static int cnt = 0;
   if (uk.size() > static_cast<size_t>(seperation)) {
-    idx n_dof = uk.front().size();
+    Index n_dof = uk.front().size();
     math::matxxr X;
     X.resize(n_dof, seperation);
-    for (idx i = 0; i < seperation; ++i) {
+    for (Index i = 0; i < seperation; ++i) {
       X.col(i) = uk[i];
     }
     X.transposeInPlace();
     (math::write_npy_v10(dest + "/uk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
-    for (idx i = 0; i < seperation; ++i) {
+    for (Index i = 0; i < seperation; ++i) {
       X.col(i) = gk[i];
     }
     X.transposeInPlace();
     (math::write_npy_v10(dest + "/gk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
-    for (idx i = 0; i < seperation; ++i) {
+    for (Index i = 0; i < seperation; ++i) {
       X.col(i) = sk[i];
     }
     X.transposeInPlace();
     (math::write_npy_v10(dest + "/sk_" + std::to_string(cnt) + ".npy", X));
 
     X.resize(n_dof, seperation);
-    for (idx i = 0; i < seperation; ++i) {
+    for (Index i = 0; i < seperation; ++i) {
       X.col(i) = inertia[i];
     }
     X.transposeInPlace();
@@ -159,7 +159,7 @@ void write_into_seps() {
 }
 
 void ui_callback(gl::UiRenderEvent) {
-  static idx frame = 0;
+  static Index frame = 0;
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::Text("dt=%lf", dt);
@@ -176,7 +176,7 @@ void ui_callback(gl::UiRenderEvent) {
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
     std::cout << frame << " Dt=" << time_elapsed
-              << "s, FPS=" << fps.sum() / std::min<idx>(100, frame) << std::endl;
+              << "s, FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
     update_rendering();
     put_into_data();
     write_into_seps();
@@ -184,13 +184,13 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::End();
 }
 
-void fix_negative_volume(math::field4i& tets, math::field3r const& verts) {
+void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
   for (auto i : utils::iota(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
     auto d = verts.col(tets(3, i));
-    math::mat4r tet;
+    math::RealMatrix4 tet;
     tet << a, b, c, d, 0, 0, 0, 1;
     if (math::det(tet) < 0) {
       std::swap(tets(1, i), tets(2, i));
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
   tet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_elements.npy");
   vet_file = utils::get_asset("/mesh/npy/beam_" + resolution + "_res_vertices.npy");
 
-  auto tet = math::read_npy_v10_idx(tet_file);
+  auto tet = math::read_npy_v10_Index(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   input_mesh.indices_ = tet.transpose();
   input_mesh.vertices_ = vet.transpose();
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
       ts->GetMesh()->MarkDirichletBoundary(i, 2, position.z());
     }
   }
-  ts->SetExternalAccelerationUniform(math::vec3r{0, -9.8, 0});
+  ts->SetExternalAccelerationUniform(math::RealVector3{0, -9.8, 0});
 
   std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
   dest = absl::GetFlag(FLAGS_dest);
@@ -247,12 +247,12 @@ int main(int argc, char** argv) {
   math::matxxi E = input_mesh.indices_.transpose();
   (math::write_npy_v10(dest + "/vertices.npy", V));
   (math::write_npy_v10(dest + "/elements.npy", E));
-  math::vecxr bc_mask = ts->GetMesh()->GetDirichletBoundaryMask().row(0).transpose();
+  math::RealVectorX bc_mask = ts->GetMesh()->GetDirichletBoundaryMask().row(0).transpose();
   (math::write_npy_v10(dest + "/bc_masks.npy", bc_mask));
-  math::vecxi node_type = (1 - bc_mask.array()).cast<idx>();
+  math::IndexVecX node_type = (1 - bc_mask.array()).cast<Index>();
   (math::write_npy_v10(dest + "/node_types.npy", node_type));
-  math::vecxr mass
-      = ts->GetMassMatrixOriginal() * math::vecxr::Ones(ts->GetMesh()->GetNumVertices());
+  math::RealVectorX mass
+      = ts->GetMassMatrixOriginal() * math::RealVectorX::Ones(ts->GetMesh()->GetNumVertices());
   (math::write_npy_v10(dest + "/mass.npy", mass));
   ts->BeginSimulation(dt);
   auto L = ts->GetLaplacianAsApproximation();
@@ -266,15 +266,15 @@ int main(int argc, char** argv) {
 
   {
     math::spmatr P = ts->GetMassMatrix();
-    math::spmatr_for_each(P, [](idx, idx, real& val) {
+    math::spmatr_for_each(P, [](Index, Index, real& val) {
       val = 1.0;
     });
     P = (P * P).eval();
     P.makeCompressed();
     math::matxxi non_zero_entries(2, P.nonZeros());
-    idx cnt = 0;
-    math::spmatr_for_each(P, [&](idx i, idx j, real) {
-      non_zero_entries.col(cnt++) = math::vec2i{i, j};
+    Index cnt = 0;
+    math::spmatr_for_each(P, [&](Index i, Index j, real) {
+      non_zero_entries.col(cnt++) = math::IndexVec2{i, j};
     });
 
     math::write_npy_v10(dest + "/mass_pattern.npy", non_zero_entries);

@@ -14,7 +14,7 @@ void SparseSolver_BiCGSTAB::Factorize() {
 }
 
 LinsysSolveResult SparseSolver_BiCGSTAB::Solve(matxxr const &b, matxxr const &x0) {
-  vecxr x;
+  RealVectorX x;
   if (x0.size() > 0) {
     AX_THROW_IF_NE(x0.size(), b.size(), "SparseSolver_BiCGSTAB: x0 size mismatch");
     x = solver_.solveWithGuess(b, x0);

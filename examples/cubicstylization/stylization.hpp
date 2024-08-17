@@ -8,11 +8,11 @@ class Dijkstra {
 public:
   Dijkstra(SurfaceMesh mesh) : mesh_(mesh) {}
 
-  void Step(idx steps);
+  void Step(Index steps);
 
   SurfaceMesh const & GetResult() const { return mesh_; }
 
-  std::vector<math::field3r> cached_sequence;
+  std::vector<math::RealField3> cached_sequence;
 
   SurfaceMesh mesh_;
 

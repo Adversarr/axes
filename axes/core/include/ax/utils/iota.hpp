@@ -18,7 +18,7 @@ namespace ax::utils {
  * @param end The end value of the range.
  * @return A range of values from 0 to end.
  */
-AX_FORCE_INLINE auto iota(idx end) { return views::iota(static_cast<idx>(0), end); }
+AX_FORCE_INLINE auto iota(Index end) { return views::iota(static_cast<Index>(0), end); }
 
 /**
  * @brief Generates a range of values from the specified begin value to the specified end value.
@@ -26,7 +26,7 @@ AX_FORCE_INLINE auto iota(idx end) { return views::iota(static_cast<idx>(0), end
  * @param end The end value of the range.
  * @return A range of values from begin to end.
  */
-AX_FORCE_INLINE auto iota(idx begin, idx end) { return views::iota(begin, end); }
+AX_FORCE_INLINE auto iota(Index begin, Index end) { return views::iota(begin, end); }
 
 /**
  * @brief Generates a range of values from the specified begin value to the specified end value with a specified step size.
@@ -35,7 +35,7 @@ AX_FORCE_INLINE auto iota(idx begin, idx end) { return views::iota(begin, end); 
  * @param step The step size between values in the range.
  * @return A range of values from begin to end with a step size of step.
  */
-AX_FORCE_INLINE auto iota(idx begin, idx end, idx step) {
+AX_FORCE_INLINE auto iota(Index begin, Index end, Index step) {
   return views::iota(begin, end) | views::stride(step);
 }
 
@@ -44,14 +44,14 @@ AX_FORCE_INLINE auto iota(idx begin, idx end, idx step) {
  * @param be The index tuple specifying the begin and end values of the range.
  * @return A range of values from the first element of the index tuple to the second element.
  */
-AX_FORCE_INLINE auto iota(idx_tuple<2> be) { return views::iota(std::get<0>(be), std::get<1>(be)); }
+AX_FORCE_INLINE auto iota(Index_tuple<2> be) { return views::iota(std::get<0>(be), std::get<1>(be)); }
 
 /**
  * @brief Generates a range of values from the first element of the specified index tuple to the second element with a specified step size.
  * @param bes The index tuple specifying the begin and end values of the range, and the step size.
  * @return A range of values from the first element of the index tuple to the second element with a step size of the third element.
  */
-AX_FORCE_INLINE auto iota(idx_tuple<3> bes) {
+AX_FORCE_INLINE auto iota(Index_tuple<3> bes) {
   return views::iota(std::get<0>(bes), std::get<1>(bes)) | views::stride(std::get<2>(bes));
 }
 

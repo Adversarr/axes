@@ -8,14 +8,14 @@
 namespace ax::math {
 
 /**
- * @brief Alias for a sparse matrix with real values, column-major storage, and index type idx.
+ * @brief Alias for a sparse matrix with real values, column-major storage, and index type Index.
  */
-using spmatr = Eigen::SparseMatrix<real, Eigen::ColMajor, idx>;
+using spmatr = Eigen::SparseMatrix<real, Eigen::ColMajor, Index>;
 
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.
  */
-using sp_coeff = Eigen::Triplet<real, idx>;
+using sp_coeff = Eigen::Triplet<real, Index>;
 
 /**
  * @brief Alias for a list of sparse coefficients.
@@ -31,18 +31,18 @@ using sp_coeff_list = std::vector<sp_coeff>;
  * @param coeff_list The list of coefficients to populate the sparse matrix.
  * @return The created sparse matrix.
  */
-spmatr make_sparse_matrix(idx rows, idx cols, sp_coeff_list const& coeff_list);
-spmatr make_sparse_matrix(idx rows, idx cols, std::vector<idx> const& row,
-                          std::vector<idx> const& col, std::vector<real> const& val);
+spmatr make_sparse_matrix(Index rows, Index cols, sp_coeff_list const& coeff_list);
+spmatr make_sparse_matrix(Index rows, Index cols, std::vector<Index> const& row,
+                          std::vector<Index> const& col, std::vector<real> const& val);
 
-template <idx dim> spmatr kronecker_identity(spmatr A) {
-  idx const rows = A.rows() * dim;
-  idx const cols = A.cols() * dim;
+template <Index dim> spmatr kronecker_identity(spmatr A) {
+  Index const rows = A.rows() * dim;
+  Index const cols = A.cols() * dim;
   sp_coeff_list coeff_list;
   coeff_list.reserve(static_cast<size_t>(A.nonZeros()) * dim);
-  for (idx k = 0; k < A.outerSize(); ++k) {
+  for (Index k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
-      for (idx i = 0; i < dim; ++i) {
+      for (Index i = 0; i < dim; ++i) {
         coeff_list.push_back({it.row() * dim + i, it.col() * dim + i, it.value()});
       }
     }
@@ -52,7 +52,7 @@ template <idx dim> spmatr kronecker_identity(spmatr A) {
 
 template <typename Fn>
 AX_FORCE_INLINE void spmatr_for_each(spmatr & A, Fn&& fn) {
-  for (idx k = 0; k < A.outerSize(); ++k) {
+  for (Index k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
     }
@@ -60,7 +60,7 @@ AX_FORCE_INLINE void spmatr_for_each(spmatr & A, Fn&& fn) {
 }
 
 template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(const spmatr& A, Fn fn) {
-  for (idx k = 0; k < A.outerSize(); ++k) {
+  for (Index k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
     }
@@ -68,7 +68,7 @@ template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(const spmatr& A, Fn 
 }
 
 template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(spmatr& A, Fn fn) {
-  for (idx k = 0; k < A.outerSize(); ++k) {
+  for (Index k = 0; k < A.outerSize(); ++k) {
     for (spmatr::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
     }
@@ -80,8 +80,8 @@ template <typename Fn> AX_FORCE_INLINE void spmatr_for_each(spmatr& A, Fn fn) {
 AX_FORCE_INLINE real norm(spmatr const& A, math::l1_t) {
   real norm = 0;
   real row_sum = 0;
-  idx last_row = -1;
-  spmatr_for_each(A, [&](idx row, idx, real val) {
+  Index last_row = -1;
+  spmatr_for_each(A, [&](Index row, Index, real val) {
     if (row != last_row) {
       norm = std::max(norm, row_sum);
       row_sum = 0;
@@ -103,7 +103,7 @@ template <typename DerivedLeft, typename DerivedRight,
 AX_FORCE_INLINE real inner(Eigen::MatrixBase<DerivedLeft> const& left, const spmatr& bilinear,
                            Eigen::MatrixBase<DerivedRight> const& right) {
   real total = static_cast<real>(0.0);
-  spmatr_for_each(bilinear, [&](idx row, idx col, real value) { total += left[row] * right[col] * value; });
+  spmatr_for_each(bilinear, [&](Index row, Index col, real value) { total += left[row] * right[col] * value; });
   return total;
 }
 

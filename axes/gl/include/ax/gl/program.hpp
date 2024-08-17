@@ -29,13 +29,13 @@ public:
   void SetUniform(const std::string& name, int value);
   void SetUniform(const std::string& name, float value);
 
-  void SetUniform(const std::string& name, const math::vec2f& value);
-  void SetUniform(const std::string& name, const math::vec3f& value);
-  void SetUniform(const std::string& name, const math::vec4f& value);
+  void SetUniform(const std::string& name, const math::FloatVector2& value);
+  void SetUniform(const std::string& name, const math::FloatVector3& value);
+  void SetUniform(const std::string& name, const math::FloatVector4& value);
 
-  void SetUniform(const std::string& name, const math::mat2f& value);
-  void SetUniform(const std::string& name, const math::mat3f& value);
-  void SetUniform(const std::string& name, const math::mat4f& value);
+  void SetUniform(const std::string& name, const math::FloatMatrix2& value);
+  void SetUniform(const std::string& name, const math::FloatMatrix3& value);
+  void SetUniform(const std::string& name, const math::FloatMatrix4& value);
 
   unsigned int GetId() const;
 

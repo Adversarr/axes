@@ -17,56 +17,56 @@ namespace xx {
 using namespace ax;
 using namespace math;
 
-constexpr idx PREDEFINED_M = 32561;
-constexpr idx PREDEFINED_FEAT = 123;
+constexpr Index PREDEFINED_M = 32561;
+constexpr Index PREDEFINED_FEAT = 123;
 
 class SPLR {
 public:
-  real Energy(vecxr const& x) const {
+  real Energy(RealVectorX const& x) const {
     // x is m by 1
     return Energy_Loss(x) + Energy_L2(x) + Energy_L1(x);
   }
 
-  real Energy_L2(vecxr const& x) const {
+  real Energy_L2(RealVectorX const& x) const {
     // x is m by 1
     real l2 = norm2(x);
     return lambda_ * l2;
   }
-  real Energy_Loss(vecxr const& x) const {
+  real Energy_Loss(RealVectorX const& x) const {
     // logistic regression loss.
     // x is FEAT by 1
     // bA_ is FEAT by M
     // bA_ * x is FEAT by 1
 
-    // math::vecxr y = bA_.transpose() * x;
-    math::vecxr y = A_.transpose() * x;
+    // math::RealVectorX y = bA_.transpose() * x;
+    math::RealVectorX y = A_.transpose() * x;
     y = y.cwiseProduct(b_);
     real loss = 0;
-    for (idx i = 0; i < y.size(); ++i) {
+    for (Index i = 0; i < y.size(); ++i) {
       loss += std::log(1 + std::exp(y(i)));
     }
     return loss / PREDEFINED_M;
   }
 
-  real Energy_L1(vecxr const& x) const { return mu_ * x.cwiseAbs().sum(); }
+  real Energy_L1(RealVectorX const& x) const { return mu_ * x.cwiseAbs().sum(); }
 
-  vecxr Gradient_Loss(vecxr const& x) const {
+  RealVectorX Gradient_Loss(RealVectorX const& x) const {
     // x is FEAT by 1
     // bA_ is FEAT by M
     // bA_ * x is FEAT by 1
-    math::vecxr y = A_.transpose() * x;
+    math::RealVectorX y = A_.transpose() * x;
     y = y.cwiseProduct(b_);
-    math::vecxr grad = A_ * (1 - 1 / (1 + y.array().exp())).matrix().cwiseProduct(b_);
+    math::RealVectorX grad = A_ * (1 - 1 / (1 + y.array().exp())).matrix().cwiseProduct(b_);
     return grad / PREDEFINED_M;
   }
 
-  vecxr Gradient_Loss_L2(vecxr const& x) const { return 2 * lambda_ * x; }
+  RealVectorX Gradient_Loss_L2(RealVectorX const& x) const { return 2 * lambda_ * x; }
 
-  SPLR(spmatr const& A, vecxr const& b) : A_(A), b_(b) {}
+  SPLR(spmatr const& A, RealVectorX const& b) : A_(A), b_(b) {}
 
   real lambda_, mu_;
   const spmatr A_;  // row = dim, col = m
-  const vecxr b_;
+  const RealVectorX b_;
 };
 
 inline SPLR load_from_file(std::string const& filename) {
@@ -75,8 +75,8 @@ inline SPLR load_from_file(std::string const& filename) {
     throw std::runtime_error("Cannot open file " + filename);
   }
 
-  idx m = 0, n = PREDEFINED_FEAT;
-  math::vecxr b = math::vecxr::Zero(PREDEFINED_M);
+  Index m = 0, n = PREDEFINED_FEAT;
+  math::RealVectorX b = math::RealVectorX::Zero(PREDEFINED_M);
   sp_coeff_list coeff_list;
   for (std::string line; std::getline(file, line);) {
     if (line.empty() || line[0] == '#') {
@@ -91,7 +91,7 @@ inline SPLR load_from_file(std::string const& filename) {
     AX_THROW_IF_FALSE(y == 1 || y == -1, "Invalid label: " + std::to_string(y));
     for (std::string pair; iss >> pair;) {
       std::istringstream iss_pair(pair);
-      idx i;
+      Index i;
       real v;
       iss_pair >> i;
       iss_pair.ignore();

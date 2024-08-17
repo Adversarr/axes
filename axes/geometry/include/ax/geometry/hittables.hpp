@@ -9,7 +9,7 @@ namespace ax::geo {
 
 /****************************** AABB ******************************/
 
-template <idx dim> using AlignedBoxN = Eigen::AlignedBox<real, dim>;
+template <Index dim> using AlignedBoxN = Eigen::AlignedBox<real, dim>;
 
 using AlignedBox2 = AlignedBoxN<2>;
 using AlignedBox3 = AlignedBoxN<3>;
@@ -31,18 +31,18 @@ AX_HOST_DEVICE AX_FORCE_INLINE AlignedBox3 to_aabb(Segment3 const& line) {
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE AlignedBox2 to_aabb(Triangle2 const& triangle) {
-  math::vec2r min = triangle.A().cwiseMin(triangle.B()).cwiseMin(triangle.C());
-  math::vec2r max = triangle.A().cwiseMax(triangle.B()).cwiseMax(triangle.C());
+  math::RealVector2 min = triangle.A().cwiseMin(triangle.B()).cwiseMin(triangle.C());
+  math::RealVector2 max = triangle.A().cwiseMax(triangle.B()).cwiseMax(triangle.C());
   return AlignedBox2(min, max);
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE AlignedBox3 to_aabb(Triangle3 const& triangle) {
-  math::vec3r min = triangle.A().cwiseMin(triangle.B()).cwiseMin(triangle.C());
-  math::vec3r max = triangle.A().cwiseMax(triangle.B()).cwiseMax(triangle.C());
+  math::RealVector3 min = triangle.A().cwiseMin(triangle.B()).cwiseMin(triangle.C());
+  math::RealVector3 max = triangle.A().cwiseMax(triangle.B()).cwiseMax(triangle.C());
   return AlignedBox3(min, max);
 }
 
-template <idx dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<dim> const& a,
+template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<dim> const& a,
                                                                    AlignedBoxN<dim> const& b) {
   return a.intersects(b);
 }
@@ -96,8 +96,8 @@ struct CollisionInfo {
 };
 
 struct BroadPhaseCollisionInfo {
-  idx a_;
-  idx b_;
+  Index a_;
+  Index b_;
   CollisionInfo info_;
 };
 
@@ -124,12 +124,12 @@ template <typename T> constexpr PrimitiveKind primitive_kind_refl_v
 
 struct ColliderInfo {
   AlignedBox3 aabb_;
-  idx external_id_;
-  idx parent_id_;
+  Index external_id_;
+  Index parent_id_;
   PrimitiveKind external_kind_;
 };
 
-using CollidingPair = std::pair<idx, idx>;
+using CollidingPair = std::pair<Index, Index>;
 
 using BroadPhaseResult = std::map<CollisionKind, std::vector<BroadPhaseCollisionInfo>>;
 

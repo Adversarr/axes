@@ -7,8 +7,8 @@
 
 namespace ax::fem {
 
-template <idx dim>
-std::pair<std::vector<idx>, std::vector<idx>> optimize_topology(math::fieldi<dim + 1> const& topo, idx n_vert) {
+template <Index dim>
+std::pair<std::vector<Index>, std::vector<Index>> optimize_topology(math::IndexField<dim + 1> const& topo, Index n_vert) {
   using namespace boost;
   using namespace std;
   typedef adjacency_list<
@@ -25,8 +25,8 @@ std::pair<std::vector<idx>, std::vector<idx>> optimize_topology(math::fieldi<dim
 
   Graph G(static_cast<size_t>(n_vert));
   for (auto const& elem : math::each(topo)) {
-    for (idx i = 0; i < dim + 1; i++) {
-      for (idx j = i + 1; j < dim + 1; j++) {
+    for (Index i = 0; i < dim + 1; i++) {
+      for (Index j = i + 1; j < dim + 1; j++) {
         size_t ei = static_cast<size_t>(elem(i)), ej = static_cast<size_t>(elem(j));
         boost::add_edge(ei, ej, G);
       }
@@ -56,15 +56,15 @@ std::pair<std::vector<idx>, std::vector<idx>> optimize_topology(math::fieldi<dim
     for (size_type c = 0; c != inv_perm.size(); ++c) perm[index_map[inv_perm[c]]] = c;
   }
 
-  std::vector<idx> p, ip;
+  std::vector<Index> p, ip;
   p.assign(perm.begin(), perm.end());
   ip.assign(inv_perm.begin(), inv_perm.end());
 
   return {p, ip};
 }
 
-template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<1>(math::fieldi<2> const&, idx);
-template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<2>(math::fieldi<3> const&, idx);
-template std::pair<std::vector<idx>, std::vector<idx>> optimize_topology<3>(math::fieldi<4> const&, idx);
+template std::pair<std::vector<Index>, std::vector<Index>> optimize_topology<1>(math::IndexField<2> const&, Index);
+template std::pair<std::vector<Index>, std::vector<Index>> optimize_topology<2>(math::IndexField<3> const&, Index);
+template std::pair<std::vector<Index>, std::vector<Index>> optimize_topology<3>(math::IndexField<4> const&, Index);
 
 }  // namespace ax::fem

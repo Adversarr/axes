@@ -50,7 +50,7 @@ void bind_naive_optim(py::module& m) {
              return K;
            })
       .def("FilterMatrixDof",
-           [](TriMesh<3>& tm, idx dof, math::spmatr K) -> math::spmatr {
+           [](TriMesh<3>& tm, Index dof, math::spmatr K) -> math::spmatr {
              tm.FilterMatrixDof(dof, K);
              return K;
            })
@@ -70,7 +70,7 @@ void bind_naive_optim(py::module& m) {
 
   tsb3.def("SetOptions", &TimeStepperBase<3>::SetOptions)
       .def("SetDensity", py::overload_cast<real>(&TimeStepperBase<3>::SetDensity))
-      .def("SetDensity", py::overload_cast<math::field1r const&>(&TimeStepperBase<3>::SetDensity))
+      .def("SetDensity", py::overload_cast<math::RealField1 const&>(&TimeStepperBase<3>::SetDensity))
       .def("GetMesh", &TimeStepperBase<3>::GetMesh)
       .def("GetOptions", &TimeStepperBase<3>::GetOptions)
       .def("GetLastPosition", &TimeStepperBase<3>::GetLastPosition)
@@ -90,7 +90,7 @@ void bind_naive_optim(py::module& m) {
       .def("BeginTimestep", &TimeStepperBase<3>::BeginTimestep)
       .def("EndTimestep", py::overload_cast<>(&TimeStepperBase<3>::EndTimestep))
       .def("EndTimestep",
-           py::overload_cast<math::fieldr<3> const&>(&TimeStepperBase<3>::EndTimestep))
+           py::overload_cast<math::RealField<3> const&>(&TimeStepperBase<3>::EndTimestep))
       .def("SolveTimestep", &TimeStepperBase<3>::SolveTimestep)
       .def("GetInitialGuess", &TimeStepperBase<3>::GetInitialGuess)
       .def("GetSolution", &TimeStepperBase<3>::GetSolution)
@@ -112,7 +112,7 @@ void bind_naive_optim(py::module& m) {
   });
 
   m.def("compute_mass_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::spmatr {
           AX_THROW_IF_NULL(tm);
           MassMatrixCompute<3> mmc(*tm);
           return mmc(density);
@@ -125,19 +125,19 @@ void bind_naive_optim(py::module& m) {
   });
 
   m.def("compute_laplace_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::field1r const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::spmatr {
           AX_THROW_IF_NULL(tm);
           LaplaceMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
-  m.def("yp_to_lame", [](real youngs, real poisson) -> math::vec2r {
+  m.def("yp_to_lame", [](real youngs, real poisson) -> math::RealVector2 {
     return elasticity::compute_lame(youngs, poisson);
   });
 }
 
 void bind_experiment(py::module& m) {
   m.def("set_sparse_inverse_approximator",
-        [](math::spmatr A, math::vecxr precond, real eig_modification, bool require_check_secant) {
+        [](math::spmatr A, math::RealVectorX precond, real eig_modification, bool require_check_secant) {
           auto &sia = ensure_resource<SparseInverseApproximator>();
           sia.A_ = A;
           sia.precond_ = precond;
@@ -147,15 +147,15 @@ void bind_experiment(py::module& m) {
         });
 
   m.def("apply_sparse_inverse_approximator",
-        [](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
+        [](math::RealVectorX const &gk, math::RealVectorX const &sk, math::RealVectorX const &yk) -> math::RealVectorX {
           auto* cmpt = try_get_resource<SparseInverseApproximator>();
           AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
-          auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
+          auto apply = [cmpt](math::RealVectorX const &v) -> math::RealVectorX {
             // compute At A x + delta * x
             auto const& A = cmpt->A_;
             auto const& delta = cmpt->eig_modification_;
             auto const& precond = cmpt->precond_;
-            math::vecxr At_v = A.transpose() * v;
+            math::RealVectorX At_v = A.transpose() * v;
             if (precond.size() > 0) {
               At_v = precond.cwiseProduct(At_v);
             }

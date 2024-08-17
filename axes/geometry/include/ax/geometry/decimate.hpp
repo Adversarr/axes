@@ -29,7 +29,7 @@ public:
    * @param count The target vertex count of the decimation.
    * @return A reference to the MeshDecimator object.
    */
-  MeshDecimator& SetTargetCount(idx count);
+  MeshDecimator& SetTargetCount(Index count);
 
   /**
    * @brief Runs the mesh decimation algorithm.
@@ -56,7 +56,7 @@ private:
   Strategy collapse_strategy_ = kDirect; /**< The strategy for edge collapse during decimation. */
   real cost_threshold_{1e9}; /**< The cost threshold for edge collapse. */
   HalfedgeMesh* mesh_; /**< A pointer to the HalfedgeMesh object representing the mesh. */
-  idx target_count_; /**< The target vertex count of the decimation. */
+  Index target_count_; /**< The target vertex count of the decimation. */
 
   /**
    * @brief Finds the edge to collapse based on the current strategy.

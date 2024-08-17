@@ -5,10 +5,10 @@
 
 namespace ax::math {
 
-template <idx dim> struct RootInfo {
+template <Index dim> struct RootInfo {
   bool valid_[dim];
   real root_[dim];
-  idx degree_;
+  Index degree_;
 };
 
 // a x + b = 0
@@ -75,7 +75,7 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
       real const sqrt_discriminant = sqrt(discriminant);
       info.root_[0] = (-b - sqrt_discriminant) / (2 * a);
       info.valid_[0] = (lb - tol < info.root_[0] && info.root_[0] < ub + tol);
-      idx const next = info.valid_[0] ? 1 : 0;
+      Index const next = info.valid_[0] ? 1 : 0;
       info.root_[next] = (-b + sqrt_discriminant) / (2 * a);
       info.valid_[next] = (lb - tol < info.root_[next] && info.root_[next] < ub + tol);
     }
@@ -86,7 +86,7 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
 // a x^3 + b x^2 + c x + d = 0
 RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, real d, real lb,
                                                        real ub, real tol = math::epsilon<real>,
-                                                       idx max_iteration = 16) {
+                                                       Index max_iteration = 16) {
   RootInfo<3> info;
   info.valid_[0] = info.valid_[1] = info.valid_[2] = false;
   if (approx(a, tol) == 0.) {
@@ -123,7 +123,7 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
         info.root_[2] = 0.5 * (lower_bounds[2] + upper_bounds[2]);
       }
       // do with the multiple roots.
-      for (idx i = 0; i < 2; ++i) {
+      for (Index i = 0; i < 2; ++i) {
         real const x = grad_info.root_[i];
         real const f = a * x * x * x + b * x * x + c * x + d;
         if (abs(f) < tol) {
@@ -165,9 +165,9 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
     }
 
     // now we have 3 intervals to search for roots. run a newton's method in parallel.
-    for (idx i = 0; i < 3; ++i) {
+    for (Index i = 0; i < 3; ++i) {
       if (lower_bounds[i] < upper_bounds[i]) {
-        for (idx iter = 0; iter < max_iteration; ++iter) {
+        for (Index iter = 0; iter < max_iteration; ++iter) {
           details::step_newton_once(info.root_[i], a, b, c, d, grad_info, lower_bounds[i],
                                     upper_bounds[i], tol);
         }
@@ -175,7 +175,7 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
     }
 
     // check if the roots are valid.
-    for (idx i = 0; i < 3; ++i) {
+    for (Index i = 0; i < 3; ++i) {
       real const l = lower_bounds[i], u = upper_bounds[i];
       if (l <= u) {
         real const x = info.root_[i];
@@ -187,15 +187,15 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
         info.valid_[i] = false;
       }
     }
-    idx actual = 0;
-    for (idx i = 0; i < 3; ++i) {
+    Index actual = 0;
+    for (Index i = 0; i < 3; ++i) {
       if (info.valid_[i]) {
         info.root_[actual] = info.root_[i];
         info.valid_[actual] = true;
         ++actual;
       }
     }
-    for (idx i = actual; i < 3; ++i) {
+    for (Index i = actual; i < 3; ++i) {
       info.valid_[i] = false;
     }
   }

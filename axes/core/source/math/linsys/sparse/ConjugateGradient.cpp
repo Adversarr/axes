@@ -30,8 +30,8 @@ void SparseSolver_ConjugateGradient::Factorize() {
   }
 }
 
-void batch_dot_to(matxxr const& lhs, matxxr const& rhs, vecxr & dest) {
-  for (idx i = 0; i < dest.rows(); ++i) {
+void batch_dot_to(matxxr const& lhs, matxxr const& rhs, RealVectorX & dest) {
+  for (Index i = 0; i < dest.rows(); ++i) {
     dest[i] = dot(lhs.col(i), rhs.col(i));
   }
 }
@@ -69,10 +69,10 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(matxxr const &b, matxxr 
     matxxr p_new = p;
     matxxr Ap = p;
 
-    idx const ncols = x.cols();
-    vecxr rk_dot_yk(ncols), rk_dot_yk_new(ncols), p_dot_Ap(ncols);
+    Index const ncols = x.cols();
+    RealVectorX rk_dot_yk(ncols), rk_dot_yk_new(ncols), p_dot_Ap(ncols);
     bool converged = false, conv_residual = false;
-    idx iter = 0;
+    Index iter = 0;
     batch_dot_to(r, y, rk_dot_yk);
     for (; iter < max_iter_; ++iter) {
       Ap.noalias() = A * p;
@@ -80,7 +80,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(matxxr const &b, matxxr 
       // x.noalias() += alpha * p;   // 5.39b
       // r.noalias() += alpha * Ap;  // 5.39c
       batch_dot_to(p, Ap, p_dot_Ap);
-      for (idx i = 0; i < ncols; ++i) {
+      for (Index i = 0; i < ncols; ++i) {
         real const alpha = rk_dot_yk[i] / p_dot_Ap[i];
         x.col(i).noalias() += alpha * p.col(i);
         r.col(i).noalias() += alpha * Ap.col(i);
@@ -103,7 +103,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(matxxr const &b, matxxr 
       // real beta = rk_dot_yk_new / rk_dot_yk;
       // rk_dot_yk = rk_dot_yk_new;
       // p_new.noalias() = beta * p - y;
-      for (idx i = 0; i < ncols; ++i) {
+      for (Index i = 0; i < ncols; ++i) {
         real const beta = rk_dot_yk_new[i] / rk_dot_yk[i];
         p_new.col(i).noalias() = beta * p.col(i);
       }
@@ -118,7 +118,7 @@ LinsysSolveResult SparseSolver_ConjugateGradient::Solve(matxxr const &b, matxxr 
 }
 
 void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
-  AX_SYNC_OPT_IF(opt, idx, max_iter) {
+  AX_SYNC_OPT_IF(opt, Index, max_iter) {
     // if (max_iter_ < 1) {
     //   return utils::InvalidArgumentError("max_iter must be positive");
     // }
@@ -163,7 +163,7 @@ utils::Options SparseSolver_ConjugateGradient::GetOptions() const {
     auto name = utils::reflect_name(preconditioner_->GetKind());
     if (!name) {
       throw make_runtime_error("Invalid preconditioner kind: {}",
-                               static_cast<idx>(preconditioner_->GetKind()));
+                               static_cast<Index>(preconditioner_->GetKind()));
     }
     opt.insert_or_assign("preconditioner", name.value());
     opt.insert_or_assign("preconditioner_opt", preconditioner_->GetOptions());

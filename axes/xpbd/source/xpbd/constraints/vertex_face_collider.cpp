@@ -27,7 +27,7 @@ void Constraint_VertexFaceCollider::BeginStep() {
   this->UpdatePositionConsensus();
 }
 
-std::pair<CollisionKind, idx> determine_real_collision_kind(m34 const& o, real tol) {
+std::pair<CollisionKind, Index> determine_real_collision_kind(m34 const& o, real tol) {
   Vertex3 v{o.col(0)}, f1{o.col(1)}, f2{o.col(2)}, f3{o.col(3)};
   Segment3 e12{o.col(1), o.col(2) - o.col(1)}, e23{o.col(2), o.col(3) - o.col(2)},
       e31{o.col(3), o.col(1) - o.col(3)};
@@ -70,8 +70,8 @@ std::pair<CollisionKind, idx> determine_real_collision_kind(m34 const& o, real t
 }
 
 ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
-  idx const nC = GetNumConstraints();
-  idx const nV = GetNumConstrainedVertices();
+  Index const nC = GetNumConstraints();
+  Index const nV = GetNumConstrainedVertices();
 
   // AX_LOG(ERROR) << "Number of constraints: " << nC;
   ConstraintSolution sol(nV);
@@ -83,7 +83,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     real& k = stiffness_[i];
     real& rho = rho_[i];
     m34 z;
-    for (idx i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
+    for (Index i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
     auto [kind, id] = determine_real_collision_kind(origin_[i], tol_);
     if (kind == geo::CollisionKind::kVertexVertex) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
@@ -98,13 +98,13 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
       relax_vertex_vertex_impl(z_vv, u_vv, o_vv, x_vv, k, rho, 0.2 * tol_, 0.05 * tol_);
       x.col(0) = x_vv.col(0);
       x.col(id) = x_vv.col(1);
-      for (idx i = 1; i < 4; ++i) {
+      for (Index i = 1; i < 4; ++i) {
         if (i != id) x.col(i) = (z - u).col(i);
       }
     } else if (kind == geo::CollisionKind::kVertexEdge) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
       m3 z_ve, u_ve;
-      idx unused = 6 - (id / 10) % 10 - id % 10;
+      Index unused = 6 - (id / 10) % 10 - id % 10;
       z_ve.col(0) = z.col(0);
       z_ve.col(1) = z.col((id / 10) % 10);
       z_ve.col(2) = z.col(id % 10);
@@ -121,14 +121,14 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
       x.col((id / 10) % 10) = x_ve.col(1);
       x.col(id % 10) = x_ve.col(2);
       x.col(unused) = (z - u).col(unused);
-      for (idx i = 0; i < 4; ++i) {
+      for (Index i = 0; i < 4; ++i) {
         if (i == unused) continue;
         sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
         sol.weights_[C[i]] += rho;
       }
     } else if (kind == geo::CollisionKind::kVertexFace) {
       relax_vertex_triangle_impl(z, u, origin_[i], x, rho_[i], k, tol_);
-      for (idx i = 0; i < 4; ++i) {
+      for (Index i = 0; i < 4; ++i) {
         sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
         sol.weights_[C[i]] += rho;
       }
@@ -151,8 +151,8 @@ real Constraint_VertexFaceCollider::UpdateDuality() {
   for (auto i : utils::iota(this->GetNumConstraints())) {
     auto cons = constraint_mapping_[i];
     auto const& d = dual_[i];
-    math::matr<3, 4> z, du;
-    for (idx i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
+    math::RealMatrix<3, 4> z, du;
+    for (Index i = 0; i < 4; ++i) z.col(i) = fetch_from_global[cons[i]];
     du = d - z;
     gap_[i] += du;
     sqr_prim_res += du.squaredNorm();
@@ -176,16 +176,16 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   auto const& cmap = this->constrained_vertices_ids_;
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
-  std::vector<std::pair<idx, idx>> new_collisions;
-  std::vector<idx> new_colliding_vertices;
+  std::vector<std::pair<Index, Index>> new_collisions;
+  std::vector<Index> new_colliding_vertices;
 
-  auto put_vert = [&](idx v) {
+  auto put_vert = [&](Index v) {
     if (colliding_vertices_.insert(v).second) {
       new_colliding_vertices.push_back(v);
     }
   };
 
-  auto put_coll = [this](std::pair<idx, idx> vf) -> bool {
+  auto put_coll = [this](std::pair<Index, Index> vf) -> bool {
     auto it = collidings_.find(vf);
     if (it == collidings_.end()) {
       collidings_.emplace(vf, 1);
@@ -200,7 +200,7 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   };
 
   // Current implementation is brute force.
-  for (idx i : utils::iota(g.vertices_.cols())) {
+  for (Index i : utils::iota(g.vertices_.cols())) {
     for (auto [j, f] : utils::enumerate(g.faces_)) {
       auto const& x0 = g.last_vertices_.col(i);
       auto const& fx0 = g.last_vertices_.col(f.x());
@@ -253,9 +253,9 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
     }
   }
 
-  idx n_v = this->GetNumConstrainedVertices();
-  for (idx i : utils::iota(n_v)) {
-    idx iV = cmap[i];
+  Index n_v = this->GetNumConstrainedVertices();
+  for (Index i : utils::iota(n_v)) {
+    Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }
 }

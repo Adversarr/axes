@@ -15,7 +15,7 @@ public:
 
   void SetLearningRate(real const& lr);
 
-  void SetProximator(std::function<math::vecxr(math::vecxr const&, real)> proximator);
+  void SetProximator(std::function<math::RealVectorX(math::RealVectorX const&, real)> proximator);
 
   void SetLineSearch(std::unique_ptr<LinesearchBase> linesearch);
 

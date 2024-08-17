@@ -12,21 +12,21 @@ struct HalfedgeFace;
 struct HalfedgeEdge;
 struct HalfedgeVertex;
 
-constexpr idx kHalfedgeInvalidIdx = -1;
+constexpr Index kHalfedgeInvalidIdx = -1;
 
 struct HalfedgeFace {
   HalfedgeEdge* halfedge_entry_;         ///< Any halfedge on the face
-  idx original_id_ = kHalfedgeInvalidIdx;  ///< Original id from the input mesh
+  Index original_id_ = kHalfedgeInvalidIdx;  ///< Original id from the input mesh
 };
 
 struct HalfedgeVertex {
-  math::vec3r position_;                      ///< Position of the vertex
-  idx original_id_ = kHalfedgeInvalidIdx;     ///< Original id from the input mesh
+  math::RealVector3 position_;                      ///< Position of the vertex
+  Index original_id_ = kHalfedgeInvalidIdx;     ///< Original id from the input mesh
   HalfedgeEdge* halfedge_entry_ = nullptr;  ///< Any halfedge on the vertex
 
   HalfedgeVertex() = default;
 
-  explicit HalfedgeVertex(math::vec3r const& position, idx original_id = kHalfedgeInvalidIdx)
+  explicit HalfedgeVertex(math::RealVector3 const& position, Index original_id = kHalfedgeInvalidIdx)
       : position_(position), original_id_(original_id) {}
 };
 
@@ -39,7 +39,7 @@ struct HalfedgeEdge {
 
   bool IsBoundary() const { return face_ == nullptr; }
 
-  math::vec3r Normal() const;
+  math::RealVector3 Normal() const;
 
   AX_FORCE_INLINE HalfedgeVertex* Tail() const { return prev_->vertex_; }
 
@@ -57,7 +57,7 @@ struct HalfedgeEdgeOnFaceIterator {
 
   using iterator_category = std::forward_iterator_tag;
   using value_type = HalfedgeEdge;
-  using difference_type = idx;
+  using difference_type = Index;
   using pointer = HalfedgeEdge*;
   using reference = HalfedgeEdge&;
   using const_reference = HalfedgeEdge const&;
@@ -85,7 +85,7 @@ struct HalfedgeEdgeOnVertexIterator {
 
   using iterator_category = std::forward_iterator_tag;
   using value_type = HalfedgeEdge;
-  using difference_type = idx;
+  using difference_type = Index;
   using pointer = HalfedgeEdge*;
   using reference = HalfedgeEdge&;
   using const_reference = HalfedgeEdge const&;
@@ -160,16 +160,16 @@ public:
   AX_DECLARE_COPY_CTOR(HalfedgeMesh, delete);
   AX_DECLARE_MOVE_CTOR(HalfedgeMesh, default);
   /************************* SECT: Constructor and IO *************************/
-  HalfedgeMesh(math::field3r const& vertices, math::field3i const& indices);
+  HalfedgeMesh(math::RealField3 const& vertices, math::IndexField3 const& indices);
 
   AX_NODISCARD SurfaceMesh ToTriangleMesh() const;
 
   /************************* SECT: Getters *************************/
-  AX_NODISCARD HalfedgeFaceHandle GetFace(idx idx) const;
-  AX_NODISCARD HalfedgeVertexHandle GetVertex(idx idx) const;
+  AX_NODISCARD HalfedgeFaceHandle GetFace(Index Index) const;
+  AX_NODISCARD HalfedgeVertexHandle GetVertex(Index Index) const;
 
   /************************* SECT: Edge Operation *************************/
-  void CollapseEdge(HalfedgeEdge* edge, math::vec3r const& target_position);
+  void CollapseEdge(HalfedgeEdge* edge, math::RealVector3 const& target_position);
   AX_NODISCARD bool CheckCollapse(HalfedgeEdge* edge);
   AX_NODISCARD bool CheckFlip(HalfedgeEdge* edge);
   void FlipEdge(HalfedgeEdge* edge);
@@ -185,8 +185,8 @@ public:
 
 
   /************************* SECT: Metadata Retrival *************************/
-  AX_NODISCARD idx NVertices() const noexcept { return static_cast<idx>(vertices_.size()); }
-  AX_NODISCARD idx NEdges() const noexcept { return static_cast<idx>(edges_.size()); }
+  AX_NODISCARD Index NVertices() const noexcept { return static_cast<Index>(vertices_.size()); }
+  AX_NODISCARD Index NEdges() const noexcept { return static_cast<Index>(edges_.size()); }
   AX_NODISCARD bool CheckOk() noexcept;
 
 
@@ -199,10 +199,10 @@ private:
   std::vector<std::unique_ptr<HalfedgeFace>> faces_;
 };
 
-inline math::vec3r HalfedgeEdge::Normal() const {
+inline math::RealVector3 HalfedgeEdge::Normal() const {
   if (face_ == nullptr) {
     if (pair_->face_ == nullptr) {
-      return math::vec3r::Zero();
+      return math::RealVector3::Zero();
     }
     return pair_->Normal();
   }

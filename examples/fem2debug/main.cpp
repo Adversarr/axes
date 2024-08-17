@@ -23,9 +23,9 @@ ABSL_FLAG(bool, flip_yz, false, "flip yz");
 using namespace ax;
 Entity out;
 geo::SurfaceMesh input_mesh;
-math::vec3f stretching;
+math::FloatVector3 stretching;
 
-math::vec2r lame;
+math::RealVector2 lame;
 
 void update_entity() {
   gl::Mesh& msh = add_or_replace_component<gl::Mesh>(out);

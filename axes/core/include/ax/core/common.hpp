@@ -16,7 +16,7 @@ template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR vec_size_t to_
   return static_cast<vec_size_t>(v);
 }
 
-template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR idx to_std_size(T &&v) {
+template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR Index to_std_size(T &&v) {
   return static_cast<size_t>(v);
 }
 

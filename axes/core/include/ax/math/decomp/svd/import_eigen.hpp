@@ -4,10 +4,10 @@
 
 namespace ax::math::decomp {
 
-template <idx dim, typename Scalar> class JacobiSvd {
+template <Index dim, typename Scalar> class JacobiSvd {
 public:
-  using mat_t = mat<Scalar, dim, dim>;
-  using vec_t = vec<Scalar, dim>;
+  using mat_t = Matrix<Scalar, dim, dim>;
+  using vec_t = Vector<Scalar, dim>;
   using result_t = SvdResult<dim, Scalar>;
 
   JacobiSvd() = default;
@@ -19,10 +19,10 @@ public:
   }
 };
 
-template <idx dim, typename Scalar> class BDCSvd {
+template <Index dim, typename Scalar> class BDCSvd {
 public:
-  using mat_t = mat<Scalar, dim, dim>;
-  using vec_t = vec<Scalar, dim>;
+  using mat_t = Matrix<Scalar, dim, dim>;
+  using vec_t = Vector<Scalar, dim>;
   using result_t = SvdResult<dim, Scalar>;
 
   BDCSvd() = default;

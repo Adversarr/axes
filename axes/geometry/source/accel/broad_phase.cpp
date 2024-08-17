@@ -13,7 +13,7 @@ BroadPhaseResult const& BroadPhaseBase::GetCollidingPairs() const { return colli
 
 void BroadPhaseBase::Reserve(size_t n) { colliders_.reserve(n); }
 
-void BroadPhaseBase::AddCollidingPair(idx a, idx b) {
+void BroadPhaseBase::AddCollidingPair(Index a, Index b) {
   auto const& ca = GetCollider(a);
   auto const& cb = GetCollider(b);
   auto kind = get_collision_kind(ca.external_kind_, cb.external_kind_);

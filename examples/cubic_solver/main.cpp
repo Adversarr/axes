@@ -1,10 +1,10 @@
 #include "ax/math/polynomial.hpp"
 #include <cassert>
 using namespace ax;
-template <idx dim>
+template <Index dim>
 void print_info(ax::math::RootInfo<dim> const& info) {
   printf("degree: %ld\n", info.degree_);
-  for (idx i = 0; i < dim; ++i) {
+  for (Index i = 0; i < dim; ++i) {
     if (info.valid_[i]) {
       printf("Root %ld: %f\n", i, info.root_[i]);
     } else {
@@ -27,7 +27,7 @@ void test_solve_quadratic() {
   assert(info.root_[1] == 2.0);
 }
 
-idx cnt_error = 0;
+Index cnt_error = 0;
 
 void test_solve_cubic(real a = 1, real b = 2, real c = 3) {
   // (x - a) (x - b) (x - c) = x^3 - (a + b + c) x^2 + (ab + bc + ca) x - abc
@@ -36,7 +36,7 @@ void test_solve_cubic(real a = 1, real b = 2, real c = 3) {
   bool has_error = false;
   // find a.
   bool has_a = false, has_b = false, has_c = false;
-  for (idx i = 0; i < 3; ++i) {
+  for (Index i = 0; i < 3; ++i) {
     if (info.valid_[i]) {
       if (math::approx(info.root_[i], 1e-7) == a) {
         has_a = true;

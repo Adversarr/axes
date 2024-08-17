@@ -25,7 +25,7 @@ public:
   void SetOptions(const utils::Options& option) override;
 
 protected:
-  idx max_iter_{100};
+  Index max_iter_{100};
 };
 
 /**

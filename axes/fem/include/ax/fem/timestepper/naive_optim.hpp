@@ -4,7 +4,7 @@
 
 namespace ax::fem {
 
-template <idx dim> class Timestepper_NaiveOptim : public TimeStepperBase<dim> {
+template <Index dim> class Timestepper_NaiveOptim : public TimeStepperBase<dim> {
 public:
   Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh);
   virtual ~Timestepper_NaiveOptim() = default;

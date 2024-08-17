@@ -101,8 +101,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE typename A::Scalar angle(MBcr<A> a, MBcr<B> b) {
 
 /****************************** eig ******************************/
 template <typename A> AX_HOST_DEVICE AX_FORCE_INLINE
-    std::pair<math::mat<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>,
-              math::vec<typename A::Scalar, A::RowsAtCompileTime>>
+    std::pair<math::Matrix<typename A::Scalar, A::RowsAtCompileTime, A::RowsAtCompileTime>,
+              math::Vector<typename A::Scalar, A::RowsAtCompileTime>>
     eig(MBcr<A> a) {
   static_assert(A::RowsAtCompileTime == A::ColsAtCompileTime, "eig requires square matrix");
   Eigen::SelfAdjointEigenSolver<A> es(a);
@@ -120,20 +120,20 @@ AX_HOST_DEVICE AX_FORCE_INLINE void eig(MBcr<A> a, MBr<EVec> e_vector, MBr<EVal>
 }
 
 /****************************** barycentric ******************************/
-AX_HOST_DEVICE AX_FORCE_INLINE math::vec2r barycentric(math::vec2r const& p, math::vec2r const& a,
-                                                       math::vec2r const& b) {
-  math::vec2r v0 = b - a, v1 = p - a;
+AX_HOST_DEVICE AX_FORCE_INLINE math::RealVector2 barycentric(math::RealVector2 const& p, math::RealVector2 const& a,
+                                                       math::RealVector2 const& b) {
+  math::RealVector2 v0 = b - a, v1 = p - a;
   real d00 = math::dot(v0, v0);
   real d01 = math::dot(v0, v1);
   real denom = d00;
   real v = d01 / denom;
   real u = 1.0 - v;
-  return math::vec2r(u, v);
+  return math::RealVector2(u, v);
 }
 
-AX_HOST_DEVICE AX_FORCE_INLINE math::vec3r barycentric(math::vec3r const& p, math::vec3r const& a,
-                                                       math::vec3r const& b, math::vec3r const& c) {
-  math::vec3r v0 = b - a, v1 = c - a, v2 = p - a;
+AX_HOST_DEVICE AX_FORCE_INLINE math::RealVector3 barycentric(math::RealVector3 const& p, math::RealVector3 const& a,
+                                                       math::RealVector3 const& b, math::RealVector3 const& c) {
+  math::RealVector3 v0 = b - a, v1 = c - a, v2 = p - a;
   real d00 = math::dot(v0, v0);
   real d01 = math::dot(v0, v1);
   real d11 = math::dot(v1, v1);
@@ -143,7 +143,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::vec3r barycentric(math::vec3r const& p, mat
   real v = (d11 * d20 - d01 * d21) / denom;
   real w = (d00 * d21 - d01 * d20) / denom;
   real u = 1.0 - v - w;
-  return math::vec3r(u, v, w);
+  return math::RealVector3(u, v, w);
 }
 
 /****************************** lerp ******************************/

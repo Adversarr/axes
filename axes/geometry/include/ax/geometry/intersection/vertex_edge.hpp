@@ -7,8 +7,8 @@ namespace ax::geo {
 AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_edge(Vertex3 const& a, Segment3 const& b,
                                                                 real tol = math::epsilon<>,
                                                                 real t = 0) {
-  math::vec3r const u = b.Direction();
-  math::vec3r const v = a.Position() - b.Origin();
+  math::RealVector3 const u = b.Direction();
+  math::RealVector3 const v = a.Position() - b.Origin();
   real const sqr_norm_u = u.squaredNorm();
   real const norm_u = math::sqrt(sqr_norm_u);
   real const d = math::norm(math::cross(u, v)) / norm_u;
@@ -43,7 +43,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE CollisionInfo detect_vertex_edge(Vertex3 const& a
   real k2 = -(B + E - H - b) * (C - c + f - i) + (B - b + e - h) * (C + F - I - c);
 
   auto info = math::solve_quadratic(k2, k1, k0, 0, 1, tol);
-  for (idx i = 0; i < 1; ++i)
+  for (Index i = 0; i < 1; ++i)
     if (info.valid_[i]) {
       Vertex3 a{math::lerp(a0.Position(), a1.Position(), info.root_[i])};
       Segment3 b{math::lerp(b0.Origin(), b1.Origin(), info.root_[i]),

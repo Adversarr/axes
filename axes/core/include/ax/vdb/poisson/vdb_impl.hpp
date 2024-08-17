@@ -12,7 +12,7 @@ public:
   virtual utils::Options GetOptions() const final;
 
 private:
-  idx max_iterations_ = 50;
+  Index max_iterations_ = 50;
   real rel_error_ = 1.0e-6;
   real abs_error_ = std::numeric_limits<real>::epsilon() * 100.0;
 };

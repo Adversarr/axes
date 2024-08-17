@@ -4,6 +4,6 @@
 
 namespace ax::gl {
 
-Mesh make_height_field(math::vecxr const& z, idx nx, idx ny);
+Mesh make_height_field(math::RealVectorX const& z, Index nx, Index ny);
 
 }  // namespace ax::gl

@@ -31,8 +31,8 @@ int option = 0;
 std::string file;
 
 entt::entity original, modified;
-math::field3r vertices;
-math::field3i indices;
+math::RealField3 vertices;
+math::IndexField3 indices;
 
 void ui_render_callback(gl::UiRenderEvent) {
   ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
@@ -109,8 +109,8 @@ int main(int argc, char** argv) {
   vertices.row(1) = row_z;
   vertices.row(2) = row_y;
 
-  math::vec3r min_xyz = vertices.rowwise().minCoeff();
-  math::vec3r max_xyz = vertices.rowwise().maxCoeff();
+  math::RealVector3 min_xyz = vertices.rowwise().minCoeff();
+  math::RealVector3 max_xyz = vertices.rowwise().maxCoeff();
   {  // Setup Original
     original = create_entity();
     auto& mesh = add_component<gl::Mesh>(original);

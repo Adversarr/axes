@@ -30,7 +30,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
 
 template <int dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
   const auto &lame = this->lame_;
-  math::field1r weight = lame.row(0) + 2 * lame.row(1);
+  math::RealField1 weight = lame.row(0) + 2 * lame.row(1);
   math::spmatr laplace = LaplaceMatrixCompute<dim>{*(this->mesh_)}(weight);
   auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, laplace);
   this->mesh_->FilterMatrixDof(0, full_laplacian);
@@ -42,7 +42,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
   UpdateSolverLaplace();
 }
 
-math::vecxr eigval;
+math::RealVectorX eigval;
 math::matxxr eigvec;
 
 template <int dim> void Timestepper_QuasiNewton<dim>::BeginTimestep() {
@@ -64,29 +64,29 @@ template <int dim> void Timestepper_QuasiNewton<dim>::SolveTimestep() {
   optimizer.SetMaxIter(this->max_iter_);
 
   if (strategy_ == LbfgsStrategy::kHard) {
-    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::RealVectorX {
       auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
       return approx.solution_;
     });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
-    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::vecxr {
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Gradient const &) -> math::RealVectorX {
       auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
       return approx.solution_;
     });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &s, Gradient const &y) -> math::vecxr {
+    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &s, Gradient const &y) -> math::RealVectorX {
       // Addtive Schwartz on each element.
       throw make_runtime_error("Unimplemented");
     });
     // optimizer_.SetApproxSolve(
-    //     [&](math::vecxr const &gk, math::vecxr const &sk, math::vecxr const &yk) -> math::vecxr {
+    //     [&](math::RealVectorX const &gk, math::RealVectorX const &sk, math::RealVectorX const &yk) -> math::RealVectorX {
     //       auto *cmpt = try_get_resource<SparseInverseApproximator>();
     //       AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
     //       return cmpt->A_ * gk;
-    //       auto apply = [cmpt](math::vecxr const &v) -> math::vecxr {
+    //       auto apply = [cmpt](math::RealVectorX const &v) -> math::RealVectorX {
     //         auto const &A = cmpt->A_;
     //         auto const &delta = cmpt->eig_modification_;
-    //         math::vecxr At_v = A.transpose() * v;
+    //         math::RealVectorX At_v = A.transpose() * v;
     //         return A * At_v + delta * v;
     //       };
     //

@@ -70,15 +70,15 @@
 //           ed::BeginPin(ed::PinId{n->GetOutputs()[0].id_}, ed::PinKind::Output);
 //           ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
 //           ed::EndPin();
-//           ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
+//           ImGui::Text("\"%s\"", n->assets_[n->selected_Index_].c_str());
 //           end_draw_node();
 //
 //           ed::Suspend();
 //           ImGui::PushID(node);
 //           if (ImGui::BeginPopup("Select Mesh")) {
-//             for (int i = 0; i < (idx)n->assets_.size(); ++i) {
-//               if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-//                 n->selected_idx_ = i;
+//             for (int i = 0; i < (Index)n->assets_.size(); ++i) {
+//               if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_Index_ == i)) {
+//                 n->selected_Index_ = i;
 //               }
 //             }
 //             ImGui::EndPopup();
@@ -89,29 +89,29 @@
 //   }
 //
 //   void PreApply() override {
-//     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_idx_]);
+//     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_Index_]);
 //   }
 //
 //   // TODO: ctor.
 //   // void OnConstruct() override {
 //   //   assets_ = utils::discover_assets("/mesh/obj/");
-//   //   selected_idx_ = 0;
+//   //   selected_Index_ = 0;
 //   // }
 //
 //   boost::json::object Serialize() const override {
 //     auto obj = NodeBase::Serialize();
-//     obj["selected_idx"] = selected_idx_;
+//     obj["selected_Index"] = selected_Index_;
 //     return obj;
 //   }
 //
 //   void Deserialize(boost::json::object const& obj) override {
-//     if (obj.contains("selected_idx")) {
-//       selected_idx_ = obj.at("selected_idx").as_int64();
+//     if (obj.contains("selected_Index")) {
+//       selected_Index_ = obj.at("selected_Index").as_int64();
 //     }
 //   }
 //
 //   std::vector<std::string> assets_;
-//   int selected_idx_;
+//   int selected_Index_;
 // };
 //
 // class Selector_Mesh_Npy : public NodeBase {
@@ -135,15 +135,15 @@
 //           ed::BeginPin(ed::PinId{n->GetOutputs()[0].id_}, ed::PinKind::Output);
 //           ImGui::Text("%s", n->GetOutputs()[0].descriptor_->name_.c_str());
 //           ed::EndPin();
-//           ImGui::Text("\"%s\"", n->assets_[n->selected_idx_].c_str());
+//           ImGui::Text("\"%s\"", n->assets_[n->selected_Index_].c_str());
 //           end_draw_node();
 //
 //           ed::Suspend();
 //           ImGui::PushID(node);
 //           if (ImGui::BeginPopup("Select Mesh")) {
-//             for (int i = 0; i < (idx)n->assets_.size(); ++i) {
-//               if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_idx_ == i)) {
-//                 n->selected_idx_ = i;
+//             for (int i = 0; i < (Index)n->assets_.size(); ++i) {
+//               if (ImGui::Selectable(n->assets_[i].c_str(), n->selected_Index_ == i)) {
+//                 n->selected_Index_ = i;
 //               }
 //             }
 //             ImGui::EndPopup();
@@ -154,36 +154,36 @@
 //   }
 //
 //   void PreApply() override {
-//     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_idx_]);
+//     *RetriveOutput<std::string>(0) = utils::get_asset(assets_[selected_Index_]);
 //   }
 //
 //   // TODO: ctor.
 //   // void OnConstruct() override {
 //   //   assets_ = utils::discover_assets("/mesh/npy/");
-//   //   selected_idx_ = 0;
+//   //   selected_Index_ = 0;
 //   // }
 //
 //   boost::json::object Serialize() const override {
 //     auto obj = NodeBase::Serialize();
-//     obj["selected_idx"] = selected_idx_;
+//     obj["selected_Index"] = selected_Index_;
 //     return obj;
 //   }
 //
 //   void Deserialize(boost::json::object const& obj) override {
-//     if (obj.contains("selected_idx")) {
-//       selected_idx_ = obj.at("selected_idx").as_int64();
+//     if (obj.contains("selected_Index")) {
+//       selected_Index_ = obj.at("selected_Index").as_int64();
 //     }
 //   }
 //
 //   std::vector<std::string> assets_;
-//   int selected_idx_;
+//   int selected_Index_;
 // };
 //
 // using namespace ax::math;
 //
 // class ExportNumpy_matxxr : public NodeBase {
 // public:
-//   // ExportNumpy_matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_matxxr(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<ExportNumpy_matxxr>()
 //   //       .SetName("Write_npy_matxxr")
@@ -219,7 +219,7 @@
 //
 // class ExportNumpy_matxxi : public NodeBase {
 // public:
-//   // ExportNumpy_matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_matxxi(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<ExportNumpy_matxxi>()
 //   //       .SetName("Write_npy_matxxr")
@@ -255,7 +255,7 @@
 //
 // class Read_npy_matxxr : public NodeBase {
 // public:
-//   // Read_npy_matxxr(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // Read_npy_matxxr(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Read_npy_matxxr>()
@@ -295,7 +295,7 @@
 // };
 // class Read_npy_matxxi : public NodeBase {
 // public:
-//   // Read_npy_matxxi(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // Read_npy_matxxi(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Read_npy_matxxi>()
@@ -318,7 +318,7 @@
 //     }
 //
 //     try {
-//       auto val = math::read_npy_v10_idx(*file);
+//       auto val = math::read_npy_v10_Index(*file);
 //       SetOutput<matxxi>(0, val);
 //     } catch (...) {
 //       std::throw_with_nested(make_runtime_error("Read Npy failed"));
@@ -335,7 +335,7 @@
 //
 // class Read_SparseMatrix : public NodeBase {
 // public:
-//   // Read_SparseMatrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // Read_SparseMatrix(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Read_SparseMatrix>()
@@ -377,7 +377,7 @@
 //
 // class Write_SparseMatrix : public NodeBase {
 // public:
-//   // Write_SparseMatrix(NodeDescriptor const* descriptor, idx id) : NodeBase(descriptor, id) {}
+//   // Write_SparseMatrix(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Write_SparseMatrix>()

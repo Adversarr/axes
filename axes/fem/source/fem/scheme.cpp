@@ -2,7 +2,7 @@
 #include "ax/core/logging.hpp"
 namespace ax::fem {
 
-template <idx dim>
+template <Index dim>
 std::unique_ptr<TimestepSchemeBase<dim>> TimestepSchemeBase<dim>::Create(TimestepSchemeKind kind) {
   switch (kind) {
     case TimestepSchemeKind::kBackwardEuler:

@@ -30,6 +30,8 @@ option(AX_ENABLE_OPENMP "Enable OpenMP for automatic multi-threading in Eigen." 
 option(AX_ENABLE_PYBIND "Enable pybind11." OFF)
 option(AX_ENABLE_AVX "Enable AVX." OFF)
 option(AX_ENABLE_FASTMATH "Enable fast math." OFF)
+option(AX_ENABLE_MSAN "Enable Memory San." OFF)
+
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 
 project(axes LANGUAGES C CXX)
@@ -67,6 +69,8 @@ if (NOT AX_NO_WARNING)  # Use our customized warning flags
   endif()
 endif()
 
+# <=== End: Took from ZENO.
+
 # WARN: May not work.
 if(AX_ENABLE_AVX)
     ax_add_cxx_compiler_flag_host_only("-march=native")
@@ -82,7 +86,16 @@ if (AX_ENABLE_FASTMATH)
   message(STATUS "Enable fast math.")
 endif()
 
-# <=== End: Took from ZENO.
+if(AX_ENABLE_MSAN)
+  if (MSVC)
+    message(FATAL_ERROR "MSAN is not supported on Windows.")
+  else()
+    ax_add_cxx_compiler_flag("-fsanitize=memory")
+    ax_add_cxx_compiler_flag("-fno-omit-frame-pointer")
+    ax_add_cxx_compiler_flag("-fsanitize-memory-track-origins=2")
+    # ax_add_cxx_linker_flag("-fsanitize=memory")
+  endif()
+endif()
 
 ##############################################################################################
 # Setup CUDA.

@@ -28,7 +28,7 @@ public:
   // Constructors and destructors
   TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
   AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
-  virtual ~TimeStepperBase() = default;
+  virtual ~TimeStepperBase();
 
   // Common Data Accessors
   std::shared_ptr<TriMesh<dim>> GetMesh() { return mesh_; }
@@ -117,7 +117,7 @@ public:
 protected:
   /************************* SECT: Common Data *************************/
   std::shared_ptr<TriMesh<dim>> mesh_;
-  std::unique_ptr<ElasticityComputeBase<dim>> elasticity_;
+  std::shared_ptr<ElasticityComputeBase<dim>> elasticity_;
   std::unique_ptr<TimestepSchemeBase<dim>> integration_scheme_;
 
   // This is a little bit tricky, we need to store the name of the elasticity model

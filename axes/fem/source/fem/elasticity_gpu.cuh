@@ -671,7 +671,7 @@ math::fieldr<dim> const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetSt
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-std::vector<math::matr<dim, dim>> const&
+elasticity::vector_for_eigen_type<math::matr<dim, dim>> const&
 ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnElements() {
   auto& gpu = impl_->stress_on_elements_;
   auto& cpu = this->stress_on_elements_;
@@ -680,7 +680,7 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnElements() {
 }
 
 template <idx dim, template <idx> class ElasticModelTemplate>
-std::vector<math::matr<dim * dim, dim * dim>> const&
+elasticity::vector_for_eigen_type<math::matr<dim * dim, dim * dim>> const&
 ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
   auto& gpu = impl_->hessian_on_elements_;
   auto& cpu = this->hessian_on_elements_;

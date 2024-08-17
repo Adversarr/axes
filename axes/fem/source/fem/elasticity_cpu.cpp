@@ -306,13 +306,14 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
         ElasticModel model;
         math::decomp::SvdResult<dim, real> tomb;
         for (idx i = r.begin(); i < r.end(); ++i) {
-          size_t si = static_cast<size_t>(i);
+          const size_t si = static_cast<size_t>(i);
           model.SetLame(lame.col(i));
-          elasticity::DeformationGradient<dim> const& F = dg_l[si];
-          hessian[si] = model.Hessian(F, hessian_requires_svd ? (this->svd_results_[si]) : tomb)
-                       * this->rest_volume_(i);
+          elasticity::DeformationGradient<dim> const& F = dg_l.at(si);
+          hessian.at(si)
+              = model.Hessian(F, hessian_requires_svd ? (this->svd_results_.at(si)) : tomb)
+                * this->rest_volume_(i);
           if (projection) {
-            hessian[si] = optim::project_spd_by_eigvals<dim * dim>(hessian[si], 1e-4);
+            hessian.at(si) = optim::project_spd_by_eigvals<dim * dim>(hessian.at(si), 1e-4);
           }
         }
       },

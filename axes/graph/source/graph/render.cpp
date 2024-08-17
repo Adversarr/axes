@@ -677,8 +677,17 @@ static void draw_once(gl::UiRenderEvent) {
   ImGui::End();
 }
 
+struct GuardAgainstCleanup {
+  ~GuardAgainstCleanup() {
+    if (context_) {
+      fprintf(stderr, "!!! Editor context is not destroyed.\n");
+    }
+  }
+};
+
 static void init(gl::ContextInitEvent const&) {
   AX_TRACE("Create editor context");
+  static GuardAgainstCleanup guarding;
   context_ = ed::CreateEditor();
 }
 

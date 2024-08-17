@@ -4,6 +4,8 @@
 #  include "ax/fem/elasticity_gpu.cuh"
 #endif
 
+#include <iostream>
+
 #include "ax/fem/elasticity/arap.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity/neohookean_bw.hpp"
@@ -54,6 +56,9 @@ template <int dim> void TimeStepperBase<dim>::Initialize() {
   SetLame(lame);
 }
 
+template <int dim> TimeStepperBase<dim>::~TimeStepperBase() {
+  std::cout << "TimeStepperBase::~TimeStepperBase()" << std::endl;
+}
 template <int dim> void TimeStepperBase<dim>::SetOptions(utils::Options const& opt) {
   AX_THROW_IF_TRUE(has_initialized_, "Cannot set options after initialization.");
 
@@ -386,7 +391,7 @@ template <int dim> real TimeStepperBase<dim>::LinfResidual(math::fieldr<dim> con
 template <int dim>
 template <template <idx> class ElasticModelTemplate, template <idx, template <idx> class> class Compute>
 void TimeStepperBase<dim>::SetupElasticity() {
-  elasticity_ = std::make_unique<Compute<dim, ElasticModelTemplate>>(mesh_);
+  elasticity_ = std::make_shared<Compute<dim, ElasticModelTemplate>>(mesh_);
 }
 
 template class TimeStepperBase<2>;

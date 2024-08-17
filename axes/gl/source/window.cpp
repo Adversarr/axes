@@ -109,7 +109,12 @@ Window::Window() {
   float hidpi_scale = get_hidpi_scale();
   impl_->window_ = glfwCreateWindow(static_cast<int>(1280 * hidpi_scale),
                                     static_cast<int>(720 * hidpi_scale), "Axes", nullptr, nullptr);
-  AX_THROW_IF_NULLPTR(impl_->window_, "Failed to create GLFW window");
+  if (impl_->window_ == nullptr) {
+    glfwTerminate();
+    const char* desc;
+    int code = glfwGetError(&desc);
+    throw make_runtime_error("Failed to create GLFW window: code={}, desc={}", code, desc);
+  }
 
   glfwMakeContextCurrent(impl_->window_);
   glfwSwapInterval(1);

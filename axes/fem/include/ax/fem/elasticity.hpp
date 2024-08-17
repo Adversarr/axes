@@ -14,9 +14,9 @@ AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
  */
 template <idx dim> class ElasticityComputeBase {
 public:
-  using elem_stress_t = std::vector<math::matr<dim, dim>>;
+  using elem_stress_t = elasticity::vector_for_eigen_type<math::matr<dim, dim>>;
   using vert_stress_t = math::fieldr<dim>;
-  using elem_hessian_t = std::vector<math::matr<dim * dim, dim * dim>>;
+  using elem_hessian_t = elasticity::vector_for_eigen_type<math::matr<dim * dim, dim * dim>>;
   using vert_hessian_t = math::spmatr;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
 

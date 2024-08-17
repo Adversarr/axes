@@ -4,6 +4,10 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#ifdef DO_PRAGMA
+#undef DO_PRAGMA
+#endif
+
 #if defined(_MSC_VER)
     #define DISABLE_WARNING_PUSH           __pragma(warning( push ))
     #define DISABLE_WARNING_POP            __pragma(warning( pop ))
@@ -106,7 +110,7 @@ std::shared_ptr<spdlog::logger> get_logger() {
 }
 
 void init() {
-  static backward::SignalHandling sh; // install the signal handler.\
+  static backward::SignalHandling sh; // install the signal handler.
 
   add_clean_up_hook("Show Timers", []() { erase_resource<utils::TimerRegistry>(); });
   get_logger();  // trigger the logger initialization

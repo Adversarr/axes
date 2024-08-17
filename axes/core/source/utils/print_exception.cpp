@@ -6,7 +6,7 @@
 
 namespace ax::utils {
 
-static void print_nested_exception_impl(std::exception const& e, int level) noexcept {
+static void print_nested_exception_impl(std::exception const& e, size_t level) noexcept {
   std::string indent(level, ' ');
   std::cerr << indent << "exception: " << e.what() << std::endl;
   try {
@@ -20,10 +20,6 @@ static void print_nested_exception_impl(std::exception const& e, int level) noex
 
 
 void print_nested_exception(std::exception const& e) noexcept {
-  try {
-    std::rethrow_if_nested(e);
-  } catch (std::exception const& nested) {
-    print_nested_exception(nested);
-  }
+  print_nested_exception_impl(e, 0);
 }
 }  // namespace ax::utils

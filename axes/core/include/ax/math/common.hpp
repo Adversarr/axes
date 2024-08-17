@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 #include <type_traits>
+#include <vector>
 
 #include "ax/core/common.hpp"
 #include "ax/utils/dup_tuple.hpp"
@@ -863,11 +864,13 @@ To cast(From value) {
  * @param mat The matrix to be converted.
  * @return The array.
  */
-template <typename Derived> AX_FORCE_INLINE auto as_array(MBcr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_array(MBcr<Derived> mat) noexcept {
   return mat.array();
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_array(ABcr<Derived> arr) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_array(ABcr<Derived> arr) noexcept {
   return arr;
 }
 
@@ -878,11 +881,15 @@ template <typename Derived> AX_FORCE_INLINE auto as_array(ABcr<Derived> arr) noe
  * @param arr The array to be converted.
  * @return The matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto as_array(MBr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_array(MBr<Derived> mat) noexcept {
   return mat.array();
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept { return arr; }
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noexcept {
+  return arr;
+}
 
 /****************************** as_matrix ******************************/
 
@@ -893,19 +900,23 @@ template <typename Derived> AX_FORCE_INLINE auto as_array(ABr<Derived> arr) noex
  * @param arr The array to be converted.
  * @return The matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_matrix(ABcr<Derived> arr) noexcept {
   return arr.matrix();
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_matrix(MBcr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_matrix(MBcr<Derived> mat) noexcept {
   return mat;
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_matrix(ABr<Derived> arr) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_matrix(ABr<Derived> arr) noexcept {
   return arr.matrix();
 }
 
-template <typename Derived> AX_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noexcept {
   return mat;
 }
 
@@ -918,7 +929,8 @@ template <typename Derived> AX_FORCE_INLINE auto as_matrix(MBr<Derived> mat) noe
  * @param mat
  * @return The transposed matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto transpose(DBcr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto transpose(DBcr<Derived> mat) noexcept {
   return mat.transpose();
 }
 
@@ -929,7 +941,8 @@ template <typename Derived> AX_FORCE_INLINE auto transpose(DBcr<Derived> mat) no
  * @param mat
  * @return The transposed matrix.
  */
-template <typename Derived> AX_FORCE_INLINE auto transpose(DBr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE auto transpose(DBr<Derived> mat) noexcept {
   return mat.transpose();
 }
 
@@ -939,7 +952,8 @@ template <typename Derived> AX_FORCE_INLINE auto transpose(DBr<Derived> mat) noe
  * @tparam Derived The derived type of the matrix.
  * @param mat The matrix to be transposed.
  */
-template <typename Derived> AX_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
+template <typename Derived>
+AX_HOST_DEVICE AX_FORCE_INLINE void transpose_(DBr<Derived> mat) noexcept {
   mat.transposeInPlace();
 }
 
@@ -955,7 +969,7 @@ template <typename Derived> AX_FORCE_INLINE void transpose_(DBr<Derived> mat) no
  * @return The reshaped matrix.
  */
 template <typename Derived>
-AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
+AX_HOST AX_FORCE_INLINE auto reshape(MBcr<Derived> mat, idx rows, idx cols) noexcept {
   // NOLINTBEGIN: The first parameter is used but reported unused.
   return mat.template reshaped<Eigen::AutoOrder>(rows, cols);
   // NOLINTEND
@@ -1025,12 +1039,23 @@ template <typename Derived> AX_HOST_DEVICE AX_FORCE_INLINE auto flatten(MBr<Deri
  * @param dofs The number of degrees of freedom of the field.
  * @return The created field.
  */
-template <typename Derived> AX_HOST_DEVICE AX_FORCE_INLINE auto make_field(idx dofs) {
+template <typename Derived> AX_FORCE_INLINE auto make_field(idx dofs) {
   return field<typename Derived::Scalar, Derived::RowsAtCompileTime>{Derived::RowsAtCompileTime,
                                                                      dofs};
 }
 
-// TODO: More create methods.
+template <int rows> AX_FORCE_INLINE fieldr<rows> make_real_field(idx dofs) {
+  return fieldr<rows>{rows, dofs};
+}
+
+template <int rows> AX_FORCE_INLINE fieldi<rows> make_index_field(idx dofs) {
+  return fieldi<rows>{rows, dofs};
+}
+
+/**
+ * @brief Aligned allocated vector.
+ */
+template <typename T> using aligned_vector = std::vector<T, Eigen::aligned_allocator<T>>;
 
 AX_CONSTEXPR std::string to_string(Eigen::ComputationInfo info) {
   switch (info) {

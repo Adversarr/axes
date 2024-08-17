@@ -351,10 +351,17 @@ Context::~Context() {
     c.release();
   }
 
+#ifdef __EMSCRIPTEN__
+  EMSCRIPTEN_MAINLOOP_END;
+#endif
+
+  emit<ContextDestroyEvent>({});  // Emit the destroy event
+
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImPlot::DestroyContext();
   ImGui::DestroyContext();
+
   impl_->renderers_.clear();
   impl_.reset();
   AX_TRACE("Destroy OpenGL context");

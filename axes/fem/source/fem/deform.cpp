@@ -7,18 +7,18 @@
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
-#include "ax/math/formatting.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/math/traits.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 
 namespace ax::fem {
 using namespace elasticity;
 using namespace math;
-template <Index dim> static bool check_cache(DeformationGradientCache<dim> const& cache) {
+template <int dim> static bool check_cache(DeformGradCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
-    real detR = R_inv.determinant();
-    if (math::isnan(detR) || math::abs(detR) < math::epsilon<real>) {
+    Real detR = R_inv.determinant();
+    if (math::isnan(detR) || math::abs(detR) < math::epsilon<Real>) {
       AX_ERROR("Found Determinant of R.inv is nan, or det is nearly zero.");
       has_error = true;
     }
@@ -30,18 +30,18 @@ template <Index dim> static bool check_cache(DeformationGradientCache<dim> const
  * P1 Element Implementation.
  ***********************************************************************************************/
 AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
-  const real m = DmInv(0, 0);
-  const real n = DmInv(0, 1);
-  const real o = DmInv(0, 2);
-  const real p = DmInv(1, 0);
-  const real q = DmInv(1, 1);
-  const real r = DmInv(1, 2);
-  const real s = DmInv(2, 0);
-  const real t = DmInv(2, 1);
-  const real u = DmInv(2, 2);
-  const real t1 = -m - p - s;
-  const real t2 = -n - q - t;
-  const real t3 = -o - r - u;
+  const Real m = DmInv(0, 0);
+  const Real n = DmInv(0, 1);
+  const Real o = DmInv(0, 2);
+  const Real p = DmInv(1, 0);
+  const Real q = DmInv(1, 1);
+  const Real r = DmInv(1, 2);
+  const Real s = DmInv(2, 0);
+  const Real t = DmInv(2, 1);
+  const Real u = DmInv(2, 2);
+  const Real t1 = -m - p - s;
+  const Real t2 = -n - q - t;
+  const Real t3 = -o - r - u;
   math::RealMatrix<9, 12> PFPx;
   PFPx.setZero();
   PFPx(0, 0) = t1;
@@ -85,12 +85,12 @@ AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(const math::RealMatri
 
 // Auto generated code.
 AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
-  const real m = DmInv(0, 0);
-  const real n = DmInv(0, 1);
-  const real p = DmInv(1, 0);
-  const real q = DmInv(1, 1);
-  const real t1 = -m - p;
-  const real t2 = -n - q;
+  const Real m = DmInv(0, 0);
+  const Real n = DmInv(0, 1);
+  const Real p = DmInv(1, 0);
+  const Real q = DmInv(1, 1);
+  const Real t1 = -m - p;
+  const Real t2 = -n - q;
   math::RealMatrix<4, 6> PFPx;
   PFPx.setZero();
   PFPx(0, 0) = t1;
@@ -108,9 +108,9 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
   return PFPx;
 }
 
-template <Index dim> static DeformationGradientCache<dim> dg_rpcache_p1(
+template <int dim> static DeformGradCache<dim> dg_rpcache_p1(
     TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose) {
-  DeformationGradientCache<dim> cache;
+  DeformGradCache<dim> cache;
   Index n_elem = mesh.GetNumElements();
   cache.resize(static_cast<size_t>(n_elem));
 
@@ -129,11 +129,11 @@ template <Index dim> static DeformationGradientCache<dim> dg_rpcache_p1(
   return cache;
 }
 
-template <Index dim>
-static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, RealField<dim> const& pose,
-                                          DeformationGradientCache<dim> const& Dm_inv) {
+template <int dim>
+static DeformGradBuffer<dim> dg_p1(TriMesh<dim> const& mesh, RealField<dim> const& pose,
+                                          DeformGradCache<dim> const& Dm_inv) {
   Index n_elem = mesh.GetNumElements();
-  DeformationGradientList<dim> dg(static_cast<size_t>(n_elem));
+  DeformGradBuffer<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
   tbb::parallel_for(
       tbb::blocked_range<Index>(0, n_elem, 50000 / (dim * dim)),
@@ -141,7 +141,7 @@ static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, RealField<di
         for (Index i = r.begin(); i < r.end(); ++i) {
           size_t const si = static_cast<size_t>(i);
           math::RealMatrix<dim, dim> Ds;
-          math::veci<dim + 1> element = mesh.GetElement(i);
+          math::IndexVector<dim + 1> element = mesh.GetElement(i);
           math::RealVector<dim> local_zero = pose.col(element.x());
           for (Index I = 1; I <= dim; ++I) {
             Ds.col(I - 1) = pose.col(element[I]) - local_zero;
@@ -154,9 +154,9 @@ static DeformationGradientList<dim> dg_p1(TriMesh<dim> const& mesh, RealField<di
   return dg;
 }
 
-template <Index dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
+template <int dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
     TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
-    DeformationGradientCache<dim> const& cache) {
+    DeformGradCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
   // TODO: With Vertex->Element Map, the parallel is possible.
@@ -174,11 +174,11 @@ template <Index dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
   return result;
 }
 
-template <Index dim>
-math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
+template <int dim>
+math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
                               std::vector<elasticity::HessianTensor<dim>> const& hessian,
-                              DeformationGradientCache<dim> const& cache) {
-  math::sp_coeff_list coo;
+                              DeformGradCache<dim> const& cache) {
+  math::SparseCOO coo;
   size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   size_t nE = static_cast<size_t>(mesh.GetNumElements());
   coo.reserve(total);
@@ -197,7 +197,7 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
   for (Index i = 0; i < mesh.GetNumElements(); ++i) {
     const auto& ijk = mesh.GetElement(i);
     const auto& H = per_element_hessian[static_cast<size_t>(i)];
-    for (auto [I, J, Di, Dj] : utils::multi_iota(dim + 1, dim + 1, dim, dim)) {
+    for (auto [I, J, Di, Dj] : utils::ndrange<Index>(dim + 1, dim + 1, dim, dim)) {
       Index i_Index = ijk[I];
       Index j_Index = ijk[J];
       Index H_Index_i = I * dim + Di;
@@ -214,22 +214,22 @@ math::sp_coeff_list dg_thv_p1(TriMesh<dim> const& mesh,
  * Interfaces
  ***********************************************************************************************/
 
-template <Index dim>
+template <int dim>
 Deformation<dim>::Deformation(TriMesh<dim> const& mesh,
                               typename TriMesh<dim>::vertex_list_t const& rest_pose)
     : mesh_(mesh) {
   this->UpdateRestPose(rest_pose);
 }
 
-template <Index dim>
+template <int dim>
 void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const& rest_pose) {
   rest_pose_ = rest_pose;
   deformation_gradient_cache_ = dg_rpcache_p1<dim>(mesh_, rest_pose);
   // There exist an efficient approximation to compute the volume:
-  real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
+  Real coef = dim == 3 ? 1.0 / 6.0 : 1.0 / 2.0;
   rest_pose_volume_.resize(1, mesh_.GetNumElements());
   for (Index i = 0; i < mesh_.GetNumElements(); ++i) {
-    real v = coef / math::det(deformation_gradient_cache_[static_cast<size_t>(i)]);
+    Real v = coef / math::det(deformation_gradient_cache_[static_cast<size_t>(i)]);
     if (v < 0) {
       AX_WARN("Negative volume detected: {}: {}", i, mesh_.GetElement(i).transpose());
     }
@@ -237,27 +237,27 @@ void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const
   }
 }
 
-template <Index dim> DeformationGradientList<dim> Deformation<dim>::Forward() const {
+template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward() const {
   return Forward(mesh_.GetVertices());
 }
 
-template <Index dim> DeformationGradientList<dim> Deformation<dim>::Forward(
+template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward(
     typename TriMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }
 
-template <Index dim>
-elasticity::DeformationGradientCache<dim> const& Deformation<dim>::GetRestPoseCache() const {
+template <int dim>
+elasticity::DeformGradCache<dim> const& Deformation<dim>::GetRestPoseCache() const {
   return deformation_gradient_cache_;
 }
 
-template <Index dim> math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 const& e) {
+template <int dim> math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 const& e) {
   Index n_element = mesh_.GetNumElements();
   math::RealField1 result(1, mesh_.GetNumVertices());
   result.setZero();
   for (Index i = 0; i < n_element; ++i) {
     const auto& ijk = mesh_.GetElement(i);
-    real energy = e[i] / real(dim + 1);
+    Real energy = e[i] / Real(dim + 1);
     for (Index I = 0; I <= dim; ++I) {
       result(ijk[I]) += energy;
     }
@@ -265,14 +265,14 @@ template <Index dim> math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math:
   return result;
 }
 
-template <Index dim> math::RealField1 Deformation<dim>::EnergyToVertices(math::RealField1 const& e) const {
+template <int dim> math::RealField1 Deformation<dim>::EnergyToVertices(math::RealField1 const& e) const {
   Index n_element = mesh_.GetNumElements();
   Index e_size = e.size();
   AX_CHECK(e_size == n_element, "#energy != #element");
   return dg_tev_p1<dim>(mesh_, e);
 }
 
-template <Index dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
+template <int dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
     std::vector<elasticity::StressTensor<dim>> const& stress) const {
   Index n_element = mesh_.GetNumElements();
   Index stress_size = static_cast<size_t>(stress.size());
@@ -280,7 +280,7 @@ template <Index dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::Stre
   return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
 }
 
-template <Index dim> math::sp_coeff_list Deformation<dim>::HessianToVertices(
+template <int dim> math::SparseCOO Deformation<dim>::HessianToVertices(
     std::vector<elasticity::HessianTensor<dim>> const& hessian) const {
   return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
 }

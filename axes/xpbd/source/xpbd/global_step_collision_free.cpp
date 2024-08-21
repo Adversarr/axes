@@ -1,7 +1,8 @@
 #include "ax/xpbd/global_step_collision_free.hpp"
 
 #include "ax/geometry/intersection/vertex_face.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::xpbd {
 
@@ -15,15 +16,15 @@ void global_step_collision_free(math::RealField3 const& weighted_position,
   math::RealField1 min_toi(1, nV);
   min_toi.setOnes();
   math::RealField3 expect_position = weighted_position;
-  for (auto i : utils::iota(nV)) {
+  for (auto i : utils::range(nV)) {
     expect_position.col(i) /= weights(i);
   }
   expect_position.swap(g.vertices_);
   //
   // // detect the collision.
   // bool collision_free = true;
-  // for (auto i: utils::iota(nV)) {
-  //   for (auto [j, f]: utils::enumerate(g.faces_)) {
+  // for (auto i: utils::range(nV)) {
+  //   for (auto [j, f]: utils::views::enumerate(g.faces_)) {
   //     if (i == f[0] || i == f[1] || i == f[2]) continue;
   //
   //     CollidableVertex vi_prev(i, Vertex3{g.last_vertices_.col(i)});
@@ -50,7 +51,7 @@ void global_step_collision_free(math::RealField3 const& weighted_position,
   // }
   //
   // // update the position.
-  // for (auto i: utils::iota(nV)) {
+  // for (auto i: utils::range(nV)) {
   //   expect_position.col(i) = math::lerp(g.last_vertices_.col(i), expect_position.col(i),
   //   min_toi(i));
   // }

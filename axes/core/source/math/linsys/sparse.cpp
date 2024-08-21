@@ -49,10 +49,10 @@ void SparseSolverBase::Compute() {
   Factorize();
 }
 
-SparseSolverBase& SparseSolverBase::SetProblem(spmatr const& A) {
+SparseSolverBase& SparseSolverBase::SetProblem(RealSparseMatrix const& A) {
   return SetProblem(make_sparse_problem(A));
 }
-SparseSolverBase& SparseSolverBase::SetProblem(spmatr&& A) {
+SparseSolverBase& SparseSolverBase::SetProblem(RealSparseMatrix&& A) {
   return SetProblem(make_sparse_problem(std::move(A)));
 }
 std::shared_ptr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const {

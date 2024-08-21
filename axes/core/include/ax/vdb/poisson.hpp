@@ -9,7 +9,7 @@ BOOST_DEFINE_ENUM(PoissonSolverKind, kVdb);
 
 class PoissonSolverBase : public utils::Tunable {
 public:
-  using BcFunc = std::function<void(Coord const&, Coord const&, real&, real&)>;
+  using BcFunc = std::function<void(Coord const&, Coord const&, Real&, Real&)>;
 
   virtual RealGridPtr operator()(RealGridPtr source) = 0;
 

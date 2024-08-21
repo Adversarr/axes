@@ -10,7 +10,7 @@ public:
 
   void Initialize() final;
 
-  void SetBasis(math::matxxr const& basis) {
+  void SetBasis(math::RealMatrixX const& basis) {
     basis_ = basis;
     latent_.setZero(dim, basis.cols());
     latent_velocity_.setZero(dim, basis.cols());
@@ -25,7 +25,7 @@ public:
   }
 
 private:
-  math::matxxr basis_;
+  math::RealMatrixX basis_;
 
   math::RealField<dim> latent_;
   math::RealField<dim> latent_velocity_;

@@ -5,7 +5,7 @@
 #include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/math/structure_binding.hpp"
+#include "ax/math/utils/structure_binding.hpp"
 
 
 namespace ax::geo {
@@ -36,8 +36,6 @@ RealField3 normal_per_vertex(RealField3 const& vertices, IndexField3 const& indi
   RealField3 vertex_normals = math::zeros<3>(vertices.cols());
 
   for (Index i = 0; i < indices.cols(); ++i) {
-    auto [x, y, z] = unpack(indices.col(i).eval());
-
     vertex_normals.col(indices(0, i)) += normals.col(i);
     vertex_normals.col(indices(1, i)) += normals.col(i);
     vertex_normals.col(indices(2, i)) += normals.col(i);
@@ -87,7 +85,7 @@ RealField3 normal_per_vertex(RealField3 const& vertices, IndexField3 const& indi
     RealVector3 const normal = triangle.Normal().normalized();
 
     for (int j = 0; j < 3; ++j) {
-      real angle = triangle.Angle(j);
+      Real angle = triangle.Angle(j);
       vertex_normals.col(indices(j, i)) += normal * angle;
       vertex_angle_sum(indices(j, i)) += angle;
     }

@@ -24,10 +24,10 @@ public:
         .SetDescription("Stylizes a mesh using cubic splines")
         .AddInput<geo::SurfaceMesh>("mesh", "The mesh to stylize")
         .AddInput<Index>("steps", "The number of steps to take")
-        .AddInput<real>("rho", "rho")
-        .AddInput<real>("lambda", "lambda")
-        .AddInput<real>("tau", "tau")
-        .AddInput<real>("mu", "mu")
+        .AddInput<Real>("rho", "rho")
+        .AddInput<Real>("lambda", "lambda")
+        .AddInput<Real>("tau", "tau")
+        .AddInput<Real>("mu", "mu")
         .AddOutput<geo::SurfaceMesh>("mesh", "The stylized mesh")
         .FinalizeAndRegister();
   }
@@ -35,10 +35,10 @@ public:
   Status Apply(Index f) override {
     auto *mesh = RetriveInput<geo::SurfaceMesh>(0);
     auto *steps = RetriveInput<Index>(1);
-    auto *rho = RetriveInput<real>(2);
-    auto *lambda = RetriveInput<real>(3);
-    auto *tau = RetriveInput<real>(4);
-    auto *mu = RetriveInput<real>(5);
+    auto *rho = RetriveInput<Real>(2);
+    auto *lambda = RetriveInput<Real>(3);
+    auto *tau = RetriveInput<Real>(4);
+    auto *mu = RetriveInput<Real>(5);
 
     if (mesh == nullptr) {
       return utils::FailedPreconditionError("Input mesh is null");

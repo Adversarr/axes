@@ -18,7 +18,7 @@ double launch_test_abc(Index n, Index test_iteration) {
     d.noalias() = a * b + c;
   }
   auto end_time = std::chrono::high_resolution_clock::now();
-  return (end_time - start_time).count() / (real) test_iteration;
+  return (end_time - start_time).count() / (Real) test_iteration;
 }
 
 int main(int argc, char* argv[]) {
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
     printf("GFlops = %lf\n", gflops);
     gflops_list(i-4) = gflops;
   }
-  printf("Average: %lf", (real) gflops_list.mean());
+  printf("Average: %lf", (Real) gflops_list.mean());
   ax::clean_up();
   return 0;
 }

@@ -12,13 +12,16 @@ namespace ax::math {
  * @tparam T value_type
  */
 
-template <typename T> class Span;
+template <typename T>
+class Span;
 
-template <typename T> class Span<const T> {
+template <typename T>
+class Span<const T> {
 public:
   friend class Span<T>;
   AX_FORCE_INLINE AX_HOST_DEVICE Span() noexcept = default;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const T* data, size_t size) noexcept : data_(data), size_(size) {}
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(const T* data, size_t size) noexcept
+      : data_(data), size_(size) {}
 
   // copy, move, assignments
   AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span&) noexcept = default;
@@ -37,22 +40,26 @@ public:
     size_ = other.size_;
     return *this;
   }
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T>& other) noexcept : data_(other.data_), size_(other.size_) {}
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(Span<T>&& other) noexcept : data_(other.data_), size_(other.size_) {}
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T>& other) noexcept
+      : data_(other.data_), size_(other.size_) {}
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(Span<T>&& other) noexcept
+      : data_(other.data_), size_(other.size_) {}
 
   using index_type = size_t;
   using difference_type = std::ptrdiff_t;
   using type = const T*;
   using value_type = const T;
-  using reference = const T&;
-  using const_reference = const T&;
+  using Reference = const T&;
+  using ConstReference = const T&;
 
   using iterator = const T*;
   using const_iterator = const T*;
   using pointer = const T*;
   using const_pointer = const T*;
 
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const index_type& ind) const noexcept { return data_[ind]; }
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference operator[](const index_type& ind) const noexcept {
+    return data_[ind];
+  }
   AX_FORCE_INLINE AX_HOST_DEVICE pointer data() noexcept { return data_; }
   AX_FORCE_INLINE AX_HOST_DEVICE iterator begin() noexcept { return data_; }
   AX_FORCE_INLINE AX_HOST_DEVICE iterator end() noexcept { return data_ + size_; }
@@ -65,7 +72,8 @@ private:
   index_type size_{0};
 };
 
-template <typename T> class Span {
+template <typename T>
+class Span {
 public:
   friend class Span<const T>;
   AX_FORCE_INLINE AX_HOST_DEVICE Span() noexcept = default;
@@ -89,8 +97,12 @@ public:
   using pointer = T*;
   using const_pointer = const T*;
 
-  AX_FORCE_INLINE AX_HOST_DEVICE reference operator[](const index_type& ind) noexcept { return data_[ind]; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const index_type& ind) const noexcept { return data_[ind]; }
+  AX_FORCE_INLINE AX_HOST_DEVICE reference operator[](const index_type& ind) noexcept {
+    return data_[ind];
+  }
+  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const index_type& ind) const noexcept {
+    return data_[ind];
+  }
   AX_FORCE_INLINE AX_HOST_DEVICE pointer data() noexcept { return data_; }
   AX_FORCE_INLINE AX_HOST_DEVICE const_pointer data() const noexcept { return data_; }
   AX_FORCE_INLINE AX_HOST_DEVICE iterator begin() noexcept { return data_; }
@@ -104,224 +116,280 @@ private:
   index_type size_{0};
 };
 
-template <typename T> Span(T*, size_t) -> Span<T>;
-template <typename T> Span(const T*, size_t) -> Span<const T>;
+template <typename T>
+Span(T*, size_t) -> Span<T>;
+template <typename T>
+Span(const T*, size_t) -> Span<const T>;
 
 namespace details {
-
-/**
- * @brief Adapter for different types of container, to provide a common interface for accessing
- * @tparam Container the underlying container type
- */
-template <typename Container> struct FieldDataTraits {
-  using type = void;
-};
-
-template <typename T> struct FieldDataTraits<Span<T>> {
-  using index_type = size_t;
-  using difference_type = std::ptrdiff_t;
-  using type = Span<T>;
-  using storage_type = Span<T>;
-  using const_storage_type = Span<const T>;
-  using value_type = T;
-  using const_type = const T;
-  using reference = T&;
-  using const_reference = const T&;
-  using borrowing = type;
-  using const_borrowing = const type;
-  using iterator = T*;
-  using const_iterator = const T*;
-
-  static AX_FORCE_INLINE AX_HOST_DEVICE reference Subscript(type& v, const index_type& ind) noexcept { return v[ind]; }
-  static AX_FORCE_INLINE AX_HOST_DEVICE const_reference Subscript(const type& v, const index_type& ind) noexcept {
-    return v[ind];
-  }
-
-  static AX_FORCE_INLINE AX_HOST_DEVICE index_type Size(const type& v) noexcept { return v.size(); }
-
-  static AX_FORCE_INLINE AX_HOST_DEVICE T* RawPtrCast(type& v) noexcept { return v.data(); }
-  static AX_FORCE_INLINE AX_HOST_DEVICE const T* RawPtrCast(const type& v) noexcept { return v.data(); }
-
-  static AX_FORCE_INLINE AX_HOST_DEVICE iterator begin(type& v) noexcept { return v.begin(); }
-  static AX_FORCE_INLINE AX_HOST_DEVICE iterator end(type& v) noexcept { return v.end(); }
-
-  static AX_FORCE_INLINE AX_HOST_DEVICE const_iterator begin(const type& v) noexcept { return v.begin(); }
-  static AX_FORCE_INLINE AX_HOST_DEVICE const_iterator end(const type& v) noexcept { return v.end(); }
-};
-
-template <typename T, typename Alloc> struct FieldDataTraits<std::vector<T, Alloc>> {
-  using index_type = size_t;
-  using difference_type = std::ptrdiff_t;
-  using type = std::vector<T, Alloc>;
-  using value_type = T;
-  using const_type = const T;
-  using reference = T&;
-  using const_reference = const T&;
-  using borrowing = type&;
-  using const_borrowing = const type&;
-  using iterator = typename type::iterator;
-  using const_iterator = typename type::const_iterator;
-
-  static AX_FORCE_INLINE reference Subscript(borrowing v, const index_type& ind) noexcept { return v[ind]; }
-  static AX_FORCE_INLINE const_reference Subscript(const_borrowing v, const index_type& ind) noexcept { return v[ind]; }
-
-  static AX_FORCE_INLINE index_type Size(const_borrowing v) noexcept { return v.size(); }
-
-  static AX_FORCE_INLINE T* RawPtrCast(borrowing v) noexcept { return v.data(); }
-  static AX_FORCE_INLINE const T* RawPtrCast(const_borrowing v) noexcept { return v.data(); }
-
-  static AX_FORCE_INLINE iterator begin(borrowing v) noexcept { return v.begin(); }
-  static AX_FORCE_INLINE iterator end(borrowing v) noexcept { return v.end(); }
-
-  static AX_FORCE_INLINE const_iterator begin(const_borrowing v) noexcept { return v.begin(); }
-  static AX_FORCE_INLINE const_iterator end(const_borrowing v) noexcept { return v.end(); }
-};
-
-template <typename Scalar, int rows> struct FieldDataTraits<Field<Scalar, rows>> {
-  using index_type = Index;
-  using difference_type = std::make_signed_t<Index>;
-  using type = Field<Scalar, rows>;
-  using value_type = typename type::ColXpr;
-  using const_type = typename type::ConstColXpr;
-  using reference = value_type;
-  using const_reference = const_type;
-  using borrowing = Field<Scalar, rows>&;
-  using const_borrowing = const Field<Scalar, rows>&;
-  using colwise_type = typename Eigen::DenseBase<type>::ColwiseReturnType;
-  using const_colwise_type = typename Eigen::DenseBase<type>::ConstColwiseReturnType;
-
-  using iterator = typename colwise_type::iterator;
-  using const_iterator = typename const_colwise_type::iterator;
-
-  static AX_FORCE_INLINE reference Subscript(borrowing v, const index_type& ind) noexcept { return v.col(ind); }
-  static AX_FORCE_INLINE const_reference Subscript(const_borrowing v, const index_type& ind) noexcept {
-    return v.col(ind);
-  }
-
-  static AX_FORCE_INLINE index_type Size(const_borrowing v) noexcept { return v.cols(); }
-
-  static AX_FORCE_INLINE Scalar* Subscript(borrowing v) noexcept { return v.data(); }
-  static AX_FORCE_INLINE const Scalar* Subscript(const_borrowing v) noexcept { return v.data(); }
-
-  static AX_FORCE_INLINE Scalar* RawPtrCast(borrowing v) noexcept { return v.data(); }
-  static AX_FORCE_INLINE const Scalar* RawPtrCast(const_borrowing v) noexcept { return v.data(); }
-
-  static AX_FORCE_INLINE iterator begin(borrowing v) noexcept { return v.colwise().begin(); }
-  static AX_FORCE_INLINE iterator end(borrowing v) noexcept { return v.colwise().end(); }
-  static AX_FORCE_INLINE const_iterator begin(const_borrowing v) noexcept { return v.colwise().begin(); }
-
-  static AX_FORCE_INLINE const_iterator end(const_borrowing v) noexcept { return v.colwise().end(); }
-};
-
-template <typename C> constexpr bool is_field_data_v = !std::is_same_v<void, typename FieldDataTraits<C>::type>;
+template <bool is_const, typename T>
+using add_const_if_t = std::conditional_t<is_const, std::add_const_t<T>, T>;
 
 }  // namespace details
 
-template <typename Container, int dim> class FieldAccessor;
-template <typename Container, int dim> class ConstFieldAccessor;
+template <typename T>
+struct BufferTraits {  ///< the standard way.
+  using IndexType = size_t;
+  using Borrowing = T&;
+  using ConstBorrowing = const T&;
+  using Reference = typename T::reference;
+  using ConstReference = typename T::const_reference;
+};
 
-template <typename Container, int dim> class FieldAccessor {
+template <typename Scalar, int Rows>
+struct BufferTraits<Field<Scalar, Rows>> {
+  using IndexType = Index;
+  using Borrowing = Field<Scalar, Rows>&;
+  using ConstBorrowing = const Field<Scalar, Rows>&;
+  using Reference = typename Field<Scalar, Rows>::ColXpr;
+  using ConstReference = typename Field<Scalar, Rows>::ConstColXpr;
+};
+
+template <typename T>
+struct BufferTraits<Span<T>> {
+  using IndexType = size_t;
+  using Borrowing = Span<T>;
+  using ConstBorrowing = Span<const T>;
+  using Reference = T&;
+  using ConstReference = const T&;
+};
+
+template <typename Derived, typename Buffer, int dim, bool is_const>
+class FieldAccessorBase {
 public:
-  friend class ConstFieldAccessor<Container, dim>;
-
-  using Traits = details::FieldDataTraits<Container>;
-  using IndexType = typename Traits::index_type;
-  using Borrowing = typename Traits::borrowing;
-  using ConstBorrowing = typename Traits::const_borrowing;
+  // shape type for this buffer, but different buffer may have different shape, (reshape is allowed
+  // between different dims)
+  using IndexType = typename BufferTraits<Buffer>::IndexType;
   using ShapeType = Shape<IndexType, dim>;
 
-  using value_type = typename Traits::value_type;
-  using const_type = typename Traits::const_type;
-  using reference = typename Traits::reference;
-  using const_reference = typename Traits::const_reference;
+  // Buffer storage, we do not have the ownership of the buffer, so borrowing is used.
+  using ConstBorrowing = typename BufferTraits<Buffer>::ConstBorrowing;
+  using Borrowing = std::conditional_t<is_const, typename BufferTraits<Buffer>::ConstBorrowing,
+                                       typename BufferTraits<Buffer>::Borrowing>;
 
-  // constructor:
-  AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessor(Borrowing data, Shape<IndexType, dim> shape)
+  using Reference = typename BufferTraits<Buffer>::Reference;
+  using ConstReference = typename BufferTraits<Buffer>::ConstReference;
+  static constexpr bool constness = is_const;
+
+  // NOTE: We always assume every function in this base class is available both for host and device
+  AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(Borrowing data, ShapeType shape) noexcept
       : data_(data), shape_(shape) {}
-  AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessor(FieldAccessor const&) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(const FieldAccessorBase&) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(FieldAccessorBase&&) noexcept = default;
+  FieldAccessorBase& operator=(const FieldAccessorBase&) = delete;
+  FieldAccessorBase& operator=(FieldAccessorBase&&) = delete;
 
-  // getters, do not allow change shape.
-  AX_FORCE_INLINE AX_HOST_DEVICE const ShapeType& GetShape() const noexcept { return shape_; }
+  // NOTE: we do not use exception in this class and its derived classes, any out of bound access
+  // will cause undefined behavior (depending on the derived, it may be checked or not).
+  AX_FORCE_INLINE AX_HOST_DEVICE Derived& AsDerived() noexcept {
+    return static_cast<Derived&>(*this);
+  }
+  AX_FORCE_INLINE AX_HOST_DEVICE const Derived& AsDerived() const noexcept {
+    return static_cast<const Derived&>(*this);
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstBorrowing Data() const noexcept { return data_; }
   AX_FORCE_INLINE AX_HOST_DEVICE Borrowing Data() noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstBorrowing Data() const noexcept { return data_; }
 
-  AX_FORCE_INLINE AX_HOST_DEVICE reference operator[](const IndexType& ind) { return Traits::Subscript(data_, ind); }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const IndexType& ind) const {
-    return Traits::Subscript(data_, ind);
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE Reference At(Args&&... args) noexcept {
+    return AsDerived().template AtImpl<Args...>(std::forward<Args>(args)...);
   }
 
-  template <typename... Args, typename = std::enable_if_t<(std::is_integral_v<std::decay_t<Args>> && ...)>>
-  AX_FORCE_INLINE AX_HOST_DEVICE reference operator()(const Args&... ind) {
-    return operator[](shape_(ind...));
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference At(Args&&... args) const noexcept {
+    return AsDerived().template AtImpl<Args...>(std::forward<Args>(args)...);
   }
 
-  template <typename... Args, typename = std::enable_if_t<(std::is_integral_v<std::decay_t<Args>> && ...)>>
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator()(const Args&... ind) const {
-    return operator[](shape_(ind...));
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE Reference operator()(Args&&... args) noexcept {
+    return At<Args...>(std::forward<Args>(args)...);
   }
 
-  auto begin() noexcept { return Traits::begin(data_); }
-  auto end() noexcept { return Traits::end(data_); }
-  auto begin() const noexcept { return Traits::begin(data_); }
-  auto end() const noexcept { return Traits::end(data_); }
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference operator()(Args&&... args) const noexcept {
+    return At<Args...>(std::forward<Args>(args)...);
+  }
 
-private:
-  Borrowing data_;
-  ShapeType shape_;
-};
-
-template <typename Container, int dim> class ConstFieldAccessor {
-public:
-  friend class FieldAccessor<Container, dim>;
-
-  using Traits = details::FieldDataTraits<Container>;
-  using IndexType = typename Traits::index_type;
-  using Borrowing = typename Traits::borrowing;
-  using ConstBorrowing = typename Traits::const_borrowing;
-  using ShapeType = Shape<IndexType, dim>;
-
-  using value_type = typename Traits::value_type;
-  using const_type = typename Traits::const_type;
-  using reference = typename Traits::reference;
-  using const_reference = typename Traits::const_reference;
-
-  // constructor:
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor(ConstBorrowing data, Shape<IndexType, dim> shape)
-      : data_(data), shape_(shape) {}
-
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor(ConstFieldAccessor const&) noexcept = default;
-
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor& operator=(ConstFieldAccessor const&) noexcept = default;
-
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor(const FieldAccessor<Container, dim>& accessor)
-      : data_(accessor.Data()), shape_(accessor.GetShape()) {}
-
-  // getters, do not allow change shape.
   AX_FORCE_INLINE AX_HOST_DEVICE const ShapeType& GetShape() const noexcept { return shape_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstBorrowing Data() const noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const IndexType& ind) const {
-    return Traits::Subscript(data_, ind);
+
+  AX_FORCE_INLINE AX_HOST_DEVICE IndexType GetTotalMemoryConsumption() const noexcept {
+    return AsDerived().GetTotalMemoryConsumptionImpl();
   }
 
-  template <typename... Args, typename = std::enable_if_t<(std::is_integral_v<std::decay_t<Args>> && ...)>>
-  AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator()(const Args&... ind) const {
-    return operator[](shape_(ind...));
-  }
+  AX_FORCE_INLINE AX_HOST_DEVICE IndexType Size() const noexcept { return GetShape().Size(); }
 
-  auto begin() noexcept { return Traits::begin(data_); }
-  auto end() noexcept { return Traits::end(data_); }
-  auto begin() const noexcept { return Traits::begin(data_); }
-  auto end() const noexcept { return Traits::end(data_); }
-
-private:
-  ConstBorrowing data_;
-  ShapeType shape_;
+protected:
+  Borrowing data_;
+  const ShapeType shape_;
 };
 
-template <typename FieldData, typename = std::enable_if_t<!std::is_pointer_v<FieldData>>>
-auto field_size(const FieldData& field) {
-  using Traits = details::FieldDataTraits<FieldData>;
-  return Traits::Size(field);
+template <typename T, typename Alloc, int dim, bool is_const,
+          template <typename, typename> typename StlLike>
+class FieldAccessorImplForStlLike
+    : public FieldAccessorBase<FieldAccessorImplForStlLike<T, Alloc, dim, is_const, StlLike>,
+                               StlLike<T, Alloc>, dim, is_const> {
+public:
+  using Base = FieldAccessorBase<FieldAccessorImplForStlLike<T, Alloc, dim, is_const, StlLike>,
+                                 StlLike<T, Alloc>, dim, is_const>;
+  using Buffer = StlLike<T, Alloc>;
+  using ShapeType = typename Base::ShapeType;
+  using IndexType = typename Base::IndexType;
+  using Borrowing = typename Base::Borrowing;
+  using ConstBorrowing = typename Base::ConstBorrowing;
+
+  using Reference = typename Base::Reference;
+  using ConstReference = typename Base::ConstReference;
+
+  FieldAccessorImplForStlLike(Borrowing data, ShapeType shape) : Base(data, shape) {}
+  // Allow copy and move:
+  FieldAccessorImplForStlLike(const FieldAccessorImplForStlLike&) noexcept = default;
+  FieldAccessorImplForStlLike(FieldAccessorImplForStlLike&&) noexcept = default;
+
+  template <typename... Args>
+  AX_FORCE_INLINE Reference AtImpl(Args&&... args) noexcept {
+    return Base::data_[Base::shape_(std::forward<Args>(args)...)];
+  }
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference AtImpl(Args&&... args) const noexcept {
+    return Base::data_[Base::shape_(std::forward<Args>(args)...)];
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE IndexType GetTotalMemoryConsumptionImpl() const noexcept {
+    return Base::Size() * sizeof(T);
+  }
+
+  AX_FORCE_INLINE auto begin() noexcept { return Base::data_.begin(); }
+  AX_FORCE_INLINE auto end() noexcept { return Base::data_.end(); }
+  AX_FORCE_INLINE auto begin() const noexcept { return Base::data_.begin(); }
+  AX_FORCE_INLINE auto end() const noexcept { return Base::data_.end(); }
+};
+
+template <typename Scalar, int Rows, int dim, bool is_const>
+class EigenColumnsAccessor
+    : public FieldAccessorBase<EigenColumnsAccessor<Scalar, Rows, dim, is_const>,
+                               Field<Scalar, Rows>, dim, is_const> {
+public:
+  using Base = FieldAccessorBase<EigenColumnsAccessor<Scalar, Rows, dim, is_const>,
+                                 Field<Scalar, Rows>, dim, is_const>;
+  using Buffer = Field<Scalar, Rows>;
+  using ShapeType = typename Base::ShapeType;
+  using IndexType = typename Base::IndexType;
+  using Borrowing = typename Base::Borrowing;
+  using ConstBorrowing = typename Base::ConstBorrowing;
+
+  using Reference = typename Base::Reference;
+  using ConstReference = typename Base::ConstReference;
+
+  AX_FORCE_INLINE EigenColumnsAccessor(Borrowing data, ShapeType shape)
+      : Base(data, shape) {}
+
+  AX_FORCE_INLINE EigenColumnsAccessor(const EigenColumnsAccessor&) noexcept = default;
+
+  AX_FORCE_INLINE EigenColumnsAccessor(EigenColumnsAccessor&&) noexcept = default;
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE Reference AtImpl(Args&&... args) noexcept {
+    return Base::data_.col(Base::shape_(std::forward<Args>(args)...));
+  }
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference AtImpl(Args&&... args) const noexcept {
+    return Base::data_.col(Base::shape_(std::forward<Args>(args)...));
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE Index GetTotalMemoryConsumptionImpl() const noexcept {
+    return Base::Size() * sizeof(Scalar) * Rows;
+  }
+
+  AX_FORCE_INLINE auto begin() noexcept { return Base::data_.colwise().begin(); }
+  AX_FORCE_INLINE auto end() noexcept { return Base::data_.colwise().end(); }
+  AX_FORCE_INLINE auto begin() const noexcept { return Base::data_.colwise().begin(); }
+  AX_FORCE_INLINE auto end() const noexcept { return Base::data_.colwise().end(); }
+};
+
+template <typename T, int dim, bool is_const>
+class SpanAccessor
+    : public FieldAccessorBase<SpanAccessor<T, dim, is_const>, Span<T>, dim, is_const> {
+public:
+  using Base = FieldAccessorBase<SpanAccessor<T, dim, is_const>, Span<T>, dim, is_const>;
+  using Buffer = Span<T>;
+  using ShapeType = typename Base::ShapeType;
+  using IndexType = typename Base::IndexType;
+  using Borrowing = typename Base::Borrowing;
+  using ConstBorrowing = typename Base::ConstBorrowing;
+
+  using Reference = typename Base::Reference;
+  using ConstReference = typename Base::ConstReference;
+
+  AX_FORCE_INLINE AX_HOST_DEVICE SpanAccessor(Borrowing data, ShapeType shape)
+      : Base(data, shape) {}
+
+  AX_FORCE_INLINE AX_HOST_DEVICE SpanAccessor(const SpanAccessor&) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE SpanAccessor(SpanAccessor&&) noexcept = default;
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE Reference AtImpl(Args&&... args) noexcept {
+    return Base::data_[Base::shape_(std::forward<Args>(args)...)];
+  }
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference AtImpl(Args&&... args) const noexcept {
+    return Base::data_[Base::shape_(std::forward<Args>(args)...)];
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE Index GetTotalMemoryConsumptionImpl() const noexcept {
+    return Base::Size() * sizeof(T);
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() noexcept { return Base::data_.begin(); }
+  AX_FORCE_INLINE AX_HOST_DEVICE auto end() noexcept { return Base::data_.end(); }
+  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() const noexcept { return Base::data_.begin(); }
+  AX_FORCE_INLINE AX_HOST_DEVICE auto end() const noexcept { return Base::data_.end(); }
+};
+
+template <typename /*Buffer*/>
+struct AccessorTypeFor {
+  template <int, bool>
+  using type = void;  ///< cannot reflect the required type.
+};
+
+// partial spec for stl vector
+template <typename Tp, typename Alloc>
+struct AccessorTypeFor<std::vector<Tp, Alloc>> {
+  template <int dim, bool is_const>
+  using type = FieldAccessorImplForStlLike<Tp, Alloc, dim, is_const, std::vector>;
+};
+
+template <typename Scalar, int Rows>
+struct AccessorTypeFor<Field<Scalar, Rows>> {
+  template <int dim, bool is_const>
+  using type = EigenColumnsAccessor<Scalar, Rows, dim, is_const>;
+};
+
+template <typename T>
+struct AccessorTypeFor<Span<T>> {
+  template <int dim, bool is_const>
+  using type = SpanAccessor<T, dim, is_const>;
+};
+
+template <typename Buffer, int dim, bool is_const>
+using AccessorTypeForType = typename AccessorTypeFor<Buffer>::template type<dim, is_const>;
+
+template <typename Tp, typename Alloc>
+size_t buffer_size(const std::vector<Tp, Alloc>& buf) {
+  return buf.size();
+}
+
+template <typename Scalar, int Rows>
+Index buffer_size(const Field<Scalar, Rows>& buf) {
+  return buf.cols();
+}
+
+template <typename Tp>
+size_t buffer_size(const Span<Tp>& buf) {
+  return buf.size();
 }
 
 /**
@@ -335,34 +403,33 @@ auto field_size(const FieldData& field) {
  * @return
  */
 template <typename FieldData, typename IndexType, int dim>
-AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessor<FieldData, dim> make_accessor(FieldData& field,
-                                                                           const Shape<IndexType, dim>& shape) {
-  using Traits = details::FieldDataTraits<FieldData>;
-  using RequiredIndexType = typename Traits::index_type;
-  return {field, shape.template Cast<RequiredIndexType>()};
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_accessor(FieldData& field,
+                                                  const Shape<IndexType, dim>& shape) {
+  using AccessorType = AccessorTypeForType<FieldData, dim, false>;
+  return AccessorType{field, shape.template Cast<typename AccessorType::IndexType>()};
 }
 
 template <typename FieldData>
-AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessor<FieldData, 1> make_accessor(FieldData& field) {
-  using Traits = details::FieldDataTraits<FieldData>;
-  using IndexType = typename Traits::index_type;
-  return {field, Shape<IndexType, 1>{ShapeArray<IndexType, 1>(field_size(field))}};
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_accessor(FieldData& field) {
+  using AccessorType = AccessorTypeForType<FieldData, 1, false>;
+  using IndexType = typename AccessorType::IndexType;
+  return AccessorType{field, Shape<IndexType, 1>{ShapeArray<IndexType, 1>(buffer_size(field))}};
 }
 
-// Const version:
+// const version
+
 template <typename FieldData, typename IndexType, int dim>
-AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor<FieldData, dim> make_accessor(const FieldData& field,
-                                                                                const Shape<IndexType, dim>& shape) {
-  using Traits = details::FieldDataTraits<FieldData>;
-  using RequiredIndexType = typename Traits::index_type;
-  return {field, shape.template Cast<RequiredIndexType>()};
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_accessor(const FieldData& field,
+                                                  const Shape<IndexType, dim>& shape) {
+  using AccessorType = AccessorTypeForType<FieldData, dim, true>;
+  return AccessorType{field, shape.template Cast<typename AccessorType::IndexType>()};
 }
 
 template <typename FieldData>
-AX_FORCE_INLINE AX_HOST_DEVICE ConstFieldAccessor<FieldData, 1> make_accessor(const FieldData& field) {
-  using Traits = details::FieldDataTraits<FieldData>;
-  using IndexType = typename Traits::index_type;
-  return {field, Shape<IndexType, 1>{field_size(field)}};
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_accessor(const FieldData& field) {
+  using AccessorType = AccessorTypeForType<FieldData, 1, true>;
+  using IndexType = typename AccessorType::IndexType;
+  return AccessorType{field, Shape<IndexType, 1>{ShapeArray<IndexType, 1>(buffer_size(field))}};
 }
 
 }  // namespace ax::math

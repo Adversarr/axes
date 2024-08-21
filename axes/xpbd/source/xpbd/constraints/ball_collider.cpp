@@ -2,7 +2,8 @@
 
 #include "ax/math/common.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::xpbd {
 
@@ -12,8 +13,8 @@ template <typename T> void resize_and_copyback(T& v, Index r, Index c) {
   v.topLeftCorner(old.rows(), old.cols()) = old;
 }
 
-static math::RealVector3 relax_ipc(real rho, real& k, real eps, math::RealVector3 const& u,
-                             math::RealVector3 const& z, math::RealVector3 const& center, real radius) {
+static math::RealVector3 relax_ipc(Real rho, Real& k, Real eps, math::RealVector3 const& u,
+                             math::RealVector3 const& z, math::RealVector3 const& center, Real radius) {
   // Very similar to spring, let L = radius + eps.
   // The spring energy:
   //   f(x) = 1/2 k (|| x - c || - L)^2
@@ -32,11 +33,11 @@ static math::RealVector3 relax_ipc(real rho, real& k, real eps, math::RealVector
   //   k eps >= rho (|z - u - c| - radius)
 
   math::RealVector3 zuc = z - u - center;
-  real zuc_norm = zuc.norm();
+  Real zuc_norm = zuc.norm();
   if (k * eps < rho * (zuc_norm - radius)) {
     k = 4 * rho * (zuc_norm - radius) / eps;
   }
-  real alpha = (k * (radius + eps) + rho * zuc_norm) / (k + rho);
+  Real alpha = (k * (radius + eps) + rho * zuc_norm) / (k + rho);
   return center + alpha * zuc.normalized();
 }
 
@@ -45,9 +46,9 @@ ConstraintSolution Constraint_BallCollider::SolveDistributed() {
   Index const nC = this->GetNumConstraints();
   ConstraintSolution sol(nC);
 
-  for (auto i : utils::iota(nC)) {
-    real& rho = this->rho_[i];
-    real& k = stiffness_[i];
+  for (auto i : utils::range(nC)) {
+    Real& rho = this->rho_[i];
+    Real& k = stiffness_[i];
     math::RealVector3 const& z = constrained_vertices_position_[i];
     dual_[i] = relax_ipc(rho, k, tol_, gap_[i], z, center_, radius_);
     sol.weighted_position_.col(i) += rho * (gap_[i] + dual_[i]);
@@ -70,10 +71,10 @@ void Constraint_BallCollider::BeginStep() {
   iteration_ = 0;
 }
 
-real Constraint_BallCollider::UpdateDuality() {
+Real Constraint_BallCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
-  real sqr_prim_res = 0;
-  for (auto i : utils::iota(this->GetNumConstraints())) {
+  Real sqr_prim_res = 0;
+  for (auto i : utils::range(this->GetNumConstraints())) {
     math::RealVector3 du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
     sqr_prim_res += math::norm2(du);
@@ -83,7 +84,7 @@ real Constraint_BallCollider::UpdateDuality() {
 
 void Constraint_BallCollider::EndStep() {}
 
-void Constraint_BallCollider::UpdateRhoConsensus(real scale) {
+void Constraint_BallCollider::UpdateRhoConsensus(Real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
@@ -95,7 +96,7 @@ void Constraint_BallCollider::UpdatePositionConsensus() {
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
   std::vector<Index> new_vertices;
-  for (Index i : utils::iota(g.vertices_.cols())) {
+  for (Index i : utils::range(g.vertices_.cols())) {
     math::RealVector3 const x = g.vertices_.col(i);
     if (math::norm(x - center_) < radius_ + tol_) {
       if (collidings_.find(i) == collidings_.end()) {
@@ -106,7 +107,7 @@ void Constraint_BallCollider::UpdatePositionConsensus() {
   }
 
   if (new_vertices.size() > 0) {
-    for (auto [i, iV] : utils::enumerate(new_vertices)) {
+    for (auto [i, iV] : utils::views::enumerate(new_vertices)) {
       constrained_vertices_ids_.push_back(iV);
       constraint_mapping_.emplace_back(iV);
       constrained_vertices_position_.push_back(g.vertices_.col(iV));
@@ -118,7 +119,7 @@ void Constraint_BallCollider::UpdatePositionConsensus() {
   }
 
   Index n_v = this->GetNumConstrainedVertices();
-  for (Index i : utils::iota(n_v)) {
+  for (Index i : utils::range(n_v)) {
     Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }

@@ -25,13 +25,13 @@ enum class PoissonProblemCellType : int {
  * where a is a constant coefficient.
  * @tparam dim
  */
-template <Index dim> class PoissonProblemCellCentered : public utils::Tunable {
+template <int dim> class PoissonProblemCellCentered : public utils::Tunable {
 public:
-  using RealLattice = ax::math::Lattice<dim, real>;
-  using veci = ax::math::veci<dim>;
-  static constexpr real invalid_value = std::numeric_limits<real>::infinity();
+  using RealLattice = ax::math::Lattice<dim, Real>;
+  using veci = ax::math::IndexVector<dim>;
+  static constexpr Real invalid_value = std::numeric_limits<Real>::infinity();
   // Constructor
-  PoissonProblemCellCentered(Index n, real dx);
+  PoissonProblemCellCentered(Index n, Real dx);
 
   // Check if the problem is available
   Status CheckAvailable();
@@ -50,8 +50,8 @@ public:
   void ReportDomain();
 
   // PDE coefficients
-  void SetA(real a);
-  void SetDx(real dx);
+  void SetA(Real a);
+  void SetDx(Real dx);
 
   // Derived from Tunable
   virtual void SetOptions(utils::Options const& option);
@@ -59,9 +59,9 @@ public:
 
 private:
   // Problem definition
-  real dx_;
+  Real dx_;
   Index n_;
-  real a_;
+  Real a_;
   RealLattice f_;
 
   // Boundary conditions

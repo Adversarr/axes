@@ -10,13 +10,13 @@
 
 namespace ax::fem {
 
-template <Index dim>
+template <int dim>
 Timestepper_NaiveOptim<dim>::Timestepper_NaiveOptim(std::shared_ptr<TriMesh<dim>> mesh)
     : ax::fem::TimeStepperBase<dim>(mesh) {
   optimizer_ = std::make_unique<optim::Optimizer_Newton>();
 }
 
-template <Index dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
+template <int dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
   AX_THROW_IF_NULL(optimizer_, "Optimizer is not set.");
   optimizer_->SetTolVar(this->tol_var_);
   optimizer_->SetTolGrad(this->rel_tol_grad_);
@@ -40,7 +40,7 @@ template <Index dim> void Timestepper_NaiveOptim<dim>::SolveTimestep() {
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
-template <Index dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Options& opt) {
+template <int dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::Options& opt) {
   TimeStepperBase<dim>::SetOptions(opt);
   // if (auto it = opt.find("optimizer"); it != opt.end()) {
   //   auto const& o = it->value();
@@ -70,7 +70,7 @@ template <Index dim> void Timestepper_NaiveOptim<dim>::SetOptions(const utils::O
   }
 }
 
-template <Index dim> utils::Options Timestepper_NaiveOptim<dim>::GetOptions() const {
+template <int dim> utils::Options Timestepper_NaiveOptim<dim>::GetOptions() const {
   auto opt = TimeStepperBase<dim>::GetOptions();
   opt["optimizer"] = utils::reflect_name(optimizer_->GetKind()).value();
   opt["optimizer_opt"] = optimizer_->GetOptions();

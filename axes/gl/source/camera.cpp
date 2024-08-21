@@ -23,16 +23,16 @@ Camera::Camera() : use_perspective_(true), yaw_(0.0f), pitch_(0.0f), fov_(45.0f)
 }
 
 math::FloatMatrix4 Camera::Ortho() const {
-  real left = ortho_horizontal_.x();
-  real right = ortho_horizontal_.y();
-  real bottom = ortho_vertical_.x();
-  real top = ortho_vertical_.y();
+  Real left = ortho_horizontal_.x();
+  Real right = ortho_horizontal_.y();
+  Real bottom = ortho_vertical_.x();
+  Real top = ortho_vertical_.y();
   if (aspect_ < 1.0f) {
-    real new_height = (top - bottom) / aspect_;
+    Real new_height = (top - bottom) / aspect_;
     bottom = (top + bottom - new_height) / 2.0f;
     top = (top + bottom + new_height) / 2.0f;
   } else {
-    real new_width = (right - left) * aspect_;
+    Real new_width = (right - left) * aspect_;
     left = (left + right - new_width) / 2.0f;
     right = (left + right + new_width) / 2.0f;
   }
@@ -106,7 +106,7 @@ f32 Camera::GetAspect() const { return aspect_; }
 
 math::FloatMatrix4 Camera::LookAt() const {
   auto lookat
-      = geo::look_at(position_.cast<real>(), (position_ + front_).cast<real>(), up_.cast<real>());
+      = geo::look_at(position_.cast<Real>(), (position_ + front_).cast<Real>(), up_.cast<Real>());
   return lookat.cast<f32>();
 }
 

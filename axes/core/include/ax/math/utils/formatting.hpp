@@ -2,8 +2,8 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "ax/math/common.hpp"  // IWYU pragma: export
-#include "ax/math/shape.hpp"
+#include "../common.hpp"
+#include "../shape.hpp"
 // Not column vector
 template <typename T> struct fmt::formatter<
     T, std::enable_if_t<std::is_base_of_v<Eigen::DenseBase<T>, T>

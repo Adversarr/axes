@@ -27,7 +27,7 @@
 
 using namespace ax;
 ABSL_FLAG(std::string, obj_file, "bunny_low_res.obj", "The obj file to load");
-ABSL_FLAG(real, voxel_size, -1, "The voxel size for the point cloud");
+ABSL_FLAG(Real, voxel_size, -1, "The voxel size for the point cloud");
 ABSL_FLAG(Index, sample, 10, "Number of points sampled each face");
 
 Entity original, vdb_tree, reconstructed;
@@ -41,7 +41,7 @@ float ratio = 0;
 
 Index N_sample = 10;
 
-real voxel_size;
+Real voxel_size;
 vdb::Vec3rGridPtr normal_grid;
 openvdb::points::PointDataGrid::Ptr point_data_grid;
 openvdb::tools::PointIndexGrid::Ptr point_index_grid;
@@ -55,7 +55,7 @@ void ui_callback(gl::UiRenderEvent) {
   ImGui::Text("Vertices: %td", vertices.cols());
   ImGui::Text("Indices: %td", indices.cols());
   ImGui::Text("Point Cloud: %td", point_cloud_position.cols());
-  real min = -50.0, max = 50.0;
+  Real min = -50.0, max = 50.0;
   if (ImGui::SliderFloat("Ratio", &ratio, min, max)) {
     auto& mesh = get_component<gl::Mesh>(reconstructed);
     vdb::VolumeToMesh mesher(ratio);
@@ -105,9 +105,9 @@ int main(int argc, char** argv) {
     N_sample = absl::GetFlag(FLAGS_sample);
     interp.resize(3, N_sample);
     for (auto p: math::each(interp)) {
-      real x = rand() / ((real) RAND_MAX);
-      real y = rand() / ((real) RAND_MAX) * (1 - x);
-      real z = 1 - x - y;
+      Real x = rand() / ((Real) RAND_MAX);
+      Real y = rand() / ((Real) RAND_MAX) * (1 - x);
+      Real z = 1 - x - y;
       p = math::RealVector3(x, y, z);
     }
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
       n.normalize();
     }
   }
-  real voxel_size = absl::GetFlag(FLAGS_voxel_size);
+  Real voxel_size = absl::GetFlag(FLAGS_voxel_size);
   vdb::PointGrid pg(point_cloud_position, voxel_size, 8);
 
   point_data_grid = pg.DataGrid();

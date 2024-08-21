@@ -18,7 +18,7 @@ using ui64 = std::uint64_t;  ///< Alias for 64-bit unsigned integer.
 
 using f32 = float;   ///< Alias for single precision floating point number.
 using f64 = double;  ///< Alias for double precision floating point number.
-using real = f64;    ///< Alias for double precision floating point number.
+using Real = f64;    ///< Alias for double precision floating point number.
 
 using EnumUnderlyingType = std::int32_t;  ///< Alias for enum underlying type.
 

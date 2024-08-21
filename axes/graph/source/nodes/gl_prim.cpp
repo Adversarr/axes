@@ -1,24 +1,93 @@
-// #include <imgui_node_editor.h>
-//
-// #include <iostream>
-//
-// #include "ax/core/entt.hpp"
-// #include "ax/core/excepts.hpp"
-// #include "ax/geometry/common.hpp"
-// #include "ax/gl/colormap.hpp"
-// #include "ax/gl/primitives/lines.hpp"
-// #include "ax/gl/primitives/mesh.hpp"
-// #include "ax/gl/primitives/points.hpp"
-// #include "ax/graph/cache_sequence.hpp"
-// #include "ax/graph/node.hpp"
-// #include "ax/graph/render.hpp"
-// #include "ax/nodes/gl_prims.hpp"
-// namespace ed = ax::NodeEditor;
-// using namespace ax;
-// using namespace graph;
-//
-// namespace ax::nodes {
-//
+#include <imgui_node_editor.h>
+
+#include <iostream>
+
+#include "all.hpp"
+#include "ax/core/entt.hpp"
+#include "ax/core/excepts.hpp"
+#include "ax/geometry/common.hpp"
+#include "ax/gl/colormap.hpp"
+#include "ax/gl/primitives/lines.hpp"
+#include "ax/gl/primitives/mesh.hpp"
+#include "ax/gl/primitives/points.hpp"
+#include "ax/graph/cache_sequence.hpp"
+#include "ax/graph/render.hpp"
+namespace ed = ax::NodeEditor;
+using namespace ax;
+using namespace graph;
+
+namespace ax::nodes {
+class Render_Mesh final : public NodeDerive<Render_Mesh> {
+public:
+  CG_NODE_COMMON(Render_Mesh, "Render/Mesh", "Renders a mesh and attach to entity");
+  CG_NODE_INPUTS((Entity, entity, "Entity", entt::null), (geo::SurfaceMesh, mesh, "Mesh"),
+                 (math::RealField4, color, "The color of the mesh"),
+                 (math::RealVector4, u_color, "The color of the mesh"),
+                 (math::RealField3, normal, "The normal of the mesh"),
+                 (bool, flat, "If true, the mesh will be rendered flat", false),
+                 (bool, use_lighting, "If true, the mesh will be rendered with lighting", true));
+  CG_NODE_OUTPUTS((Entity, entity, "If no entity is given, a new entity will be created."),
+                  (gl::Mesh, gl_mesh, "Mesh in render."));
+
+  void OnConstruct() { owned_entity_ = create_entity(); }
+
+  void RenderWidget() const noexcept {
+    ImGui::Text("Actual: %d", to_integral(actual_used_entity_));
+    ImGui::Text("Owned : %d", to_integral(owned_entity_));
+  }
+
+  static void RenderWidgetHelper(NodeBase* ptr) { static_cast<Render_Mesh*>(ptr)->RenderWidget(); }
+
+  static void OnRegister() { add_custom_node_widget(name(), {RenderWidgetHelper}); }
+
+  void operator()(Context& ctx) override {
+    const auto* entity = Get(in::entity);
+    if (entity != nullptr) {
+      actual_used_entity_ = *entity;
+    } else {
+      actual_used_entity_ = owned_entity_;
+    }
+
+    const auto& mesh = Ensure(in::mesh);
+    const auto* color_ptr = Get(in::color);
+    const auto* u_color_ptr = Get(in::u_color);
+    const auto* normal_ptr = Get(in::normal);
+    bool flat = GetOr(in::flat);
+    bool use_lighting = GetOr(in::use_lighting);
+
+    if (!has_component<gl::Mesh>(actual_used_entity_)) {
+      add_component<gl::Mesh>(actual_used_entity_);
+    }
+
+    patch_component<gl::Mesh>(actual_used_entity_, [&](gl::Mesh& m) {
+      m.vertices_ = mesh.vertices_;
+      m.indices_ = mesh.indices_;
+      if (normal_ptr) {
+        m.normals_ = *normal_ptr;
+      } else {
+        m.normals_.resize(3, 0);
+      }
+      m.colors_ = math::RealField4::Constant(4, mesh.vertices_.cols(), 0.7);
+      if (u_color_ptr) {
+        m.colors_.colwise() = *u_color_ptr;
+      }
+
+      if (color_ptr) {
+        m.colors_ = *color_ptr;
+      }
+
+      m.is_flat_ = flat;
+      m.use_lighting_ = use_lighting;
+    });
+  }
+
+private:
+  Entity owned_entity_, actual_used_entity_;
+};
+
+void register_gl(NodeRegistry& reg) { Render_Mesh::RegisterTo(reg); }
+
+}  // namespace ax::nodes
 // const char* cmap_names[] = {
 //     "bwr", "coolwarm", "jet", "plasma", "seismic",
 // };
@@ -211,11 +280,13 @@
 // public:
 //
 //   AX_NODE_COMMON_WITH_CTOR(Render_Points, "Render_Points", "Renders a point entity");
-//   AX_NODE_INPUTS((entt::entity, entity, "Entity"), (math::RealField3, points, "The points to render"),
+//   AX_NODE_INPUTS((entt::entity, entity, "Entity"), (math::RealField3, points, "The points to
+//   render"),
 //                  (math::RealField4, color, "The color of the points"),
 //                  (math::RealVector4, u_color, "The color of the points"),
 //                  (bool, flush, "Flush the points to screen."));
-//   AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Points, gl_points, "Points in render."));
+//   AX_NODE_OUTPUTS((entt::entity, entity, "Entity"), (gl::Points, gl_points, "Points in
+//   render."));
 //
 //   void Apply(size_t) override {
 //     auto* entity = RetriveInput<entt::entity>(0);
@@ -336,8 +407,8 @@
 //
 // class ColorMap_RealField1 : public NodeBase {
 // public:
-//   AX_NODE_COMMON_WITH_CTOR(ColorMap_RealField1, "Colormap_RealField1", "Maps a RealField1 to a color");
-//   AX_NODE_INPUTS((math::RealField1, data, "The field to map"));
+//   AX_NODE_COMMON_WITH_CTOR(ColorMap_RealField1, "Colormap_RealField1", "Maps a RealField1 to a
+//   color"); AX_NODE_INPUTS((math::RealField1, data, "The field to map"));
 //   AX_NODE_OUTPUTS((math::RealField4, color, "The color mapped from the field"));
 //
 //   void Apply(size_t) override {

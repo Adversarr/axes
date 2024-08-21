@@ -1,5 +1,5 @@
 # Library axes-core
-find_package(Boost REQUIRED COMPONENTS json graph)
+find_package(Boost CONFIG REQUIRED COMPONENTS json graph)
 
 file(GLOB_RECURSE AX_GRAPH_SOURCE CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp

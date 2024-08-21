@@ -32,8 +32,8 @@ public:
    * @return
    */
   SparseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
-  SparseSolverBase& SetProblem(spmatr const& A);
-  SparseSolverBase& SetProblem(spmatr&& A);
+  SparseSolverBase& SetProblem(RealSparseMatrix const& A);
+  SparseSolverBase& SetProblem(RealSparseMatrix&& A);
 
   /**
    * @brief Get the Problem object
@@ -61,8 +61,8 @@ public:
    * @param x0 initial guess
    * @return
    */
-  virtual LinsysSolveResult Solve(matxxr const& b, matxxr const& x0 = {}) = 0;
-  AX_FORCE_INLINE LinsysSolveResult operator()(matxxr const& b, matxxr const& x0 = {}) {
+  virtual LinsysSolveResult Solve(RealMatrixX const& b, RealMatrixX const& x0 = {}) = 0;
+  AX_FORCE_INLINE LinsysSolveResult operator()(RealMatrixX const& b, RealMatrixX const& x0 = {}) {
     return Solve(b, x0);
   }
 

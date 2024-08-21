@@ -89,18 +89,18 @@ template <> struct SyncToFieldHelper<Index> {
   }
 };
 
-template <> struct SyncToFieldHelper<real> {
-  bool Apply(real& value, Options const& options, const char* name) {
+template <> struct SyncToFieldHelper<Real> {
+  bool Apply(Real& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       return false;
     } else {
-      real old_val = value;
+      Real old_val = value;
       if (it->value().is_double()) {
-        value = static_cast<real>(it->value().as_double());
+        value = static_cast<Real>(it->value().as_double());
       } else if (it->value().is_int64()) {
-        value = static_cast<real>(it->value().as_int64());
+        value = static_cast<Real>(it->value().as_int64());
       } else if (it->value().is_uint64()) {
-        value = static_cast<real>(it->value().as_uint64());
+        value = static_cast<Real>(it->value().as_uint64());
       } else {
         throw std::invalid_argument("Expect [" + std::string(name)
                                     + "] to be a double, int or uint.");
@@ -169,15 +169,15 @@ inline Index extract_Index(boost::json::value const& v) {
   return v.as_int64();
 }
 
-inline real extract_real(boost::json::value const& v) {
+inline Real extract_real(boost::json::value const& v) {
   AX_THROW_IF_FALSE(v.is_double() || v.is_int64() || v.is_uint64(),
                     "Expect a double, int64 or uint64.");
   if (v.is_double()) {
     return v.as_double();
   } else if (v.is_int64()) {
-    return static_cast<real>(v.as_int64());
+    return static_cast<Real>(v.as_int64());
   } else if (v.is_uint64()) {
-    return static_cast<real>(v.as_uint64());
+    return static_cast<Real>(v.as_uint64());
   }
   AX_UNREACHABLE();
 }

@@ -17,7 +17,7 @@ public:
 
   virtual void AnalyzePattern() = 0;
   virtual void Factorize() = 0;
-  virtual matxxr Solve(matxxr const& b) = 0;
+  virtual RealMatrixX Solve(RealMatrixX const& b) = 0;
 
   PreconditionerBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
 

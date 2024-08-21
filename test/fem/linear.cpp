@@ -20,7 +20,7 @@ TEST_CASE("mass2d") {
   // auto mesh = make_square(3);
   auto mass_compute = fem::MassMatrixCompute<2>(*mesh);
   auto result = mass_compute(1.0);
-  real sum = result.sum();
+  Real sum = result.sum();
   CHECK(sum == doctest::Approx(1.0));
 }
 
@@ -49,8 +49,8 @@ TEST_CASE("Hessian") {
   math::RealVector2 lame = {1.0, 1.0};
   stress.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
   for (auto const& s : stress.Hessian(lame)) {
-    real s00 = s(0, 0);
-    real s11 = s(1, 1);
+    Real s00 = s(0, 0);
+    Real s11 = s(1, 1);
     CHECK(doctest::Approx(s00) == 3 * s11);
     CHECK(doctest::Approx(s(3, 3)) == s00);
     CHECK(doctest::Approx(s(2, 2)) == s11);

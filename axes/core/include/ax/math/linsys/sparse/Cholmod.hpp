@@ -16,13 +16,13 @@ public:
 
   void AnalyzePattern() override;
   void Factorize() override;
-  LinsysSolveResult Solve(matxxr const& b, matxxr const& x0) override;
+  LinsysSolveResult Solve(RealMatrixX const& b, RealMatrixX const& x0) override;
   int FactorizeOnce();
 
   void SetOptions(utils::Options const& opt) override;
   utils::Options GetOptions() const override;
 
-  matxxr Inverse() const;
+  RealMatrixX Inverse() const;
 
 private:
   struct Impl;

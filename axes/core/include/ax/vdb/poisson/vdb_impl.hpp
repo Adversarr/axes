@@ -13,8 +13,8 @@ public:
 
 private:
   Index max_iterations_ = 50;
-  real rel_error_ = 1.0e-6;
-  real abs_error_ = std::numeric_limits<real>::epsilon() * 100.0;
+  Real rel_error_ = 1.0e-6;
+  Real abs_error_ = std::numeric_limits<Real>::epsilon() * 100.0;
 };
 
 }

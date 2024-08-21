@@ -18,9 +18,11 @@
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
+#include "ax/math/accessor.hpp"
 #include "ax/math/io.hpp"
+#include "ax/math/views.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
 
 // ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
@@ -56,7 +58,7 @@ void update_rendering() {
   elast.GatherEnergyToVertices();
   auto e_per_vert = elast.GetEnergyOnVertices();
 
-  real m = 0, M = 0;
+  Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
   std::cout << "Energy: " << m << " " << M << std::endl;
@@ -86,14 +88,14 @@ static bool running = false;
 float dt = 1e-2;
 math::RealVectorX fps;
 
-void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
+void handle_armadillo_drags(fem::TriMesh<3>& mesh, Real T) {
   using namespace ax::math;
   static std::vector<Index> dirichlet_handles;
-  static std::vector<real> y_vals;
+  static std::vector<Real> y_vals;
   if (dirichlet_handles.empty()) {
     // first time call.
     RealVector3 center{0, 0.2, 0};
-    real radius = 0.2;
+    Real radius = 0.2;
     for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
@@ -108,20 +110,20 @@ void handle_armadillo_drags(fem::TriMesh<3>& mesh, real T) {
 
   for (size_t i = 0; i < dirichlet_handles.size(); ++i) {
     Index iv = dirichlet_handles[i];
-    real v = y_vals[i] + sin(10 * T) * 0.5;
+    Real v = y_vals[i] + sin(10 * T) * 0.5;
     mesh.MarkDirichletBoundary(iv, 1, v);
   }
 }
 
-void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
+void handle_armadillo_extreme(fem::TriMesh<3>& mesh, Real T) {
   using namespace ax::math;
   static std::vector<Index> l_dirichlet_handles;
   static std::vector<Index> r_dirichlet_handles;
-  static std::vector<real> x_vals_l, x_vals_r;
+  static std::vector<Real> x_vals_l, x_vals_r;
   if (l_dirichlet_handles.empty()) {
     // first time call.
     RealVector3 center{0.7, 0.6, 0.6};
-    real radius = 0.1;
+    Real radius = 0.1;
     for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
@@ -137,7 +139,7 @@ void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
   if (r_dirichlet_handles.empty()) {
     // first time call.
     RealVector3 center{-0.7, 0.77, 0.4};
-    real radius = 0.1;
+    Real radius = 0.1;
     for (Index i = 0; i < mesh.GetNumVertices(); ++i) {
       auto X = mesh.GetVertex(i);
       if (norm(X - center) < radius) {
@@ -151,12 +153,12 @@ void handle_armadillo_extreme(fem::TriMesh<3>& mesh, real T) {
   }
   for (size_t i = 0; i < l_dirichlet_handles.size(); ++i) {
     Index iv = l_dirichlet_handles[i];
-    real v = x_vals_l[i] + T * 0.5;
+    Real v = x_vals_l[i] + T * 0.5;
     mesh.MarkDirichletBoundary(iv, 0, v);
   }
   for (size_t i = 0; i < r_dirichlet_handles.size(); ++i) {
     Index iv = r_dirichlet_handles[i];
-    real v = x_vals_r[i] - T * 0.5;
+    Real v = x_vals_r[i] - T * 0.5;
     mesh.MarkDirichletBoundary(iv, 0, v);
   }
 }
@@ -172,8 +174,8 @@ void ui_callback(gl::UiRenderEvent) {
     const auto& vert = ts->GetMesh()->GetVertices();
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
-      math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
-      for (auto i : utils::iota(vert.cols())) {
+      math::RealMatrix3 rotate = Eigen::AngleAxis<Real>(dt, math::RealVector3::UnitX()).matrix();
+      for (auto i : utils::range(vert.cols())) {
         const auto& position = vert.col(i);
         if (-position.x() > 4.9) {
           // Mark as dirichlet bc.
@@ -204,7 +206,7 @@ void ui_callback(gl::UiRenderEvent) {
 }
 
 void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
-  for (auto i : utils::iota(tets.cols())) {
+  for (auto i : utils::range(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
@@ -219,7 +221,7 @@ void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts)
 
 int main(int argc, char** argv) {
   ax::get_program_options().add_options()
-    ("youngs", "Youngs", cxxopts::value<real>()->default_value("1e7"))(
+    ("youngs", "Youngs", cxxopts::value<Real>()->default_value("1e7"))(
       "N", "Num of division", cxxopts::value<int>()->default_value("3"))(
       "scene", "id of scene, 0 for twist, 1 for bend.", cxxopts::value<std::string>()->default_value("bend"))(
       "elast", "Hyperelasticity model, nh=Neohookean arap=Arap",
@@ -246,7 +248,7 @@ int main(int argc, char** argv) {
 
   std::string tet_file, vet_file;
 
-  auto youngs = get_parse_result()["youngs"].as<real>();
+  auto youngs = get_parse_result()["youngs"].as<Real>();
 
   lame = fem::elasticity::compute_lame(youngs, 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
@@ -298,8 +300,8 @@ int main(int argc, char** argv) {
   input_mesh.vertices_ = ts->GetMesh()->GetVertices();
   input_mesh.indices_ = ts->GetMesh()->GetElements();
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
-    for (auto i : utils::iota(input_mesh.vertices_.cols())) {
-      const auto& position = input_mesh.vertices_.col(i);
+    auto vertices_accessor = math::make_accessor(input_mesh.vertices_);
+    for (auto [i, position]: math::enumerate(vertices_accessor)) {
       if (math::abs(position.x()) > 4.9) {
         // Mark as dirichlet bc.
         if (scene == SCENE_TWIST || position.x() > 4.9) {

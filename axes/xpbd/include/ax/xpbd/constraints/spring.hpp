@@ -13,9 +13,9 @@ public:
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;
-  real UpdateDuality() override;
+  Real UpdateDuality() override;
   void EndStep() override;
-  void UpdateRhoConsensus(real scale) override;
+  void UpdateRhoConsensus(Real scale) override;
 
 
   math::RealField1 spring_stiffness_;

@@ -26,12 +26,12 @@ void OptimizerBase::SetMaxIter(Index max_iter) {
   max_iter_ = max_iter;
 }
 
-void OptimizerBase::SetTolVar(real tol_var) {
+void OptimizerBase::SetTolVar(Real tol_var) {
   AX_THROW_IF_LT(tol_var, 0, "tol_var must be non-negative");
   tol_var_ = tol_var;
 }
 
-void OptimizerBase::SetTolGrad(real tol_grad) {
+void OptimizerBase::SetTolGrad(Real tol_grad) {
   AX_THROW_IF_LT(tol_grad, 0, "tol_grad must be non-negative");
   tol_grad_ = tol_grad;
 }
@@ -41,11 +41,11 @@ void OptimizerBase::SetOptions(utils::Options const& options) {
     AX_THROW_IF_LT(max_iter_, 1, "max_iter must be positive");
   }
 
-  AX_SYNC_OPT_IF(options, real, tol_var) {
+  AX_SYNC_OPT_IF(options, Real, tol_var) {
     AX_THROW_IF_LT(tol_var_, 0, "tol_var must be non-negative");
   }
 
-  AX_SYNC_OPT_IF(options, real, tol_grad) {
+  AX_SYNC_OPT_IF(options, Real, tol_grad) {
     AX_THROW_IF_LT(tol_grad_, 0, "tol_grad must be non-negative");
   }
 
@@ -55,7 +55,7 @@ void OptimizerBase::SetOptions(utils::Options const& options) {
 }
 
 // void OptimizerBase::RecordTrajectory(math::RealVectorX const& x, math::RealVectorX const& grad,
-//                                      real energy) const {
+//                                      Real energy) const {
 //   if (record_trajectory_) {
 //     x_history_.push_back(x);
 //     grad_history_.push_back(grad);

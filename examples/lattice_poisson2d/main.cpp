@@ -8,17 +8,17 @@
 
 using namespace ax;
 Index N = 10;
-real dx = 1.0 / N;
+Real dx = 1.0 / N;
 ABSL_FLAG(int, N, 10, "Number of cells in each direction");
 
 // Example Log [x^2 + y^2] in [1, 2]x[1, 2]
 // Rhs = 0.
 // grad= [2x, 2y]/(x^2 + y^2)
-real exact_solution(real x, real y) { return 0.5 * (x * x - y * y); }
+Real exact_solution(Real x, Real y) { return 0.5 * (x * x - y * y); }
 
-real grad_x_exact_solution(real x, real /*y*/) { return x; }
+Real grad_x_exact_solution(Real x, Real /*y*/) { return x; }
 
-real grad_y_exact_solution(real /*x*/, real y) { return -y; }
+Real grad_y_exact_solution(Real /*x*/, Real y) { return -y; }
 
 int main(int argc, char* argv[]) {
   ax::gl::init(argc, argv);
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
   pde::PoissonProblemCellCentered<2> problem(N, dx);
 
   math::Lattice<2, pde::PoissonProblemCellType> domain({N, N});
-  math::Lattice<2, real> f({N, N});
+  math::Lattice<2, Real> f({N, N});
   f = 0;
   domain = pde::PoissonProblemCellType::kInterior;
   problem.SetSource(f);
@@ -66,12 +66,12 @@ int main(int argc, char* argv[]) {
   auto solution = problem.Solve();
   AX_CHECK_OK(solution);
   auto sol = *solution;
-  real l2_err = 0;
+  Real l2_err = 0;
   for (auto const& sub : sol.Iterate()) {
     if (sub.minCoeff() > 0 && (sub.array() - N).maxCoeff() <= 0) {
-      real x = (sub[0] + 0.5) * dx;
-      real y = (sub[1] + 0.5) * dx;
-      real exact = exact_solution(x, y);
+      Real x = (sub[0] + 0.5) * dx;
+      Real y = (sub[1] + 0.5) * dx;
+      Real exact = exact_solution(x, y);
       l2_err += std::pow(sol(sub) - exact, 2) * dx * dx;
     }
   }

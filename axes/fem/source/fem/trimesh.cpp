@@ -7,9 +7,9 @@
 #endif
 namespace ax::fem {
 
-template <Index dim> TriMesh<dim>::TriMesh() {}
+template <int dim> TriMesh<dim>::TriMesh() {}
 
-template <Index dim>
+template <int dim>
 void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
   elements_ = elements;
   vertices_ = vertices;
@@ -29,13 +29,13 @@ void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& 
   ResetAllBoundaries();
 }
 
-template <Index dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
+template <int dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
   AX_THROW_IF_NE(vertices.cols(), vertices_.cols(), "Invalid size: {} != {}", vertices.cols(),
                  vertices_.cols());
   vertices_ = vertices;
 }
 
-template <Index dim> math::RealVectorX TriMesh<dim>::GetVerticesFlattened() const noexcept {
+template <int dim> math::RealVectorX TriMesh<dim>::GetVerticesFlattened() const noexcept {
   math::RealVectorX vertices_flattened(vertices_.size());
   // for (Index i = 0; i < vertices_.cols(); ++i) {
   //   for (Index j = 0; j < dim; ++j) {
@@ -43,31 +43,31 @@ template <Index dim> math::RealVectorX TriMesh<dim>::GetVerticesFlattened() cons
   //   }
   // }
   size_t n_dof = static_cast<size_t>(vertices_.size());
-  memcpy(vertices_flattened.data(), vertices_.data(), n_dof * sizeof(real));
+  memcpy(vertices_flattened.data(), vertices_.data(), n_dof * sizeof(Real));
   return vertices_flattened;
 }
 
-template <Index dim> void TriMesh<dim>::ResetBoundary(Index i, Index dof) {
+template <int dim> void TriMesh<dim>::ResetBoundary(Index i, Index dof) {
   AX_DCHECK(0 <= i && i < vertices_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   dirichlet_boundary_mask_(dof, i) = 1;
   boundary_values_(dof, i) = 0;
 }
 
-template <Index dim> void TriMesh<dim>::MarkDirichletBoundary(Index i, Index dof, const real& value) {
+template <int dim> void TriMesh<dim>::MarkDirichletBoundary(Index i, Index dof, const Real& value) {
   AX_THROW_IF_TRUE(i < 0 || i >= vertices_.cols(), "Index out of range.");
   AX_THROW_IF_TRUE(dof < 0 || dof >= n_dof_per_vertex_, "Dof out of range.");
   boundary_values_(dof, i) = value;
   dirichlet_boundary_mask_(dof, i) = 0;
 }
 
-template <Index dim> void TriMesh<dim>::ResetAllBoundaries() {
+template <int dim> void TriMesh<dim>::ResetAllBoundaries() {
   boundary_values_.setZero(n_dof_per_vertex_, vertices_.cols());
   dirichlet_boundary_mask_.setOnes(n_dof_per_vertex_, vertices_.cols());
 }
 
-template <Index dim> void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list const& input,
-                                                       math::sp_coeff_list& out) const {
+template <int dim> void TriMesh<dim>::FilterMatrixFull(math::SparseCOO const& input,
+                                                       math::SparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     Index row_id = coeff.row() / n_dof_per_vertex_;
@@ -84,14 +84,14 @@ template <Index dim> void TriMesh<dim>::FilterMatrixFull(math::sp_coeff_list con
   for (Index i = 0; i < vertices_.cols(); ++i) {
     for (Index j = 0; j < n_dof_per_vertex_; ++j) {
       if (IsDirichletBoundary(i, j)) {
-        out.push_back(math::sp_coeff(i * dim + j, i * dim + j, 1));
+        out.push_back(math::SparseEntry(i * dim + j, i * dim + j, 1));
       }
     }
   }
 }
 
-template <Index dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::sp_coeff_list const& input,
-                                                      math::sp_coeff_list& out) const {
+template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::SparseCOO const& input,
+                                                      math::SparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     if (IsDirichletBoundary(coeff.row(), d) || IsDirichletBoundary(coeff.row(), d)) {
@@ -103,12 +103,12 @@ template <Index dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::sp_coeff_
   // Add the Dirichlet boundary conditions.
   for (Index i = 0; i < vertices_.cols(); ++i) {
     if (IsDirichletBoundary(i, d)) {
-      out.push_back(math::sp_coeff(i, i, 1));
+      out.push_back(math::SparseEntry(i, i, 1));
     }
   }
 }
 
-template <Index dim> void TriMesh<dim>::FilterVector(math::RealVectorX& inout, bool set_zero) const {
+template <int dim> void TriMesh<dim>::FilterVector(math::RealVectorX& inout, bool set_zero) const {
   if (inout.size() != dirichlet_boundary_mask_.cols() * n_dof_per_vertex_) {
     throw std::invalid_argument("Invalid shape.");
   }
@@ -118,12 +118,12 @@ template <Index dim> void TriMesh<dim>::FilterVector(math::RealVectorX& inout, b
   }
 }
 
-template <Index dim> void TriMesh<dim>::SetNumDofPerVertex(Index n_dof_per_vertex) noexcept {
+template <int dim> void TriMesh<dim>::SetNumDofPerVertex(Index n_dof_per_vertex) noexcept {
   n_dof_per_vertex_ = n_dof_per_vertex;
   ResetAllBoundaries();
 }
 
-template <Index dim> void TriMesh<dim>::FilterField(math::RealField<dim>& inout, bool set_zero) const {
+template <int dim> void TriMesh<dim>::FilterField(math::RealField<dim>& inout, bool set_zero) const {
   if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
     AX_ERROR("Invalid Shape: {}x{} != {}x{}", inout.rows(), inout.cols(),
              dirichlet_boundary_mask_.rows(), dirichlet_boundary_mask_.cols());
@@ -135,9 +135,9 @@ template <Index dim> void TriMesh<dim>::FilterField(math::RealField<dim>& inout,
   }
 }
 
-template <Index dim> void TriMesh<dim>::FilterMatrixFull(math::spmatr& mat) const {
+template <int dim> void TriMesh<dim>::FilterMatrixFull(math::RealSparseMatrix& mat) const {
   for (Index i = 0; i < mat.outerSize(); ++i) {
-    for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
+    for (typename math::RealSparseMatrix::InnerIterator it(mat, i); it; ++it) {
       Index row_id = it.row() / n_dof_per_vertex_;
       Index row_dof = it.row() % n_dof_per_vertex_;
       Index col_id = it.col() / n_dof_per_vertex_;
@@ -151,10 +151,10 @@ template <Index dim> void TriMesh<dim>::FilterMatrixFull(math::spmatr& mat) cons
   mat.prune(0, 0);
 }
 
-template <Index dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::spmatr& mat) const {
+template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::RealSparseMatrix& mat) const {
   // math::sp_coeff_list coo;
   // for (Index i = 0; i < mat.outerSize(); ++i) {
-  //   for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
+  //   for (typename math::RealSparseMatrix::InnerIterator it(mat, i); it; ++it) {
   //     coo.push_back(math::sp_coeff(it.row(), it.col(), it.value()));
   //   }
   // }
@@ -163,7 +163,7 @@ template <Index dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::spmatr& m
   // mat = math::make_sparse_matrix(GetNumVertices(), GetNumVertices(), coo_filtered);
 
   for (Index i = 0; i < mat.outerSize(); ++i) {
-    for (typename math::spmatr::InnerIterator it(mat, i); it; ++it) {
+    for (typename math::RealSparseMatrix::InnerIterator it(mat, i); it; ++it) {
       if (IsDirichletBoundary(it.row(), d) || IsDirichletBoundary(it.col(), d)) {
         it.valueRef() = (it.row() == it.col()) ? 1 : 0;
       }
@@ -173,7 +173,7 @@ template <Index dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::spmatr& m
   mat.prune(0, 0);
 }
 
-template <Index dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
+template <int dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
   AX_CHECK(dim == 3, "Only 3D P1Mesh is supported");
   geo::SurfaceMesh surface;
   auto const& elem = this->elements_;
@@ -192,7 +192,7 @@ template <Index dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
   return surface;
 }
 
-template <Index dim> void TriMesh<dim>::ApplyPermutation(std::vector<Index> const& perm,
+template <int dim> void TriMesh<dim>::ApplyPermutation(std::vector<Index> const& perm,
                                                        std::vector<Index> const& inverse_perm) {
   element_list_t elements_new(elements_.rows(), elements_.cols());
   vertex_list_t vertices_new(vertices_.rows(), vertices_.cols());

@@ -14,8 +14,8 @@ AX_DEFINE_ENUM_CLASS(OptimizerKind,
 
 class OptimizerBase : public utils::Tunable {
 public:
-  static constexpr real default_tol_var = 1e-6;
-  static constexpr real default_tol_grad = 1e-6;
+  static constexpr Real default_tol_var = 1e-6;
+  static constexpr Real default_tol_grad = 1e-6;
   static constexpr Index default_max_iter = 100;
   static std::unique_ptr<OptimizerBase> Create(OptimizerKind k);
 
@@ -36,26 +36,26 @@ public:
   /****************************** Getter Setter ******************************/
   void SetMaxIter(Index max_iter);
 
-  void SetTolVar(real tol_var);
+  void SetTolVar(Real tol_var);
 
-  void SetTolGrad(real tol_grad);
+  void SetTolGrad(Real tol_grad);
 
   Index GetMaxIter() const;
 
-  real GetTolVar() const;
+  Real GetTolVar() const;
 
-  real GetTolGrad() const;
+  Real GetTolGrad() const;
 
 protected:
-  // void RecordTrajectory(math::RealVectorX const& x, math::RealVectorX const& grad, real energy) const;
+  // void RecordTrajectory(math::RealVectorX const& x, math::RealVectorX const& grad, Real energy) const;
   // void ClearTrajectory() const;
   // mutable std::vector<math::RealVectorX> x_history_;
   // mutable std::vector<math::RealVectorX> grad_history_;
-  // mutable std::vector<real> energy_history_;
+  // mutable std::vector<Real> energy_history_;
   /****************************** Options ******************************/
   Index max_iter_{default_max_iter};
-  real tol_var_{default_tol_var};
-  real tol_grad_{default_tol_grad};
+  Real tol_var_{default_tol_var};
+  Real tol_grad_{default_tol_grad};
   bool verbose_{false};
   // bool record_trajectory_{false};
 };

@@ -66,8 +66,8 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
       lines;
       lines.colors_.setConstant(0.3);
       auto& orimesh = get_component<gl::Mesh>(ori);
-      auto to_color = [](real x) -> real {
-        real r = math::fmod(math::abs(x), 0.1) * 10;
+      auto to_color = [](Real x) -> Real {
+        Real r = math::fmod(math::abs(x), 0.1) * 10;
         return x < 0 ? 1-r : r;
       };
       for (Index i = 0; i < sm.vertices_.cols(); ++i) {

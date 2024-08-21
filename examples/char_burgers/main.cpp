@@ -12,27 +12,27 @@
 
 using namespace ax;
 
-real tol_var = 1e-6;
-real tol_grad = 1e-6;
-real alpha = 0.0;
-real beta = 1.0;
+Real tol_var = 1e-6;
+Real tol_grad = 1e-6;
+Real alpha = 0.0;
+Real beta = 1.0;
 Index max_iter = 100;
 Index nx = 100;
 math::RealVectorX grid;
 math::RealVectorX result;
-math::matxxr u_x_t;
-real t = 0.;
+math::RealMatrixX u_x_t;
+Real t = 0.;
 
-ABSL_FLAG(real, tol_var, 1e-9, "Tolerance for variable convergence");
-ABSL_FLAG(real, tol_grad, 1e-9, "Tolerance for gradient convergence");
-ABSL_FLAG(real, alpha, 0.0, "coefficient alpha");
-ABSL_FLAG(real, beta, 1.0, "coefficient beta");
+ABSL_FLAG(Real, tol_var, 1e-9, "Tolerance for variable convergence");
+ABSL_FLAG(Real, tol_grad, 1e-9, "Tolerance for gradient convergence");
+ABSL_FLAG(Real, alpha, 0.0, "coefficient alpha");
+ABSL_FLAG(Real, beta, 1.0, "coefficient beta");
 ABSL_FLAG(Index, max_iter, 100, "Maximum number of iterations");
 ABSL_FLAG(Index, nx, 100, "Number of grid points");
 ABSL_FLAG(Index, nt, 100, "Number of time steps");
 ABSL_FLAG(bool, export, false, "Export the result to a file");
 ABSL_FLAG(bool, integrate, false, "Integrate the result in the computation cell");
-ABSL_FLAG(real, t, 1.0, "The max simulation time.");
+ABSL_FLAG(Real, t, 1.0, "The max simulation time.");
 ABSL_FLAG(std::string, export_file, "result.npy", "The file to export the result.");
 
 
@@ -44,18 +44,18 @@ ABSL_FLAG(std::string, export_file, "result.npy", "The file to export the result
 
 // Characteristic equation:
 //  x = x0 + sin(x0) * t, solve x0
-real fn(real x, real t, real x0) { return x0 + math::sin(x0) * t - x; }
+Real fn(Real x, Real t, Real x0) { return x0 + math::sin(x0) * t - x; }
 
-real grad_fn(real /*x*/, real t, real x0) { return 1 + math::cos(x0) * t; }
+Real grad_fn(Real /*x*/, Real t, Real x0) { return 1 + math::cos(x0) * t; }
 
-real solve_x0(real x, real t) {
+Real solve_x0(Real x, Real t) {
   // First, find out which half period the x is in
-  Index half_period = math::floor(x / math::pi<real>);
+  Index half_period = math::floor(x / math::pi<Real>);
   // The initial guess will be at the center of half period
-  real x0 = (half_period + 0.5) * math::pi<real>;
+  Real x0 = (half_period + 0.5) * math::pi<Real>;
 
-  real left_boundary = half_period * math::pi<real>;
-  real right_boundary = (half_period + 1) * math::pi<real>;
+  Real left_boundary = half_period * math::pi<Real>;
+  Real right_boundary = (half_period + 1) * math::pi<Real>;
   if (x - left_boundary < tol_var) {
     return left_boundary;
   } else if (right_boundary - x < tol_var) {
@@ -66,10 +66,10 @@ real solve_x0(real x, real t) {
   bool converged = false;
   Index iter = 0;
   do {
-    real f = fn(x, t, x0);
-    real g = grad_fn(x, t, x0);
-    real dx = -f / g;
-    real new_x = x0 + dx;
+    Real f = fn(x, t, x0);
+    Real g = grad_fn(x, t, x0);
+    Real dx = -f / g;
+    Real new_x = x0 + dx;
     if (new_x < left_boundary) {
       new_x = 0.5 * (x0 + left_boundary);
     } else if (new_x > right_boundary) {
@@ -93,19 +93,19 @@ real solve_x0(real x, real t) {
   if (converged) {
     return x0;
   } else {
-    return math::nan<real>;
+    return math::nan<Real>;
   }
 }
 
 void recompute() {
   result = grid;
   for (Index i = 0; i < grid.size(); ++i) {
-    real x = grid[i];
-    real x0 = solve_x0(x - alpha * t, beta * t);
+    Real x = grid[i];
+    Real x0 = solve_x0(x - alpha * t, beta * t);
     if (std::isnan(x0)) {
       AX_LOG(ERROR) << "Failed to solve x0 at x = " << x;
     }
-    real u = math::sin(x0) * beta + alpha;
+    Real u = math::sin(x0) * beta + alpha;
     result[i] = u;
   }
 }
@@ -123,12 +123,12 @@ int main(int argc, char** argv) {
   beta = absl::GetFlag(FLAGS_beta);
 
   // Do computation
-  real x_min = 0 * math::pi<real>;
-  real x_max = 2 * math::pi<real>;
+  Real x_min = 0 * math::pi<Real>;
+  Real x_max = 2 * math::pi<Real>;
   grid = math::linspace(x_min, x_max, nx);
   Index nt = absl::GetFlag(FLAGS_nt);
   u_x_t.resize(nx, nt + 1);
-  real dt = t / nt;
+  Real dt = t / nt;
   for (Index i = 0; i <= nt; ++i) {
     t = i * dt;
     recompute();

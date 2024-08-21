@@ -9,12 +9,12 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
 
-  LinsysSolveResult Solve(matxxr const &b, matxxr const &x0) override;
+  LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kLeastSquaresConjugateGradient; }
 
 private:
-  Eigen::LeastSquaresConjugateGradient<spmatr> solver_;
+  Eigen::LeastSquaresConjugateGradient<RealSparseMatrix> solver_;
 };
 
 }  // namespace ax::math

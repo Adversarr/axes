@@ -1,5 +1,5 @@
 #include "solver.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/decomp/svd.hpp"
@@ -42,7 +42,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     problem_.iso_coords_[t] = iso_coord;
 
     // Cotangent = 1/tan
-    for (Index I : utils::iota(3)) {
+    for (Index I : utils::range(3)) {
       Index J = (I + 1) % 3;
       Index K = (I + 2) % 3;
       auto p0 = mesh.vertices_.col(mesh.indices_(I, t));
@@ -50,7 +50,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
       auto p2 = mesh.vertices_.col(mesh.indices_(K, t));
       RealVector3 e1 = p1 - p2;
       RealVector3 e2 = p0 - p2;
-      real cot = math::dot(e1, e2) / math::norm(math::cross(e1, e2));
+      Real cot = math::dot(e1, e2) / math::norm(math::cross(e1, e2));
       problem_.cotangent_weights_[t](I) = cot;
     }
   }
@@ -65,7 +65,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
   igl::map_vertices_to_circle(V, bnd, bnd_uv);
   igl::harmonic(V, F, bnd, bnd_uv, 1, V_uv);
   AX_CHECK(V_uv.rows() == V.rows() && V_uv.cols() == 2) << "Invalid tutte embedding";
-  for (Index i: utils::iota(V_uv.rows())) {
+  for (Index i: utils::range(V_uv.rows())) {
     problem_.param_(0, i) = V_uv(i, 0);
     problem_.param_(1, i) = V_uv(i, 1);
   }
@@ -75,14 +75,14 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     Index n_triangle = problem_.input_mesh_.indices_.cols(),
         n_vertex = problem_.input_mesh_.vertices_.cols();
     // Step1: Establish the Global Linear System:
-    math::sp_coeff_list coeff_list;
+    math::SparseCOO coeff_list;
     coeff_list.reserve(n_vertex * 2 + n_triangle * 24);
-    for (Index t : utils::iota(problem_.input_mesh_.indices_.cols())) {
-      for (Index i : utils::iota(3)) {
+    for (Index t : utils::range(problem_.input_mesh_.indices_.cols())) {
+      for (Index i : utils::range(3)) {
         Index vi = problem_.input_mesh_.indices_(i, t);
         Index vj = problem_.input_mesh_.indices_((i + 1) % 3, t);
-        real cot_t_i = problem_.cotangent_weights_[t](i);
-        for (Index dim : utils::iota(2)) {
+        Real cot_t_i = problem_.cotangent_weights_[t](i);
+        for (int dim : utils::range(2)) {
           coeff_list.push_back({vi * 2 + dim, vj * 2 + dim, -cot_t_i});
           coeff_list.push_back({vj * 2 + dim, vi * 2 + dim, -cot_t_i});
           coeff_list.push_back({vi * 2 + dim, vi * 2 + dim, cot_t_i});
@@ -90,7 +90,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
         }
       }
     }
-    for (Index v : utils::iota(n_vertex)) {
+    for (Index v : utils::range(n_vertex)) {
       coeff_list.push_back({v * 2, v * 2, shift_});
       coeff_list.push_back({v * 2 + 1, v * 2 + 1, shift_});
     }
@@ -113,7 +113,7 @@ ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseS
 
 SurfaceMesh ParameterizationSolver::Optimal() {
   SurfaceMesh mesh = problem_.input_mesh_;
-  for (Index i: utils::iota(problem_.param_.cols())) {
+  for (Index i: utils::range(problem_.param_.cols())) {
     mesh.vertices_.block<2, 1>(0, i) = problem_.param_.col(i);
     mesh.vertices_.col(i).z() = 0;
   }
@@ -129,7 +129,7 @@ Status ParameterizationSolver::Solve(Index max_iter) {
   }
   
   math::RealVectorX last_global_optimal(n_vertex * 2);
-  for (Index i: utils::iota(n_vertex)) {
+  for (Index i: utils::range(n_vertex)) {
     last_global_optimal(i * 2) = problem_.param_(0, i);
     last_global_optimal(i * 2 + 1) = problem_.param_(1, i);
   }
@@ -141,15 +141,15 @@ Status ParameterizationSolver::Solve(Index max_iter) {
 
     // Do global step:
     math::RealVectorX rhs = last_global_optimal * shift_;
-    for (Index t : utils::iota(n_triangle)) {
+    for (Index t : utils::range(n_triangle)) {
       math::RealMatrix<2, 3> local_coord;
       local_coord << math::zeros<2>(), problem_.iso_coords_[t];
-      for (Index i : utils::iota(3)) {
+      for (Index i : utils::range(3)) {
         Index vi = problem_.input_mesh_.indices_(i, t);
         Index vj = problem_.input_mesh_.indices_((i + 1) % 3, t);
         RealVector2 xi = local_coord.col(i);
         RealVector2 xj = local_coord.col((i + 1) % 3);
-        real cot_t_i = problem_.cotangent_weights_[t](i);
+        Real cot_t_i = problem_.cotangent_weights_[t](i);
         RealVector2 Lix = problem_.Li_[t] * (xi - xj);
         rhs.segment<2>(2 * vi) += cot_t_i * Lix;
         rhs.segment<2>(2 * vj) -= cot_t_i * Lix;
@@ -161,14 +161,14 @@ Status ParameterizationSolver::Solve(Index max_iter) {
       AX_LOG(ERROR) << "PCG Failed to converge in " << global_step_result.num_iter_ << " iterations";
       return utils::DataLossError("Global step not converged");
     }
-    real dx2 = 0;
+    Real dx2 = 0;
     auto global_optimal = global_step_result.solution_;
     /*AX_LOG(INFO) << "RHS=" << rhs;
     AX_LOG(INFO) << "opt=" << global_optimal;
     AX_LOG(INFO) << "A opt=" << problem.A_ * global_optimal;
     AX_LOG(INFO) << "A rhs=" << problem.A_ * rhs;
     AX_LOG(INFO) << "A=" << std::endl << problem.A_;*/
-    for (Index i: utils::iota(n_vertex)) {
+    for (Index i: utils::range(n_vertex)) {
       dx2 += math::norm(problem_.param_.col(i) - global_optimal.segment<2>(i * 2));
       problem_.param_.col(i) = global_optimal.segment<2>(i * 2);
     }
@@ -200,7 +200,7 @@ std::vector<RealMatrix2> ARAP::Optimal(ParameterizationProblem const& problem) {
     Eigen::JacobiSVD<RealMatrix2> svd(Li, Eigen::ComputeFullU | Eigen::ComputeFullV);
     RealMatrix2 U = svd.matrixU();
     RealMatrix2 V = svd.matrixV();
-    real detU = U.determinant(), detV = V.determinant();
+    Real detU = U.determinant(), detV = V.determinant();
     if (detU < 0 && detV > 0) {
       U.col(1) *= -1;
     } else if (detU > 0 && detV < 0) {

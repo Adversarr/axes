@@ -4,7 +4,7 @@
 namespace ax::fem {
 
 // Perform Reverse Cuthill-McKee Ordering Algorithm to optimize the topology of the mesh.
-template<Index dim>
+template<int dim>
 std::pair<std::vector<Index>, std::vector<Index>> optimize_topology(math::IndexField<dim + 1> const& topo, Index n_vert
 );
 

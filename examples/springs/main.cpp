@@ -8,9 +8,9 @@
 
 using namespace ax;
 
-constexpr real MASS_PER_VERTEX = 1;
-constexpr real DELTA_TIME = 0.01;
-constexpr real STIFFNESS = 1e3;
+constexpr Real MASS_PER_VERTEX = 1;
+constexpr Real DELTA_TIME = 0.01;
+constexpr Real STIFFNESS = 1e3;
 constexpr Index MAX_ITER = 3;
 
 math::IndexField2 springs;
@@ -21,7 +21,7 @@ std::vector<Index> fixed;
 
 
 math::RealVector3 center_of_ball;
-real radius = 0.5;
+Real radius = 0.5;
 
 Entity render;
 
@@ -44,7 +44,7 @@ void step() {
       math::RealVector3 p1 = x.col(j);
       math::RealVector3 center = (p0 + p1) * 0.5;
       math::RealVector3 delta = (p1 - p0).normalized();
-      real len = initial[cnt];
+      Real len = initial[cnt];
       x.col(i) = center - delta * len * 0.5;
       x.col(j) = center + delta * len * 0.5;
       cnt += 1;

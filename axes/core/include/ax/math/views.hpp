@@ -32,7 +32,8 @@ ShapeArray<IndexType, dim> cast_shape_array(ranges::common_tuple<IndexType, Args
       tuple, std::make_index_sequence<sizeof...(Args) + 1>{});
 }
 
-template <typename IndexType, int dim> struct ShapeCursor {
+template <typename IndexType, int dim>
+struct ShapeCursor {
   using value_type = ShapeArray<IndexType, dim>;
   using difference_type = std::ptrdiff_t;
   using ShapeArrayT = ShapeArray<IndexType, dim>;
@@ -54,7 +55,8 @@ template <typename IndexType, int dim> struct ShapeCursor {
     return details::equal<IndexType, dim>(cursor_, other.cursor_);
   }
 
-  template <size_t sub> void next_(std::integral_constant<size_t, sub>) {
+  template <size_t sub>
+  void next_(std::integral_constant<size_t, sub>) {
     if (cursor_[sub] + 1 < shape_.Extent(sub)) {
       ++(cursor_[sub]);
     } else {
@@ -65,7 +67,8 @@ template <typename IndexType, int dim> struct ShapeCursor {
 
   void next_(std::integral_constant<size_t, 0>) { ++(cursor_[0]); }
 
-  template <size_t sub> void prev_(std::integral_constant<size_t, sub>) {
+  template <size_t sub>
+  void prev_(std::integral_constant<size_t, sub>) {
     if (cursor_[sub] > 0) {
       --(cursor_[sub]);
     } else {
@@ -100,8 +103,8 @@ template <typename IndexType, int dim> struct ShapeCursor {
   ShapeT shape_;
 };
 
-template <typename IndexType, int dim> struct ShapeCursor<IndexType, dim>::mixin
-    : ranges::basic_mixin<ShapeCursor<IndexType, dim>> {
+template <typename IndexType, int dim>
+struct ShapeCursor<IndexType, dim>::mixin : ranges::basic_mixin<ShapeCursor<IndexType, dim>> {
   using ranges::basic_mixin<ShapeCursor<IndexType, dim>>::basic_mixin;
   using ShapeT = Shape<IndexType, dim>;
   using ShapeArrayT = ShapeArray<IndexType, dim>;
@@ -111,8 +114,8 @@ template <typename IndexType, int dim> struct ShapeCursor<IndexType, dim>::mixin
       : mixin{ShapeCursor<IndexType, dim>(shape, cursor)} {}
 };
 
-
-template <typename IndexType> struct ShapeCursor<IndexType, 1> {
+template <typename IndexType>
+struct ShapeCursor<IndexType, 1> {
   using value_type = IndexType;
   using difference_type = std::ptrdiff_t;
   using ShapeArrayT = ShapeArray<IndexType, 1>;
@@ -147,8 +150,8 @@ template <typename IndexType> struct ShapeCursor<IndexType, 1> {
   ShapeT shape_;
 };
 
-template <typename IndexType> struct ShapeCursor<IndexType, 1>::mixin
-    : ranges::basic_mixin<ShapeCursor<IndexType, 1>> {
+template <typename IndexType>
+struct ShapeCursor<IndexType, 1>::mixin : ranges::basic_mixin<ShapeCursor<IndexType, 1>> {
   using ranges::basic_mixin<ShapeCursor<IndexType, 1>>::basic_mixin;
   using ShapeT = Shape<IndexType, 1>;
   using ShapeArrayT = ShapeArray<IndexType, 1>;
@@ -158,7 +161,7 @@ template <typename IndexType> struct ShapeCursor<IndexType, 1>::mixin
       : mixin{ShapeCursor<IndexType, 1>(shape, cursor)} {}
 };
 
-template<typename IndexType, int dim>
+template <typename IndexType, int dim>
 using ShapeIterator = ranges::basic_iterator<ShapeCursor<IndexType, dim>>;
 
 }  // namespace details
@@ -171,29 +174,37 @@ using details::ShapeIterator;
  * @param shape
  * @return
  */
-template <typename IndexType, int dim> auto iter(Shape<IndexType, dim> const& shape) {
+template <typename IndexType, int dim>
+auto iter(Shape<IndexType, dim> const& shape) {
   // return details::make_shape_iterator(shape, std::make_index_sequence<dim>{});
-  return ranges::views::iota(ShapeIterator<IndexType, dim>(shape),
-                             ShapeIterator<IndexType, dim>(
-                                 shape, details::unit<IndexType, dim>(shape.Extent(0))))
+  return ranges::views::iota(
+             ShapeIterator<IndexType, dim>(shape),
+             ShapeIterator<IndexType, dim>(shape, details::unit<IndexType, dim>(shape.Extent(0))))
          | ranges::views::indirect;
 }
 
-template <typename Container, int dim> auto enumerate(FieldAccessor<Container, dim>& accessor) {
+template <typename Derived, typename Buffer, int dim, bool is_const>
+auto enumerate(FieldAccessorBase<Derived, Buffer, dim, is_const>& accessor) {
   using namespace ranges::views;
-  return zip(iter(accessor.GetShape()), iota(accessor.begin(), accessor.end()) | indirect);
+  return zip(iter(accessor.GetShape()),
+             iota(accessor.AsDerived().begin(), accessor.AsDerived().end()) | indirect);
 }
 
-template <typename Container, int dim> auto enumerate(ConstFieldAccessor<Container, dim>& accessor) {
+template <typename Derived, typename Buffer, int dim, bool is_const>
+auto enumerate(FieldAccessorBase<Derived, Buffer, dim, is_const> const& accessor) {
   using namespace ranges::views;
-  return zip(iter(accessor.GetShape()), iota(accessor.begin(), accessor.end()) | indirect);
+  return zip(iter(accessor.GetShape()),
+             iota(accessor.AsDerived().begin(), accessor.AsDerived().end()) | indirect);
 }
 
+template <typename IndexType, int dim>
+auto begin(Shape<IndexType, dim> const& shape) {
+  return ShapeIterator<IndexType, dim>(shape);
+}
 
-template <typename Container, int dim>
-auto enumerate(FieldAccessor<Container, dim> const& accessor) {
-  using namespace ranges::views;
-  return zip(iter(accessor.GetShape()), iota(accessor.begin(), accessor.end()) | indirect);
+template <typename IndexType, int dim>
+auto end(Shape<IndexType, dim> const& shape) {
+  return ShapeIterator<IndexType, dim>(shape, details::unit<IndexType, dim>(shape.Extent(0)));
 }
 
 }  // namespace ax::math
@@ -202,36 +213,38 @@ auto enumerate(FieldAccessor<Container, dim> const& accessor) {
 
 namespace ranges {
 
-template <typename Container, int dim>
-auto begin(ax::math::FieldAccessor<Container, dim>& accessor) {
-  return accessor.begin();
-}
-
-template <typename Container, int dim> auto end(ax::math::FieldAccessor<Container, dim>& accessor) {
-  return accessor.end();
-}
+// template <typename Container, int dim, bool is_const>
+// auto begin(ax::math::FieldAccessor<Container, dim, is_const>& accessor) {
+//   return accessor.begin();
+// }
+//
+// template <typename Container, int dim, bool is_const>
+// auto end(ax::math::FieldAccessor<Container, dim, is_const>& accessor) {
+//   return accessor.end();
+// }
 
 }  // namespace ranges
 
-namespace std {
-
-template <typename Container, int dim>
-auto begin(ax::math::FieldAccessor<Container, dim>& accessor) {
-  return accessor.begin();
-}
-
-template <typename Container, int dim> auto end(ax::math::FieldAccessor<Container, dim>& accessor) {
-  return accessor.end();
-}
-
-template <typename Container, int dim>
-auto cbegin(ax::math::FieldAccessor<Container, dim> const& accessor) {
-  return accessor.begin();
-}
-
-template <typename Container, int dim>
-auto cend(ax::math::FieldAccessor<Container, dim> const& accessor) {
-  return accessor.end();
-}
-
-}  // namespace std
+// namespace std {
+//
+// template <typename Container, int dim, bool is_const>
+// auto begin(ax::math::FieldAccessor<Container, dim, is_const>& accessor) {
+//   return accessor.begin();
+// }
+//
+// template <typename Container, int dim, bool is_const>
+// auto end(ax::math::FieldAccessor<Container, dim, is_const>& accessor) {
+//   return accessor.end();
+// }
+//
+// template <typename Container, int dim, bool is_const>
+// auto cbegin(ax::math::FieldAccessor<Container, dim, is_const> const& accessor) {
+//   return accessor.begin();
+// }
+//
+// template <typename Container, int dim, bool is_const>
+// auto cend(ax::math::FieldAccessor<Container, dim, is_const> const& accessor) {
+//   return accessor.end();
+// }
+//
+// }  // namespace std

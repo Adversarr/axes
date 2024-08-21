@@ -13,7 +13,7 @@ using openvdb::tools::PointIndexGrid;
 
 class PointGrid {
 public:
-  PointGrid(math::RealField3 const& position, real voxel_size=-1, Index point_per_voxel=8);
+  PointGrid(math::RealField3 const& position, Real voxel_size=-1, Index point_per_voxel=8);
 
   PointDataGrid::Ptr DataGrid() { return point_data_grid_; }
 

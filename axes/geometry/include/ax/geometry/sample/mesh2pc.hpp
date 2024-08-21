@@ -15,7 +15,7 @@ namespace ax::geo {
  *
  * @tparam dim The dimension of the mesh.
  */
-template <Index dim> class MeshPointCloudSampler {
+template <int dim> class MeshPointCloudSampler {
 public:
   /**
    * @brief Constructs a MeshPointCloudSampler object.

@@ -12,7 +12,7 @@
 #include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/utils/enum_refl.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/xpbd/common.hpp"
 #include "ax/xpbd/constraints/colliding_balls.hpp"
 #include "ax/xpbd/constraints/hard.hpp"
@@ -21,14 +21,15 @@
 #include "ax/xpbd/constraints/spring.hpp"
 #include "ax/xpbd/constraints/tet.hpp"
 #include "ax/xpbd/global_step_collision_free.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 using namespace ax;
 xpbd::Constraint_PlaneCollider* bottom;
 Entity ent;
 ABSL_FLAG(int, nx, 4, "cloth resolution");
-ABSL_FLAG(real, ball_radius, 0.1, "Radius for balls.");
+ABSL_FLAG(Real, ball_radius, 0.1, "Radius for balls.");
 std::vector<float> running_time;
-real R;
+Real R;
 
 // render_aabb:
 void render_aabb() {
@@ -65,7 +66,7 @@ void render_aabb() {
   box.instance_offset_.resize(3, boxes.size());
   box.instance_scale_.resize(3, boxes.size());
   box.is_flat_ = true;
-  for (auto&& [i, b] : utils::enumerate(boxes)) {
+  for (auto&& [i, b] : utils::views::enumerate(boxes)) {
     box.instance_offset_.col(i) = b.min();
     box.instance_scale_.col(i) = b.sizes();
   }
@@ -133,12 +134,12 @@ void step() {
   for (Index i = 0; i < n_iter; ++i) {
     g.vertices_.setZero();
     w.setZero(1, nV);
-    real sqr_dual_residual = 0;
-    real sqr_primal_residual = 0;
+    Real sqr_dual_residual = 0;
+    Real sqr_primal_residual = 0;
     for (auto& c : g.constraints_) {
       auto R = c->SolveDistributed();
       // x_i step:
-      for (auto I : utils::iota(R.weights_.size())) {
+      for (auto I : utils::range(R.weights_.size())) {
         Index iV = c->GetConstrainedVerticesIds()[I];
         g.vertices_.col(iV) += R.weighted_position_.col(I);
         w(iV) += R.weights_[I];
@@ -155,13 +156,13 @@ void step() {
     // y_i step:
     for (auto& c : g.constraints_) {
       c->UpdatePositionConsensus();
-      real sqr_primal_residual_c = c->UpdateDuality();
+      Real sqr_primal_residual_c = c->UpdateDuality();
       sqr_primal_residual += sqr_primal_residual_c;
       AX_LOG(INFO) << "Constraint: " << utils::reflect_name(c->GetKind()).value_or("Unknown")
                    << " R_prim^2=" << sqr_primal_residual_c;
     }
 
-    // real scale = 1.0;
+    // Real scale = 1.0;
     // real dual_residual = std::sqrt(sqr_dual_residual);
     // real primal_residual = std::sqrt(sqr_primal_residual);
     // if (primal_residual > dual_residual * g.primal_dual_threshold_) {
@@ -196,7 +197,7 @@ void ui_callback(gl::UiRenderEvent const&) {
   ImGui::InputDouble("Ground Z: ", &bottom->offset_);
   if (ImGui::Button("Run Once") || running) {
     auto start = std::chrono::high_resolution_clock::now();
-    for (auto _ : utils::iota(10)) {
+    for (auto _ : utils::range(10)) {
       step();
     }
     auto end = std::chrono::high_resolution_clock::now();

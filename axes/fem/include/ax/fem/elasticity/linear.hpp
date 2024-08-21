@@ -7,27 +7,27 @@ namespace ax::fem::elasticity {
  * @brief Linear Elasticity Model.
  * @tparam dim
  */
-template <Index dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
+template <int dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
   public:
   using base_t = ElasticityBase<dim, Linear<dim>>;
   using stress_t = typename base_t::stress_t;
   using hessian_t = typename base_t::hessian_t;
   using ElasticityBase<dim, Linear<dim>>::ElasticityBase;
 
-  AX_HOST_DEVICE Linear(real lambda, real mu): ElasticityBase<dim, Linear<dim>>(lambda, mu) {}
+  AX_HOST_DEVICE Linear(Real lambda, Real mu): ElasticityBase<dim, Linear<dim>>(lambda, mu) {}
   AX_HOST_DEVICE Linear() : ElasticityBase<dim, Linear<dim>>() {}
 
   /**
    * @brief Compute the Linear Elasticity Potential value.
    *      Phi = mu * |e|_F + la / 2 * (trace_e)^2;
    * where e is the Approximate Green Strain (Ignore the high order terms)
-   * @return real
+   * @return Real
    */
-  AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F, const math::decomp::SvdResult<dim, real>&) const {
+  AX_HOST_DEVICE Real EnergyImpl(DeformGrad<dim> const& F, const math::decomp::SvdResult<dim, Real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::RealMatrix<dim, dim> const E = approx_green_strain(F);
-    real E_trace = E.trace();
+    Real E_trace = E.trace();
     return mu * math::norm2(E) + 0.5 * lambda * E_trace * E_trace;
   }
 
@@ -36,10 +36,10 @@ template <Index dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    *
    * @return stress_t
    */
-  AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
-                  math::decomp::SvdResult<dim, real> const&) const {
-    real lambda = this->lambda_;
-    real mu = this->mu_;
+  AX_HOST_DEVICE stress_t StressImpl(DeformGrad<dim> const& F,
+                  math::decomp::SvdResult<dim, Real> const&) const {
+    Real lambda = this->lambda_;
+    Real mu = this->mu_;
     math::RealMatrix<dim, dim> const E = approx_green_strain(F);
     return 2 * mu * E + lambda * E.trace() * math::eye<dim>();
   }
@@ -49,7 +49,7 @@ template <Index dim> class Linear : public ElasticityBase<dim, Linear<dim>> {
    *
    * @return hessian_t
    */
-  AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const&, const math::decomp::SvdResult<dim, real>&) const {
+  AX_HOST_DEVICE hessian_t HessianImpl(DeformGrad<dim> const&, const math::decomp::SvdResult<dim, Real>&) const {
     hessian_t H = math::eye<dim * dim>() * this->mu_;
     // mu * dF.transpose().
     for (Index i = 0; i < dim; ++i) {

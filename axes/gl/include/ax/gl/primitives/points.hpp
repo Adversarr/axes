@@ -7,7 +7,7 @@ struct Points {
   math::RealField3 vertices_;
   math::RealField4 colors_;
 
-  real point_size_{1.0};
+  Real point_size_{1.0};
   bool use_global_model_{true};
 };
 

@@ -60,7 +60,7 @@ void GraphExecutorBase::ExecuteOnce(Index frame_id) {
   graph_.TopologySort();
   run_ctx_.Clear();
   run_ctx_.PushStack();
-  run_ctx_.Emplace<Index>("frame_index", frame_id);
+  run_ctx_.Emplace<Index>("frame_id", frame_id);
 
   for (auto [i, n] : ranges::views::enumerate(graph_.GetNodes())) {
     if (n) {

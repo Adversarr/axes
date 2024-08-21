@@ -8,7 +8,7 @@
 #include <igl/readOBJ.h>
 
 #include "ax/core/excepts.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 
 namespace ax::geo {
 
@@ -29,7 +29,7 @@ EleFileReadResult read_ele(std::string const& ele_file) {
   //   return utils::NotFoundError("File not found.");
   // }
   AX_THROW_IF_FALSE(file, "File not found: {}", ele_file);
-  math::matxxi ele;
+  math::IndexMatrixX ele;
   Index n_tet, node_per_tet, n_attr;
   file >> n_tet >> node_per_tet >> n_attr;
   // if (node_per_tet != 4) {
@@ -39,7 +39,7 @@ EleFileReadResult read_ele(std::string const& ele_file) {
   ele.resize(node_per_tet, n_tet);
   for (Index i = 0; i < n_tet; ++i) {
     Index i_tet;
-    for (Index j : utils::iota(node_per_tet)) {
+    for (Index j : utils::range(node_per_tet)) {
       file >> i_tet;
       ele(j, i) = i_tet - 1;
     }
@@ -48,8 +48,8 @@ EleFileReadResult read_ele(std::string const& ele_file) {
 }
 
 NodeFileReadResult read_node(std::string const& path) {
-  math::matxxr V;
-  math::matxxi I;
+  math::RealMatrixX V;
+  math::IndexMatrixX I;
   AX_THROW_IF_FALSE(igl::readNODE(path, V, I), "Failed to read node file: {}" , path);
   return NodeFileReadResult{V.transpose(), I.transpose()};
 }

@@ -10,15 +10,15 @@ namespace ax::fem {
  * @tparam dim
  * @tparam ElasticModelTemplate
  */
-template <Index dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_CPU
+template <int dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_CPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using elem_stress_t = math::aligned_vector<math::RealMatrix<dim, dim>>;
   using vert_stress_t = math::RealField<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::spmatr;
+  using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
+  using vert_hessian_t = math::RealSparseMatrix;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
@@ -36,9 +36,9 @@ public:
   void RecomputeRestPose() final;
 
 protected:
-  std::vector<math::decomp::SvdResult<dim, real>> svd_results_;
-  elasticity::DeformationGradientList<dim> deformation_gradient_;
-  struct TbbPartitioners;  ///< include tbb in CUDA will cause error, so we have to put it here.
-  std::unique_ptr<TbbPartitioners> partitioner_impl_;
+  std::vector<math::decomp::SvdResult<dim, Real>> svd_results_;
+  elasticity::DeformGradBuffer<dim> deformation_gradient_;
+  struct Impl;  ///< include tbb in CUDA will cause error, so we have to put it here.
+  std::unique_ptr<Impl> impl_;
 };
 }  // namespace ax::fem

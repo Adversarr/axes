@@ -1,7 +1,7 @@
 #include "ax/math/polynomial.hpp"
 #include <cassert>
 using namespace ax;
-template <Index dim>
+template <int dim>
 void print_info(ax::math::RootInfo<dim> const& info) {
   printf("degree: %ld\n", info.degree_);
   for (Index i = 0; i < dim; ++i) {
@@ -29,9 +29,9 @@ void test_solve_quadratic() {
 
 Index cnt_error = 0;
 
-void test_solve_cubic(real a = 1, real b = 2, real c = 3) {
+void test_solve_cubic(Real a = 1, Real b = 2, Real c = 3) {
   // (x - a) (x - b) (x - c) = x^3 - (a + b + c) x^2 + (ab + bc + ca) x - abc
-  real u = a + b + c, v = a * b + b * c + c * a, w = a * b * c;
+  Real u = a + b + c, v = a * b + b * c + c * a, w = a * b * c;
   ax::math::RootInfo<3> info = ax::math::solve_cubic(1.0, -u, v, -w, 0, 1.0, 1e-10, 24);
   bool has_error = false;
   // find a.
@@ -60,11 +60,11 @@ void test_solve_cubic(real a = 1, real b = 2, real c = 3) {
 int main() {
   test_solve_linear();
   test_solve_quadratic();
-  real step = 0.0712;
+  Real step = 0.0712;
 
-  for (real a = 0; a <= 1; a += step) {
-    for (real b = a; b <= 1; b += step) {
-      for (real c = b; c <= 1; c += step) {
+  for (Real a = 0; a <= 1; a += step) {
+    for (Real b = a; b <= 1; b += step) {
+      for (Real c = b; c <= 1; c += step) {
         test_solve_cubic(a, b, c);
       }
     }

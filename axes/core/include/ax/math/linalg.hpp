@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
 
 #include "functional.hpp"
 
@@ -123,26 +124,26 @@ AX_HOST_DEVICE AX_FORCE_INLINE void eig(MBcr<A> a, MBr<EVec> e_vector, MBr<EVal>
 AX_HOST_DEVICE AX_FORCE_INLINE math::RealVector2 barycentric(math::RealVector2 const& p, math::RealVector2 const& a,
                                                        math::RealVector2 const& b) {
   math::RealVector2 v0 = b - a, v1 = p - a;
-  real d00 = math::dot(v0, v0);
-  real d01 = math::dot(v0, v1);
-  real denom = d00;
-  real v = d01 / denom;
-  real u = 1.0 - v;
+  Real d00 = math::dot(v0, v0);
+  Real d01 = math::dot(v0, v1);
+  Real denom = d00;
+  Real v = d01 / denom;
+  Real u = 1.0 - v;
   return math::RealVector2(u, v);
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE math::RealVector3 barycentric(math::RealVector3 const& p, math::RealVector3 const& a,
                                                        math::RealVector3 const& b, math::RealVector3 const& c) {
   math::RealVector3 v0 = b - a, v1 = c - a, v2 = p - a;
-  real d00 = math::dot(v0, v0);
-  real d01 = math::dot(v0, v1);
-  real d11 = math::dot(v1, v1);
-  real d20 = math::dot(v2, v0);
-  real d21 = math::dot(v2, v1);
-  real denom = d00 * d11 - d01 * d01;
-  real v = (d11 * d20 - d01 * d21) / denom;
-  real w = (d00 * d21 - d01 * d20) / denom;
-  real u = 1.0 - v - w;
+  Real d00 = math::dot(v0, v0);
+  Real d01 = math::dot(v0, v1);
+  Real d11 = math::dot(v1, v1);
+  Real d20 = math::dot(v2, v0);
+  Real d21 = math::dot(v2, v1);
+  Real denom = d00 * d11 - d01 * d01;
+  Real v = (d11 * d20 - d01 * d21) / denom;
+  Real w = (d00 * d21 - d01 * d20) / denom;
+  Real u = 1.0 - v - w;
   return math::RealVector3(u, v, w);
 }
 

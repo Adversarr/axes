@@ -16,7 +16,7 @@
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/math/io.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/asset.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
@@ -32,33 +32,33 @@ math::RealVector2 lame;
 #define SCENE_TWIST 0
 #define SCENE_BEND 1
 
-math::spmatr laplacian;
+math::RealSparseMatrix laplacian;
 std::unique_ptr<math::SparseSolverBase> laplacian_solver, hyper_solver;
 
 int scene;
 
 std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
-real KL_div(math::matxxr sigma_P, math::matxxr sigma_Q) {
+Real KL_div(math::RealMatrixX sigma_P, math::RealMatrixX sigma_Q) {
   auto [eigvec_P, eigval_P] = math::eig(sigma_P);
   auto [eigvec_Q, eigval_Q] = math::eig(sigma_Q);
-  real logdet_P_over_Q = 0;
-  for (auto i : utils::iota(eigval_P.size())) {
+  Real logdet_P_over_Q = 0;
+  for (auto i : utils::range(eigval_P.size())) {
     logdet_P_over_Q += log(eigval_P(i) / (eigval_Q(i) + math::epsilon<>));
   }
 
-  math::matxxr inv_P = sigma_P.inverse();
-  real KL = 0.5 * (inv_P * sigma_Q).trace() - 0.5 * 3 + 0.5 * logdet_P_over_Q;
+  math::RealMatrixX inv_P = sigma_P.inverse();
+  Real KL = 0.5 * (inv_P * sigma_Q).trace() - 0.5 * 3 + 0.5 * logdet_P_over_Q;
   return KL;
 }
 
-real KL_symmetric(math::matxxr sigma_P, math::matxxr sigma_Q) {
-  math::matxxr inv_P = sigma_P.inverse(), inv_Q = sigma_Q.inverse();
-  real KL = 0.5 * (inv_P * sigma_Q).trace() + 0.5 * (inv_Q * sigma_P).trace() - 3;
+Real KL_symmetric(math::RealMatrixX sigma_P, math::RealMatrixX sigma_Q) {
+  math::RealMatrixX inv_P = sigma_P.inverse(), inv_Q = sigma_Q.inverse();
+  Real KL = 0.5 * (inv_P * sigma_Q).trace() + 0.5 * (inv_Q * sigma_P).trace() - 3;
   return KL;
 }
 
-real cond(math::matxxr A) {
+Real cond(math::RealMatrixX A) {
   auto [eig, eigval] = math::eig(A);
   return eigval.maxCoeff() / eigval.minCoeff();
 }
@@ -84,7 +84,7 @@ void update_rendering() {
   ts->GetElasticity().UpdateEnergy();
   ts->GetElasticity().GatherEnergyToVertices();
   auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
-  static real m = 0, M = 0;
+  static Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
 
@@ -107,11 +107,11 @@ void update_eigen_evaluation() {
   ts->GetMesh()->FilterVector(dx, true);
   // stiffness:
   // find the eigen values of K
-  math::spmatr A = ts->Hessian(u1);
+  math::RealSparseMatrix A = ts->Hessian(u1);
   hyper_solver->SetProblem(A).Compute();
 
   auto [vec, val] = math::eig(A.toDense());
-  // Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> es(K, M);
+  // Eigen::GeneralizedSelfAdjointEigenSolver<math::RealMatrixX> es(K, M);
   // auto vec = es.eigenvectors();
   // auto val = es.eigenvalues();
   // Decompose dx into the eigenvectors of K
@@ -129,7 +129,7 @@ void update_eigen_evaluation() {
   cs_dist_eigen.resize(val.size());
   l2_dist_eigen.resize(val.size());
   relative_l2_dist_eigen.resize(val.size());
-  for (auto i : utils::iota(val.size())) {
+  for (auto i : utils::range(val.size())) {
     math::RealVectorX laplacian_applied = laplacian * vec.col(i);
     math::RealVectorX stiffness_applied = A * vec.col(i);
     l2_dist_eigen(i) = l2(laplacian_applied, stiffness_applied);
@@ -143,9 +143,9 @@ void update_eigen_evaluation() {
   l2_dist_invs.resize(val.size());
   relative_l2_dist_invs.resize(val.size());
   Index const nDof = ts->GetMesh()->GetNumVertices() * 3;
-  math::matxxr A_inverse = A.toDense().inverse();
+  math::RealMatrixX A_inverse = A.toDense().inverse();
   std::tie(vec, val) = math::eig(A_inverse);
-  for (auto i : utils::iota(val.size())) {
+  for (auto i : utils::range(val.size())) {
     math::RealVectorX evec = math::normalized(vec.col(i));
     auto laplacian_applied = laplacian_solver->Solve(evec, math::RealVectorX::Zero(nDof)).solution_;
     auto stiffness_applied = hyper_solver->Solve(evec, math::RealVectorX::Zero(nDof)).solution_;
@@ -158,7 +158,7 @@ void update_eigen_evaluation() {
   cs_dist_units.resize(val.size());
   l2_dist_units.resize(val.size());
   relative_l2_dist_units.resize(val.size());
-  for (auto i : utils::iota(val.size())) {
+  for (auto i : utils::range(val.size())) {
     math::RealVectorX unit_i = math::RealVectorX::Zero(val.size());
     unit_i(i) = 1;
     auto laplacian_applied = laplacian_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
@@ -172,7 +172,7 @@ void update_eigen_evaluation() {
   cs_dist_randoms.resize(val.size());
   l2_dist_randoms.resize(val.size());
   relative_l2_dist_randoms.resize(val.size());
-  for (auto i : utils::iota(val.size())) {
+  for (auto i : utils::range(val.size())) {
     math::RealVectorX unit_i = math::RealVectorX::Zero(val.size());
     unit_i.setRandom().normalize();
     auto laplacian_applied = laplacian_solver->Solve(unit_i, math::RealVectorX::Zero(nDof)).solution_;
@@ -200,9 +200,9 @@ void update_eigen_evaluation() {
 
 void update_KL_div() {
   auto u = ts->GetDisplacement();
-  math::matxxr K = ts->Hessian(u, true).toDense();
-  math::matxxr L = laplacian.toDense();
-  math::matxxr I = math::matxxr::Identity(K.rows(), K.cols());
+  math::RealMatrixX K = ts->Hessian(u, true).toDense();
+  math::RealMatrixX L = laplacian.toDense();
+  math::RealMatrixX I = math::RealMatrixX::Identity(K.rows(), K.cols());
 
   std::cout << "KL(K, L)" << KL_div(K, L) << std::endl;
   std::cout << "KL(L, K)" << KL_div(L, K) << std::endl;
@@ -239,10 +239,10 @@ void ui_callback(gl::UiRenderEvent) {
 
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
-      math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
+      math::RealMatrix3 rotate = Eigen::AngleAxis<Real>(dt, math::RealVector3::UnitX()).matrix();
       u0 = ts->GetPosition();
       auto m = ts->GetMesh();
-      for (auto i : utils::iota(u0.cols())) {
+      for (auto i : utils::range(u0.cols())) {
         const auto& position = u0.col(i);
         if (-position.x() > 1.9) {
           // Mark as dirichlet bc.
@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
   fps.setZero(100);
   scene = absl::GetFlag(FLAGS_scene);
 
-  real const poisson = 0.45, youngs = 1e7;
+  Real const poisson = 0.45, youngs = 1e7;
 
   lame = fem::elasticity::compute_lame(poisson, youngs);
   nx = absl::GetFlag(FLAGS_N);
@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
 
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   auto m = ts->GetMesh();
-  for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+  for (auto i : utils::range(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 4.9) {
       m->MarkDirichletBoundary(i, 0, position.x());
@@ -353,8 +353,8 @@ int main(int argc, char** argv) {
   ts->SetExternalAccelerationUniform(math::RealVector3(0, -9.8, 0));
 
   {
-    real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-    real W = 2 * mu + lambda;
+    Real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+    Real W = 2 * mu + lambda;
     auto L = fem::LaplaceMatrixCompute<3>{*ts->GetMesh()}(W);
     laplacian = math::kronecker_identity<3>(L);
     auto const& M = ts->GetMassMatrix();

@@ -63,14 +63,14 @@ public:
     NodeDescriptorFactory<SolvePoissionWithZeroDirichlet>()
         .SetName("Solve_Poission_With_Zero_Dirichlet_01_01")
         .SetDescription("Solves the Poission equation with zero Dirichlet boundary condition")
-        .AddInput<matxxr>("rhs", "Rhs of -laplace U = f")
+        .AddInput<RealMatrixX>("rhs", "Rhs of -laplace U = f")
         .AddInput<Index>("N", "Resolution of XY Dim")
-        .AddOutput<matxxr>("solution", "The solution of the Poission equation")
+        .AddOutput<RealMatrixX>("solution", "The solution of the Poission equation")
         .FinalizeAndRegister();
   }
 
   Status Apply(Index /* frame_id */) {
-    auto* rhs = RetriveInput<matxxr>(0);
+    auto* rhs = RetriveInput<RealMatrixX>(0);
     auto* n = RetriveInput<Index>(1);
     if (!rhs || !n) {
       return utils::FailedPreconditionError("Missing input");
@@ -80,12 +80,12 @@ public:
     math::IndexField3 faces = make_triangles(*n, *n);
     for (Index i = 0; i < *n; ++i) {
       for (Index j = 0; j < *n; ++j) {
-        vertices.col(i * *n + j) = math::RealVector2{i / real(*n - 1), j / real(*n - 1)};
+        vertices.col(i * *n + j) = math::RealVector2{i / Real(*n - 1), j / Real(*n - 1)};
       }
     }
 
     // SECT: Make a P1 element:
-    sp_coeff_list coefficients;
+    SparseCOO coefficients;
     for (auto elem : each(faces)) {
       Index Index00 = elem[0];
       Index Index01 = elem[1];
@@ -98,14 +98,14 @@ public:
       for (Index i = 0; i < 3; ++i) {
         for (Index j = 0; j < 3; ++j) {
           coefficients.push_back(
-              sp_coeff(elem[i], elem[j],
+              SparseEntry(elem[i], elem[j],
                        element.Integrate_PF_PF(i, j, 0, 0) + element.Integrate_PF_PF(i, j, 1, 1)));
         }
       }
     }
 
     // SECT: Set Dirichlet BC to 1
-    sp_coeff_list coef_no_dirichlet;
+    SparseCOO coef_no_dirichlet;
     for (auto trip : coefficients) {
       if (!is_diriclet(trip.row(), *n) && !is_diriclet(trip.col(), *n)) {
         coef_no_dirichlet.push_back(trip);
@@ -115,7 +115,7 @@ public:
       for (Index j = 0; j < *n; ++j) {
         Index Index00 = i * *n + j;
         if (is_diriclet(Index00, *n)) {
-          coef_no_dirichlet.push_back(sp_coeff(Index00, Index00, 1));
+          coef_no_dirichlet.push_back(SparseEntry(Index00, Index00, 1));
         }
       }
     }
@@ -141,14 +141,14 @@ public:
     b = b * (1.0 / ((*n - 1) * (*n - 1)));
 
     // SECT: Solve the linear system:
-    spmatr A(*n * *n, *n * *n);
+    RealSparseMatrix A(*n * *n, *n * *n);
     A.setFromTriplets(coef_no_dirichlet.begin(), coef_no_dirichlet.end());
     A.makeCompressed();
     SparseSolver_LDLT ldlt;
     ldlt.SetProblem(A).Compute();
     auto solution = ldlt.Solve(b, {});
     RealVectorX x = solution.solution_;
-    math::matxxr solution_field(*n, *n);
+    math::RealMatrixX solution_field(*n, *n);
     for (Index i = 0; i < *n; ++i) {
       for (Index j = 0; j < *n; ++j) {
         Index Index00 = i * *n + j;
@@ -156,17 +156,17 @@ public:
       }
     }
 
-    SetOutput<matxxr>(0, solution_field);
+    SetOutput<RealMatrixX>(0, solution_field);
     AX_RETURN_OK();
   }
 };
 
-real gaussian(real x, real y, real mean_x, real mean_y, real std_x, real std_y) {
+Real gaussian(Real x, Real y, Real mean_x, Real mean_y, Real std_x, Real std_y) {
   return std::exp(-0.5 * ((x - mean_x) * (x - mean_x) / (std_x * std_x)
                           + (y - mean_y) * (y - mean_y) / (std_y * std_y)));
 }
 
-real gaussian(RealVector2 const& x, RealVector2 const& mean, RealVector2 const& std) {
+Real gaussian(RealVector2 const& x, RealVector2 const& mean, RealVector2 const& std) {
   return gaussian(x.x(), x.y(), mean.x(), mean.y(), std.x(), std.y());
 }
 
@@ -182,8 +182,8 @@ public:
         .AddInput<Index>("N", "Resolution of XY Dim")
         .AddInput<RealVector2>("mean", "Mean of the Gaussian distribution")
         .AddInput<RealVector2>("std", "Standard deviation of the Gaussian distribution")
-        .AddInput<real>("scale", "Scale of the Gaussian distribution")
-        .AddOutput<matxxr>("rhs", "The right-hand-side of the Poission equation")
+        .AddInput<Real>("scale", "Scale of the Gaussian distribution")
+        .AddOutput<RealMatrixX>("rhs", "The right-hand-side of the Poission equation")
         .FinalizeAndRegister();
   }
 
@@ -191,22 +191,22 @@ public:
     auto* n = RetriveInput<Index>(0);
     auto* mean = RetriveInput<RealVector2>(1);
     auto* std = RetriveInput<RealVector2>(2);
-    auto* scale = RetriveInput<real>(3);
+    auto* scale = RetriveInput<Real>(3);
     if (!n) {
       return utils::FailedPreconditionError("Missing input");
     }
 
     RealVector2 mean_inuse = mean ? *mean : RealVector2{0.5, 0.5};
     RealVector2 std_inuse = std ? *std : RealVector2{1, 1};
-    real scale_inuse = scale ? *scale : 1.0;
+    Real scale_inuse = scale ? *scale : 1.0;
 
-    math::matxxr rhs(*n, *n);
+    math::RealMatrixX rhs(*n, *n);
     for (Index i = 0; i < *n; ++i) {
       for (Index j = 0; j < *n; ++j) {
-        rhs(i, j) = gaussian(RealVector2{i / real(*n - 1), j / real(*n - 1)}, mean_inuse, std_inuse);
+        rhs(i, j) = gaussian(RealVector2{i / Real(*n - 1), j / Real(*n - 1)}, mean_inuse, std_inuse);
       }
     }
-    SetOutput<matxxr>(0, scale_inuse * rhs);
+    SetOutput<RealMatrixX>(0, scale_inuse * rhs);
     AX_RETURN_OK();
   }
 };
@@ -219,14 +219,14 @@ public:
     NodeDescriptorFactory<VisualizeHeightField>()
         .SetName("Visualize_Height_Field_01")
         .SetDescription("Visualizes the height field")
-        .AddInput<matxxr>("data", "The height field to visualize")
+        .AddInput<RealMatrixX>("data", "The height field to visualize")
         .AddOutput<geo::SurfaceMesh>("mesh", "The mesh of the height field")
         .AddOutput<RealField4>("color", "The color of the height field")
         .FinalizeAndRegister();
   }
 
   Status Apply(Index /* frame_id */) {
-    auto* height_field = RetriveInput<matxxr>(0);
+    auto* height_field = RetriveInput<RealMatrixX>(0);
     if (!height_field) {
       return utils::FailedPreconditionError("Missing input");
     }

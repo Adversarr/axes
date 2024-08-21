@@ -3,10 +3,11 @@
 #include <doctest/doctest.h>
 
 #include <ax/math/shape.hpp>
+#include <ax/parallel/parallel.hpp>
 
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/structure_binding.hpp"
+#include "ax/math/utils/structure_binding.hpp"
 #include "ax/math/views.hpp"
 
 TEST_CASE("shape3d") {
@@ -33,8 +34,26 @@ TEST_CASE("shape3d") {
       CHECK_EQ(s.Sub2Ind(i, j, k), ind);
       ind++;
     }
+
+    ind = 0;
+    for (auto [i, j, k]: s) {
+      CHECK_EQ(s.Sub2Ind(i, j, k), ind);
+      ind++;
+    }
   }
 }
+
+// TEST_CASE("shape2d_with_physical_extent") {
+//   using namespace ax::math;
+//   ShapeArray<size_t, 2> extent{4, 4};
+//   ShapeArray<size_t, 2> physical_extent{4, 8}; ///< example: cuda pitch
+//   auto s = Shape(extent, physical_extent);
+//   for (int i = 0; i < 4; i++) {
+//     for (int j = 0; j < 4; j++) {
+//       CHECK_EQ(s.Sub2Ind(i, j), i * 8 + j);
+//     }
+//   }
+// }
 
 TEST_CASE("shape1d") {
   using namespace ax::math;
@@ -148,7 +167,7 @@ TEST_CASE("accessor1d3d") {
 
   {  // Their underlying data is same.
     for (auto [ijk, v] : enumerate(a3)) {
-      v = to_vec(ijk).cast<real>();
+      v = to_vec(ijk).cast<Real>();
     }
 
     for (auto [ind, v] : enumerate(a1)) {
@@ -167,7 +186,7 @@ TEST_CASE("accessor_span1d") {
   using namespace ax;
   using namespace ax::math;
   RealField1 f(8);
-  real* data = f.data();
+  Real* data = f.data();
   size_t size = static_cast<size_t>(f.size());
   Span chk(data, size);
 
@@ -192,7 +211,7 @@ TEST_CASE("accessor_span3d") {
 
   auto acc = make_accessor(chk, make_shape(2, 2, 2));
   for (auto [ijk, val] : enumerate(acc)) {
-    val = to_vec(ijk).cast<real>();
+    val = to_vec(ijk).cast<Real>();
   }
 
   // assert that the data is same
@@ -213,14 +232,14 @@ TEST_CASE("const_accessor2d") {
   auto acc = make_accessor(f, shape);
 
   for (auto [i, j] : iter(shape)) {
-    acc(i, j) = RealVector3(static_cast<real>(i), static_cast<real>(j), 0);
+    acc(i, j) = RealVector3(static_cast<Real>(i), static_cast<Real>(j), 0);
   }
 
   auto const_acc = make_accessor(std::as_const(f), shape);
   for (auto [ij, v] : enumerate(const_acc)) {
     auto [i, j] = ij;
-    CHECK_EQ(v.x(), static_cast<real>(i));
-    CHECK_EQ(v.y(), static_cast<real>(j));
+    CHECK_EQ(v.x(), static_cast<Real>(i));
+    CHECK_EQ(v.y(), static_cast<Real>(j));
     CHECK_EQ(v.z(), 0);
   }
 }
@@ -240,7 +259,7 @@ TEST_CASE("for_each3d") {
   auto shape = make_shape(2, 2, 2);
   auto acc = make_accessor(f, shape);
 
-  for_each(enumerate(acc), [](auto && ijk, auto & v) { v = to_vec(ijk).template cast<real>(); });
+  for_each(enumerate(acc), [](auto && ijk, auto & v) { v = to_vec(ijk).template cast<Real>(); });
 
   for (auto [i, j, k] : iter(shape)) {
     auto ind = shape.Sub2Ind(i, j, k);

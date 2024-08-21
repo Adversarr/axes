@@ -20,8 +20,8 @@ template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR Index to_std_s
   return static_cast<size_t>(v);
 }
 
-template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR real to_real(T &&v) {
-  return static_cast<real>(v);
+template <typename T> AX_FORCE_INLINE AX_HOST_DEVICE AX_CONSTEXPR Real to_real(T &&v) {
+  return static_cast<Real>(v);
 }
 
 }  // namespace ax

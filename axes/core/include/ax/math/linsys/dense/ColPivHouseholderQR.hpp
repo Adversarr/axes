@@ -8,7 +8,7 @@ public:
   void Compute() override;
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kColPivHouseholderQR; }
 private:
-  Eigen::ColPivHouseholderQR<matxxr> impl_;
+  Eigen::ColPivHouseholderQR<RealMatrixX> impl_;
 };
 
 }  // namespace ax::math

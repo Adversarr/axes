@@ -10,14 +10,14 @@ namespace ax::geo {
 struct EdgeCollapseCost {
   HalfedgeEdge* edge;
   math::RealVector3 target_position;
-  real cost;
+  Real cost;
   bool operator<(EdgeCollapseCost const& other) const { return cost > other.cost; }
 };
 
 MeshDecimator::MeshDecimator(HalfedgeMesh* mesh) : mesh_(mesh), target_count_(mesh->NVertices()) {}
 
-MeshDecimator& MeshDecimator::SetRatio(real ratio) {
-  return SetTargetCount(static_cast<Index>(ratio * real(mesh_->NVertices())));
+MeshDecimator& MeshDecimator::SetRatio(Real ratio) {
+  return SetTargetCount(static_cast<Index>(ratio * Real(mesh_->NVertices())));
 }
 
 MeshDecimator& MeshDecimator::SetTargetCount(Index count) {
@@ -25,7 +25,7 @@ MeshDecimator& MeshDecimator::SetTargetCount(Index count) {
   return *this;
 }
 
-real eval_cost(math::RealMatrix4 const& Q, math::RealVector3 const& position) {
+Real eval_cost(math::RealMatrix4 const& Q, math::RealVector3 const& position) {
   math::RealVector4 homo;
   homo << position, 1.0;
   return homo.dot(Q * homo);

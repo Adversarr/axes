@@ -17,11 +17,11 @@ ConstraintSolution Constraint_Hard::SolveDistributed() {
   return result;
 }
 
-real Constraint_Hard::UpdateDuality() {
+Real Constraint_Hard::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
   // auto const prim_res = dual_ - fetch_from_global;
   // gap_ += dual_ - fetch_from_global;
-  real prim_res = 0;
+  Real prim_res = 0;
   for (Index i = 0; i < this->GetNumConstrainedVertices(); ++i) {
     math::RealVector3 residual = dual_.col(i) - fetch_from_global[i];
     gap_.col(i) += residual;

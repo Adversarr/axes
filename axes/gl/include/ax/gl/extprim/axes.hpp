@@ -8,7 +8,7 @@ class Axes {
 public:
   inline Axes()
       : position_(math::zeros<3>()),
-        scale_(math::constant<3>(real(5))),
+        scale_(math::constant<3>(static_cast<Real>(5))),
         color_(math::eye<3>()),
         rotate_(math::eye<3>()) {}
   math::RealVector3 position_;
@@ -36,7 +36,6 @@ public:
     lines.indices_.col(0) = math::IndexVec2{0, 1};
     lines.indices_.col(1) = math::IndexVec2{2, 3};
     lines.indices_.col(2) = math::IndexVec2{4, 5};
-    lines;
     return lines;
   }
 };

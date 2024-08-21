@@ -56,14 +56,14 @@ public:
   math::RealField<dim> GetLastPosition() const;
 
   // SECT: Density: Will update the mass matrices.
-  void SetDensity(real density);
+  void SetDensity(Real density);
   void SetDensity(math::RealField1 const &density);
-  math::spmatr const &GetMassMatrix() const noexcept { return mass_matrix_; }
-  math::spmatr const &GetMassMatrixOriginal() const noexcept { return mass_matrix_original_; }
+  math::RealSparseMatrix const &GetMassMatrix() const noexcept { return mass_matrix_; }
+  math::RealSparseMatrix const &GetMassMatrixOriginal() const noexcept { return mass_matrix_original_; }
 
   // SECT: Lame:
-  void SetYoungs(real youngs);
-  void SetPoissonRatio(real poisson_ratio);
+  void SetYoungs(Real youngs);
+  void SetPoissonRatio(Real poisson_ratio);
   void SetLame(const math::RealField2 &lame);
   void SetLame(const math::RealVector2 &u_lame);
   math::RealField2 const &GetLame() const noexcept { return lame_; }
@@ -82,7 +82,7 @@ public:
   // WARN: After this function is called, the simulation will be considered started:
   // Elasticity, integration scheme, and youngs, poisson_ratio, density cannot change
   // to avoid inconsistency.
-  virtual void BeginSimulation(real dt);
+  virtual void BeginSimulation(Real dt);
   // Start a new timestep, prepare the data, we assume dt does not change during this timestep
   virtual void BeginTimestep();
   // Set the mesh to new position
@@ -99,20 +99,20 @@ public:
 
   // SECT: During the timestep, optimizers may require such information
 
-  real Energy(math::RealField<dim> const &u) const;
+  Real Energy(math::RealField<dim> const &u) const;
   math::RealField<dim> GetElasticForce(math::RealField<dim> const &u) const;
-  math::spmatr GetStiffnessMatrix(math::RealField<dim> const &u, bool project = false) const;
+  math::RealSparseMatrix GetStiffnessMatrix(math::RealField<dim> const &u, bool project = false) const;
   math::RealField<dim> Gradient(math::RealField<dim> const &u) const;
   math::RealVectorX GradientFlat(math::RealVectorX const &u_flat) const;
-  math::spmatr Hessian(math::RealField<dim> const &u, bool project = true) const;
+  math::RealSparseMatrix Hessian(math::RealField<dim> const &u, bool project = true) const;
 
-  real ResidualNorm(math::RealField<dim> const &grad) const;
-  real L2Residual(math::RealField<dim> const &grad) const;
-  real L1Residual(math::RealField<dim> const &grad) const;
-  real LinfResidual(math::RealField<dim> const &grad) const;
+  Real ResidualNorm(math::RealField<dim> const &grad) const;
+  Real L2Residual(math::RealField<dim> const &grad) const;
+  Real L1Residual(math::RealField<dim> const &grad) const;
+  Real LinfResidual(math::RealField<dim> const &grad) const;
 
   std::vector<math::RealField<dim>> const &GetLastTrajectory() const { return last_trajectory_; }
-  std::vector<real> const &GetLastEnergy() const { return last_energy_; }
+  std::vector<Real> const &GetLastEnergy() const { return last_energy_; }
 
 protected:
   /************************* SECT: Common Data *************************/
@@ -124,7 +124,7 @@ protected:
   std::string elasticity_name_{"stable_neohookean"}, device_{"cpu"};
 
   // NOTE: Elasticity.
-  real youngs_{1e7}, poisson_ratio_{0.33}, density_{1e3};
+  Real youngs_{1e7}, poisson_ratio_{0.33}, density_{1e3};
 
   // State variables
   math::RealField<dim> u_, u_back_;                ///< Displacement
@@ -139,23 +139,23 @@ protected:
   // runtime parameters.
   // math::RealVector2 u_lame_;                 ///< Uniform Lame parameters
   math::RealField2 lame_;                 ///< Lame parameters
-  math::spmatr mass_matrix_;           ///< The full mass matrix, (N D, N D)
-  math::spmatr mass_matrix_original_;  ///< The original mass matrix, (N, N)
+  math::RealSparseMatrix mass_matrix_;           ///< The full mass matrix, (N D, N D)
+  math::RealSparseMatrix mass_matrix_original_;  ///< The original mass matrix, (N, N)
 
-  real dt_{1e-2};  ///< The time step, should be formulated here because many initializers use dt
+  Real dt_{1e-2};  ///< The time step, should be formulated here because many initializers use dt
                    ///< such as Quasi Newton proposed in Liu17.
 
-  real abs_tol_grad_{0};  // Dynamically set according to rel_tol_grad.
+  Real abs_tol_grad_{0};  // Dynamically set according to rel_tol_grad.
 
   // Convergency Parameters:
-  real rel_tol_grad_{0.02};
-  real tol_var_{1e-9};
+  Real rel_tol_grad_{0.02};
+  Real tol_var_{1e-9};
   TimestepConvergeNormKind converge_kind_{TimestepConvergeNormKind::kLinf};
   Index max_iter_{1000};
   bool record_trajectory_{false};
 
   std::vector<math::RealField<dim>> last_trajectory_;
-  std::vector<real> last_energy_;
+  std::vector<Real> last_energy_;
   Index last_iterations_{0};
 
 private:

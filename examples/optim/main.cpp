@@ -1,6 +1,6 @@
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
@@ -9,7 +9,7 @@
 
 using namespace ax;
 Index n = 2;
-math::matxxr A;
+math::RealMatrixX A;
 math::RealVectorX b;
 
 int main(int argc, char** argv) {
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     {"max_iter", Index(200)},
     {"linesearch", "kBacktracking"},
     {"linesearch_opt", utils::Options{
-      {"required_descent_rate", real(1e-4)},
+      {"required_descent_rate", Real(1e-4)},
     }}
   };
 
@@ -60,22 +60,22 @@ int main(int argc, char** argv) {
     x0 = math::RealVectorX::Constant(n, 1.2);
     optimal = optim::test::RosenbrockProblem{}.Optimal(x0);
   } else if (problem == "lstsq") {
-    A = math::matxxr::Random(n, n);
+    A = math::RealMatrixX::Random(n, n);
     A = (math::eye(n) + A * A.transpose()).eval();
     b = math::RealVectorX::Random(n);
     prob = std::make_shared<optim::test::LeastSquareProblem>(A, b);
     optimal = optim::test::LeastSquareProblem{A, b}.Optimal(b);
     x0.setRandom(n, 1);
   } else if (problem == "sp_lstsq") {
-    math::sp_coeff_list A_sparse;
+    math::SparseCOO A_sparse;
     A_sparse.reserve(n * 10);
     for (Index i = 0; i < n; ++i) {
       for (Index j = 0; j < 9; ++j) {
-        A_sparse.push_back({i, rand() % n, real(rand() % 100) / 100.0});
+        A_sparse.push_back({i, rand() % n, Real(rand() % 100) / 100.0});
       }
-      A_sparse.push_back({i, i, real(1.0)});
+      A_sparse.push_back({i, i, Real(1.0)});
     }
-    math::spmatr A2{n, n};
+    math::RealSparseMatrix A2{n, n};
     b.setRandom(n);
     A2.setFromTriplets(A_sparse.begin(), A_sparse.end());
     A2.makeCompressed();

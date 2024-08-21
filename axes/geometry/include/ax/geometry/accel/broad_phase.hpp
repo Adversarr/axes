@@ -14,7 +14,7 @@ public:
   void Clear() { colliders_.clear(); }
   ColliderInfo const& GetCollider(Index i) const { return colliders_[i]; }
   BroadPhaseResult const& GetCollidingPairs() const;
-  void ExpandAABB(real epsilon);
+  void ExpandAABB(Real epsilon);
   void Reserve(size_t n);
 
   /************************* SECT: Add Collider *************************/

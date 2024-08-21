@@ -4,7 +4,7 @@
 
 namespace ax::math::decomp {
 
-template <Index dim, typename Scalar> class JacobiSvd {
+template <int dim, typename Scalar> class JacobiSvd {
 public:
   using mat_t = Matrix<Scalar, dim, dim>;
   using vec_t = Vector<Scalar, dim>;
@@ -19,7 +19,7 @@ public:
   }
 };
 
-template <Index dim, typename Scalar> class BDCSvd {
+template <int dim, typename Scalar> class BDCSvd {
 public:
   using mat_t = Matrix<Scalar, dim, dim>;
   using vec_t = Vector<Scalar, dim>;

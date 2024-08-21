@@ -25,7 +25,7 @@ template <typename Scalar> bool operator!=(Approx<Scalar> const& lhs, Scalar con
   return !(lhs == rhs);
 }
 
-template <typename Scalar = real, typename = std::enable_if_t<std::is_floating_point_v<Scalar>>>
+template <typename Scalar = Real, typename = std::enable_if_t<std::is_floating_point_v<Scalar>>>
 Approx<Scalar> approx(Scalar value, Scalar tol = math::epsilon<Scalar>) {
   return Approx<Scalar>(value, tol);
 }

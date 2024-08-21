@@ -5,7 +5,7 @@
 
 namespace ax::fem {
 
-template <Index dim> class Deformation {
+template <int dim> class Deformation {
 public:
   /**
    * @brief Compute the deformation gradient for each element in the mesh. Will automatically
@@ -28,7 +28,7 @@ public:
    *
    * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientList<dim> Forward() const;
+  elasticity::DeformGradBuffer<dim> Forward() const;
 
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
@@ -36,14 +36,14 @@ public:
    * @param current current pose of vertices
    * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformationGradientList<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
+  elasticity::DeformGradBuffer<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.
    *
    * @return std::vector of cache.
    */
-  elasticity::DeformationGradientCache<dim> const& GetRestPoseCache() const;
+  elasticity::DeformGradCache<dim> const& GetRestPoseCache() const;
 
   /**
    * @brief Transfer the energy from the elements to the vertices.
@@ -66,7 +66,7 @@ public:
    * @param hessian 
    * @return math::sp_coeff_list 
    */
-  math::sp_coeff_list HessianToVertices(std::vector<elasticity::HessianTensor<dim>> const& hessian) const;
+  math::SparseCOO HessianToVertices(std::vector<elasticity::HessianTensor<dim>> const& hessian) const;
 
   /**
    * @brief Transfer the stress from the elements to the vertices.
@@ -88,13 +88,13 @@ public:
    *
    * @return Volume
    */
-  AX_FORCE_INLINE real GetElementVolume(Index element_Index) const {
+  AX_FORCE_INLINE Real GetElementVolume(Index element_Index) const {
     return rest_pose_volume_(0, element_Index);
   }
 
 private:
   TriMesh<dim> const& mesh_;
-  elasticity::DeformationGradientCache<dim> deformation_gradient_cache_;
+  elasticity::DeformGradCache<dim> deformation_gradient_cache_;
   typename TriMesh<dim>::vertex_list_t rest_pose_;
   math::RealField1 rest_pose_volume_;
 };

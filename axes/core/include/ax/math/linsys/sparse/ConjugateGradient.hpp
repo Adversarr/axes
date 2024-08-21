@@ -9,7 +9,7 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
 
-  LinsysSolveResult Solve(matxxr const &b, matxxr const &x0) override;
+  LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
   void SetOptions(utils::Options const &) final;
 
@@ -18,11 +18,11 @@ public:
   SparseSolverKind GetKind() const final { return SparseSolverKind::kConjugateGradient; }
 
 private:
-  Eigen::ConjugateGradient<spmatr, Eigen::Lower | Eigen::Upper,
-                           Eigen::IncompleteCholesky<real, Eigen::Lower, Eigen::AMDOrdering<Index>>>
+  Eigen::ConjugateGradient<RealSparseMatrix, Eigen::Lower | Eigen::Upper,
+                           Eigen::IncompleteCholesky<Real, Eigen::Lower, Eigen::AMDOrdering<Index>>>
       solver_;
 
   Index max_iter_ = 100;
-  real tol_ = 1e-6;
+  Real tol_ = 1e-6;
 };
 }  // namespace ax::math

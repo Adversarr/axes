@@ -6,8 +6,8 @@ namespace ax::fem {
 
 // computes Integrate[u_i, u_j] for i, j = 0,...,dim
 // Take the result from the p12_element_f_f array
-template <Index dim>
-static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, real density) {
+template <int dim>
+static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E, Real density) {
   math::RealMatrix<dim + 1, dim + 1> result;
   for (Index i = 0; i <= dim; ++i) {
     for (Index j = 0; j <= dim; ++j) {
@@ -22,8 +22,8 @@ static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E,
   return result;
 }
 
-template <Index dim> math::spmatr MassMatrixCompute<dim>::operator()(real density) {
-  math::sp_coeff_list result;
+template <int dim> math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Real density) {
+  math::SparseCOO result;
   for (auto const& ijk : mesh_) {
     std::array<math::RealVector<dim>, dim + 1> vert;
     for (Index i = 0; i <= dim; ++i) {
@@ -40,9 +40,9 @@ template <Index dim> math::spmatr MassMatrixCompute<dim>::operator()(real densit
   return math::make_sparse_matrix(mesh_.GetNumVertices(), mesh_.GetNumVertices(), result);
 }
 
-template <Index dim>
-math::spmatr MassMatrixCompute<dim>::operator()(math::RealField1 const& density) {
-  math::sp_coeff_list result;
+template <int dim>
+math::RealSparseMatrix MassMatrixCompute<dim>::operator()(math::RealField1 const& density) {
+  math::SparseCOO result;
   for (Index i = 0; i < mesh_.GetElements().cols(); ++i) {
     const auto& ijk = mesh_.GetElement(i);
     std::array<math::RealVector<dim>, dim + 1> vert;

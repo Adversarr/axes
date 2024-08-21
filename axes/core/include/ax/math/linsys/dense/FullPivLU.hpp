@@ -9,6 +9,6 @@ public:
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kFullPivLU; }
 
 private:
-  Eigen::FullPivLU<matxxr> impl_;
+  Eigen::FullPivLU<RealMatrixX> impl_;
 };
 }  // namespace ax::math

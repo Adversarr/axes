@@ -20,30 +20,30 @@ template <int dim> void Timestepper_QuasiNewton<dim>::Initialize() {
 template <int dim> void Timestepper_QuasiNewton<dim>::UpdateSolverLaplace() {
   const auto &lame = this->lame_;
   // If you are using stable neohookean, you should bias the lambda and mu:
-  // real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
-  math::spmatr laplacian = LaplaceMatrixCompute<dim>{*(this->mesh_)}(lame.row(0) + 2 * lame.row(1));
+  // Real lambda = lame[0] + 5.0 / 6.0 * lame[1], mu = 4.0 / 3.0 * lame[1];
+  math::RealSparseMatrix laplacian = LaplaceMatrixCompute<dim>{*(this->mesh_)}(lame.row(0) + 2 * lame.row(1));
   auto convect_diffuse = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, laplacian);
-  math::spmatr full = math::kronecker_identity<dim>(convect_diffuse);
+  math::RealSparseMatrix full = math::kronecker_identity<dim>(convect_diffuse);
   this->mesh_->FilterMatrixFull(full);
   solver_->SetProblem(full).Compute();
 }
 
-template <int dim> math::spmatr Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
+template <int dim> math::RealSparseMatrix Timestepper_QuasiNewton<dim>::GetLaplacianAsApproximation() const {
   const auto &lame = this->lame_;
   math::RealField1 weight = lame.row(0) + 2 * lame.row(1);
-  math::spmatr laplace = LaplaceMatrixCompute<dim>{*(this->mesh_)}(weight);
+  math::RealSparseMatrix laplace = LaplaceMatrixCompute<dim>{*(this->mesh_)}(weight);
   auto full_laplacian = this->integration_scheme_->ComposeHessian(this->mass_matrix_original_, laplace);
   this->mesh_->FilterMatrixDof(0, full_laplacian);
   return full_laplacian;
 }
 
-template <int dim> void Timestepper_QuasiNewton<dim>::BeginSimulation(real dt) {
+template <int dim> void Timestepper_QuasiNewton<dim>::BeginSimulation(Real dt) {
   TimeStepperBase<dim>::BeginSimulation(dt);
   UpdateSolverLaplace();
 }
 
 math::RealVectorX eigval;
-math::matxxr eigvec;
+math::RealMatrixX eigvec;
 
 template <int dim> void Timestepper_QuasiNewton<dim>::BeginTimestep() {
   TimeStepperBase<dim>::BeginTimestep();
@@ -113,7 +113,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::SolveTimestep() {
     //       // Secant equation: yk = Hk * sk
     //       //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
     //       //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
-    //       real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
+    //       Real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<Real>);
     //       return gamma_Hsy * apply(gk);
     //     });
   }

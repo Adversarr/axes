@@ -9,7 +9,7 @@ public:
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kPartialPivLU; }
 
 private:
-  Eigen::PartialPivLU<matxxr> impl_;
+  Eigen::PartialPivLU<RealMatrixX> impl_;
 };
 
 }  // namespace ax::math

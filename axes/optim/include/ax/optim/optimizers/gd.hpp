@@ -7,15 +7,15 @@ namespace ax::optim {
 
 class Optimizer_GradientDescent : public OptimizerBase {
 public:
-  Optimizer_GradientDescent(real const& lr = 0.01) : lr_(lr) {}
+  Optimizer_GradientDescent(Real const& lr = 0.01) : lr_(lr) {}
 
   OptResult Optimize(OptProblem const& problem, const Variable& x0) const override;
 
   OptimizerKind GetKind() const override;
 
-  void SetLearningRate(real const& lr);
+  void SetLearningRate(Real const& lr);
 
-  void SetProximator(std::function<math::RealVectorX(math::RealVectorX const&, real)> proximator);
+  void SetProximator(std::function<math::RealVectorX(math::RealVectorX const&, Real)> proximator);
 
   void SetLineSearch(std::unique_ptr<LinesearchBase> linesearch);
 
@@ -25,7 +25,7 @@ public:
 
 private:
   std::unique_ptr<LinesearchBase> linesearch_;
-  real lr_;
+  Real lr_;
 };
 
 }  // namespace ax::optim

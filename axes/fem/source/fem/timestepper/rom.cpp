@@ -2,7 +2,7 @@
 
 #include <tbb/parallel_for.h>
 
-#include "ax/math/approx.hpp"
+#include "ax/math/utils/approx.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
 #include "ax/optim/spsdm.hpp"
@@ -13,7 +13,7 @@
 
 namespace ax::fem {
 
-// template <Index dim> Status TimeStepper_ROM<dim>::Step(real dt) {
+// template <int dim> Status TimeStepper_ROM<dim>::Step(Real dt) {
 //   // Get the mesh
 //   AX_TIME_FUNC();
 //   auto &mesh = this->GetMesh();
@@ -33,18 +33,18 @@ namespace ax::fem {
 //         + dt * velocity
 //         + dt * dt * this->ext_accel_ * this->mass_matrix_original_;
 
-//   real max_tol = (mass_matrix * math::RealVectorX::Ones(n_vert * dim)).maxCoeff() + math::epsilon<real>;
+//   Real max_tol = (mass_matrix * math::RealVectorX::Ones(n_vert * dim)).maxCoeff() + math::epsilon<Real>;
 //   AX_LOG(INFO) << "Max Tol: " << max_tol;
 //   // Setup the objective function.
 //   problem
-//       .SetEnergy([&](const math::RealVectorX &w) -> real {
+//       .SetEnergy([&](const math::RealVectorX &w) -> Real {
 //         math::RealField<dim> dl = w.reshaped(dim, latent_.cols());
 //         math::RealField<dim> x = LatentRestoreX(dl + latent_);
 //         math::RealField<dim> xy = (x - full_space_inertia_position_expectation);
-//         real kinematic = 0.5 * xy.reshaped().dot(mass_matrix * xy.reshaped());
+//         Real kinematic = 0.5 * xy.reshaped().dot(mass_matrix * xy.reshaped());
 //         elasticity.Update(x, ElasticityUpdateLevel::kEnergy);
 //         elasticity.UpdateEnergy();
-//         real elastic = elasticity.GetEnergyOnElements().sum() * dt * dt;
+//         Real elastic = elasticity.GetEnergyOnElements().sum() * dt * dt;
 //         return kinematic + elastic;
 //       })
 //       .SetGrad([&](const math::RealVectorX &w) -> math::RealVectorX {
@@ -60,11 +60,11 @@ namespace ax::fem {
 //         math::RealVectorX grad_rom = (grad_full.reshaped(dim, n_vert) * basis_).reshaped();
 //         return grad_rom;
 //       })
-//       .SetConvergeGrad([&](const math::RealVectorX &x, const math::RealVectorX & g) -> real {
-//         real rv = math::abs(g).maxCoeff() / max_tol / (dt * dt);
+//       .SetConvergeGrad([&](const math::RealVectorX &x, const math::RealVectorX & g) -> Real {
+//         Real rv = math::abs(g).maxCoeff() / max_tol / (dt * dt);
 //         return rv;
 //       })
-//       .SetVerbose([&](Index i, const math::RealVectorX &X, const real energy) {
+//       .SetVerbose([&](Index i, const math::RealVectorX &X, const Real energy) {
 //         AX_LOG(INFO) << "Iter: " << i << " Energy: " << energy
 //                      << "|g|=" << problem.EvalGrad(X).norm() << "X=" << X.transpose();
 //       });

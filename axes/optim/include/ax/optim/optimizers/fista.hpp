@@ -14,11 +14,11 @@ public:
 
   void SetMonotonic(bool monotonic) { monotonic_ = monotonic; }
 
-  mutable std::vector<real> tk_;
+  mutable std::vector<Real> tk_;
 
 private:
-  real lr_{1};
-  real shrink_rate_{0.8};
+  Real lr_{1};
+  Real shrink_rate_{0.8};
 
   bool monotonic_{false};
 };

@@ -1,5 +1,8 @@
 #pragma once
+#include <Eigen/QR>
+
 #include "ax/math/linsys/dense.hpp"
+
 namespace ax::math {
 
 class DenseSolver_HouseholderQR : public DenseSolverBase {
@@ -9,6 +12,6 @@ public:
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kHouseholderQR; }
 
 private:
-  Eigen::ColPivHouseholderQR<matxxr> impl_;
+  Eigen::ColPivHouseholderQR<RealMatrixX> impl_;
 };
 }  // namespace ax::math

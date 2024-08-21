@@ -3,7 +3,7 @@
 #include "ax/math/decomp/svd/import_eigen.hpp"
 #include "ax/math/decomp/svd/remove_rotation.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 
 namespace ax::xpbd {
 template <typename DA, typename DB, typename DC>
@@ -23,48 +23,48 @@ inline void center_(math::MBr<DA>& a, math::MBr<DB>& b, math::MBr<DC>& c, math::
   d -= center;
 }
 
-template <Index dim> inline math::RealVector<dim> center_(math::RealMatrix<dim, dim + 1>& inout) {
+template <int dim> inline math::RealVector<dim> center_(math::RealMatrix<dim, dim + 1>& inout) {
   math::RealVector<dim> center = inout.rowwise().sum() / (dim + 1);
   inout.colwise() -= center;
   return center;
 }
 
-template <Index dim>
-inline real relax_dual(math::RealMatrix<dim, dim + 1>& cur, math::RealMatrix<dim, dim + 1> const& y,
+template <int dim>
+inline Real relax_dual(math::RealMatrix<dim, dim + 1>& cur, math::RealMatrix<dim, dim + 1> const& y,
                        math::RealMatrix<dim, dim> const& R, math::RealMatrix<dim, dim + 1> const& z,
-                       math::RealMatrix<dim, dim + 1> const& u, real rho, real k) {
+                       math::RealMatrix<dim, dim + 1> const& u, Real rho, Real k) {
   math::RealMatrix<dim, dim + 1> zc = z - u;
   math::RealVector<dim> center = center_<dim>(zc);
   math::RealMatrix<dim, dim + 1> cx = (k * R * y + rho * zc) / (rho + k);
   cx.colwise() += center;
-  real sqr_res = (cx - cur).squaredNorm();
+  Real sqr_res = (cx - cur).squaredNorm();
   cur = cx;
   return sqr_res;
 }
 
-template <Index dim> inline void relax_R(math::RealMatrix<dim, dim + 1> const& x,
+template <int dim> inline void relax_R(math::RealMatrix<dim, dim + 1> const& x,
                                        math::RealMatrix<dim, dim + 1> const& y, math::RealMatrix<dim, dim>& R) {
   // assume y is zero-centered
   auto x_zc = x;
   center_<dim>(x_zc);
   math::RealMatrix<dim, dim> xyt = x_zc * y.transpose();
   // polar decomposition to RS.
-  math::decomp::SvdResult<dim> svdr = math::decomp::JacobiSvd<dim, real>().Solve(xyt);
-  // math::decomp::svd_remove_rotation<real>(svdr);
+  math::decomp::SvdResult<dim> svdr = math::decomp::JacobiSvd<dim, Real>().Solve(xyt);
+  // math::decomp::svd_remove_rotation<Real>(svdr);
   R = svdr.U_ * svdr.V_.transpose();
 }
 
-template <Index dim> inline void relax_R(math::RealMatrix<dim, dim + 1> const& cur,
+template <int dim> inline void relax_R(math::RealMatrix<dim, dim + 1> const& cur,
                                        math::RealMatrix<dim, dim + 1> const& y, math::RealMatrix<dim, dim>& R,
                                        math::RealMatrix<dim, dim + 1> const& z,
-                                       math::RealMatrix<dim, dim + 1> const& u, real rho, real k) {
+                                       math::RealMatrix<dim, dim + 1> const& u, Real rho, Real k) {
   // assume y is zero-centered
   math::RealMatrix<dim, dim + 1> zc = (cur - z + u) + (k / rho) * cur;
   center_<dim>(zc);
   math::RealMatrix<dim, dim> xyt = zc * y.transpose();
   // polar decomposition to RS.
-  math::decomp::SvdResult<dim> svdr = math::decomp::JacobiSvd<dim, real>().Solve(xyt);
-  math::decomp::svd_remove_rotation<real>(svdr);
+  math::decomp::SvdResult<dim> svdr = math::decomp::JacobiSvd<dim, Real>().Solve(xyt);
+  math::decomp::svd_remove_rotation<Real>(svdr);
   R = svdr.U_ * svdr.V_.transpose();
 }
 
@@ -74,25 +74,25 @@ ConstraintSolution Constraint_Tetra::SolveDistributed() {
   ConstraintSolution solution(nV);
   std::vector<math::RealMatrix<3, 4>> consensus;
   consensus.resize(nC);
-  for (auto i : utils::iota(nC)) {
+  for (auto i : utils::range(nC)) {
     auto const ij = this->constraint_mapping_[i];
-    for (auto j : utils::iota(4)) {
+    for (auto j : utils::range(4)) {
       consensus[i].col(j) = this->constrained_vertices_position_[ij[j]];
     }
   }
 
-  real const dt = ensure_server().dt_;
-  real sqr_res = 0;
-  for (Index i : utils::iota(nC)) {
+  Real const dt = ensure_server().dt_;
+  Real sqr_res = 0;
+  for (Index i : utils::range(nC)) {
     // relax dual
     auto& cur = dual_[i];
     auto const& u = gap_[i];
     auto& R = rotation_[i];
     auto const& z = consensus[i];
     auto const& y = x0_[i];
-    real rho = this->rho_[i];
-    real k = stiffness_[i] * dt * dt;
-    real sqr_res_i;
+    Real rho = this->rho_[i];
+    Real k = stiffness_[i] * dt * dt;
+    Real sqr_res_i;
     for (Index iter = 0; iter < substeps_; ++iter) {
       relax_R<3>(cur, y, R);
       sqr_res_i = relax_dual<3>(cur, y, R, z, u, rho, k);
@@ -100,12 +100,12 @@ ConstraintSolution Constraint_Tetra::SolveDistributed() {
     sqr_res += sqr_res_i;
   }
 
-  for (Index i : utils::iota(nC)) {
+  for (Index i : utils::range(nC)) {
     auto const& ij = this->constraint_mapping_[i];
     auto const& dual = dual_[i];
     auto const& gap = gap_[i];
-    real rho = this->rho_[i];
-    for (auto j : utils::iota(4)) {
+    Real rho = this->rho_[i];
+    for (auto j : utils::range(4)) {
       Index vi = ij[j];
       solution.weighted_position_.col(vi) += (dual.col(j) + gap.col(j)) * rho;
       solution.weights_[vi] += rho;
@@ -127,7 +127,7 @@ void Constraint_Tetra::BeginStep() {
     }
   }
   // this->rho_ = stiffness_;
-  const real dt = ensure_server().dt_;
+  const Real dt = ensure_server().dt_;
   for (Index i = 0; i < nC; ++i) {
     this->rho_[i] = stiffness_[i] * dt * dt;
   }
@@ -138,9 +138,9 @@ void Constraint_Tetra::BeginStep() {
   }
 }
 
-real Constraint_Tetra::UpdateDuality() {
+Real Constraint_Tetra::UpdateDuality() {
   Index nC = this->GetNumConstraints();
-  real sqr_prim_res = 0;
+  Real sqr_prim_res = 0;
   for (Index i = 0; i < nC; ++i) {
     auto const ij = this->constraint_mapping_[i];
     auto const& local = dual_[i];
@@ -158,7 +158,7 @@ real Constraint_Tetra::UpdateDuality() {
 
 void Constraint_Tetra::EndStep() {}
 
-void Constraint_Tetra::UpdateRhoConsensus(real scale) {
+void Constraint_Tetra::UpdateRhoConsensus(Real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
@@ -171,9 +171,9 @@ void Constraint_Tetra::SetTetrahedrons(math::IndexField<4> const& tetrahedrons,
                                        math::RealField1 const& stiff) {
   Index const nC = tetrahedrons.cols();
   std::set<Index> associated;
-  for (auto i : utils::iota(nC)) {
+  for (auto i : utils::range(nC)) {
     auto const& ij = tetrahedrons.col(i);
-    for (auto j : utils::iota(4)) {
+    for (auto j : utils::range(4)) {
       associated.insert(ij(j));
     }
   }
@@ -185,11 +185,11 @@ void Constraint_Tetra::SetTetrahedrons(math::IndexField<4> const& tetrahedrons,
     global_to_local[g] = l;
     l++;
   }
-  real const dt = ensure_server().dt_;
-  for (auto i : utils::iota(nC)) {
+  Real const dt = ensure_server().dt_;
+  for (auto i : utils::range(nC)) {
     auto const& ij = tetrahedrons.col(i);
     this->constraint_mapping_.emplace_back(ij);
-    for (auto j : utils::iota(4)) {
+    for (auto j : utils::range(4)) {
       Index l = global_to_local.at(ij(j));
       this->constraint_mapping_[i][j] = l;
     }
@@ -201,10 +201,10 @@ void Constraint_Tetra::SetTetrahedrons(math::IndexField<4> const& tetrahedrons,
   x0_.resize(nC);
   rotation_.resize(nC);
   auto const& local = this->constrained_vertices_position_;
-  for (Index i : utils::iota(nC)) {
+  for (Index i : utils::range(nC)) {
     auto const& ij = this->constraint_mapping_[i];
     auto& x0 = x0_[i];
-    for (Index j : utils::iota(4)) {
+    for (Index j : utils::range(4)) {
       x0.col(j) = local[ij[j]];
     }
     center_<3>(x0);

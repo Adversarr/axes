@@ -6,7 +6,7 @@
 #include "ax/math/decomp/svd/import_eigen.hpp"
 #include "ax/math/linalg.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 using namespace ax::math;
 
 struct Problem {
@@ -15,11 +15,11 @@ struct Problem {
   std::vector<std::vector<math::RealVector3>> Di;
   std::vector<std::vector<math::RealVector3>> Di0;
   math::RealField3 ni;
-  std::vector<real> ai;
-  std::vector<std::vector<real>> Wi;
+  std::vector<Real> ai;
+  std::vector<std::vector<Real>> Wi;
 };
 
-RealVector3 shrinkage(const RealVector3& v, real kappa) {
+RealVector3 shrinkage(const RealVector3& v, Real kappa) {
   RealVector3 tmp1 = v.array() - kappa;
   RealVector3 tmp2 = -v.array() - kappa;
   RealVector3 posmax = tmp1.array().max(0);
@@ -36,8 +36,8 @@ void local_step(Problem& prob, Index i, Dijkstra& solver) {
   auto const& Wi = prob.Wi[i];
 
   // fix coefficient
-  real rho = solver.rho_, lambda = solver.lambda_;
-  real tau = solver.tau_, mu = solver.mu_;
+  Real rho = solver.rho_, lambda = solver.lambda_;
+  Real tau = solver.tau_, mu = solver.mu_;
   RealVector3 zi, ui;
   zi.setZero();
   ui.setZero();
@@ -46,7 +46,7 @@ void local_step(Problem& prob, Index i, Dijkstra& solver) {
     Mi_without_n += Wi[j] * Di0[j] * Di[j].transpose();
   }
 
-  decomp::JacobiSvd<3, real> svd;
+  decomp::JacobiSvd<3, Real> svd;
   for (Index it = 0; it < 100; ++it) {
     // Compute Ri.
     math::RealMatrix3 Mi = Mi_without_n;
@@ -67,8 +67,8 @@ void local_step(Problem& prob, Index i, Dijkstra& solver) {
     zi = shrinkage(Ri * ni + ui, lambda * prob.ai[i] / rho);
     ui = (ui + Ri * ni - zi).eval();
 
-    real r_norm = (zi - Ri * ni).norm();
-    real s_norm = (rho * (zi - zi_last)).norm();
+    Real r_norm = (zi - Ri * ni).norm();
+    Real s_norm = (rho * (zi - zi_last)).norm();
     if (r_norm > mu * s_norm) {
       rho *= tau;
       ui /= tau;
@@ -100,8 +100,8 @@ void Dijkstra::Step(Index steps) {
       Index vk = mesh_.indices_((j + 2) % 3, t);
       RealVector3 di = mesh_.vertices_.col(vj) - mesh_.vertices_.col(vi);
       RealVector3 dj = mesh_.vertices_.col(vk) - mesh_.vertices_.col(vi);
-      real area = norm(cross(di, dj), l2) / 2;
-      real cot_weight = std::max(dot(di, dj) / (2 * area), 0.);
+      Real area = norm(cross(di, dj), l2) / 2;
+      Real cot_weight = std::max(dot(di, dj) / (2 * area), 0.);
 
       problem.neighbours[vi].push_back(vj);
       problem.Di[vi].push_back(di);
@@ -114,19 +114,19 @@ void Dijkstra::Step(Index steps) {
     std::cout << problem.ai[i] << std::endl;
   }
 
-  sp_coeff_list coef;
+  SparseCOO coef;
   for (Index i = 0; i < n_vert; ++i) {
     for (Index j = 0; j < problem.neighbours[i].size(); ++j) {
       auto vi = i, vj = problem.neighbours[i][j];
       auto wij = problem.Wi[vi][j];
-      for (Index d: utils::iota(3)) {
+      for (Index d: utils::range(3)) {
         coef.push_back({vi * 3 + d, vi * 3 + d, wij});
         coef.push_back({vj * 3 + d, vj * 3 + d, wij});
         coef.push_back({vi * 3 + d, vj * 3 + d, -wij});
         coef.push_back({vj * 3 + d, vi * 3 + d, -wij});
       }
     }
-    for (Index d : utils::iota(3)) {
+    for (Index d : utils::range(3)) {
       coef.push_back({i * 3 + d, i * 3 + d, 1});
     }
   }

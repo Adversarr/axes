@@ -9,6 +9,6 @@ public:
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kLLT; }
 
 private:
-  Eigen::LLT<matxxr> impl_;
+  Eigen::LLT<RealMatrixX> impl_;
 };
 }  // namespace ax::math

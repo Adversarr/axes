@@ -13,7 +13,7 @@
 #include "ax/math/io.hpp"
 #include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
 
 ABSL_FLAG(std::string, resolution, "low", "low, mid, high");
@@ -49,7 +49,7 @@ void update_rendering() {
   ts->GetElasticity().GatherEnergyToVertices();
   auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
 
-  static real m = 0, M = 0;
+  static Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
 
@@ -77,7 +77,7 @@ void ui_callback(gl::UiRenderEvent) {
   if (ImGui::Button("Step") || running) {
     const auto& vert = ts->GetMesh()->GetVertices();
     auto time_start = ax::utils::GetCurrentTimeNanos();
-    for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+    for (auto i : utils::range(input_mesh.vertices_.cols())) {
       math::RealVector3 position = input_mesh.vertices_.col(i);
       if (position.x()> 4.9) {
         position.x() += dt * frame; 
@@ -104,7 +104,7 @@ void ui_callback(gl::UiRenderEvent) {
 }
 
 void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
-  for (auto i : utils::iota(tets.cols())) {
+  for (auto i : utils::range(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
   AX_CHECK_OK(ts->Initialize());
 
   /************************* SECT: Setup Boundaries *************************/
-  for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+  for (auto i : utils::range(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (abs(position.x())> 4.9) {
       ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
@@ -173,27 +173,27 @@ int main(int argc, char** argv) {
 
 void setup_spai() {
   // 1. Naive strategy, compute the true inverse, and set to the solver.
-  math::spmatr H = ts->Hessian(ts->GetInitialGuess() + ts->GetDisplacement(), true);
+  math::RealSparseMatrix H = ts->Hessian(ts->GetInitialGuess() + ts->GetDisplacement(), true);
 
   math::SparseSolver_Cholmod chol;
   chol.SetProblem(H).Compute();
-  math::matxxr H_inv = chol.Inverse();
+  math::RealMatrixX H_inv = chol.Inverse();
 
   auto& sia = ensure_resource<fem::SparseInverseApproximator>();
   if (sia.A_.nonZeros() == 0) {
     // Empty, set according to prolongation.
-    math::spmatr M = ts->GetMassMatrix();
-    math::spmatr_for_each(M, [](Index, Index, real& value) { value = 1.0; });
+    math::RealSparseMatrix M = ts->GetMassMatrix();
+    math::for_each_entry(M, [](Index, Index, Real& value) { value = 1.0; });
     for (int i = 0; i < prolongation; ++i) {
       M = M * M;
       M.makeCompressed();
-      math::spmatr_for_each(M, [](Index, Index, real& value) { value = 1.0; });
+      math::for_each_entry(M, [](Index, Index, Real& value) { value = 1.0; });
     }
     sia.A_ = M;
   }
 
   // set the sparse fill-ins.
-  math::spmatr_for_each(sia.A_, [&H_inv](Index i, Index j, real& value) { 
+  math::for_each_entry(sia.A_, [&H_inv](Index i, Index j, Real& value) {
       value = H_inv(i, j);
   });
 }

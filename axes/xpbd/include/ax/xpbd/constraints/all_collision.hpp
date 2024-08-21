@@ -24,26 +24,26 @@ public:
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;
-  real UpdateDuality() override;
+  Real UpdateDuality() override;
   void EndStep() override;
-  void UpdateRhoConsensus(real scale) override;
+  void UpdateRhoConsensus(Real scale) override;
   void UpdatePositionConsensus() override;
 
-  real tol_ = 1e-2;  ///< Tolerance for the collision detection. cannnot be too small for stability.
+  Real tol_ = 1e-2;  ///< Tolerance for the collision detection. cannnot be too small for stability.
   using I2 = std::pair<Index, Index>;
 
   std::vector<math::RealMatrix<3, 4>> dual_;
   std::vector<math::RealMatrix<3, 4>> gap_;
   std::vector<math::RealMatrix<3, 4>> origin_;
-  std::vector<real> stiffness_;
+  std::vector<Real> stiffness_;
   std::set<I2> vt_, ee_;
   std::map<Index, Index> global_to_local_;
   std::set<Index> colliding_vertices_;
 
   std::vector<geo::CollisionKind> kind_;
-  real initial_rho_ = 1e2;
+  Real initial_rho_ = 1e2;
   Index iteration_ = 0;
-  real ratio_ = 1.1;
+  Real ratio_ = 1.1;
 };
 
 }  // namespace ax::xpbd

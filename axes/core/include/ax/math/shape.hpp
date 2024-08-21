@@ -41,16 +41,7 @@ namespace details {
 
 template <Index Idx, typename T> using project_t = T;
 
-template <typename IndexType, int dim> struct ShapeTupleImpl;
-template <typename IndexType> struct ShapeTupleImpl<IndexType, 0> {
-  using type = std::tuple<>;
-};
-template <typename IndexType, int dim> struct ShapeTupleImpl {
-  using type = decltype(std::tuple_cat(std::declval<typename ShapeTupleImpl<IndexType, dim - 1>::type>(),
-                                       std::declval<std::tuple<IndexType>>()));
-};
-
-template <typename IndexType, int dim> using ShapeTuple = typename ShapeTupleImpl<IndexType, dim>::type;
+template <typename IndexType, int dim> using ShapeTuple = utils::DupTuple<IndexType, dim>;
 
 template <typename IndexType, int dim, size_t... Idx>
 AX_CONSTEXPR AX_HOST_DEVICE ShapeArray<IndexType, dim> shape_tuple_to_array_impl(
@@ -180,7 +171,13 @@ public:
 
   // constructors
   AX_CONSTEXPR AX_HOST_DEVICE explicit Shape(ShapeArrayT const& extent) noexcept
-      : extent_(extent), stride_(details::stride<IndexType, dim>(extent_, std::make_index_sequence<dim>{})) {}
+      : Shape(extent, extent) {}
+
+  AX_CONSTEXPR AX_HOST_DEVICE Shape(ShapeArrayT const& logical_extent,
+                                    ShapeArrayT const& physical_extent) noexcept
+      : extent_(logical_extent),
+        stride_(details::stride<IndexType, dim>(physical_extent, std::make_index_sequence<dim>{})) {
+  }
 
   template <typename AnotherIndexType, typename = std::enable_if_t<std::is_same_v<IndexType, AnotherIndexType>>>
   Shape Cast() const noexcept {

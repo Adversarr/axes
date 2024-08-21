@@ -9,7 +9,7 @@ namespace ax::geo {
 
 /****************************** AABB ******************************/
 
-template <Index dim> using AlignedBoxN = Eigen::AlignedBox<real, dim>;
+template <int dim> using AlignedBoxN = Eigen::AlignedBox<Real, dim>;
 
 using AlignedBox2 = AlignedBoxN<2>;
 using AlignedBox3 = AlignedBoxN<3>;
@@ -42,7 +42,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE AlignedBox3 to_aabb(Triangle3 const& triangle) {
   return AlignedBox3(min, max);
 }
 
-template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<dim> const& a,
+template <int dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<dim> const& a,
                                                                    AlignedBoxN<dim> const& b) {
   return a.intersects(b);
 }
@@ -52,7 +52,7 @@ AX_DEFINE_ENUM_CLASS(CollisionKind, kVertexFace, kVertexEdge, kVertexVertex, kEd
 struct CollisionInfo {
   bool valid_;
   CollisionKind type_;
-  real rel_t_;
+  Real rel_t_;
 
   inline CollisionInfo() : valid_(false), type_(CollisionKind::kVertexFace), rel_t_(0) {}
 
@@ -62,7 +62,7 @@ struct CollisionInfo {
 
   operator bool() const { return valid_; }
 
-  inline static CollisionInfo VertexFace(real rel_t) {
+  inline static CollisionInfo VertexFace(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
     info.type_ = CollisionKind::kVertexFace;
@@ -70,7 +70,7 @@ struct CollisionInfo {
     return info;
   }
 
-  inline static CollisionInfo VertexEdge(real rel_t) {
+  inline static CollisionInfo VertexEdge(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
     info.type_ = CollisionKind::kVertexEdge;
@@ -78,7 +78,7 @@ struct CollisionInfo {
     return info;
   }
 
-  inline static CollisionInfo VertexVertex(real rel_t) {
+  inline static CollisionInfo VertexVertex(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
     info.type_ = CollisionKind::kVertexVertex;
@@ -86,7 +86,7 @@ struct CollisionInfo {
     return info;
   }
 
-  inline static CollisionInfo EdgeEdge(real rel_t) {
+  inline static CollisionInfo EdgeEdge(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
     info.type_ = CollisionKind::kEdgeEdge;
@@ -134,7 +134,7 @@ using CollidingPair = std::pair<Index, Index>;
 using BroadPhaseResult = std::map<CollisionKind, std::vector<BroadPhaseCollisionInfo>>;
 
 inline CollisionKind get_collision_kind(PrimitiveKind a, PrimitiveKind b) {
-  if ((int)b < (int)a) return get_collision_kind(b, a);
+  if (static_cast<int>(b) < static_cast<int>(a)) return get_collision_kind(b, a);
   if (a == PrimitiveKind::kVertex && b == PrimitiveKind::kTriangle) {
     return CollisionKind::kVertexFace;
   } else if (a == PrimitiveKind::kVertex && b == PrimitiveKind::kSegment) {

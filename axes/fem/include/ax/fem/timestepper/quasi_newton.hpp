@@ -16,7 +16,7 @@ public:
   void UpdateSolverLaplace();
 
   // Override the defaults.
-  void BeginSimulation(real dt) final;
+  void BeginSimulation(Real dt) final;
   void BeginTimestep() final;
   void SolveTimestep() final;
 
@@ -25,20 +25,20 @@ public:
 
   optim::Optimizer_Lbfgs& GetOptimizer() { return optimizer_; }
 
-  math::spmatr GetLaplacianAsApproximation() const;
+  math::RealSparseMatrix GetLaplacianAsApproximation() const;
 
 protected:
   std::shared_ptr<math::SparseSolverBase> solver_;
   LbfgsStrategy strategy_ = LbfgsStrategy::kNaive;
   optim::Optimizer_Lbfgs optimizer_;
 
-  math::spmatr static_inverse_approximation_;
+  math::RealSparseMatrix static_inverse_approximation_;
 };
 
 struct SparseInverseApproximator {
-  math::spmatr A_;
+  math::RealSparseMatrix A_;
   math::RealVectorX precond_;
-  real eig_modification_{0.};
+  Real eig_modification_{0.};
   bool require_check_secant_{false};
 };
 

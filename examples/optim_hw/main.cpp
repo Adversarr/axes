@@ -15,7 +15,7 @@
 #include "ax/optim/optimizers/fista.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "prob.hpp"
 // #include "prox_grad.hpp"
 
@@ -152,8 +152,8 @@ int main(int argc, char** argv) {
   std::string const export_prefix = absl::GetFlag(FLAGS_export);
   // solution.
   {
-    math::matxxr x(xx::PREDEFINED_FEAT, x_history.size());
-    for (auto i : utils::iota(x_history.size())) {
+    math::RealMatrixX x(xx::PREDEFINED_FEAT, x_history.size());
+    for (auto i : utils::range(x_history.size())) {
       x.col(i) = x_history[i];
     }
     math::write_npy_v10(export_prefix + "_x.npy", x);
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
     // export |xk-xk+1|/tk
     math::RealVectorX diffs(tk_history.size());
     size_t n = std::min(x_history.size() - 1, tk_history.size());
-    for (auto i : utils::iota(n)) {
+    for (auto i : utils::range(n)) {
       diffs(i) = (x_history[i] - x_history[i + 1]).norm() / tk_history[i];
     }
     math::write_npy_v10(export_prefix + "_diff.npy", diffs);
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
   // export energy.
   {
     math::RealVectorX energies(energy_history.size());
-    for (auto i : utils::iota(energy_history.size())) {
+    for (auto i : utils::range(energy_history.size())) {
       energies(i) = energy_history[i];
     }
     math::write_npy_v10(export_prefix + "_energy.npy", energies);

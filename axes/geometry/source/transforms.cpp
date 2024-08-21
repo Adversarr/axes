@@ -4,7 +4,7 @@
 
 namespace ax::geo {
 
-math::RealMatrix4 ortho(real left, real right, real bottom, real top, real near, real far) {
+math::RealMatrix4 ortho(Real left, Real right, Real bottom, Real top, Real near, Real far) {
   using namespace math;
   RealMatrix4 result = math::eye<4>();
   result(0, 0) = 2.0f / (right - left);
@@ -16,9 +16,9 @@ math::RealMatrix4 ortho(real left, real right, real bottom, real top, real near,
   return result;
 }
 
-math::RealMatrix4 perspective(real fovy, real aspect, real near, real far) {
+math::RealMatrix4 perspective(Real fovy, Real aspect, Real near, Real far) {
   // OpenGL:
-  real tan_half_fovy = math::tan(fovy / 2.0f);
+  Real tan_half_fovy = math::tan(fovy / 2.0f);
   math::RealMatrix4 result = math::zeros<4, 4>();
   result(0, 0) = 1.0f / (aspect * tan_half_fovy);
   result(1, 1) = 1.0f / (tan_half_fovy);
@@ -51,7 +51,7 @@ math::RealMatrix4 look_at(math::RealVector3 const& eye, math::RealVector3 const&
   return result;
 }
 
-math::RealMatrix4 rotate_x(real angle_rad) {
+math::RealMatrix4 rotate_x(Real angle_rad) {
   math::RealMatrix4 result = math::eye<4>();
   result(1, 1) = cos(angle_rad);
   result(1, 2) = -sin(angle_rad);
@@ -60,7 +60,7 @@ math::RealMatrix4 rotate_x(real angle_rad) {
   return result;
 }
 
-math::RealMatrix4 rotate_y(real angle_rad) {
+math::RealMatrix4 rotate_y(Real angle_rad) {
   math::RealMatrix4 result = math::eye<4>();
   result(0, 0) = cos(angle_rad);
   result(0, 2) = sin(angle_rad);
@@ -69,7 +69,7 @@ math::RealMatrix4 rotate_y(real angle_rad) {
   return result;
 }
 
-math::RealMatrix4 rotate_z(real angle_rad) {
+math::RealMatrix4 rotate_z(Real angle_rad) {
   math::RealMatrix4 result = math::eye<4>();
   result(0, 0) = cos(angle_rad);
   result(0, 1) = -sin(angle_rad);

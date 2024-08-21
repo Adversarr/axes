@@ -1,5 +1,7 @@
 #include "ax/geometry/accel/flat_octree.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
+
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::geo {
 
@@ -12,14 +14,14 @@ struct BroadPhase_FlatOctree::Impl {
   Impl() = default;
   void BuildTree();
 
-  real root_level_size_{1.0};
+  Real root_level_size_{1.0};
   Index maximum_depth_{5};
   std::map<it3, TreeNode> nodes_;
   std::vector<Index> large_colliders_;
   std::vector<ColliderInfo> colliders_;
 };
 
-std::optional<it3> get_holding_root(real size, AlignedBox3 const& aabb) {
+std::optional<it3> get_holding_root(Real size, AlignedBox3 const& aabb) {
   Index ix = static_cast<Index>(floor(aabb.min().x() / size));
   Index iy = static_cast<Index>(floor(aabb.min().y() / size));
   Index iz = static_cast<Index>(floor(aabb.min().z() / size));
@@ -42,7 +44,7 @@ AlignedBox3 get_subnode_aabb(AlignedBox3 const& node, Index i, Index j, Index k)
 }
 
 std::optional<Index> try_get_subnode(AlignedBox3 const& node, AlignedBox3 const& aabb) {
-  for (auto [i, j, k]: utils::multi_iota(2, 2, 2)) {
+  for (auto [i, j, k]: utils::ndrange<Index>(2, 2, 2)) {
     auto subnode = get_subnode_aabb(node, i, j, k);
     if (subnode.contains(aabb)) return i * 4 + j * 2 + k;
   }
@@ -66,7 +68,7 @@ public:
     if (colliders_.empty()) return;
     if (depth_ >= impl_->maximum_depth_) return;
     // ensure all the childrens
-    for (auto [i, j, k]: utils::multi_iota(2, 2, 2)) {
+    for (auto [i, j, k]: utils::ndrange<Index>(2, 2, 2)) {
       auto& child = children_[i * 4 + j * 2 + k];
       auto aabb = get_subnode_aabb(aabb_, i, j, k);
       if (!child) child = std::make_unique<TreeNode>(aabb, this, impl_);
@@ -163,8 +165,8 @@ void BroadPhase_FlatOctree::DetectCollisions() {
 
   // 2. build result
   std::vector<std::pair<Index, Index>> ret;
-  for (auto const& [i, ai]: utils::enumerate(impl_->large_colliders_)) {
-    for (auto const& [j, aj]: utils::enumerate(impl_->large_colliders_)) {
+  for (auto const& [i, ai]: utils::views::enumerate(impl_->large_colliders_)) {
+    for (auto const& [j, aj]: utils::views::enumerate(impl_->large_colliders_)) {
       if (i >= j) continue;
       if (colliders_[ai].aabb_.intersects(colliders_[aj].aabb_)) {
         ret.push_back({ai, aj});
@@ -195,14 +197,14 @@ void BroadPhase_FlatOctree::DetectCollisions() {
 
 void BroadPhase_FlatOctree::Impl::BuildTree() {
   // 1. Calculate the root level size
-  for (auto [i, collider]: utils::enumerate(colliders_)) {
+  for (auto [i, collider]: utils::views::enumerate(colliders_)) {
     auto holding = get_holding_root(root_level_size_, collider.aabb_);
     if (holding) {
       if (nodes_.find(*holding) == nodes_.end()) {
         auto [x, y, z] = holding.value();
         AlignedBox3 node_aabb{
-          math::IndexVec3{x, y, z}.cast<real>() * root_level_size_,
-          math::IndexVec3{x+1, y+1, z+1}.cast<real>() * root_level_size_,
+          math::IndexVec3{x, y, z}.cast<Real>() * root_level_size_,
+          math::IndexVec3{x+1, y+1, z+1}.cast<Real>() * root_level_size_,
         };
         nodes_.emplace(*holding, TreeNode{node_aabb, nullptr, this});
       }

@@ -6,11 +6,11 @@
 namespace ax::fem::elasticity {
 
 // convert Young's modulus (E) and Poisson's ratio (nu) to Lamé parameters
-AX_FORCE_INLINE real compute_mu(real E, real nu) { return E / (2 * (1 + nu)); }
+AX_FORCE_INLINE Real compute_mu(Real E, Real nu) { return E / (2 * (1 + nu)); }
 
-AX_FORCE_INLINE real compute_lambda(real E, real nu) { return E * nu / ((1 + nu) * (1 - 2 * nu)); }
+AX_FORCE_INLINE Real compute_lambda(Real E, Real nu) { return E * nu / ((1 + nu) * (1 - 2 * nu)); }
 
-AX_FORCE_INLINE math::RealVector2 compute_lame(real E, real nu) {
+AX_FORCE_INLINE math::RealVector2 compute_lame(Real E, Real nu) {
   return {compute_lambda(E, nu), compute_mu(E, nu)};
 }
 
@@ -19,7 +19,7 @@ AX_FORCE_INLINE math::RealVector2 compute_lame(real E, real nu) {
  * @note CRTP have a better performance than virtual function. And we can use virtual function
  *       to compute the hole energy, stress and hessian on mesh.
  */
-template <Index dim, typename Derived> class ElasticityBase {
+template <int dim, typename Derived> class ElasticityBase {
 public:
   static constexpr Index dof_cnt = dim * dim;
   using stress_t = math::RealMatrix<dim, dim>;
@@ -30,28 +30,28 @@ public:
    * @param lambda Lamé parameter
    * @param mu Lamé parameter
    */
-  AX_HOST_DEVICE ElasticityBase(real lambda, real mu) : lambda_(lambda), mu_(mu) {}
+  AX_HOST_DEVICE ElasticityBase(Real lambda, Real mu) : lambda_(lambda), mu_(mu) {}
 
   AX_HOST_DEVICE ElasticityBase() = default;
 
   virtual ~ElasticityBase() = default;
 
-  AX_HOST_DEVICE AX_FORCE_INLINE real Energy(DeformationGradient<dim> const& F,
-                              math::decomp::SvdResult<dim, real> const& svdr) const {
+  AX_HOST_DEVICE AX_FORCE_INLINE Real Energy(DeformGrad<dim> const& F,
+                              math::decomp::SvdResult<dim, Real> const& svdr) const {
     return static_cast<Derived const*>(this)->EnergyImpl(F, svdr);
   }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE stress_t Stress(DeformationGradient<dim> const& F,
-                                  const math::decomp::SvdResult<dim, real>& svdr) const {
+  AX_HOST_DEVICE AX_FORCE_INLINE stress_t Stress(DeformGrad<dim> const& F,
+                                  const math::decomp::SvdResult<dim, Real>& svdr) const {
     return static_cast<Derived const*>(this)->StressImpl(F, svdr);
   }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE math::Matrix<real, dof_cnt, dof_cnt> Hessian(
-      DeformationGradient<dim> const& F, math::decomp::SvdResult<dim, real> const& svdr) const {
+  AX_HOST_DEVICE AX_FORCE_INLINE math::Matrix<Real, dof_cnt, dof_cnt> Hessian(
+      DeformGrad<dim> const& F, math::decomp::SvdResult<dim, Real> const& svdr) const {
     return static_cast<Derived const*>(this)->HessianImpl(F, svdr);
   }
 
-  AX_HOST_DEVICE void SetLame(real lambda, real mu) {
+  AX_HOST_DEVICE void SetLame(Real lambda, Real mu) {
     lambda_ = lambda;
     mu_ = mu;
   }
@@ -64,7 +64,7 @@ public:
 
 protected:
   // Lamé parameters
-  real lambda_, mu_;
+  Real lambda_, mu_;
 };
 
 }  // namespace ax::fem::elasticity

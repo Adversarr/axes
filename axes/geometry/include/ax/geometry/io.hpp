@@ -16,17 +16,17 @@ namespace ax::geo {
 SurfaceMesh read_obj(std::string const& path);
 
 struct EleFileReadResult {
-  math::matxxi elements_;
-  EleFileReadResult(math::matxxi elements) : elements_(std::move(elements)) {}
+  math::IndexMatrixX elements_;
+  EleFileReadResult(math::IndexMatrixX elements) : elements_(std::move(elements)) {}
   AX_DECLARE_CONSTRUCTOR(EleFileReadResult, default, default);
 };
 EleFileReadResult read_ele(std::string const& ele_file);
 
 struct NodeFileReadResult {
-  math::matxxr vertices_;
-  math::matxxi boundary_markers_;
+  math::RealMatrixX vertices_;
+  math::IndexMatrixX boundary_markers_;
 
-  NodeFileReadResult(math::matxxr vertices, math::matxxi boundary_markers)
+  NodeFileReadResult(math::RealMatrixX vertices, math::IndexMatrixX boundary_markers)
       : vertices_(std::move(vertices)), boundary_markers_(std::move(boundary_markers)) {}
 
   AX_DECLARE_CONSTRUCTOR(NodeFileReadResult, default, default);

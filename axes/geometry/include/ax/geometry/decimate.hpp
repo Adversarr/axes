@@ -22,7 +22,7 @@ public:
    * @param ratio The target ratio of the decimation. Must be between 0 and 1.
    * @return A reference to the MeshDecimator object.
    */
-  MeshDecimator& SetRatio(real ratio);
+  MeshDecimator& SetRatio(Real ratio);
 
   /**
    * @brief Sets the target vertex count of the decimation.
@@ -54,7 +54,7 @@ public:
 
 private:
   Strategy collapse_strategy_ = kDirect; /**< The strategy for edge collapse during decimation. */
-  real cost_threshold_{1e9}; /**< The cost threshold for edge collapse. */
+  Real cost_threshold_{1e9}; /**< The cost threshold for edge collapse. */
   HalfedgeMesh* mesh_; /**< A pointer to the HalfedgeMesh object representing the mesh. */
   Index target_count_; /**< The target vertex count of the decimation. */
 

@@ -39,7 +39,7 @@ void update_entity() {
                                               input_mesh.indices_(3, i)};
   }
   for (auto v : math::each(msh.vertices_)) {
-    v = (v.array() * stretching.cast<real>().array());
+    v = (v.array() * stretching.cast<Real>().array());
   }
   auto V = msh.vertices_;
   auto F = input_mesh.indices_;
@@ -62,7 +62,7 @@ void update_entity() {
   elast.UpdateEnergy();
   elast.GatherEnergyToVertices();
   auto energy = elast.GetEnergyOnVertices();
-  real m = energy.minCoeff(), M = energy.maxCoeff();
+  Real m = energy.minCoeff(), M = energy.maxCoeff();
   gl::Colormap mapping(m, M);
   AX_LOG(INFO) << "m=" << m << "\tM=" << M;
   auto result = mapping(energy.transpose());

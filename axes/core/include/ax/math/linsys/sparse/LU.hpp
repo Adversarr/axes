@@ -9,11 +9,11 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
 
-  LinsysSolveResult Solve(matxxr const &b, matxxr const &x0) override;
+  LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kLU; }
 
 private:
-  Eigen::SparseLU<spmatr, Eigen::COLAMDOrdering<Index>> solver_;
+  Eigen::SparseLU<RealSparseMatrix, Eigen::COLAMDOrdering<Index>> solver_;
 };
 }  // namespace ax::math

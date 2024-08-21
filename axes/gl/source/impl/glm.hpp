@@ -19,11 +19,11 @@ inline glm::mat4 lookat(math::RealVector3 const& eye, math::RealVector3 const& c
   return glm::lookAt(to_glm(eye), to_glm(center), to_glm(up));
 }
 
-inline glm::mat4 perspective(real fov, real aspect, real near, real far) {
+inline glm::mat4 perspective(Real fov, Real aspect, Real near, Real far) {
   return glm::perspective(fov, aspect, near, far);
 }
 
-inline glm::mat4 ortho(real left, real right, real bottom, real top, real near, real far) {
+inline glm::mat4 ortho(Real left, Real right, Real bottom, Real top, Real near, Real far) {
   return glm::ortho(left, right, bottom, top, near, far);
 }
 

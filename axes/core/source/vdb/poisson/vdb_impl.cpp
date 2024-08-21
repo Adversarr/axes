@@ -27,8 +27,8 @@ RealGridPtr VdbPoissonSolver::operator()(RealGridPtr source) {
 
 void VdbPoissonSolver::SetOptions(utils::Options const& option) {
   AX_SYNC_OPT_IF(option, Index, max_iterations) { AX_THROW_IF_LT(max_iterations_, 0); }
-  AX_SYNC_OPT_IF(option, real, rel_error) { AX_THROW_IF_LT(rel_error_, 0); }
-  AX_SYNC_OPT_IF(option, real, abs_error) { AX_THROW_IF_LT(abs_error_, 0); }
+  AX_SYNC_OPT_IF(option, Real, rel_error) { AX_THROW_IF_LT(rel_error_, 0); }
+  AX_SYNC_OPT_IF(option, Real, abs_error) { AX_THROW_IF_LT(abs_error_, 0); }
 }
 
 utils::Options VdbPoissonSolver::GetOptions() const {

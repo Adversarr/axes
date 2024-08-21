@@ -10,7 +10,7 @@
 #include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/elasticity_cpu.hpp"
 #include "ax/fem/trimesh.hpp"
-#include "ax/math/approx.hpp"
+#include "ax/math/utils/approx.hpp"
 using namespace ax;
 
 constexpr Index DIM = 3;
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   // Compute Gradient by Finite Difference:
   elast.Update(mesh->GetVertices(), kE);
   elast.UpdateEnergy();
-  real e0 = elast.GetEnergyOnElements().sum();
+  Real e0 = elast.GetEnergyOnElements().sum();
   elast.UpdateStress();
   elast.GatherStressToVertices();
   auto stress = elast.GetStressOnVertices();
@@ -82,19 +82,19 @@ int main(int argc, char** argv) {
             << "=======================================================================\n";
   for (Index i = 0; i <= DIM; ++i) {
     for (Index d = 0; d < DIM; ++d) {
-      for (real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
+      for (Real delta_d = 1e-8; delta_d >= 1e-10; delta_d *= 0.1) {
         math::RealField<DIM> vertices_p = mesh->GetVertices();
         vertices_p(d, i) += delta_d;
         elast.Update(vertices_p, kE);
         // EnergyImpl:
         elast.UpdateEnergy();
-        real e_p = elast.GetEnergyOnElements().sum();
+        Real e_p = elast.GetEnergyOnElements().sum();
 
         // Compute the slope:
-        real slope = (e_p - e0) / delta_d;
+        Real slope = (e_p - e0) / delta_d;
         std::cout << "Vertex [" << i << "] Dof[" << d << "], Delta=" << delta_d
                   << ", Slope=" << slope
-                  << "RelE: " << math::abs(slope / (stress(i * DIM + d) + math::epsilon<real>)-1)
+                  << "RelE: " << math::abs(slope / (stress(i * DIM + d) + math::epsilon<Real>)-1)
                   << std::endl;
       }
     }
@@ -112,25 +112,25 @@ int main(int argc, char** argv) {
           std::cout << ">>> Vertex [" << i << "] Dof[" << d << "], Vertex [" << j << "] Dof[" << k
                     << "]" << std::endl;
           std::cout << "Reference: " << stiffness(i * DIM + d, j * DIM + k) << std::endl;
-          real clothest = 1e10;
-          for (real delta_id = 1e-6; delta_id >= 1e-8; delta_id *= 0.1) {
+          Real clothest = 1e10;
+          for (Real delta_id = 1e-6; delta_id >= 1e-8; delta_id *= 0.1) {
             math::RealField<DIM> vertices_id = original_vertices;
             vertices_id(d, i) += delta_id;
             elast.Update(vertices_id, kE);
             elast.UpdateEnergy();
-            real e_id = elast.GetEnergyOnElements().sum();
-            for (real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
+            Real e_id = elast.GetEnergyOnElements().sum();
+            for (Real delta_jk = 1e-6; delta_jk >= 1e-8; delta_jk *= 0.1) {
               math::RealField<DIM> vertices_id_jk = vertices_id;
               vertices_id_jk(k, j) += delta_jk;
               elast.Update(vertices_id_jk, kE);
               elast.UpdateEnergy();
-              real e_id_jk = elast.GetEnergyOnElements().sum();
+              Real e_id_jk = elast.GetEnergyOnElements().sum();
               math::RealField<DIM> vertices_jk = original_vertices;
               vertices_jk(k, j) += delta_jk;
               elast.Update(vertices_jk, kE);
               elast.UpdateEnergy();
-              real e_jk = elast.GetEnergyOnElements().sum();
-              real hessian = (e_id_jk - e_id - e_jk + e0) / (delta_jk * delta_id);
+              Real e_jk = elast.GetEnergyOnElements().sum();
+              Real hessian = (e_id_jk - e_id - e_jk + e0) / (delta_jk * delta_id);
               if (std::abs(hessian - stiffness(i * DIM + d, j * DIM + k)) < clothest) {
                 clothest = std::abs(hessian - stiffness(i * DIM + d, j * DIM + k));
               }

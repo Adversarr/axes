@@ -9,10 +9,10 @@
 
 namespace ax::pde {
 
-template <Index dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(Index n, real dx) {
+template <int dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(Index n, Real dx) {
   n_ = n;
   dx_ = dx;
-  math::veci<dim> shape;
+  math::IndexVector<dim> shape;
   shape.setConstant(n);
 
   cell_type_ = math::Lattice<dim, PoissonProblemCellType>(shape);
@@ -32,14 +32,14 @@ template <Index dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered
   sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetSource(RealLattice const& f) {
+template <int dim> void PoissonProblemCellCentered<dim>::SetSource(RealLattice const& f) {
   AX_CHECK(math::all(f.Shape().array() == f_.Shape().array()))
       << "Source shape mismatch:" << "f: " << f.Shape().transpose()
       << ", desired: " << f_.Shape().transpose();
   f_ = f;
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetDomain(
+template <int dim> void PoissonProblemCellCentered<dim>::SetDomain(
     math::Lattice<dim, PoissonProblemCellType> const& domain) {
   cell_type_ = PoissonProblemCellType::kOuter;
   AX_CHECK((domain.Shape().array() == cell_type_.Shape().array()).all())
@@ -60,13 +60,13 @@ char to_char(PoissonProblemCellType t) {
   AX_CHECK(false) << "Unknown PoissonProblemCellType: " << static_cast<int>(t);
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::ReportDomain() {
+template <int dim> void PoissonProblemCellCentered<dim>::ReportDomain() {
   for (auto const& sub : cell_type_.Iterate()) {
     std::cout << sub.transpose() << ": " << to_char(cell_type_(sub)) << std::endl;
   }
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
+template <int dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
     math::Lattice<dim, std::array<PoissonProblemBoundaryType, dim>> const& bc_type,
     math::Lattice<dim, math::RealVector<dim>> const& bc_value) {
   AX_CHECK((bc_type.Shape().array() == bc_value.Shape().array()).all())
@@ -84,17 +84,17 @@ template <Index dim> void PoissonProblemCellCentered<dim>::SetBoundaryCondition(
   bc_value_ = bc_value;
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetA(real a) {
+template <int dim> void PoissonProblemCellCentered<dim>::SetA(Real a) {
   AX_CHECK(a >= 0) << "A should be non-negative.";
   a_ = a;
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetDx(real dx) {
+template <int dim> void PoissonProblemCellCentered<dim>::SetDx(Real dx) {
   AX_CHECK(dx > 0) << "dx should be positive.";
   dx_ = dx;
 }
 
-template <Index dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
+template <int dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
   // Check if the boundary condition is set
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     if (cell_type_(sub) == PoissonProblemCellType::kInterior) {
@@ -112,7 +112,7 @@ template <Index dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
            *   |     |
            *   +-----+
            */
-          math::veci<dim> stagger_sub = s == -1 ? sub : neighbor;
+          math::IndexVector<dim> stagger_sub = s == -1 ? sub : neighbor;
 
           if (cell_type_(neighbor) == PoissonProblemCellType::kOuter) {
             // Check if the boundary condition is set
@@ -141,7 +141,7 @@ template <Index dim> Status PoissonProblemCellCentered<dim>::CheckAvailable() {
   AX_RETURN_OK();
 }
 
-template <Index dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
+template <int dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
 PoissonProblemCellCentered<dim>::Solve() {
   AX_DLOG(INFO) << "PoissonProblemOnLattice Options:" << GetOptions();
 
@@ -157,7 +157,7 @@ PoissonProblemCellCentered<dim>::Solve() {
   bc_source_.resize(dofs);
   bc_source_.setZero();
 
-  math::spmatr A(dofs, dofs);
+  math::RealSparseMatrix A(dofs, dofs);
   Index cnt = 0;
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     if (t == PoissonProblemCellType::kInterior) {
@@ -166,11 +166,11 @@ PoissonProblemCellCentered<dim>::Solve() {
     }
   }
   // build matrix
-  math::sp_coeff_list coef;
+  math::SparseCOO coef;
   coef.reserve(dofs * 5);  // 5 point stencil
   const Index si[2] = {-1, 1};
-  const real c = 1.0;
-  const real dx_sqr = math::square(dx_);
+  const Real c = 1.0;
+  const Real dx_sqr = math::square(dx_);
   Index cnt_constraint = 0;
   for (auto const& [sub, t] : cell_type_.Enumerate()) {
     Index dof = dof_map_(sub);
@@ -180,13 +180,13 @@ PoissonProblemCellCentered<dim>::Solve() {
 
     // Eqns
     // TODO: Now we use 5Point Stencil, we can make it more general, and accurate.
-    real local_center = a_ * dx_sqr + (2 * dim);
-    real local_bc_source = 0;
+    Real local_center = a_ * dx_sqr + (2 * dim);
+    Real local_bc_source = 0;
     for (Index d = 0; d < dim; ++d) {
       for (int i = 0; i < 2; ++i) {
         Index s = si[i];
         auto neighbor = sub + s * math::unit<dim, Index>(d);
-        math::veci<dim> stagger_sub = sub;
+        math::IndexVector<dim> stagger_sub = sub;
         if (s == 1) {
           stagger_sub(d) += 1;
         }
@@ -221,7 +221,7 @@ PoissonProblemCellCentered<dim>::Solve() {
 
   A.resize(dofs, dofs);
   A.setFromTriplets(coef.begin(), coef.end());
-  // Eigen::ConjugateGradient<math::spmatr> lu(A);
+  // Eigen::ConjugateGradient<math::RealSparseMatrix> lu(A);
 
   // Build the linear system.
   sparse_solver_->SetProblem(math::make_sparse_problem(A));
@@ -240,7 +240,7 @@ PoissonProblemCellCentered<dim>::Solve() {
   return solution;
 }
 
-template <Index dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
+template <int dim> StatusOr<typename PoissonProblemCellCentered<dim>::RealLattice>
 PoissonProblemCellCentered<dim>::SolveUnchanged(math::RealVectorX const& source) {
   if (source.size() != bc_source_.size()) {
     return utils::InvalidArgumentError("Source size mismatch.");
@@ -258,14 +258,14 @@ PoissonProblemCellCentered<dim>::SolveUnchanged(math::RealVectorX const& source)
   return solution;
 }
 
-template <Index dim> utils::Options PoissonProblemCellCentered<dim>::GetOptions() const {
+template <int dim> utils::Options PoissonProblemCellCentered<dim>::GetOptions() const {
   utils::Options opt;
   opt["sparse_solver_name"] = sparse_solver_name_;
   opt["sparse_solver_opt"] = sparse_solver_->GetOptions();
   return opt;
 }
 
-template <Index dim> void PoissonProblemCellCentered<dim>::SetOptions(utils::Options const& option) {
+template <int dim> void PoissonProblemCellCentered<dim>::SetOptions(utils::Options const& option) {
   AX_SYNC_OPT_IF(option, std::string, sparse_solver_name) {
     auto ss = utils::reflect_enum<math::SparseSolverKind>(sparse_solver_name_);
     AX_CHECK(ss) << "Unknown sparse_solver_name: " << sparse_solver_name_;

@@ -2,7 +2,7 @@
 
 #include "ax/core/config.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 namespace ax::xpbd {
 
 // NOTE:
@@ -29,10 +29,10 @@ namespace ax::xpbd {
 // rho (x1 + x2) = rho (z1 + z2) - rho (y1 + y2)
 // => x1 + x2 = z1 + z2 - y1 - y2
 
-math::RealVector<6> relax(const math::RealVector<6>& y, const math::RealVector<6>& z, real rho, real k, real L) {
+math::RealVector<6> relax(const math::RealVector<6>& y, const math::RealVector<6>& z, Real rho, Real k, Real L) {
   math::RealVector<6> rho_z_minus_y = rho * (z - y);
   math::RealVector<3> dRhs = rho_z_minus_y.template head<3>() - rho_z_minus_y.template tail<3>();
-  real dx_norm = (2 * k * L + math::norm(dRhs)) / (2 * k + rho);
+  Real dx_norm = (2 * k * L + math::norm(dRhs)) / (2 * k + rho);
 
   // x1 - x2:
   math::RealVector<3> dx = dRhs.normalized() * dx_norm;
@@ -54,8 +54,8 @@ ConstraintSolution Constraint_Spring::SolveDistributed() {
   Index nC = this->GetNumConstraints();
 
   const auto& rho = this->rho_;
-  real const rg2 = this->rho_global_ * this->rho_global_;
-  real const dt = ensure_server().dt_;
+  Real const rg2 = this->rho_global_ * this->rho_global_;
+  Real const dt = ensure_server().dt_;
   for (Index i = 0; i < nC; ++i) {
     auto const& ij = this->constraint_mapping_[i];
     Index vi = ij[0], vj = ij[1];
@@ -64,8 +64,8 @@ ConstraintSolution Constraint_Spring::SolveDistributed() {
     z.template head<3>() = vert[vi];
     z.template tail<3>() = vert[vj];
     math::RealVector<6> y = gap_.col(i);
-    real k = spring_stiffness_[i] * dt * dt;
-    real L = spring_length_[i];
+    Real k = spring_stiffness_[i] * dt * dt;
+    Real L = spring_length_[i];
     math::RealVector<6> relaxed = relax(y, z, rho[i], k, L);
     math::RealVector<6> old = dual_.col(i);
     dual_.col(i) = relaxed;
@@ -102,7 +102,7 @@ void Constraint_Spring::BeginStep() {
   gap_.setZero(3 * 2, nC);
 }
 
-real Constraint_Spring::UpdateDuality() {
+Real Constraint_Spring::UpdateDuality() {
   Index nC = this->GetNumConstraints();
   math::RealField<3 * 2> prim_res = dual_;
   auto const& g = ensure_server();
@@ -121,7 +121,7 @@ real Constraint_Spring::UpdateDuality() {
   return math::norm2(prim_res);
 }
 
-void Constraint_Spring::UpdateRhoConsensus(real scale) {
+void Constraint_Spring::UpdateRhoConsensus(Real scale) {
   // this->rho_ *= scale;
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;

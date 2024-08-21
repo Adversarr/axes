@@ -9,9 +9,9 @@ public:
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;
-  real UpdateDuality() override;
+  Real UpdateDuality() override;
   void EndStep() override;
-  void UpdateRhoConsensus(real scale) override;
+  void UpdateRhoConsensus(Real scale) override;
   void SetTetrahedrons(math::IndexField4 const& tetrahedrons, math::RealField1 const& stiff);
 
   math::RealField1 stiffness_;

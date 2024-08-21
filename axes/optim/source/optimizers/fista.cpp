@@ -19,23 +19,23 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const Variable &x
   Gradient grad = problem.EvalGrad(x), x_old = x;
   Variable v = x;
 
-  real theta_old = 1, step_length_old = 0;
-  real energy = problem.EvalEnergy(x);
+  Real theta_old = 1, step_length_old = 0;
+  Real energy = problem.EvalEnergy(x);
   bool converged_grad = false, converged_var = false;
   Index iter;
 
-  auto select_theta = [&iter, &theta_old, &step_length_old](real t) -> real {
+  auto select_theta = [&iter, &theta_old, &step_length_old](Real t) -> Real {
     // t_(k-1) theta^2 = t theta_(k-1)^2 (1-theta), use positive root.
     // t_(k-1) theta^2 + t theta_(k-1)^2 theta - t theta_(k-1)^2 = 0
     if (iter == 0) {
       return 1;
     }
-    real a = step_length_old;
-    real b = t * theta_old * theta_old;
-    real c = -b;
+    Real a = step_length_old;
+    Real b = t * theta_old * theta_old;
+    Real c = -b;
 
-    real delta = b * b - 4 * a * c;
-    real theta = (-b + std::sqrt(delta)) / (2 * a);
+    Real delta = b * b - 4 * a * c;
+    Real theta = (-b + std::sqrt(delta)) / (2 * a);
     return theta;
   };
 
@@ -44,10 +44,10 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const Variable &x
     problem.EvalVerbose(iter, x, energy);
     AX_THROW_IF_FALSE(math::isfinite(energy), "Energy function returns Infinite number!");
 
-    real evalcg = (iter > 0 && problem.HasConvergeGrad()) ? problem.EvalConvergeGrad(x, grad)
-                                                          : math::inf<real>;
-    real evalcv = (iter > 0 && problem.HasConvergeVar()) ? problem.EvalConvergeVar(x, x_old)
-                                                         : math::inf<real>;
+    Real evalcg = (iter > 0 && problem.HasConvergeGrad()) ? problem.EvalConvergeGrad(x, grad)
+                                                          : math::inf<Real>;
+    Real evalcv = (iter > 0 && problem.HasConvergeVar()) ? problem.EvalConvergeVar(x, x_old)
+                                                         : math::inf<Real>;
     converged_grad = evalcg < tol_grad_;
     converged_var = evalcv < tol_var_;
 
@@ -73,16 +73,16 @@ OptResult Optimizer_Fista::Optimize(const OptProblem &problem, const Variable &x
     grad = problem.EvalGrad(x);
 
     Variable y = x;
-    real t = lr_;
+    Real t = lr_;
     auto converged_linesearch = [&]() -> bool {
-      real energy_at_x = (energy = problem.EvalEnergy(x));
-      real energy_at_y = problem.EvalEnergy(y);
-      real grad_dot_xy = math::dot(problem.EvalGrad(y), x - y);
-      real displacement_norm = math::norm2(x - y);
+      Real energy_at_x = (energy = problem.EvalEnergy(x));
+      Real energy_at_y = problem.EvalEnergy(y);
+      Real grad_dot_xy = math::dot(problem.EvalGrad(y), x - y);
+      Real displacement_norm = math::norm2(x - y);
       return energy_at_x <= energy_at_y + grad_dot_xy + 0.5 / t * displacement_norm;
     };
     // SECT: Fista Update
-    real theta = select_theta(t);
+    Real theta = select_theta(t);
     y = (1 - theta) * x_old + theta * v;
     x = y - t * problem.EvalGrad(y);
     x = problem.EvalProximator(x, t);

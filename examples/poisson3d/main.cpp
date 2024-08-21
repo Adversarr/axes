@@ -26,19 +26,19 @@
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/sparse/LDLT.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 
 using namespace ax;
 using namespace ax::math;
 
-real neg_laplace(real x, real y, real z) {
+Real neg_laplace(Real x, Real y, Real z) {
   return 2 * (-1 + x) * (-1 + y) * cos(z) * sin(x) * sin(y)
          + 2 * (-1 + x) * (-1 + z) * cos(y) * sin(x) * sin(z)
          + 2 * (-1 + y) * (-1 + z) * cos(x) * sin(y) * sin(z)
          - 3 * (-1 + x) * (-1 + y) * (-1 + z) * sin(x) * sin(y) * sin(z);
 }
 
-real analytical(real x, real y, real z) {
+Real analytical(Real x, Real y, Real z) {
   return (1 - x) * sin(x) * (1 - y) * sin(y) * (1 - z) * sin(z);
 }
 
@@ -67,16 +67,16 @@ void print_basic_test_case() {
   std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   pmesh->SetMesh(elements, vertices);
 
-  math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  math::RealSparseMatrix K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   std::cout << K.toDense() << std::endl;
 }
 
 int main(int argc, char** argv) {
   init(argc, argv);
   print_basic_test_case();
-  math::matxxr input_mesh_vertices
+  math::RealMatrixX input_mesh_vertices
       = math::read_npy_v10_real(utils::get_asset("/mesh/npy/beam_high_res_vertices.npy"));
-  math::matxxi input_mesh_elements
+  math::IndexMatrixX input_mesh_elements
       = math::read_npy_v10_Index(utils::get_asset("/mesh/npy/beam_high_res_elements.npy"));
 
   math::RealField3 vertices = input_mesh_vertices.transpose();
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
   std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   std::set<int> dirichlet;
-  for (auto i : utils::iota(nVertices)) {
+  for (auto i : utils::range(nVertices)) {
     // [0, 1] x [0, 1] x [0, 1]
     if (vertices(0, i) == 0 || vertices(0, i) == 1 || vertices(1, i) == 0 || vertices(1, i) == 1
         || vertices(2, i) == 0 || vertices(2, i) == 1) {
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
     pmesh->MarkDirichletBoundary(i, 0, 0);
   }
 
-  math::spmatr K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
+  math::RealSparseMatrix K = fem::LaplaceMatrixCompute<3>(*pmesh)(1.0);
   pmesh->FilterMatrixDof(0, K);
   K.makeCompressed();
   math::RealVectorX b(nVertices);
@@ -128,17 +128,17 @@ int main(int argc, char** argv) {
     math::RealVector3 x1 = vertices.col(e[1]);
     math::RealVector3 x2 = vertices.col(e[2]);
     math::RealVector3 x3 = vertices.col(e[3]);
-    real volume = (x1 - x0).cross(x2 - x0).dot(x3 - x0);
+    Real volume = (x1 - x0).cross(x2 - x0).dot(x3 - x0);
     volume = fabs(volume) / 6.0;
 
     for (auto const& i : e) {
       math::RealVector3 xi = vertices.col(i);
-      real load = neg_laplace(xi(0), xi(1), xi(2));
+      Real load = neg_laplace(xi(0), xi(1), xi(2));
       b(i) += load * volume / 4;
     }
   }
 
-  for (auto const& i : utils::iota(nVertices)) {
+  for (auto const& i : utils::range(nVertices)) {
     auto const& v = vertices.col(i);
     accurate(i) = analytical(v(0), v(1), v(2));
     if (dirichlet.find(i) != dirichlet.end()) {
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
   RealVectorX error = x - accurate;
   std::cout << "num vertices: " << nVertices << std::endl;
 
-  real l2_error = error.squaredNorm() / nVertices;
+  Real l2_error = error.squaredNorm() / nVertices;
 
   AX_LOG(INFO) << "L2 error: " << l2_error;
   clean_up();

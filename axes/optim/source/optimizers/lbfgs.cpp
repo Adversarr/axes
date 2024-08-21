@@ -1,8 +1,8 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
@@ -10,7 +10,7 @@
 #include "ax/utils/time.hpp"
 
 namespace ax::optim {
-real cosine_sim(Variable const& a, Variable const& b) {
+Real cosine_sim(Variable const& a, Variable const& b) {
   return math::dot(a, b) / (a.norm() * b.norm());
 }
 
@@ -18,7 +18,7 @@ static Variable approx_solve_default(Variable const& r, Variable const& sk, Grad
   if (sk.size() == 0 || yk.size() == 0) {
     return r;
   } else {
-    real H0 = math::dot(sk, yk) / (math::norm2(yk) + math::epsilon<real>);
+    Real H0 = math::dot(sk, yk) / (math::norm2(yk) + math::epsilon<Real>);
     return H0 * r;
   }
 }
@@ -36,7 +36,7 @@ struct RotatingHistoryBuffer {
     }
   }
 
-  void Push(Variable const& s, Gradient const& y, real rho) {
+  void Push(Variable const& s, Gradient const& y, Real rho) {
     const size_t end = pushed_size_ % total_;
     s_[end] = s;
     y_[end] = y;
@@ -54,7 +54,7 @@ struct RotatingHistoryBuffer {
       const size_t rotate_id = ActualSubscript(i - 1);
       const Variable& si = s_[rotate_id];
       const Gradient& yi = y_[rotate_id];
-      const real rho_i = rho_[rotate_id];
+      const Real rho_i = rho_[rotate_id];
       alpha_[rotate_id] = rho_i * math::dot(si, q);
       q.noalias() -= alpha_[rotate_id] * yi;
     }
@@ -66,7 +66,7 @@ struct RotatingHistoryBuffer {
       const size_t rotate_id = ActualSubscript(i);
       const Variable& si = s_[rotate_id];
       const Gradient& yi = y_[rotate_id];
-      const real beta = rho_[rotate_id] * math::dot(yi, r);
+      const Real beta = rho_[rotate_id] * math::dot(yi, r);
       r.noalias() += si * (alpha_[rotate_id] - beta);
     }
   }
@@ -89,9 +89,9 @@ struct RotatingHistoryBuffer {
 
   std::vector<Variable> s_;
   std::vector<Gradient> y_;
-  std::vector<real> rho_;
+  std::vector<Real> rho_;
 
-  mutable std::vector<real> alpha_;
+  mutable std::vector<Real> alpha_;
   size_t pushed_size_ = 0;
   const size_t total_;
 };
@@ -105,7 +105,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
   Index rows = x0.rows(), cols = x0.cols();
   Variable x = x0;
   Gradient grad = problem_.EvalGrad(x);
-  real f_iter = problem_.EvalEnergy(x);
+  Real f_iter = problem_.EvalEnergy(x);
 
   Index iter = 0;
   bool converged = false;
@@ -138,9 +138,9 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
             AX_ERROR("{}: CG failed to converge for check quality.", name);
             return;
           }
-          real cs = cosine_sim(approx, result.solution_);
-          real l2 = (approx - result.solution_).norm();
-          real rel = l2 / result.solution_.norm();
+          Real cs = cosine_sim(approx, result.solution_);
+          Real l2 = (approx - result.solution_).norm();
+          Real rel = l2 / result.solution_.norm();
           AX_ERROR("{}: cs={} l2={} rel={}", name, cs, l2, rel);
         };
 
@@ -199,7 +199,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
     }
     Variable dir = -r;
 
-    real const d_dot_grad = math::dot(dir, grad);
+    Real const d_dot_grad = math::dot(dir, grad);
     if (d_dot_grad >= 0.) {
       AX_ERROR("L-BFGS: Direction may not descent: value={} Early break! |r|={}", d_dot_grad,
           math::norm(dir));
@@ -208,7 +208,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
 
 
     // SECT: Line search
-    real f_opt;
+    Real f_opt;
     auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
     Variable& x_opt = ls_result.x_opt_;
 
@@ -221,7 +221,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
     f_iter = f_opt;
     grad = g_new;
 
-    if (real const rho_current = 1.0 / (math::dot(s_new, y_new) + 1e-19); rho_current <= 0) {
+    if (Real const rho_current = 1.0 / (math::dot(s_new, y_new) + 1e-19); rho_current <= 0) {
       // Last History is not available, discard it in memory
       AX_WARN(
           "LBFGS {}: rho is not positive: {} the problem is too stiff or the "

@@ -3,9 +3,10 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-#include <ax/math/gpu_accessor.cuh>
-
 #include <ax/core/init.hpp>
+#include <ax/math/accessor_gpu.cuh>
+
+#include "ax/core/logging.hpp"
 
 using namespace ax::math;
 
@@ -35,6 +36,33 @@ int main(int argc, char** argv) {
 
   read_from_span<<<10, 10>>>(chk);
 
-  cudaThreadSynchronize();
+  cudaPitchedPtr pitched;
+  size_t width = 9, height = 10, depth = 20;
+
+
+  auto extent = make_cudaExtent(9 * sizeof(float), 10, 20);
+  cudaMalloc3D(&pitched, extent);
+  auto shape = make_shape<size_t>(depth, height, width);
+
+  ax::PitchedBuffer<float> buf(pitched.ptr, pitched.pitch, pitched.pitch * 10 * 20);
+  auto access_buf = make_accessor(buf, shape);
+
+  char* devPtr = static_cast<char*>(pitched.ptr);
+  size_t pitch = pitched.pitch;
+  for (int z = 0; z < depth; ++z) {
+    char* slice = devPtr + z * height * pitch;
+    for (int y = 0; y < height; ++y) {
+      auto *row = reinterpret_cast<float*>(slice + y * pitch);
+      for (int x = 0; x < width; ++x) {
+        // !!! Do not load the value because it is on the device.
+        float* from_accessor = &access_buf(z, y, x);
+        float* from_row = &row[x];
+        AX_CHECK(from_accessor == from_row, "from_accessor: {}, from_row: {}", fmt::ptr(from_accessor), fmt::ptr(from_row));
+      }
+    }
+  }
+
+  cudaFree(pitched.ptr);
+  cudaDeviceSynchronize();
   return EXIT_SUCCESS;
 }

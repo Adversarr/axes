@@ -9,7 +9,7 @@ public:
   virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kBDCSVD; }
 
 private:
-  Eigen::BDCSVD<matxxr> impl_;
+  Eigen::BDCSVD<RealMatrixX> impl_;
 };
 
 }  // namespace ax::math

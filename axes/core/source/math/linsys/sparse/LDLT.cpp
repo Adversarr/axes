@@ -11,8 +11,8 @@ void SparseSolver_LDLT::Factorize() {
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_LDLT: Factorization failed");
 }
 
-LinsysSolveResult SparseSolver_LDLT::Solve(matxxr const &b, matxxr const &) {
-  matxxr x = solver_.solve(b);
+LinsysSolveResult SparseSolver_LDLT::Solve(RealMatrixX const &b, RealMatrixX const &) {
+  RealMatrixX x = solver_.solve(b);
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_LDLT: solve failed");
   return {x};
 }

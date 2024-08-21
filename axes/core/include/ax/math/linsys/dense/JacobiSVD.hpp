@@ -11,7 +11,7 @@ public:
   DenseSolverKind GetKind() const final { return DenseSolverKind::kJacobiSVD; }
 
 private:
-  Eigen::JacobiSVD<matxxr> impl_;
+  Eigen::JacobiSVD<RealMatrixX> impl_;
 };
 
 }  // namespace ax::math

@@ -42,9 +42,9 @@ DISABLE_WARNING(-Wold-style-cast)
 #include "3rdparty/backward/backward.hpp"
 DISABLE_WARNING_POP
 
+#include "ax/math/utils/init_parallel.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/init_parallel.hpp"
 #include "ax/utils/time.hpp"
 
 namespace ax {

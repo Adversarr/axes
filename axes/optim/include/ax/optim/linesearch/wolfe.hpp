@@ -15,10 +15,10 @@ public:
   virtual utils::Options GetOptions() const override;
 
   // Typical value for Newton's method:
-  real initial_step_length_ = 1.0;
-  real step_shrink_rate_ = 0.5;
-  real required_descent_rate_ = 1e-4;
-  real required_curvature_rate_ = 0.9;
+  Real initial_step_length_ = 1.0;
+  Real step_shrink_rate_ = 0.5;
+  Real required_descent_rate_ = 1e-4;
+  Real required_curvature_rate_ = 0.9;
 
   bool strong_wolfe_ = false;
 };

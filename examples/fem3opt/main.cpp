@@ -21,7 +21,7 @@
 #include "ax/gl/utils.hpp"
 #include "ax/math/io.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
 
 ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
@@ -62,7 +62,7 @@ void update_rendering() {
   ts->GetElasticity().Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kEnergy);
   ts->GetElasticity().GatherEnergyToVertices();
   auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
-  static real m = 0, M = 0;
+  static Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
 
@@ -84,7 +84,7 @@ void ui_callback(gl::UiRenderEvent) {
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
     //   math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
-    //   for (auto i : utils::iota(vert.cols())) {
+    //   for (auto i : utils::range(vert.cols())) {
     //     const auto& position = vert.col(i);
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
   ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_unique<fem::TriMesh<3>>());
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   auto m = ts->GetMesh();
-  for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+  for (auto i : utils::range(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9) {
       // Mark as dirichlet bc.

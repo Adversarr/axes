@@ -3,8 +3,9 @@
 #include "ax/geometry/intersection/vertex_edge.hpp"
 #include "ax/geometry/intersection/vertex_face.hpp"
 #include "ax/geometry/intersection/vertex_vertex.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/xpbd/details/relaxations.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::xpbd {
 using namespace geo;
@@ -27,7 +28,7 @@ void Constraint_VertexFaceCollider::BeginStep() {
   this->UpdatePositionConsensus();
 }
 
-std::pair<CollisionKind, Index> determine_real_collision_kind(m34 const& o, real tol) {
+std::pair<CollisionKind, Index> determine_real_collision_kind(m34 const& o, Real tol) {
   Vertex3 v{o.col(0)}, f1{o.col(1)}, f2{o.col(2)}, f3{o.col(3)};
   Segment3 e12{o.col(1), o.col(2) - o.col(1)}, e23{o.col(2), o.col(3) - o.col(2)},
       e31{o.col(3), o.col(1) - o.col(3)};
@@ -75,13 +76,13 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
 
   // AX_LOG(ERROR) << "Number of constraints: " << nC;
   ConstraintSolution sol(nV);
-  for (auto i : utils::iota(nC)) {
+  for (auto i : utils::range(nC)) {
     auto C = constraint_mapping_[i];
     m34 dual_old = dual_[i];
     auto& x = dual_[i];
     auto& u = gap_[i];  // u.setZero();
-    real& k = stiffness_[i];
-    real& rho = rho_[i];
+    Real& k = stiffness_[i];
+    Real& rho = rho_[i];
     m34 z;
     for (Index i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
     auto [kind, id] = determine_real_collision_kind(origin_[i], tol_);
@@ -145,10 +146,10 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
   return sol;
 }
 
-real Constraint_VertexFaceCollider::UpdateDuality() {
+Real Constraint_VertexFaceCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
-  real sqr_prim_res = 0;
-  for (auto i : utils::iota(this->GetNumConstraints())) {
+  Real sqr_prim_res = 0;
+  for (auto i : utils::range(this->GetNumConstraints())) {
     auto cons = constraint_mapping_[i];
     auto const& d = dual_[i];
     math::RealMatrix<3, 4> z, du;
@@ -166,7 +167,7 @@ void Constraint_VertexFaceCollider::EndStep() {
   }
 }
 
-void Constraint_VertexFaceCollider::UpdateRhoConsensus(real scale) {
+void Constraint_VertexFaceCollider::UpdateRhoConsensus(Real scale) {
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
@@ -200,8 +201,8 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   };
 
   // Current implementation is brute force.
-  for (Index i : utils::iota(g.vertices_.cols())) {
-    for (auto [j, f] : utils::enumerate(g.faces_)) {
+  for (Index i : utils::range(g.vertices_.cols())) {
+    for (auto [j, f] : utils::views::enumerate(g.faces_)) {
       auto const& x0 = g.last_vertices_.col(i);
       auto const& fx0 = g.last_vertices_.col(f.x());
       auto const& fy0 = g.last_vertices_.col(f.y());
@@ -241,10 +242,10 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
       auto& di = dual_.emplace_back();
       gap_.emplace_back().setZero();
       di.col(0) = g.last_vertices_.col(vid);
-      for (auto [i, v] : utils::enumerate(f)) {
+      for (auto [i, v] : utils::views::enumerate(f)) {
         di.col(i + 1) = g.last_vertices_.col(v);
       }
-      real const mass = 0.25 * g.mass_[vid] + 0.25 * g.mass_[f.x()] + 0.25 * g.mass_[f.y()]
+      Real const mass = 0.25 * g.mass_[vid] + 0.25 * g.mass_[f.x()] + 0.25 * g.mass_[f.y()]
                         + 0.25 * g.mass_[f.z()];
 
       origin_.emplace_back(di);
@@ -254,7 +255,7 @@ void Constraint_VertexFaceCollider::UpdatePositionConsensus() {
   }
 
   Index n_v = this->GetNumConstrainedVertices();
-  for (Index i : utils::iota(n_v)) {
+  for (Index i : utils::range(n_v)) {
     Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }

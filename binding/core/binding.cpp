@@ -200,7 +200,7 @@ void bind_core_init(pybind11::module &m) {
       .def("__setitem__",
            [](boost::json::object &obj, std::string const &key, Index val) { obj[key] = val; })
       .def("__setitem__",
-           [](boost::json::object &obj, std::string const &key, real val) { obj[key] = val; })
+           [](boost::json::object &obj, std::string const &key, Real val) { obj[key] = val; })
       .def("__setitem__",
            [](boost::json::object &obj, std::string const &key, bool val) { obj[key] = val; })
       .def("__contains__",
@@ -242,7 +242,7 @@ void bind_core_init(pybind11::module &m) {
       .def("as_object",
            [](boost::json::value &val) -> boost::json::object { return val.as_object(); })
       .def("as_int", [](boost::json::value &val) -> Index { return val.as_int64(); })
-      .def("as_real", [](boost::json::value &val) -> real { return val.as_double(); })
+      .def("as_real", [](boost::json::value &val) -> Real { return val.as_double(); })
       .def("as_string",
            [](boost::json::value &val) -> std::string { return val.as_string().c_str(); })
       .def("as_bool", [](boost::json::value &val) -> bool { return val.as_bool(); });
@@ -308,16 +308,16 @@ void bind_core_math(py::module &m) {
   /************************* SECT: sparse matrix manipulation *************************/
   using namespace ax;
   m.def("make_sparse_matrix",
-        static_cast<math::spmatr (*)(Index, Index, math::sp_coeff_list const &)>(
+        static_cast<math::RealSparseMatrix (*)(Index, Index, math::sp_coeff_list const &)>(
             &math::make_sparse_matrix),
         py::arg("rows"), py::arg("cols"), py::arg("coeff_list"))
       .def(
           "make_sparse_matrix",
-          static_cast<math::spmatr (*)(Index, Index, std::vector<Index> const &, std::vector<Index> const &,
-                                       std::vector<real> const &)>(&math::make_sparse_matrix),
+          static_cast<math::RealSparseMatrix (*)(Index, Index, std::vector<Index> const &, std::vector<Index> const &,
+                                       std::vector<Real> const &)>(&math::make_sparse_matrix),
           py::arg("rows"), py::arg("cols"), py::arg("row"), py::arg("col"), py::arg("val"));
 
-  m.def("field_flatten", [](const math::matxxr & field) -> math::RealVectorX {
+  m.def("field_flatten", [](const math::RealMatrixX & field) -> math::RealVectorX {
     return field.reshaped();
   });
 
@@ -326,7 +326,7 @@ void bind_core_math(py::module &m) {
       .def("SetProblem",
            py::overload_cast<std::shared_ptr<math::LinsysProblem_Sparse>>(&math::SparseSolverBase::SetProblem))
       .def("SetProblem",
-           py::overload_cast<math::spmatr const &>(&math::SparseSolverBase::SetProblem))
+           py::overload_cast<math::RealSparseMatrix const &>(&math::SparseSolverBase::SetProblem))
       .def("AnalyzePattern", &math::SparseSolverBase::AnalyzePattern)
       .def("Factorize", &math::SparseSolverBase::Factorize)
       .def("Compute", &math::SparseSolverBase::Compute)

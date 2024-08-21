@@ -45,12 +45,12 @@ void bind_naive_optim(py::module& m) {
       .def("IsDirichletBoundary", &TriMesh<3>::IsDirichletBoundary, py::arg("i"), py::arg("dof"))
       .def("ExtractSurface", &TriMesh<3>::ExtractSurface)
       .def("FilterMatrixFull",
-           [](TriMesh<3>& tm, math::spmatr K) -> math::spmatr {
+           [](TriMesh<3>& tm, math::RealSparseMatrix K) -> math::RealSparseMatrix {
              tm.FilterMatrixFull(K);
              return K;
            })
       .def("FilterMatrixDof",
-           [](TriMesh<3>& tm, Index dof, math::spmatr K) -> math::spmatr {
+           [](TriMesh<3>& tm, Index dof, math::RealSparseMatrix K) -> math::RealSparseMatrix {
              tm.FilterMatrixDof(dof, K);
              return K;
            })
@@ -69,7 +69,7 @@ void bind_naive_optim(py::module& m) {
   py::class_<TimeStepperBase<3>, std::shared_ptr<TimeStepperBase<3>>> tsb3(m, "TimeStepperBase3D");
 
   tsb3.def("SetOptions", &TimeStepperBase<3>::SetOptions)
-      .def("SetDensity", py::overload_cast<real>(&TimeStepperBase<3>::SetDensity))
+      .def("SetDensity", py::overload_cast<Real>(&TimeStepperBase<3>::SetDensity))
       .def("SetDensity", py::overload_cast<math::RealField1 const&>(&TimeStepperBase<3>::SetDensity))
       .def("GetMesh", &TimeStepperBase<3>::GetMesh)
       .def("GetOptions", &TimeStepperBase<3>::GetOptions)
@@ -105,39 +105,39 @@ void bind_naive_optim(py::module& m) {
   tsb3.def("GetLastTrajectory", &TimeStepperBase<3>::GetLastTrajectory)
       .def("GetLastEnergy", &TimeStepperBase<3>::GetLastEnergy);
 
-  m.def("compute_mass_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, real density) -> math::spmatr {
+  m.def("compute_mass_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, Real density) -> math::RealSparseMatrix {
     AX_THROW_IF_NULL(tm);
     MassMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_mass_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
           AX_THROW_IF_NULL(tm);
           MassMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
 
-  m.def("compute_laplace_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, real density) -> math::spmatr {
+  m.def("compute_laplace_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, Real density) -> math::RealSparseMatrix {
     AX_THROW_IF_NULL(tm);
     LaplaceMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_laplace_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::spmatr {
+        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
           AX_THROW_IF_NULL(tm);
           LaplaceMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
-  m.def("yp_to_lame", [](real youngs, real poisson) -> math::RealVector2 {
+  m.def("yp_to_lame", [](Real youngs, Real poisson) -> math::RealVector2 {
     return elasticity::compute_lame(youngs, poisson);
   });
 }
 
 void bind_experiment(py::module& m) {
   m.def("set_sparse_inverse_approximator",
-        [](math::spmatr A, math::RealVectorX precond, real eig_modification, bool require_check_secant) {
+        [](math::RealSparseMatrix A, math::RealVectorX precond, Real eig_modification, bool require_check_secant) {
           auto &sia = ensure_resource<SparseInverseApproximator>();
           sia.A_ = A;
           sia.precond_ = precond;
@@ -185,12 +185,12 @@ void bind_experiment(py::module& m) {
           // Secant equation: yk = Hk * sk
           //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
           //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
-          real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<real>);
+          Real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<Real>);
           AX_LOG(INFO) << "gamma_Hsy: " << gamma_Hsy;
           return gamma_Hsy * apply(gk);
         });
 
-  m.def("extract_hessian_inverse", [](std::shared_ptr<TimeStepperBase<3>> tsb) -> math::spmatr {
+  m.def("extract_hessian_inverse", [](std::shared_ptr<TimeStepperBase<3>> tsb) -> math::RealSparseMatrix {
       try {
         auto * qn = dynamic_cast<Timestepper_QuasiNewton<3>*>(tsb.get());
         return qn->GetLaplacianAsApproximation();

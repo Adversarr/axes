@@ -14,10 +14,10 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem, const V
   AX_THROW_IF_FALSE(problem.HasEnergy(), "Energy function not set");
   AX_THROW_IF_LT(lr_, 0, "Invalid learning rate: {}", lr_);
 
-  real energy = problem.EvalEnergy(x);
+  Real energy = problem.EvalEnergy(x);
   Gradient grad;
   Variable x_old = x;
-  real last_step_length = 1;
+  Real last_step_length = 1;
   bool converged_grad = false;
   bool converged_var = false;
   Index iter = 0;
@@ -25,10 +25,10 @@ OptResult Optimizer_GradientDescent::Optimize(OptProblem const& problem, const V
     problem.EvalVerbose(iter, x, energy);
     AX_THROW_IF_FALSE(math::isfinite(energy), "Energy function returns Infinite number!");
 
-    real evalcg = (iter > 0 && problem.HasConvergeGrad()) ? problem.EvalConvergeGrad(x, grad)
-                                                          : math::inf<real>;
-    real evalcv = (iter > 0 && problem.HasConvergeVar()) ? problem.EvalConvergeVar(x, x_old)
-                                                         : math::inf<real>;
+    Real evalcg = (iter > 0 && problem.HasConvergeGrad()) ? problem.EvalConvergeGrad(x, grad)
+                                                          : math::inf<Real>;
+    Real evalcv = (iter > 0 && problem.HasConvergeVar()) ? problem.EvalConvergeVar(x, x_old)
+                                                         : math::inf<Real>;
 
     converged_grad = evalcg < tol_grad_;
     converged_var = evalcv < tol_var_;
@@ -82,11 +82,11 @@ void ax::optim::Optimizer_GradientDescent::SetLineSearch(
   linesearch_ = std::move(linesearch);
 }
 
-void Optimizer_GradientDescent::SetLearningRate(real const& lr) { lr_ = lr; }
+void Optimizer_GradientDescent::SetLearningRate(Real const& lr) { lr_ = lr; }
 
 void Optimizer_GradientDescent::SetOptions(utils::Options const& opt) {
   OptimizerBase::SetOptions(opt);
-  AX_SYNC_OPT_IF(opt, real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
+  AX_SYNC_OPT_IF(opt, Real, lr) { AX_THROW_IF_LT(lr_, 0, "Learning Rate should be positive"); }
   utils::extract_and_create<LinesearchBase, LineSearchKind>(opt, "linesearch", linesearch_);
   utils::extract_tunable(opt, "linesearch_opt", linesearch_.get());
 }

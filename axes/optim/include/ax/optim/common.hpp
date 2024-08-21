@@ -7,28 +7,28 @@
 
 namespace ax::optim {
 
-using Variable = math::matxxr;       // type of variable in optimization.
+using Variable = math::RealMatrixX;       // type of variable in optimization.
 using Gradient = Variable;           // type of gradient is the same as variable.
-using DenseHessian = math::matxxr;   // type of dense hessian.
-using SparseHessian = math::spmatr;  // type of sparse hessian.
+using DenseHessian = math::RealMatrixX;   // type of dense hessian.
+using SparseHessian = math::RealSparseMatrix;  // type of sparse hessian.
 
 /****************************** Function Handles ******************************/
-using ConvergeVarFn = std::function<real(const Variable&, const Variable&)>;
-using ConvergeGradFn = std::function<real(const Gradient&, const Gradient&)>;
-using VerboseFn = std::function<void(Index, const Variable&, real)>;
-using EnergyFn = std::function<real(const Variable&)>;
+using ConvergeVarFn = std::function<Real(const Variable&, const Variable&)>;
+using ConvergeGradFn = std::function<Real(const Gradient&, const Gradient&)>;
+using VerboseFn = std::function<void(Index, const Variable&, Real)>;
+using EnergyFn = std::function<Real(const Variable&)>;
 using GradFn = std::function<Gradient(const Variable&)>;
 using HessianFn = std::function<DenseHessian(const Variable&)>;
 using SparseHessianFn = std::function<SparseHessian(const Variable&)>;
-using ProximatorFn = std::function<math::matxxr(const Variable&, real)>;
+using ProximatorFn = std::function<math::RealMatrixX(const Variable&, Real)>;
 
 template <typename NormType = math::l2_t>
-real default_converge_grad(const Gradient &, const Gradient& grad) {
+Real default_converge_grad(const Gradient &, const Gradient& grad) {
   return math::norm(grad, NormType{});
 }
 
 template <typename NormType = math::l2_t>
-real default_converge_var(const Variable& x0, const Variable& x1) {
+Real default_converge_var(const Variable& x0, const Variable& x1) {
   return math::norm(x1 - x0, NormType{});
 }
 
@@ -38,14 +38,14 @@ public:
   AX_DECLARE_CONSTRUCTOR(OptProblem, default, default);
 
   /****************************** Evaluation ******************************/
-  real EvalEnergy(const Variable& x) const;
+  Real EvalEnergy(const Variable& x) const;
   Gradient EvalGrad(const Variable& x) const;
   DenseHessian EvalHessian(const Variable& x) const;
   SparseHessian EvalSparseHessian(const Variable& x) const;
-  real EvalConvergeVar(const Variable& x0, const Variable& x1) const;
-  real EvalConvergeGrad(const Gradient& grad0, const Gradient& grad1) const;
-  void EvalVerbose(Index iter, const Variable& x, real energy) const;
-  Variable EvalProximator(const Variable& x, real step_length) const;
+  Real EvalConvergeVar(const Variable& x0, const Variable& x1) const;
+  Real EvalConvergeGrad(const Gradient& grad0, const Gradient& grad1) const;
+  void EvalVerbose(Index iter, const Variable& x, Real energy) const;
+  Variable EvalProximator(const Variable& x, Real step_length) const;
 
   /****************************** Setters ******************************/
   OptProblem& SetEnergy(EnergyFn const& energy);
@@ -92,8 +92,8 @@ struct OptResult {
   Variable x_opt_;
 
   // Optimal energy
-  real f_opt_;
-  real step_length_{1.0}; // for linesarchers.
+  Real f_opt_;
+  Real step_length_{1.0}; // for linesarchers.
   // For Iterative Solver:
   Index n_iter_;
   // Indicates whether the optimization algorithm has converged.
@@ -105,10 +105,10 @@ struct OptResult {
 
   OptResult() = default;
 
-  OptResult(Variable const& x_opt, real f_opt, Index n_iter)
+  OptResult(Variable const& x_opt, Real f_opt, Index n_iter)
       : x_opt_(x_opt), f_opt_(f_opt), n_iter_(n_iter) {}
 
-  std::pair<Variable, real> GetResult() const;
+  std::pair<Variable, Real> GetResult() const;
 };
 
 std::ostream& operator<<(std::ostream& os, OptResult const& result);

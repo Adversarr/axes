@@ -58,7 +58,7 @@ void Serializer::Deserialize(object const &obj) {
   array nodes = obj.at("nodes").as_array();
   array pipes = obj.at("pipes").as_array();
   array strong_link = obj.at("strong_link").as_array();
-  auto &registry = NodeRegistry::instance();
+  auto &registry = get_internal_node_registry();
 
   size_t num_nodes = nodes.size();
   std::vector<bool> available_nodes(num_nodes, false);

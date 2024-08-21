@@ -7,11 +7,11 @@ class Preconditioner_IncompleteLU : public PreconditionerBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
-  matxxr Solve(matxxr const &b) override;
+  RealMatrixX Solve(RealMatrixX const &b) override;
 
   PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteLU; }
 
 private:
-  Eigen::IncompleteLUT<real, Index> impl_;
+  Eigen::IncompleteLUT<Real, Index> impl_;
 };
 }  // namespace ax::math

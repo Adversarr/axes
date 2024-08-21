@@ -3,27 +3,27 @@
 
 namespace ax::gl {
 
-using cmap = real const[256][3];
+using cmap = Real const[256][3];
 
 // This is taken from DiffFR.
-extern real const colormap_bwr[256][3];
-extern real const colormap_coolwarm[256][3];
-extern real const colormap_jet[256][3];
-extern real const colormap_plasma[256][3];
-extern real const colormap_seismic[256][3];
+extern Real const colormap_bwr[256][3];
+extern Real const colormap_coolwarm[256][3];
+extern Real const colormap_jet[256][3];
+extern Real const colormap_plasma[256][3];
+extern Real const colormap_seismic[256][3];
 
 class Colormap {
 public:
-  Colormap(real low, real high, bool periodic = false, cmap& colormap = colormap_jet)
+  Colormap(Real low, Real high, bool periodic = false, cmap& colormap = colormap_jet)
       : low_(low), high_(high), periodic_(periodic), colormap_(colormap) {}
 
-  math::RealVector3 operator()(real value) const;
+  math::RealVector3 operator()(Real value) const;
 
   math::RealField3 operator()(math::RealVectorX const &values) const;
 
 private:
-  real low_;
-  real high_;
+  Real low_;
+  Real high_;
   bool periodic_;
   cmap& colormap_;
 };

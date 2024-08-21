@@ -9,7 +9,7 @@ namespace ax::vdb {
 
 class VolumeToMesh {
 public:
-  VolumeToMesh(real isovalue = 0, real adaptivity = 0, bool relaxDisorientedTriangles = true);
+  VolumeToMesh(Real isovalue = 0, Real adaptivity = 0, bool relaxDisorientedTriangles = true);
 
   ~VolumeToMesh();
 

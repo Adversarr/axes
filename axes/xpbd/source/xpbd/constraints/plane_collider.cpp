@@ -2,12 +2,12 @@
 
 #include "ax/math/common.hpp"
 #include "ax/math/linalg.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 
 namespace ax::xpbd {
 
-static math::RealVector3 relax_ipc(real rho, real& k, real eps, math::RealVector3 const& u,
-                             math::RealVector3 const& z, math::RealVector3 const& normal, real offset) {
+static math::RealVector3 relax_ipc(Real rho, Real& k, Real eps, math::RealVector3 const& u,
+                             math::RealVector3 const& z, math::RealVector3 const& normal, Real offset) {
   //    E(x) = k/2 (n dot x - offset - eps)^2 + rho/2 || x - z + u ||^2
   //    D E(x) = k (n dot x - offset - eps) n + rho (x - z + u) == 0
   // Let x = alpha n + z - u, and let n dot (z - u) = beta:
@@ -21,11 +21,11 @@ static math::RealVector3 relax_ipc(real rho, real& k, real eps, math::RealVector
   // => k (offset + eps - beta) / (k + rho) >= offset - beta.
   // => k (offset + eps - beta) >= (offset - beta) (k + rho)
   // => k eps >= (offset - beta) rho
-  real beta = normal.dot(z - u);
+  Real beta = normal.dot(z - u);
   if (k * eps < (offset - beta) * rho) {
     k = 4 * (offset - beta) * rho / eps;  // enlarger k to satisfy the constraint strictly.
   }
-  real alpha = k * (offset + eps - beta) / (k + rho);
+  Real alpha = k * (offset + eps - beta) / (k + rho);
   return alpha * normal + z - u;
 }
 
@@ -34,9 +34,9 @@ ConstraintSolution Constraint_PlaneCollider::SolveDistributed() {
   Index const nC = this->GetNumConstraints();
   ConstraintSolution sol(nC);
 
-  for (auto i : utils::iota(nC)) {
-    real rho = this->rho_[i];
-    real& k = stiffness_[i];
+  for (auto i : utils::range(nC)) {
+    Real rho = this->rho_[i];
+    Real& k = stiffness_[i];
     math::RealVector3 const& z = constrained_vertices_position_[i];
     math::RealVector3 dual_new = relax_ipc(rho, k, tol_, gap_[i], z, normal_, offset_);
     sol.sqr_dual_residual_ += math::norm2(dual_new - dual_[i]);
@@ -63,10 +63,10 @@ void Constraint_PlaneCollider::BeginStep() {
   iteration_ = 0;
 }
 
-real Constraint_PlaneCollider::UpdateDuality() {
+Real Constraint_PlaneCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
-  real sqr_prim_res = 0;
-  for (auto i : utils::iota(this->GetNumConstraints())) {
+  Real sqr_prim_res = 0;
+  for (auto i : utils::range(this->GetNumConstraints())) {
     math::RealVector3 du = dual_[i] - fetch_from_global[i];
     gap_[i] += du;
     // std::cout << "gap[" << i << "] = " << gap_[i].transpose() << std::endl;
@@ -77,7 +77,7 @@ real Constraint_PlaneCollider::UpdateDuality() {
 
 void Constraint_PlaneCollider::EndStep() {}
 
-void Constraint_PlaneCollider::UpdateRhoConsensus(real scale) {
+void Constraint_PlaneCollider::UpdateRhoConsensus(Real scale) {
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
@@ -88,7 +88,7 @@ void Constraint_PlaneCollider::UpdatePositionConsensus() {
   auto& local = this->constrained_vertices_position_;
   auto const& g = ensure_server();
   std::vector<Index> new_vertices;
-  for (Index i : utils::iota(g.vertices_.cols())) {
+  for (Index i : utils::range(g.vertices_.cols())) {
     math::RealVector3 const x = g.vertices_.col(i);
     if (normal_.dot(x) < offset_ + tol_) {
       if (collidings_.find(i) == collidings_.end()) {
@@ -98,7 +98,7 @@ void Constraint_PlaneCollider::UpdatePositionConsensus() {
     }
   }
   if (new_vertices.size() > 0) {
-    for (Index i : utils::iota(new_vertices.size())) {
+    for (Index i : utils::range(new_vertices.size())) {
       Index iV = new_vertices[i];
       this->constrained_vertices_ids_.push_back(iV);
       this->constraint_mapping_.emplace_back(iV);
@@ -111,7 +111,7 @@ void Constraint_PlaneCollider::UpdatePositionConsensus() {
   }
 
   Index n_v = this->GetNumConstrainedVertices();
-  for (Index i : utils::iota(n_v)) {
+  for (Index i : utils::range(n_v)) {
     Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }

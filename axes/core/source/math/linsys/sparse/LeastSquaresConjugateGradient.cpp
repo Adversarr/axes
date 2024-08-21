@@ -15,8 +15,8 @@ void SparseSolver_LeastSquaresConjugateGradient::Factorize() {
                     "SparseSolver_LeastSquaresConjugateGradient: factorization failed");
 }
 
-LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(matxxr const &b,
-                                                                    matxxr const &x0) {
+LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(RealMatrixX const &b,
+                                                                    RealMatrixX const &x0) {
   if (!preconditioner_) {
     // TODO: Fix bug
     // solver_.setMaxIterations(options.GetDefault<Index>("max_iter", 100));

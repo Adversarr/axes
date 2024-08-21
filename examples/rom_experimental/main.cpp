@@ -22,7 +22,7 @@
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/math/io.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/time.hpp"
 
@@ -67,7 +67,7 @@ void update_rendering() {
   ts->GetElasticity().UpdateEnergy();
   ts->GetElasticity().GatherEnergyToVertices();
   auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
-  static real m = 0, M = 0;
+  static Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
 
@@ -88,7 +88,7 @@ void ui_callback(gl::UiRenderEvent ) {
     // if (scene == SCENE_TWIST) {
     //   // Apply some Dirichlet BC
     //   math::RealMatrix3 rotate = Eigen::AngleAxis<real>(dt, math::RealVector3::UnitX()).matrix();
-    //   for (auto i : utils::iota(vert.cols())) {
+    //   for (auto i : utils::range(vert.cols())) {
     //     const auto& position = vert.col(i);
     //     if (-position.x() > 1.9) {
     //       // Mark as dirichlet bc.
@@ -133,8 +133,8 @@ int main(int argc, char** argv) {
   ts->GetMesh()->SetMesh(input_mesh.indices_, input_mesh.vertices_);
   auto p = (fem::TimeStepper_ROM<3>*) ts.get();
   auto m = ts->GetMesh();
-  // p->SetBasis(math::matxxr::Identity(input_mesh.vertices_.cols() * 3, input_mesh.vertices_.cols() * 3));
-  for (auto i: utils::iota(input_mesh.vertices_.cols())) {
+  // p->SetBasis(math::RealMatrixX::Identity(input_mesh.vertices_.cols() * 3, input_mesh.vertices_.cols() * 3));
+  for (auto i: utils::range(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 1.9 && position.y() >= 0.499) {
       // Mark as dirichlet bc.
@@ -145,20 +145,20 @@ int main(int argc, char** argv) {
   }
 
   // compute M lambda v + K v = 0's solution.
-  math::spmatr M_sp = fem::MassMatrixCompute<3>(*ts->GetMesh())(1);
+  math::RealSparseMatrix M_sp = fem::MassMatrixCompute<3>(*ts->GetMesh())(1);
   ts->GetMesh()->FilterMatrixDof(0, M_sp);
-  math::matxxr M = M_sp.toDense();
-  math::spmatr K_sp = fem::LaplaceMatrixCompute<3>(*ts->GetMesh())(1.0);
+  math::RealMatrixX M = M_sp.toDense();
+  math::RealSparseMatrix K_sp = fem::LaplaceMatrixCompute<3>(*ts->GetMesh())(1.0);
   // fem::elasticity::Linear<3> linear(lame.x(), lame.y());
   // fem::ElasticityCompute_CPU<3, fem::elasticity::Linear> e(ts->GetMeshPtr());
   // e.RecomputeRestPose();
   // e.Update(ts->GetMesh()->GetVertices(), fem::ElasticityUpdateLevel::kHessian);
-  // math::spmatr K_sp = e.ComputeHessianAndGather(lame);
+  // math::RealSparseMatrix K_sp = e.ComputeHessianAndGather(lame);
   ts->GetMesh()->FilterMatrixDof(0, K_sp);
-  math::matxxr K = K_sp.toDense();
-  Eigen::GeneralizedSelfAdjointEigenSolver<math::matxxr> solver(K+M, M);
-  // Eigen::SelfAdjointEigenSolver<math::matxxr> solver(K);
-  math::matxxr eigen_vectors = solver.eigenvectors().leftCols(absl::GetFlag(FLAGS_modes));
+  math::RealMatrixX K = K_sp.toDense();
+  Eigen::GeneralizedSelfAdjointEigenSolver<math::RealMatrixX> solver(K+M, M);
+  // Eigen::SelfAdjointEigenSolver<math::RealMatrixX> solver(K);
+  math::RealMatrixX eigen_vectors = solver.eigenvectors().leftCols(absl::GetFlag(FLAGS_modes));
   p->SetBasis(eigen_vectors);
 
   AX_CHECK_OK(ts->Initialize());
@@ -211,12 +211,12 @@ int main(int argc, char** argv) {
 //   math::RealVectorX eigen_values = solver.eigenvalues().head(10);
 //   AX_CHECK_OK(math::write_npy_v10("eigen_values.npy", eigen_values));
 //   // compute the first 10 eigen vectors.
-//   math::matxxr eigen_vectors = solver.eigenvectors().leftCols(10);
+//   math::RealMatrixX eigen_vectors = solver.eigenvectors().leftCols(10);
 //   std::cout <<  eigen_vectors<< std::endl;
 //   std::cout <<  eigen_values.transpose() << std::endl;
 
 //   // compute the laplace's eigen values.
-//   Eigen::SelfAdjointEigenSolver<math::matxxr> adj(L);
+//   Eigen::SelfAdjointEigenSolver<math::RealMatrixX> adj(L);
 //   std::cout << "Laplace's eigen values: " << adj.eigenvalues().transpose() << std::endl;
 //   std::cout << "Laplace's eigen vectors: " << adj.eigenvectors() << std::endl;
 

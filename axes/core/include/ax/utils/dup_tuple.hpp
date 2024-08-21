@@ -27,20 +27,22 @@ template <typename T, size_t dim> using dup_tuple =
 // @brief Alias for tuple of duplicated types.
 template <typename T, size_t dim> using DupTuple = details::dup_tuple<T, dim>;
 
-template <size_t dim> using Index_tuple = DupTuple<Index, dim>;
-template <size_t dim> using real_tuple = DupTuple<real, dim>;
+// @brief Alias for tuple of indices.
+template <size_t dim> using IndexTuple = DupTuple<Index, dim>;
+// @brief Alias for tuple of reals.
+template <size_t dim> using RealTuple = DupTuple<Real, dim>;
 
 template <typename T, typename... Args>
-AX_FORCE_INLINE DupTuple<T, sizeof...(Args)> dup_tuple(Args... args) {
+AX_FORCE_INLINE DupTuple<T, sizeof...(Args)> make_dup_tuple(Args&&... args) {
   return DupTuple<T, sizeof...(Args)>{std::forward<Args>(args)...};
 }
 
-template <typename... Args> AX_FORCE_INLINE auto ituple(Args... args) {
-  return dup_tuple<Index>(std::forward<Args>(args)...);
+template <typename... Args> AX_FORCE_INLINE auto make_index_tuple(Args&&... args) {
+  return make_dup_tuple<Index>(std::forward<Args>(args)...);
 }
 
-template <typename... Args> AX_FORCE_INLINE auto rtuple(Args... args) {
-  return dup_tuple<real>(std::forward<Args>(args)...);
+template <typename... Args> AX_FORCE_INLINE auto make_real_tuple(Args&&... args) {
+  return make_dup_tuple<Real>(std::forward<Args>(args)...);
 }
 
 }  // namespace ax::utils

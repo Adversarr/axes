@@ -22,17 +22,17 @@ constexpr Index PREDEFINED_FEAT = 123;
 
 class SPLR {
 public:
-  real Energy(RealVectorX const& x) const {
+  Real Energy(RealVectorX const& x) const {
     // x is m by 1
     return Energy_Loss(x) + Energy_L2(x) + Energy_L1(x);
   }
 
-  real Energy_L2(RealVectorX const& x) const {
+  Real Energy_L2(RealVectorX const& x) const {
     // x is m by 1
     real l2 = norm2(x);
     return lambda_ * l2;
   }
-  real Energy_Loss(RealVectorX const& x) const {
+  Real Energy_Loss(RealVectorX const& x) const {
     // logistic regression loss.
     // x is FEAT by 1
     // bA_ is FEAT by M
@@ -48,7 +48,7 @@ public:
     return loss / PREDEFINED_M;
   }
 
-  real Energy_L1(RealVectorX const& x) const { return mu_ * x.cwiseAbs().sum(); }
+  Real Energy_L1(RealVectorX const& x) const { return mu_ * x.cwiseAbs().sum(); }
 
   RealVectorX Gradient_Loss(RealVectorX const& x) const {
     // x is FEAT by 1
@@ -62,10 +62,10 @@ public:
 
   RealVectorX Gradient_Loss_L2(RealVectorX const& x) const { return 2 * lambda_ * x; }
 
-  SPLR(spmatr const& A, RealVectorX const& b) : A_(A), b_(b) {}
+  SPLR(RealSparseMatrix const& A, RealVectorX const& b) : A_(A), b_(b) {}
 
   real lambda_, mu_;
-  const spmatr A_;  // row = dim, col = m
+  const RealSparseMatrix A_;  // row = dim, col = m
   const RealVectorX b_;
 };
 
@@ -106,7 +106,7 @@ inline SPLR load_from_file(std::string const& filename) {
     throw std::runtime_error("Invalid number of samples: " + std::to_string(m));
   }
   std::cout << "Loaded " << m << " samples, " << n << " features." << std::endl;
-  spmatr A(PREDEFINED_FEAT, PREDEFINED_M);
+  RealSparseMatrix A(PREDEFINED_FEAT, PREDEFINED_M);
   A.setFromTriplets(coeff_list.begin(), coeff_list.end());
   A.makeCompressed();
   return SPLR(A, -b);

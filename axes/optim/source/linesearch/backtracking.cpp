@@ -1,7 +1,8 @@
 #include "ax/optim/linesearch/backtracking.hpp"
+
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 namespace ax::optim {
 
@@ -16,17 +17,17 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, Variable con
   AX_THROW_IF_FALSE(prob.HasEnergy(), "Energy function not set");
 
   // SECT: Backtracking Line Search
-  real alpha = initial_step_length_;
-  real const f0 = prob.EvalEnergy(x0);
+  Real alpha = initial_step_length_;
+  Real const f0 = prob.EvalEnergy(x0);
   AX_THROW_IF_FALSE(math::isfinite(f0), "Invalid x0 in Line Search, Energy returns infinite number.");
-  real expected_descent = math::dot(grad, dir);
+  Real expected_descent = math::dot(grad, dir);
   if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
     throw make_runtime_error("Invalid descent direction: Dot[grad, dir]={}", expected_descent);
   }
 
   Index iter = 0;
   Variable x;
-  real f = math::inf<real>;
+  Real f = math::inf<Real>;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;
     if (prob.HasProximator()) {
@@ -51,9 +52,9 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, Variable con
 }
 
 void Linesearch_Backtracking::SetOptions(utils::Options const& options) {
-  AX_SYNC_OPT(options, real, initial_step_length);
-  AX_SYNC_OPT(options, real, step_shrink_rate);
-  AX_SYNC_OPT(options, real, required_descent_rate);
+  AX_SYNC_OPT(options, Real, initial_step_length);
+  AX_SYNC_OPT(options, Real, step_shrink_rate);
+  AX_SYNC_OPT(options, Real, required_descent_rate);
   LinesearchBase::SetOptions(options);
 }
 

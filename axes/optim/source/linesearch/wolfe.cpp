@@ -16,15 +16,15 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   AX_THROW_IF_FALSE(prob.HasEnergy(), "Energy function not set");
 
   // SECT: Backtracking Line Search
-  real alpha = initial_step_length_;
-  real const f0 = prob.EvalEnergy(x0);
+  Real alpha = initial_step_length_;
+  Real const f0 = prob.EvalEnergy(x0);
   // if (!math::isfinite(f0)) {
   //   return utils::FailedPreconditionError(
   //       "Invalid x0 in Line Search, Energy returns infinite number.");
   // }
   AX_THROW_IF_FALSE(math::isfinite(f0),
                     "Invalid x0 in Line Search, Energy returns infinite number.");
-  real const expected_descent = math::dot(grad, dir);
+  Real const expected_descent = math::dot(grad, dir);
   // if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
   //   AX_LOG(ERROR) << "grad: " << grad.transpose();
   //   AX_LOG(ERROR) << "dir: " << dir.transpose();
@@ -36,7 +36,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   Index iter = 0;
   Gradient g;
   Variable x;
-  real f = f0;
+  Real f = f0;
   for (; iter < max_iter_; ++iter) {
     x.noalias() = x0 + alpha * dir;
     if (prob.HasProximator()) {
@@ -64,10 +64,10 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
 }
 
 void Linesearch_Wofle::SetOptions(utils::Options const& options) {
-  AX_SYNC_OPT(options, real, initial_step_length);
-  AX_SYNC_OPT(options, real, step_shrink_rate);
-  AX_SYNC_OPT(options, real, required_descent_rate);
-  AX_SYNC_OPT(options, real, required_curvature_rate);
+  AX_SYNC_OPT(options, Real, initial_step_length);
+  AX_SYNC_OPT(options, Real, step_shrink_rate);
+  AX_SYNC_OPT(options, Real, required_descent_rate);
+  AX_SYNC_OPT(options, Real, required_curvature_rate);
   AX_SYNC_OPT(options, bool, strong_wolfe);
   LinesearchBase::SetOptions(options);
 }

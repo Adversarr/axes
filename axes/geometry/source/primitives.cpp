@@ -3,7 +3,7 @@
 
 namespace ax::geo {
 
-SurfaceMesh cube(real size) {
+SurfaceMesh cube(Real size) {
   /**
     var DEFAULT_VERT = [
         1, 1, 1, 1, 1,1,1,1,
@@ -55,19 +55,19 @@ SurfaceMesh cube(real size) {
   return {vertices, indices};
 }
 
-SurfaceMesh sphere(real radius, Index slices, Index stacks) {
+SurfaceMesh sphere(Real radius, Index slices, Index stacks) {
   math::RealField3 vertices(3, (slices + 1) * (stacks + 1));
   math::IndexField3 indices(3, 2 * slices * stacks);
 
   for (Index i = 0; i <= stacks; ++i) {
-    real const theta = math::pi<real> * i / stacks;
-    real const sin_theta = math::sin(theta);
-    real const cos_theta = math::cos(theta);
+    Real const theta = math::pi<Real> * i / stacks;
+    Real const sin_theta = math::sin(theta);
+    Real const cos_theta = math::cos(theta);
 
     for (Index j = 0; j <= slices; ++j) {
-      real const phi = 2 * math::pi<real> * j / slices;
-      real const sin_phi = math::sin(phi);
-      real const cos_phi = math::cos(phi);
+      Real const phi = 2 * math::pi<Real> * j / slices;
+      Real const sin_phi = math::sin(phi);
+      Real const cos_phi = math::cos(phi);
 
       vertices.col(i * (slices + 1) + j)
           = math::RealVector3{radius * cos_phi * sin_theta, radius * sin_phi * sin_theta, radius * cos_theta};
@@ -85,7 +85,7 @@ SurfaceMesh sphere(real radius, Index slices, Index stacks) {
   return {vertices, indices};
 }
 
-SurfaceMesh plane(real half_width, real half_height, Index nx, Index ny){
+SurfaceMesh plane(Real half_width, Real half_height, Index nx, Index ny){
   math::RealField3 V(3, (nx + 1) * (ny + 1)); // 3D field of points (vertices
   math::IndexField3 F;
   auto X = math::linspace(-half_width, half_width, nx + 1);
@@ -96,7 +96,7 @@ SurfaceMesh plane(real half_width, real half_height, Index nx, Index ny){
   return {V, F};
 }
 
-TetraMesh tet_cube(real half_size, Index nx, Index ny, Index nz) {
+TetraMesh tet_cube(Real half_size, Index nx, Index ny, Index nz) {
   using namespace ax::math;
   RealField3 vertices(3, nx * ny * nz);
   IndexField4 elements(4, 5 * (nx - 1) * (ny - 1) * (nz - 1));
@@ -104,7 +104,7 @@ TetraMesh tet_cube(real half_size, Index nx, Index ny, Index nz) {
   for (Index i = 0; i < nx; ++i) {
     for (Index j = 0; j < ny; ++j) {
       for (Index k = 0; k < nz; ++k) {
-        vertices.col(id) = RealVector3{i / real(nx - 1), j / real(ny - 1), k / real(nz - 1)};
+        vertices.col(id) = RealVector3{i / Real(nx - 1), j / Real(ny - 1), k / Real(nz - 1)};
         id++;
       }
     }

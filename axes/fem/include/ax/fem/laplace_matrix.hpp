@@ -9,7 +9,7 @@ namespace ax::fem {
  * 
  * @tparam dim 
  */
-template <Index dim> class LaplaceMatrixCompute {
+template <int dim> class LaplaceMatrixCompute {
 public:
   explicit LaplaceMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
 
@@ -19,7 +19,7 @@ public:
    * @param W weight for the Laplace operator.
    * @return math::sp_coeff_list
    */
-  math::spmatr operator()(real W = 1.0);
+  math::RealSparseMatrix operator()(Real W = 1.0);
 
   /**
    * @brief Compute the Laplace matrix.
@@ -27,7 +27,7 @@ public:
    * @param W weight for the Laplace operator, per element.
    * @return math::sp_coeff_list 
    */
-  math::spmatr operator()(math::RealField1 const& W);
+  math::RealSparseMatrix operator()(math::RealField1 const& W);
 
 private:
   TriMesh<dim> const& mesh_;

@@ -20,9 +20,9 @@
 // SOFTWARE.
 
 // NOTE: Possible control macros are
-//   CG_NO_AUTO_REGISTER:-----------------------------------------------------+
+//   CG_AUTO_REGISTER:--------------------------------------------------------+
 //   |  Controls whether to automatically register nodes before main().       |
-//   |  Define this macro to disable auto registration, used in `node.hpp`.   |
+//   |  Define this macro to enable auto registration, used in `node.hpp`.    |
 //   +------------------------------------------------------------------------+
 //   CG_NO_STRONG_INLINE:-----------------------------------------------------+
 //   |  controls whether to use __forceinline or not, see below.              |
@@ -58,6 +58,7 @@
 #include <deque>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -860,6 +861,14 @@ public:
     return builder.Build();
   }
 
+  static CG_STRONG_INLINE void RegisterTo(NodeRegistry &registry) {
+    registry.DeferedLoad([](NodeRegistry &registry) {
+      auto const &descriptor = BuildDescriptor();
+      intern::call_on_register_if_presented<Derived>::exec();
+      registry.Emplace(descriptor);
+    });
+  }
+
 protected:
   CG_STRONG_INLINE void OnConnect(size_t index) noexcept override {
     constexpr size_t total = InternNodeTraits::num_inputs;
@@ -880,7 +889,7 @@ protected:
     if (typename MT::type const *ptr = Get<MT>({})) {
       return *ptr;
     }
-    CG_THROW(std::runtime_error, "Socket not connected.");
+    CG_THROW(std::runtime_error, "Socket " + std::string(MT::name) +" not connected.");
   }
 
   template <typename T, typename = std::enable_if_t<!intern::is_socket_meta_v<T>>>
@@ -1244,7 +1253,7 @@ public:
   using node_ptr = std::unique_ptr<NodeBase>;
   using node_container = std::vector<node_ptr>;
   using id_container = std::vector<size_t>;
-  using node_addr_to_index_map = std::unordered_map<NodeBase const *, size_t>;
+  using node_addr_to_index_map = std::map<NodeBase const *, size_t>;
 
   Graph() = default;
   Graph(Graph const &) = delete;
@@ -1365,9 +1374,8 @@ CG_STRONG_INLINE void Graph::Clear() noexcept {
 template <typename NodeType>
 CG_STRONG_INLINE NodeHandle<NodeType> Graph::PushBack(std::unique_ptr<NodeType> node) noexcept {
   if (free_ids_.empty()) {
-    nodes_.push_back(std::move(node));
-    addr_to_index_.insert({nodes_.back().get(), nodes_.size() - 1});
-    return {*static_cast<NodeType *>(nodes_.back().get()), uid_next_++};
+    free_ids_.push_back(nodes_.size());
+    nodes_.push_back(nullptr);
   }
   size_t const index = free_ids_.back();
   free_ids_.pop_back();
@@ -1537,7 +1545,6 @@ inline void Graph::ShrinkToFit() noexcept {
 
 CG_STRONG_INLINE void Graph::RebuildAddrToIndex() noexcept {
   addr_to_index_.clear();
-  addr_to_index_.reserve(nodes_.size());
   for (size_t i = 0; i < nodes_.size(); ++i) {
     addr_to_index_[nodes_[i].get()] = i;
   }
@@ -1661,12 +1668,15 @@ CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
     __VA_OPT__(CG_PP_VAOPT_FOR_EACH_I(CG_NODE_PP_ADAPTOR, __VA_ARGS__)) \
   } out
 
-#ifdef CG_NO_AUTO_REGISTER
-#  define CG_NODE_REGISTER_BODY(NodeType) /* empty */
-#else
+#ifndef CG_MAYBE_UNUSED
+#  define CG_MAYBE_UNUSED(x) (void)(x)
+#endif
+
+#ifdef CG_AUTO_REGISTER
 #  define CG_NODE_REGISTER_BODY(NodeType)                              \
     struct intern_auto_register {                                      \
-      CG_STRONG_INLINE intern_auto_register() {                        \
+      CG_STRONG_INLINE explicit intern_auto_register(void *p) {        \
+        CG_MAYBE_UNUSED(p);                                            \
         ::compute_graph::NodeRegistry::instance().DeferedLoad(         \
             [](::compute_graph::NodeRegistry &r) {                     \
               auto desc = NodeType::BuildDescriptor();                 \
@@ -1675,7 +1685,9 @@ CG_STRONG_INLINE std::vector<size_t> Graph::TopologyOrder() const noexcept {
             });                                                        \
       }                                                                \
     };                                                                 \
-    inline static const intern_auto_register intern_register
+    inline static const intern_auto_register intern_register{nullptr};
+#else
+#  define CG_NODE_REGISTER_BODY(NodeType) /* empty */
 #endif
 
 // Use to define a node.

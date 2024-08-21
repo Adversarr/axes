@@ -12,15 +12,15 @@ public:
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;
-  real UpdateDuality() override;
+  Real UpdateDuality() override;
   void EndStep() override;
-  void UpdateRhoConsensus(real scale) override;
+  void UpdateRhoConsensus(Real scale) override;
   void UpdatePositionConsensus() override;
 
-  real ball_radius_ = 1e-1; ///< Tolerance for the collision detection. cannnot be too small for stability.
+  Real ball_radius_ = 1e-1; ///< Tolerance for the collision detection. cannnot be too small for stability.
   std::vector<math::RealMatrix<3, 2>> dual_;
   std::vector<math::RealMatrix<3, 2>> gap_;
-  std::vector<real> stiffness_;
+  std::vector<Real> stiffness_;
   std::vector<math::RealMatrix<3, 2>> origin_;
 
   std::map<std::pair<Index, Index>, Index> collidings_;
@@ -28,7 +28,7 @@ public:
   std::map<Index, Index> global_to_local_;
   std::set<Index> colliding_vertices_;
   Index iteration_;
-  real initial_rho_ = 1e4;
-  real tol_ = 1e-4;
+  Real initial_rho_ = 1e4;
+  Real tol_ = 1e-4;
 };
 }

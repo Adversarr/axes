@@ -7,11 +7,11 @@ class Preconditioner_Diagonal : public PreconditionerBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
-  matxxr Solve(matxxr const &b) override;
+  RealMatrixX Solve(RealMatrixX const &b) override;
 
   PreconditionerKind GetKind() const final { return PreconditionerKind::kDiagonal; }
 
 private:
-  Eigen::DiagonalPreconditioner<real> impl_;
+  Eigen::DiagonalPreconditioner<Real> impl_;
 };
 }  // namespace ax::math

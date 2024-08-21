@@ -11,6 +11,7 @@
 
 #include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::geo {
 
@@ -57,7 +58,7 @@ HalfedgeMesh::HalfedgeMesh(math::RealField3 const& vertices, math::IndexField3 c
   }
 
   std::map<std::pair<HalfedgeVertex*, HalfedgeVertex*>, HalfedgeEdge*> edge_map;
-  for (auto [id, e] : utils::enumerate(edges_)) {
+  for (auto [id, e] : utils::views::enumerate(edges_)) {
     auto [head, tail] = e->HeadAndTail();
     auto ht = std::make_pair(head, tail);
     if (auto it = edge_map.find(std::make_pair(tail, head)); it != edge_map.end()) {
@@ -98,18 +99,18 @@ HalfedgeMesh::HalfedgeMesh(math::RealField3 const& vertices, math::IndexField3 c
   }
 
   // Check all edge has pair:
-  for (auto [id, e] : utils::enumerate(edges_)) {
+  for (auto [id, e] : utils::views::enumerate(edges_)) {
     AX_CHECK(e->prev_ != nullptr, "Edge {} has no prev.", static_cast<void*>(e.get()));
     AX_CHECK(e->next_ != nullptr, "Edge {} has no next.", static_cast<void*>(e.get()));
     AX_CHECK(e->vertex_ != nullptr, "Edge {} has no vertex.", static_cast<void*>(e.get()));
     AX_CHECK(e->pair_ != nullptr, "Edge {} has no pair.", static_cast<void*>(e.get()));
   }
 
-  for (auto [id, v] : utils::enumerate(vertices_)) {
+  for (auto [id, v] : utils::views::enumerate(vertices_)) {
     AX_CHECK(v->halfedge_entry_ != nullptr, "Vertex {} has no halfedge entry.", static_cast<void*>(v.get()));
   }
 
-  for (auto [id, f] : utils::enumerate(faces_)) {
+  for (auto [id, f] : utils::views::enumerate(faces_)) {
     AX_CHECK(f->halfedge_entry_ != nullptr, "Face {} has no halfedge entry.", static_cast<void*>(f.get()));
   }
 }
@@ -119,12 +120,12 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
   math::RealField3 vertices(3, vertices_.size());
 
   std::map<HalfedgeVertex*, Index> vertex_map;
-  for (auto [id, v] : utils::enumerate(vertices_)) {
+  for (auto [id, v] : utils::views::enumerate(vertices_)) {
     vertex_map.emplace(v.get(), id);
     vertices.col(id) = v->position_;
   }
 
-  for (auto [id, face] : utils::enumerate(faces_)) {
+  for (auto [id, face] : utils::views::enumerate(faces_)) {
     auto e = face->halfedge_entry_;
     math::IndexVec3 ijk;
     for (Index i = 0; i < 3; ++i) {
@@ -308,18 +309,18 @@ bool HalfedgeMesh::CheckFlip(HalfedgeEdge* edge) {
   // Convexity check.
   auto flat_triangle_to_plane
       = [](math::RealVector3 const& a, math::RealVector3 const& b, math::RealVector3 const& c) -> math::RealVector2 {
-    real xb = (b - a).norm();
-    real xc = (c - a).dot(b - a) / xb;
-    real yc = sqrt((c - a).squaredNorm() - xc * xc);
+    Real xb = (b - a).norm();
+    Real xc = (c - a).dot(b - a) / xb;
+    Real yc = sqrt((c - a).squaredNorm() - xc * xc);
     return {xc, yc};
   };
   auto c_flat = flat_triangle_to_plane(a->position_, b->position_, c->position_);
   auto d_flat = flat_triangle_to_plane(a->position_, b->position_, d->position_);
-  real xb = (a->position_ - b->position_).norm();
+  Real xb = (a->position_ - b->position_).norm();
   if (c_flat.y() * d_flat.y() > 0) {
     d_flat.y() = -d_flat.y();
   }
-  real zero_point = d_flat.x() - (c_flat.x() - d_flat.x()) / (c_flat.y() - d_flat.y()) * d_flat.y();
+  Real zero_point = d_flat.x() - (c_flat.x() - d_flat.x()) / (c_flat.y() - d_flat.y()) * d_flat.y();
   return zero_point > 0 && zero_point < xb;
 }
 

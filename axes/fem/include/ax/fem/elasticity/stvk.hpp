@@ -10,7 +10,7 @@ namespace ax::fem::elasticity {
  * @note See Page 33 of "Dynamic Deformables", 3.6.2 The Complete St. Venant Kirchhoff
  * @tparam dim
  */
-template <Index dim> class StVK : public ElasticityBase<dim, StVK<dim>> {
+template <int dim> class StVK : public ElasticityBase<dim, StVK<dim>> {
 public:
   using base_t = ElasticityBase<dim, StVK<dim>>;
   using stress_t = typename base_t::stress_t;
@@ -18,10 +18,10 @@ public:
   using ElasticityBase<dim, StVK<dim>>::ElasticityBase;
 
   AX_HOST_DEVICE StVK() = default;
-  AX_HOST_DEVICE StVK(real lambda, real mu) : base_t(lambda, mu) {}
+  AX_HOST_DEVICE StVK(Real lambda, Real mu) : base_t(lambda, mu) {}
 
-  AX_HOST_DEVICE real EnergyImpl(DeformationGradient<dim> const& F,
-                  const math::decomp::SvdResult<dim, real>&) const {
+  AX_HOST_DEVICE Real EnergyImpl(DeformGrad<dim> const& F,
+                  const math::decomp::SvdResult<dim, Real>&) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::RealMatrix<dim, dim> const E = green_strain(F);
@@ -29,8 +29,8 @@ public:
   }
 
   // PStVK(F) = μFE + λ (tr E) F.
-  AX_HOST_DEVICE stress_t StressImpl(DeformationGradient<dim> const& F,
-                  math::decomp::SvdResult<dim, real> const& ) const {
+  AX_HOST_DEVICE stress_t StressImpl(DeformGrad<dim> const& F,
+                  math::decomp::SvdResult<dim, Real> const& ) const {
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
     math::RealMatrix<dim, dim> const E = green_strain(F);
@@ -43,8 +43,8 @@ public:
    *
    * @return hessian_t
    */
-  AX_HOST_DEVICE hessian_t HessianImpl(DeformationGradient<dim> const& F,
-                        const math::decomp::SvdResult<dim, real>&) const {
+  AX_HOST_DEVICE hessian_t HessianImpl(DeformGrad<dim> const& F,
+                        const math::decomp::SvdResult<dim, Real>&) const {
     hessian_t H = math::make_zeros<hessian_t>();
     const auto& lambda = this->lambda_;
     const auto& mu = this->mu_;
@@ -54,7 +54,7 @@ public:
     auto I = math::eye<dim>();
     for (Index i = 0; i < dim; ++i) {
       for (Index j = 0; j < dim; ++j) {
-        real fij = F(i, j);
+        Real fij = F(i, j);
         auto Dij = F.col(j) * F.col(i).transpose();
         H.template block<dim, dim>(i * dim, j * dim) += (FtF + fij * I) + Dij;
       }

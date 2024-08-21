@@ -1,22 +1,125 @@
-// #include "ax/nodes/io.hpp"
-//
-// #include <imgui.h>
-// #include <imgui_node_editor.h>
-//
-// #include <exception>
-//
-// #include "ax/core/excepts.hpp"
-// #include "ax/geometry/common.hpp"
-// #include "ax/geometry/io.hpp"
-// #include "ax/graph/node.hpp"
-// #include "ax/graph/render.hpp"
-// #include "ax/math/io.hpp"
-// #include "ax/utils/asset.hpp"
-//
-// namespace ed = ax::NodeEditor;
-// using namespace ax;
-// using namespace graph;
-//
+#include <imgui.h>
+#include <imgui_node_editor.h>
+
+#include <exception>
+
+#include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
+#include "ax/geometry/common.hpp"
+#include "ax/geometry/io.hpp"
+#include "ax/graph/render.hpp"
+#include "ax/math/io.hpp"
+#include "ax/utils/asset.hpp"
+
+namespace ed = ax::NodeEditor;
+using namespace ax;
+using namespace graph;
+
+namespace ax::nodes {
+
+class Load_Obj final : public NodeDerive<Load_Obj> {
+public:
+  CG_NODE_COMMON(Load_Obj, "Load/Obj", "Loads a mesh from an obj file");
+  CG_NODE_INPUTS((std::string, file, "The path to the obj file"),
+                 (bool, reload, "If true, the obj file will be reloaded every frame", false));
+  CG_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The mesh read from the obj file"));
+
+  void DoLoading() {
+    std::string const& file_name = Ensure(in::file);
+    auto mesh = geo::read_obj(file_name);
+    SetAll(std::move(mesh));
+  }
+
+  void OnConnectDispatch(in::file_) try {
+    DoLoading();
+  } catch (...) {
+    AX_WARN("Input file is not valid");
+  }
+
+  void operator()(Context& ctx) override {
+    Index frame_id = 0;
+    if (ctx.Has("frame_id")) {
+      const auto frame_id_any = ctx.Get("frame_id");
+      try {
+        frame_id = std::any_cast<Index>(frame_id_any);
+      } catch (std::bad_any_cast const&) {
+        AX_WARN("frame_id is not an Index");
+      }
+    }
+
+    if (GetOr(in::reload) || frame_id == 0) {
+      DoLoading();
+    }
+  }
+};
+
+class Asset_Selector_MeshObj final : public NodeDerive<Asset_Selector_MeshObj> {
+public:
+  CG_NODE_COMMON(Asset_Selector_MeshObj, "Asset/Selector/MeshObj", "Select an asset from a mesh/obj");
+  CG_NODE_INPUTS();
+  CG_NODE_OUTPUTS((std::string, asset, "The selected asset"));
+
+  static void RenderThis(NodeBase* base) {
+    auto* node = static_cast<Asset_Selector_MeshObj*>(base);
+    begin_draw_node(node);
+    draw_node_header_default(node);
+    draw_node_content_default(node);
+    if (! all_obj_files_in_asset_.empty()) {
+      ImGui::Text("Selected: %s", all_obj_files_in_asset_[node->selected_].c_str());
+    }
+    end_draw_node();
+  }
+
+  static void RenderThisWidget(NodeBase* base) {
+    auto* node = static_cast<Asset_Selector_MeshObj*>(base);
+    ImGui::BeginChild("Asset Selector");
+    ImGui::PushID(node);
+    if (ImGui::BeginCombo("##Asset Selector", all_obj_files_in_asset_[node->selected_].c_str())) {
+      for (size_t i = 0; i < all_obj_files_in_asset_.size(); ++i) {
+        bool is_selected = (node->selected_ == i);
+        if (ImGui::Selectable(all_obj_files_in_asset_[i].c_str(), is_selected)) {
+          node->selected_ = i;
+        }
+
+        if (is_selected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
+    ImGui::PopID();
+    ImGui::EndChild();
+  }
+
+  static void OnRegister() {
+    add_custom_node_widget(name(), {RenderThisWidget});
+    add_custom_node_render(name(), {RenderThis});
+    Reload();
+  }
+
+  void operator()(Context& ctx) override {
+    if (all_obj_files_in_asset_.empty()) {
+      AX_WARN("No obj files found in asset '/mesh/obj/'!");
+      SetAll("");
+    } else {
+      Set(out::asset, utils::get_asset(all_obj_files_in_asset_[selected_]));
+    }
+  }
+
+  static void Reload() {
+    all_obj_files_in_asset_ = utils::discover_assets("/mesh/obj/");
+  }
+
+  inline static std::vector<std::string> all_obj_files_in_asset_;
+  size_t selected_ = 0;
+};
+
+void register_io(NodeRegistry& reg) {
+  Asset_Selector_MeshObj::RegisterTo(reg);
+  Load_Obj::RegisterTo(reg);
+}
+
+}  // namespace ax::nodes
 // namespace ax::nodes {
 //
 // class ReadObjNode : public NodeBase {
@@ -45,7 +148,7 @@
 //       DoApply(false);
 //     }
 //   }
-//
+
 //   void PreApply() override { DoApply(true); }
 // };
 //
@@ -181,26 +284,26 @@
 //
 // using namespace ax::math;
 //
-// class ExportNumpy_matxxr : public NodeBase {
+// class ExportNumpy_RealMatrixX : public NodeBase {
 // public:
-//   // ExportNumpy_matxxr(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   // static void register_this() {
-//   //   NodeDescriptorFactory<ExportNumpy_matxxr>()
-//   //       .SetName("Write_npy_matxxr")
-//   //       .SetDescription("Exports a matxxr to a numpy file")
-//   //       .AddInput<matxxr>("data", "The matxxr to export")
+//   //   NodeDescriptorFactory<ExportNumpy_RealMatrixX>()
+//   //       .SetName("Write_npy_RealMatrixX")
+//   //       .SetDescription("Exports a RealMatrixX to a numpy file")
+//   //       .AddInput<RealMatrixX>("data", "The RealMatrixX to export")
 //   //       .AddInput<std ::string>("file", "The path to the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
 //
-//   AX_NODE_COMMON_WITH_CTOR(ExportNumpy_matxxr, "Write_npy_matxxr",
-//                            "Exports a matxxr to a numpy file");
-//   AX_NODE_INPUTS((matxxr, data, "The matxxr to export"),
+//   AX_NODE_COMMON_WITH_CTOR(ExportNumpy_RealMatrixX, "Write_npy_RealMatrixX",
+//                            "Exports a RealMatrixX to a numpy file");
+//   AX_NODE_INPUTS((RealMatrixX, data, "The RealMatrixX to export"),
 //                  (std::string, file, "The path to the numpy file"));
 //   AX_NODE_NO_OUTPUT();
 //
 //   void Apply(size_t) override {
-//     auto* data = RetriveInput<matxxr>(0);
+//     auto* data = RetriveInput<RealMatrixX>(0);
 //     auto* file = RetriveInput<std ::string>(1);
 //     if (data == nullptr) {
 //       throw make_invalid_argument("Data is not set");
@@ -208,7 +311,7 @@
 //     if (file == nullptr) {
 //       throw make_invalid_argument("File path is not set");
 //     }
-//     ax ::math ::matxxr out = *data;
+//     ax ::math ::RealMatrixX out = *data;
 //     std ::string fname = *file;
 //     if (!fname.ends_with(".npy")) {
 //       fname += ".npy";
@@ -217,26 +320,26 @@
 //   }
 // };
 //
-// class ExportNumpy_matxxi : public NodeBase {
+// class ExportNumpy_IndexMatrixX : public NodeBase {
 // public:
-//   // ExportNumpy_matxxi(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   // static void register_this() {
-//   //   NodeDescriptorFactory<ExportNumpy_matxxi>()
-//   //       .SetName("Write_npy_matxxr")
-//   //       .SetDescription("Exports a matxxr to a numpy file")
-//   //       .AddInput<matxxi>("data", "The matxxr to export")
+//   //   NodeDescriptorFactory<ExportNumpy_IndexMatrixX>()
+//   //       .SetName("Write_npy_RealMatrixX")
+//   //       .SetDescription("Exports a RealMatrixX to a numpy file")
+//   //       .AddInput<IndexMatrixX>("data", "The RealMatrixX to export")
 //   //       .AddInput<std::string>("file", "The path to the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
 //
-//   AX_NODE_COMMON_WITH_CTOR(ExportNumpy_matxxi, "Write_npy_matxxr",
-//                            "Exports a matxxr to a numpy file");
-//   AX_NODE_INPUTS((matxxi, data, "The matxxr to export"),
+//   AX_NODE_COMMON_WITH_CTOR(ExportNumpy_IndexMatrixX, "Write_npy_RealMatrixX",
+//                            "Exports a RealMatrixX to a numpy file");
+//   AX_NODE_INPUTS((IndexMatrixX, data, "The RealMatrixX to export"),
 //                  (std::string, file, "The path to the numpy file"));
 //   AX_NODE_NO_OUTPUT();
 //
 //   void Apply(size_t) override {
-//     auto* data = RetriveInput<matxxr>(0);
+//     auto* data = RetriveInput<RealMatrixX>(0);
 //     auto* file = RetriveInput<std ::string>(1);
 //     if (data == nullptr) {
 //       throw make_invalid_argument("Data is not set");
@@ -244,7 +347,7 @@
 //     if (file == nullptr) {
 //       throw make_invalid_argument("File path is not set");
 //     }
-//     ax ::math ::matxxr out = *data;
+//     ax ::math ::RealMatrixX out = *data;
 //     std ::string fname = *file;
 //     if (!fname.ends_with(".npy")) {
 //       fname += ".npy";
@@ -253,23 +356,23 @@
 //   }
 // };
 //
-// class Read_npy_matxxr : public NodeBase {
+// class Read_npy_RealMatrixX : public NodeBase {
 // public:
-//   // Read_npy_matxxr(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // Read_npy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
-//   //   NodeDescriptorFactory<Read_npy_matxxr>()
-//   //       .SetName("Read_npy_matxxr")
-//   //       .SetDescription("Imports a numpy file to a matxxr")
+//   //   NodeDescriptorFactory<Read_npy_RealMatrixX>()
+//   //       .SetName("Read_npy_RealMatrixX")
+//   //       .SetDescription("Imports a numpy file to a RealMatrixX")
 //   //       .AddInput<std::string>("file", "The path to the numpy file")
 //   //       .AddInput<bool>("reload", "Reload every frame")
-//   //       .AddOutput<math::matxxr>("out", "The matxxr read from the numpy file")
+//   //       .AddOutput<math::RealMatrixX>("out", "The RealMatrixX read from the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
-//   AX_NODE_COMMON_WITH_CTOR(Read_npy_matxxr, "Read_npy_matxxr", "Imports a numpy file to a matxxr");
+//   AX_NODE_COMMON_WITH_CTOR(Read_npy_RealMatrixX, "Read_npy_RealMatrixX", "Imports a numpy file to a RealMatrixX");
 //   AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
 //                  (bool, reload, "Reload every frame"));
-//   AX_NODE_OUTPUTS((matxxr, out, "The matxxr read from the numpy file"));
+//   AX_NODE_OUTPUTS((RealMatrixX, out, "The RealMatrixX read from the numpy file"));
 //
 //   size_t DoApply() {
 //     auto* file = RetriveInput<std::string>(0);
@@ -279,7 +382,7 @@
 //
 //     try {
 //       auto val = math::read_npy_v10_real(*file);
-//       SetOutput<matxxr>(0, val);
+//       SetOutput<RealMatrixX>(0, val);
 //     } catch (...) {
 //       std::throw_with_nested(make_runtime_error("Read Npy failed"));
 //     }
@@ -293,23 +396,23 @@
 //
 //   void PreApply() override { DoApply(); }
 // };
-// class Read_npy_matxxi : public NodeBase {
+// class Read_npy_IndexMatrixX : public NodeBase {
 // public:
-//   // Read_npy_matxxi(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // Read_npy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
 //   //
 //   // static void register_this() {
-//   //   NodeDescriptorFactory<Read_npy_matxxi>()
-//   //       .SetName("Read_npy_matxxi")
-//   //       .SetDescription("Imports a numpy file to a matxxr")
+//   //   NodeDescriptorFactory<Read_npy_IndexMatrixX>()
+//   //       .SetName("Read_npy_IndexMatrixX")
+//   //       .SetDescription("Imports a numpy file to a RealMatrixX")
 //   //       .AddInput<std::string>("file", "The path to the numpy file")
 //   //       .AddInput<bool>("reload", "Reload every frame")
-//   //       .AddOutput<math::matxxi>("out", "The matxxr read from the numpy file")
+//   //       .AddOutput<math::IndexMatrixX>("out", "The RealMatrixX read from the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
-//   AX_NODE_COMMON_WITH_CTOR(Read_npy_matxxi, "Read_npy_matxxi", "Imports a numpy file to a matxxr");
+//   AX_NODE_COMMON_WITH_CTOR(Read_npy_IndexMatrixX, "Read_npy_IndexMatrixX", "Imports a numpy file to a RealMatrixX");
 //   AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
 //                  (bool, reload, "Reload every frame"));
-//   AX_NODE_OUTPUTS((matxxi, out, "The matxxr read from the numpy file"));
+//   AX_NODE_OUTPUTS((IndexMatrixX, out, "The RealMatrixX read from the numpy file"));
 //
 //   void DoApply() {
 //     auto* file = RetriveInput<std::string>(0);
@@ -319,7 +422,7 @@
 //
 //     try {
 //       auto val = math::read_npy_v10_Index(*file);
-//       SetOutput<matxxi>(0, val);
+//       SetOutput<IndexMatrixX>(0, val);
 //     } catch (...) {
 //       std::throw_with_nested(make_runtime_error("Read Npy failed"));
 //     }
@@ -343,14 +446,14 @@
 //   //       .SetDescription("Reads a sparse matrix from a file")
 //   //       .AddInput<std::string>("file", "The path to the file")
 //   //       .AddInput<bool>("reload", "Reload every frame")
-//   //       .AddOutput<math::spmatr>("matrix", "The read sparse matrix")
+//   //       .AddOutput<math::RealSparseMatrix>("matrix", "The read sparse matrix")
 //   //       .FinalizeAndRegister();
 //   // }
 //
 //   AX_NODE_COMMON_WITH_CTOR(Read_SparseMatrix, "Read_SparseMatrix",
 //                            "Reads a sparse matrix from a file");
 //   AX_NODE_INPUTS((std::string, file, "The path to the file"), (bool, reload, "Reload every frame"));
-//   AX_NODE_OUTPUTS((spmatr, matrix, "The read sparse matrix"));
+//   AX_NODE_OUTPUTS((RealSparseMatrix, matrix, "The read sparse matrix"));
 //
 //   void DoApply() {
 //     auto* file = RetriveInput<std::string>(0);
@@ -360,7 +463,7 @@
 //
 //     try {
 //       auto val = math::read_sparse_matrix(*file);
-//       SetOutput<spmatr>(0, val);
+//       SetOutput<RealSparseMatrix>(0, val);
 //     } catch (...) {
 //       std::throw_with_nested(make_runtime_error("Read SparseMatrix failed"));
 //     }
@@ -383,14 +486,14 @@
 //   //   NodeDescriptorFactory<Write_SparseMatrix>()
 //   //       .SetName("Write_SparseMatrix")
 //   //       .SetDescription("Writes a sparse matrix to a file")
-//   //       .AddInput<math::spmatr>("data", "The sparse matrix to write")
+//   //       .AddInput<math::RealSparseMatrix>("data", "The sparse matrix to write")
 //   //       .AddInput<std::string>("file", "The path to the file")
 //   //       .FinalizeAndRegister();
 //   // }
 //
 //   AX_NODE_COMMON_WITH_CTOR(Write_SparseMatrix, "Write_SparseMatrix",
 //                            "Writes a sparse matrix to a file");
-//   AX_NODE_INPUTS((spmatr, data, "The sparse matrix to write"),
+//   AX_NODE_INPUTS((RealSparseMatrix, data, "The sparse matrix to write"),
 //                  (std::string, file, "The path to the file"));
 //   AX_NODE_NO_OUTPUT();
 //
@@ -399,7 +502,7 @@
 //     if (file == nullptr) {
 //       throw make_invalid_argument("File path is not set");
 //     }
-//     auto* matrix = RetriveInput<math::spmatr>(0);
+//     auto* matrix = RetriveInput<math::RealSparseMatrix>(0);
 //     if (matrix == nullptr) {
 //       throw make_invalid_argument("Matrix is not set");
 //     }
@@ -412,12 +515,13 @@
 //   Selector_Mesh_Obj::register_this();
 //   Selector_Mesh_Npy::register_this();
 //
-//   ExportNumpy_matxxr::register_this();
-//   ExportNumpy_matxxi::register_this();
-//   Read_npy_matxxr::register_this();
-//   Read_npy_matxxi::register_this();
+//   ExportNumpy_RealMatrixX::register_this();
+//   ExportNumpy_IndexMatrixX::register_this();
+//   Read_npy_RealMatrixX::register_this();
+//   Read_npy_IndexMatrixX::register_this();
 //
 //   Write_SparseMatrix::register_this();
 //   Read_SparseMatrix::register_this();
 // }
+
 // }  // namespace ax::nodes

@@ -8,7 +8,7 @@ public:
   ConstraintKind GetKind() const override { return ConstraintKind::kHard; }
 
   void BeginStep() override;
-  real UpdateDuality() override;
+  Real UpdateDuality() override;
   void EndStep() override;
   ConstraintSolution SolveDistributed() override;
 
@@ -20,7 +20,7 @@ public:
   //      f_i is the indicator fn.
   math::RealField3 dual_;
   math::RealField3 gap_;
-  real initial_rho_ = 1e4;
+  Real initial_rho_ = 1e4;
 };
 
 }  // namespace ax::xpbd

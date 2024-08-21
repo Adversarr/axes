@@ -16,7 +16,7 @@
 using namespace ax;
 using namespace ax::graph;
 using namespace ax::fem;
-constexpr Index dim = 3;
+constexpr int dim = 3;
 
 class Make_P1Mesh3D : public NodeBase {
 public:
@@ -81,12 +81,12 @@ public:
         .SetName("ComputeMassMatrix")
         .SetDescription("Compute the mass matrix.")
         .AddInput<Entity>("entity", "The entity attached with mesh.")
-        .AddInput<real>("u_density", "Density for your object, default=1e1")
+        .AddInput<Real>("u_density", "Density for your object, default=1e1")
         .AddInput<bool>("lumped",
                         "Compute the lumped mass instead of standard FEM one. default=false")
         .AddInput<bool>("reload", "Reload every frame.")
-        .AddOutput<math::spmatr>("mass_matrix", "The mass matrix.")
-        .AddOutput<real>("total", "total mass.")
+        .AddOutput<math::RealSparseMatrix>("mass_matrix", "The mass matrix.")
+        .AddOutput<Real>("total", "total mass.")
         .FinalizeAndRegister();
   }
 
@@ -101,8 +101,8 @@ public:
       return utils::FailedPreconditionError("Entity does not have a mesh.");
     }
 
-    auto in_u_density = RetriveInput<real>(1);
-    real u_density = in_u_density == nullptr ? real(1.0e1) : real(*in_u_density);
+    auto in_u_density = RetriveInput<Real>(1);
+    Real u_density = in_u_density == nullptr ? Real(1.0e1) : Real(*in_u_density);
     if (u_density <= 0) {
       return utils::FailedPreconditionError("Density must be positive.");
     }
@@ -110,8 +110,8 @@ public:
     MassMatrixCompute<3> mmc(**mesh);
     Index dofs = mesh->get()->GetNumVertices() * 3;
     auto mass_matrix = mmc(u_density);
-    real total = mass_matrix.sum();
-    SetOutput<real>(1, total / 3.0);
+    Real total = mass_matrix.sum();
+    SetOutput<Real>(1, total / 3.0);
     AX_RETURN_OK();
   }
 

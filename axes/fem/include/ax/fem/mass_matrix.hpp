@@ -9,7 +9,7 @@ namespace ax::fem {
  *
  * @tparam dim
  */
-template <Index dim> class MassMatrixCompute {
+template <int dim> class MassMatrixCompute {
 public:
   explicit MassMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
   /**
@@ -20,7 +20,7 @@ public:
    * vertices.
    * @return math::sp_coeff_list
    */
-  math::spmatr operator()(math::RealField1 const& density);
+  math::RealSparseMatrix operator()(math::RealField1 const& density);
 
   /**
    * @brief Compute the mass matrix.
@@ -28,11 +28,11 @@ public:
    * @param density Uniform density value.
    * @return math::sp_coeff_list
    */
-  math::spmatr operator()(real density);
+  math::RealSparseMatrix operator()(Real density);
 
   math::RealVectorX Lumped(math::RealField1 const& density, bool is_density_on_element);
 
-  math::RealVectorX Lumped(real density);
+  math::RealVectorX Lumped(Real density);
 
 private:
   TriMesh<dim> const& mesh_;

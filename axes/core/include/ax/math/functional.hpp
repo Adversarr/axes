@@ -220,9 +220,9 @@ using std::isnan;
 using std::lgamma;
 using std::tgamma;
 
-template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> imod(const math::veci<dim>& a,
-                                                                       const math::veci<dim>& b) {
-  math::veci<dim> output;
+template <int dim> AX_HOST_DEVICE AX_FORCE_INLINE math::IndexVector<dim> imod(const math::IndexVector<dim>& a,
+                                                                       const math::IndexVector<dim>& b) {
+  math::IndexVector<dim> output;
 #ifdef __clang__
 #  pragma unroll
 #endif
@@ -237,15 +237,15 @@ struct stride_t {};
 constexpr subscript_t subscript;
 constexpr stride_t stride;
 
-template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::veci<dim> const& sub,
-                                                              math::veci<dim> const& stride,
+template <int dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::IndexVector<dim> const& sub,
+                                                              math::IndexVector<dim> const& stride,
                                                               stride_t) {
   return dot(sub, stride);
 }
 
-template <Index dim>
-AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> to_stride(math::veci<dim> const& shape) {
-  math::veci<dim> stride;
+template <int dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::IndexVector<dim> to_stride(math::IndexVector<dim> const& shape) {
+  math::IndexVector<dim> stride;
   stride[dim - 1] = 1;
   for (Index d = dim - 2; d >= 0; --d) {
     stride[d] = stride[d + 1] * shape[d + 1];
@@ -253,16 +253,16 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> to_stride(math::veci<dim> const& 
   return stride;
 }
 
-template <Index dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::veci<dim> const& sub,
-                                                              math::veci<dim> const& shape,
+template <int dim> AX_HOST_DEVICE AX_FORCE_INLINE Index sub2ind(math::IndexVector<dim> const& sub,
+                                                              math::IndexVector<dim> const& shape,
                                                               subscript_t = subscript) {
   return sub2ind(sub, math::to_stride<dim>(shape), stride);
 }
 
-template <Index dim>
-AX_HOST_DEVICE AX_FORCE_INLINE math::veci<dim> ind2sub(Index ind, math::veci<dim> const& stride,
+template <int dim>
+AX_HOST_DEVICE AX_FORCE_INLINE math::IndexVector<dim> ind2sub(Index ind, math::IndexVector<dim> const& stride,
                                                        subscript_t) {
-  math::veci<dim> sub;
+  math::IndexVector<dim> sub;
   for (Index d = dim - 1; d >= 0; --d) {
     sub[d] = ind / stride[d];
     ind -= sub[d] * stride[d];
@@ -276,7 +276,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto lerp(A const& a, B const& b, T const& t) {
   return (static_cast<T>(1) - t) * a + t * b;
 }
 
-template <typename Scalar = real, typename = enable_if_scalar_t<Scalar>>
+template <typename Scalar = Real, typename = enable_if_scalar_t<Scalar>>
 AX_HOST AX_FORCE_INLINE auto random(Scalar low = 0, Scalar high = 1) {
   std::random_device rand_dev;
   std::default_random_engine rand_gen(rand_dev());

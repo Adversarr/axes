@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "ax/core/entt.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/xpbd/constraints/ball_collider.hpp"
 #include "ax/xpbd/constraints/colliding_balls.hpp"
 #include "ax/xpbd/constraints/edge_edge_collider.hpp"
@@ -51,14 +51,14 @@ void ConstraintBase::UpdatePositionConsensus() {
   auto& local = constrained_vertices_position_;
   local.resize(n_v);
   auto const& g = ensure_server();
-  for (Index i : utils::iota(n_v)) {
+  for (Index i : utils::range(n_v)) {
     Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }
 }
 
 void ConstraintBase::EndStep() {}
-void ConstraintBase::UpdateRhoConsensus(real) {}
+void ConstraintBase::UpdateRhoConsensus(Real) {}
 
 GlobalServer& ensure_server() { return ax::ensure_resource<GlobalServer>(); }
 

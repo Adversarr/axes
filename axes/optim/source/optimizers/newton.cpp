@@ -1,7 +1,7 @@
 #include "ax/optim/optimizers/newton.hpp"
 
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
@@ -23,7 +23,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
 
   // SECT: Initialize
   Variable x = x0;
-  real f_iter = problem_.EvalEnergy(x);
+  Real f_iter = problem_.EvalEnergy(x);
   Gradient grad = problem_.EvalGrad(x);
   Variable dir = -grad;
 
@@ -82,7 +82,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
     }
 
     // SECT: Line search
-    const real f_last = f_iter;
+    const Real f_last = f_iter;
     if (linesearch_) {
       OptResult ls_result = linesearch_->Optimize(problem_, x, grad, dir);
       if (!ls_result.converged_) {
@@ -92,7 +92,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
       x = ls_result.x_opt_;
       f_iter = ls_result.f_opt_;
     } else {
-      if (const real dir_dot_grad = math::dot(dir, grad); dir_dot_grad > math::epsilon<real>) {
+      if (const Real dir_dot_grad = math::dot(dir, grad); dir_dot_grad > math::epsilon<Real>) {
         AX_ERROR("Direction is not descenting.");
         break;
       }

@@ -85,12 +85,12 @@ void SparseSolver_Cholmod::AnalyzePattern() {
 
   Index const rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
   std::vector<Index> rowvec, colvec;
-  std::vector<real> valvec;
+  std::vector<Real> valvec;
   rowvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   colvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   valvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   for (Index i = 0; i < cols; ++i) {
-    for (spmatr::InnerIterator it(A, i); it; ++it) {
+    for (RealSparseMatrix::InnerIterator it(A, i); it; ++it) {
       if (it.row() <= it.col()) {
         rowvec.push_back(it.row());
         colvec.push_back(it.col());
@@ -165,7 +165,7 @@ void SparseSolver_Cholmod::Factorize() {
   }
 }
 
-LinsysSolveResult SparseSolver_Cholmod::Solve(matxxr const& b, matxxr const&) {
+LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const& b, RealMatrixX const&) {
   AX_THROW_IF_NULL(impl_->factor, "Factorize must be called before Solve");
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Solve");
   cholmod_dense b_chol;
@@ -173,7 +173,7 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(matxxr const& b, matxxr const&) {
   b_chol.ncol = static_cast<size_t>(b.cols());
   b_chol.nzmax = static_cast<size_t>(b.size());
   b_chol.d = static_cast<size_t>(b.rows());
-  b_chol.x = const_cast<real*>(b.data());
+  b_chol.x = const_cast<Real*>(b.data());
   b_chol.xtype = CHOLMOD_REAL;
   b_chol.dtype = CHOLMOD_DOUBLE;
   // cholmod_l_solve(CHOLMOD_A, impl_->factor, &b_chol, &impl_->common);
@@ -186,8 +186,8 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(matxxr const& b, matxxr const&) {
     throw std::runtime_error("Cholmod::Solve Failed");
   }
 
-  LinsysSolveResult res(to_vec_size(result->nrow), to_vec_size(result->ncol));
-  memcpy(res.solution_.data(), result->x, result->nrow * result->ncol * sizeof(real));
+  LinsysSolveResult res(static_cast<Index>(result->nrow), static_cast<Index>(result->ncol));
+  memcpy(res.solution_.data(), result->x, result->nrow * result->ncol * sizeof(Real));
   cholmod_l_free_dense(&result, &impl_->common);
   res.converged_ = true;
   return res;
@@ -215,18 +215,18 @@ utils::Options SparseSolver_Cholmod::GetOptions() const {
   return opt;
 }
 
-math::matxxr SparseSolver_Cholmod::Inverse() const {
+math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Inverse");
 
-  size_t n_row = static_cast<size_t>(impl_->A->nrow);
+  size_t n_row = impl_->A->nrow;
   auto* eye = cholmod_l_eye(n_row, n_row, CHOLMOD_REAL, &impl_->common);
   cholmod_dense* result = cholmod_l_solve(CHOLMOD_A, impl_->factor, eye, &impl_->common);
   if (result == nullptr) {
     throw std::runtime_error("Cholmod::Inverse Failed");
   }
 
-  math::matxxr res(n_row, n_row);
-  memcpy(res.data(), result->x, n_row * n_row * sizeof(real));
+  math::RealMatrixX res(n_row, n_row);
+  memcpy(res.data(), result->x, n_row * n_row * sizeof(Real));
   cholmod_l_free_dense(&result, &impl_->common);
   cholmod_l_free_dense(&eye, &impl_->common);
   return res;

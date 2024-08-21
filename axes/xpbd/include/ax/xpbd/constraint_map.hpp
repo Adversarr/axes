@@ -8,7 +8,7 @@ namespace ax::xpbd {
 class ConstraintMap {
 public:
   ConstraintMap() = default;
-  AX_FORCE_INLINE ConstraintMap(math::matxxi const& mat) { *this = mat; }
+  AX_FORCE_INLINE ConstraintMap(math::IndexMatrixX const& mat) { *this = mat; }
   AX_FORCE_INLINE ConstraintMap& operator=(ConstraintMap const&) = default;
   struct Visitor {
     AX_FORCE_INLINE Visitor(ConstraintMap& map, Index first, Index last)
@@ -111,7 +111,7 @@ public:
     entries_.clear();
   }
 
-  AX_FORCE_INLINE ConstraintMap& operator=(math::matxxi const& mat) {
+  AX_FORCE_INLINE ConstraintMap& operator=(math::IndexMatrixX const& mat) {
     reserve(mat.cols(), mat.rows());
     for (Index i = 0; i < mat.cols(); ++i) {
       emplace_back(mat.col(i));

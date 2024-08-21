@@ -18,13 +18,12 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <imgui_node_editor.h>
 
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/gl/config.hpp"
 #include "ax/gl/details/gl_call.hpp"
-#include "ax/math/structure_binding.hpp"
+#include "ax/math/utils/structure_binding.hpp"
 #include "ax/utils/asset.hpp"
 
 namespace ax::gl {
@@ -154,14 +153,14 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
   }
 
   if (is_mouse_button_pressed_) {
-    real dx = evt.pos_.x() - prev_cursor_pos_.x();
-    real dy = prev_cursor_pos_.y() - evt.pos_.y();
+    float dx = static_cast<float>(evt.pos_.x() - prev_cursor_pos_.x());
+    float dy = static_cast<float>(prev_cursor_pos_.y() - evt.pos_.y());
 
     dx *= mouse_sensitivity_;
     dy *= mouse_sensitivity_;
 
     if (is_pressing_meta_key_) {
-      camera_.Rotate(cast<f32>(dx * 0.3f), cast<f32>(dy * 0.3f));
+      camera_.Rotate(dx * 0.3f, dy * 0.3f);
     }
 
     if (is_pressing_shft_key_) {
@@ -178,13 +177,13 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
 
     if (is_pressing_space_key_) {
       // Rotate the world model matrix.
-      dx *= mouse_sensitivity_ * 0.005;
-      dy *= mouse_sensitivity_ * 0.005;
+      dx *= mouse_sensitivity_ * 0.005f;
+      dy *= mouse_sensitivity_ * 0.005f;
       auto up = camera_.GetUp();
       auto right = camera_.GetRight();
 
-      math::FloatMatrix3 rx = Eigen::AngleAxis<f32>(static_cast<f32>(dy), right).toRotationMatrix();
-      math::FloatMatrix3 ry = Eigen::AngleAxis<f32>(static_cast<f32>(-dx), up).toRotationMatrix();
+      const math::FloatMatrix3 rx = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
+      const math::FloatMatrix3 ry = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
 
       model_.topLeftCorner<3, 3>() *= rx * ry;
     }
@@ -321,6 +320,15 @@ Context::Context() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
+
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  // ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+  ImGui::StyleColorsDark();
+  float scale = get_hidpi_scale();
+  ImGui::GetStyle().ScaleAllSizes(scale);
+  ImGui::GetIO().FontGlobalScale = scale;
+
   AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
                     "Failed to Initialize ImGUI_Glfw");
 #ifdef __EMSCRIPTEN__
@@ -330,14 +338,8 @@ Context::Context() {
 
 
   auto fb_scale = impl_->window_.GetFrameBufferScale();
-  ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
-  ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
-
-  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-  float scale = get_hidpi_scale();
-  ImGui::GetStyle().ScaleAllSizes(scale);
-  ImGui::GetIO().FontGlobalScale = scale;
+  // ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
+  // ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
 
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
@@ -351,12 +353,7 @@ Context::~Context() {
     c.release();
   }
 
-#ifdef __EMSCRIPTEN__
-  EMSCRIPTEN_MAINLOOP_END;
-#endif
-
   emit<ContextDestroyEvent>({});  // Emit the destroy event
-
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImPlot::DestroyContext();
@@ -410,6 +407,9 @@ void Context::TickRender() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
+
+  // Must be called before any ImGui window call.
+  ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
   emit<UiRenderEvent>({});
 
   if (ImGui::BeginMainMenuBar()) {
@@ -420,6 +420,12 @@ void Context::TickRender() {
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    GLFWwindow* backup_current_context = glfwGetCurrentContext();
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+    glfwMakeContextCurrent(backup_current_context);
+  }
 
   AXGL_CALL(glFlush());
   impl_->window_.SwapBuffers();

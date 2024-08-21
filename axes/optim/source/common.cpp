@@ -9,7 +9,7 @@ OptProblem::OptProblem()
     : converge_var_(default_converge_var<math::l2_t>),
       converge_grad_(default_converge_grad<math::l2_t>) {}
 
-std::pair<Variable, real> OptResult::GetResult() const {
+std::pair<Variable, Real> OptResult::GetResult() const {
   return {x_opt_, f_opt_};
 }
 
@@ -76,31 +76,31 @@ Gradient OptProblem::EvalGrad(const Variable& x) const {
   return grad_(x);
 }
 
-real OptProblem::EvalEnergy(const Variable& x) const {
+Real OptProblem::EvalEnergy(const Variable& x) const {
   AX_THROW_IF_NULL(energy_, "Energy Fn is not set.");
   return energy_(x);
 }
 
-void OptProblem::EvalVerbose(Index iter, const Variable& x, real f) const {
+void OptProblem::EvalVerbose(Index iter, const Variable& x, Real f) const {
   if (verbose_) {
     verbose_(iter, x, f);
   }
 }
 
-real OptProblem::EvalConvergeVar(const Variable& x0,
+Real OptProblem::EvalConvergeVar(const Variable& x0,
                                  const Variable& x1) const {
   AX_THROW_IF_NULL(converge_var_, "Converge Var Fn is not set.");
   return converge_var_(x0, x1);
 }
 
-real OptProblem::EvalConvergeGrad(const Variable& x,
+Real OptProblem::EvalConvergeGrad(const Variable& x,
                                   const Variable& grad) const {
   AX_THROW_IF_NULL(converge_grad_, "Converge Grad Fn is not set.");
   return converge_grad_(x, grad);
 }
 
 Variable OptProblem::EvalProximator(const Variable& x,
-                                       real step_length) const {
+                                       Real step_length) const {
   AX_THROW_IF_NULL(proximator_, "Proximator Fn is not set.");
   if (proximator_) {
     return proximator_(x, step_length);

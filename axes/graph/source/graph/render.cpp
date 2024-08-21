@@ -47,6 +47,7 @@ ed::EditorContext* context_ = nullptr;
 ed::PinId hovered_pin_ = ed::PinId::Invalid;
 ed::NodeId hovered_node_ = ed::NodeId::Invalid;
 ed::LinkId hovered_link_ = ed::LinkId::Invalid;
+ed::NodeId selected_node_ = ed::NodeId::Invalid;
 std::string ax_blueprint_root;
 bool is_open_;
 bool has_cycle;
@@ -159,7 +160,8 @@ static void draw_link(Link<> const& link) {
 }
 
 static NodeBase* add_node(Graph& g, char const* name) {
-  auto const& reg = NodeRegistry::instance();
+  auto& reg = get_internal_node_registry();
+  reg.LoadDefered();
   auto node_ptr = reg.Create(name);  // May throw?
   auto nh = g.PushBack(std::move(node_ptr));
   draw_node(nh.operator->());
@@ -229,9 +231,15 @@ static bool try_do_connect_pin(Graph& g, ed::PinId input_id, ed::PinId output_id
   if (!out->IsInput() && in->IsInput()) {
     return do_connect_sockets(g, static_cast<OutputSocket const*>(out),
                               static_cast<InputSocket const*>(in));
-  } else {
+  } else if (out->IsInput() && !in->IsInput()) {
     return do_connect_sockets(g, static_cast<OutputSocket const*>(in),
                               static_cast<InputSocket const*>(out));
+  } else if (out->IsInput() && in->IsInput()) {
+    AX_ERROR("Cannot connect two input sockets.");
+    return false;
+  } else {
+    AX_ERROR("Cannot connect two output sockets.");
+    return false;
   }
 }
 
@@ -287,7 +295,7 @@ static void show_create_node_window(Graph& g) {
     current_size = strlen(name_input);
   }
 
-  auto const& desc = NodeRegistry::instance().GetDescriptors();
+  auto const& desc = get_internal_node_registry().GetDescriptors();
 
   NodeBase* ptr = nullptr;
   for (auto const& [name, _] : desc) {
@@ -347,10 +355,12 @@ static void show_node_context_menu(ed::NodeId select_node0, NodeBase const* node
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static void handle_selection() {
   auto& g = ensure_resource<Graph>();
-  ed::NodeId nodes[1];
   ed::LinkId links[1];
+  ed::NodeId nodes[1];
+  nodes[0] = ed::NodeId::Invalid;
   ed::GetSelectedNodes(nodes, 1);
   ed::GetSelectedLinks(links, 1);
+  selected_node_ = nodes[0];
 
   ed::NodeId select_node0 = nodes[0];
   ed::LinkId select_link0 = links[0];
@@ -465,7 +475,7 @@ static void draw_hovered() {
   ed::Resume();
 }
 
-void run_once() {
+static void run_once() {
   auto& executor = ensure_executor();
   executor->ExecuteOnce(executor->GetCurrentFrame());
 }
@@ -552,6 +562,14 @@ static void draw_config_window(gl::UiRenderEvent) {
   ImGui::Text("Rel: %s", ax_blueprint_root.c_str());
   ImGui::InputText("Path", json_out_path, 64);
   ImGui::TextUnformatted(message.c_str());
+
+  if (auto* node = selected_node_.AsPointer<NodeBase>()) {
+    auto const& name = node->GetDescriptor().Name();
+    ImGui::SeparatorText(name.c_str());
+    if (auto const *renderer = get_custom_node_widget(node->GetDescriptor().Name())) {
+      renderer->widget_(node);
+    }
+  }
   ImGui::End();
 
   if (need_trigger_event) {
@@ -688,6 +706,8 @@ struct GuardAgainstCleanup {
 static void init(gl::ContextInitEvent const&) {
   AX_TRACE("Create editor context");
   static GuardAgainstCleanup guarding;
+
+  get_internal_node_registry().LoadDefered();
   context_ = ed::CreateEditor();
 }
 
@@ -697,7 +717,7 @@ static void cleanup(gl::ContextDestroyEvent const&) {
   context_ = nullptr;
 }
 
-void on_menu_bar(gl::MainMenuBarRenderEvent) {
+static void on_menu_bar(gl::MainMenuBarRenderEvent) {
   if (ImGui::BeginMenu("Graph")) {
     if (ImGui::MenuItem("Open Graph Editor")) {
       is_open_ = true;
@@ -770,15 +790,30 @@ void install_renderer(GraphRendererOptions opt) {
   add_clean_up_hook("Remove Graph", []() { erase_resource<Graph>(); });
 }
 
-using WidgetMap = std::unordered_map<std::string, CustomNodeRender>;
+using NodeRenderMap = std::unordered_map<std::string, CustomNodeRender>;
+using WidgetRenderMap = std::unordered_map<std::string, CustomNodeWidget>;
 
 void add_custom_node_render(std::string type, CustomNodeRender const& widget) {
-  auto& map = ensure_resource<WidgetMap>();
+  auto& map = ensure_resource<NodeRenderMap>();
   map.try_emplace(type, widget);
 }
 
 CustomNodeRender const* get_custom_node_render(std::string name) {
-  auto& map = ensure_resource<WidgetMap>();
+  auto& map = ensure_resource<NodeRenderMap>();
+  auto it = map.find(name);
+  if (it != map.end()) {
+    return &(it->second);
+  }
+  return nullptr;
+}
+
+void add_custom_node_widget(std::string type, CustomNodeWidget const& widget) {
+  auto& map = ensure_resource<WidgetRenderMap>();
+  map.try_emplace(type, widget);
+}
+
+CustomNodeWidget const* get_custom_node_widget(std::string name) {
+  auto& map = ensure_resource<WidgetRenderMap>();
   auto it = map.find(name);
   if (it != map.end()) {
     return &(it->second);

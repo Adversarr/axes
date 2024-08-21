@@ -17,9 +17,9 @@ public:
   virtual ~SpsdModificationBase() = default;
   std::unique_ptr<SpsdModificationBase> Create(SpsdModificationKind kind);
 
-  virtual math::matxxr Modify(math::matxxr const& A) = 0;
+  virtual math::RealMatrixX Modify(math::RealMatrixX const& A) = 0;
 
-  virtual math::spmatr Modify(math::spmatr const& A) = 0;
+  virtual math::RealSparseMatrix Modify(math::RealSparseMatrix const& A) = 0;
 };
 
 }  // namespace ax::optim

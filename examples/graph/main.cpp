@@ -1,30 +1,6 @@
 // #include <imgui.h>
 // #include "ax/core/init.hpp"
 #include "ax/gl/utils.hpp"
-// #include "ax/graph/render.hpp"
-// #include "ax/nodes/geometry.hpp"
-// #include "ax/nodes/gl_prims.hpp"
-// #include "ax/nodes/io.hpp"
-// #include "ax/nodes/math_types.hpp"
-// #include "ax/nodes/stl_types.hpp"
-//
-// using namespace ax;
-// using namespace ax::graph;
-//
-// int main(int argc, char** argv) {
-//   gl::init(argc, argv);
-//   graph::install_renderer();
-//   nodes::register_stl_types();
-//   nodes::register_io_nodes();
-//   nodes::register_math_types_nodes();
-//   nodes::register_gl_prim_nodes();
-//   nodes::register_geometry_nodes();
-//
-//   gl::enter_main_loop() ;
-//   clean_up();
-//   return 0;
-// }
-
 #include <imgui.h>
 
 #include <iomanip>
@@ -33,7 +9,7 @@
 #include "ax/core/init.hpp"
 #include "ax/gl/utils.hpp"
 #include "ax/graph/render.hpp"
-#include "ax/nodes/stl_types.hpp"
+#include "ax/math/sparse.hpp"
 
 using namespace compute_graph;
 
@@ -46,14 +22,21 @@ public:
   static void RenderThis(NodeBase* ptr) {
     ax::graph::begin_draw_node(ptr);
     ax::graph::draw_node_header_default(ptr);
-    ImGui::SetNextItemWidth(200);
-    ImGui::InputInt("Value", &static_cast<ConstIntegerNode*>(ptr)->value_);
+    ImGui::Text("  Current: %d", static_cast<ConstIntegerNode*>(ptr)->value_);
     ax::graph::draw_node_content_default(ptr);
     ax::graph::end_draw_node();
   }
 
+  static void RenderWidget(NodeBase* ptr) {
+    auto* node = static_cast<ConstIntegerNode*>(ptr);
+    ImGui::PushID(node);
+    ImGui::InputInt("Value", &node->value_);
+    ImGui::PopID();
+  }
+
   static void OnRegister() {
     ax::graph::add_custom_node_render(name(), {RenderThis});
+    ax::graph::add_custom_node_widget(name(), {RenderWidget});
   }
 
   void OnConstruct() /* optional */ { Set(out::value, value_); }
@@ -171,31 +154,15 @@ int main(int argc, char **argv) {
   ax::gl::init(argc, argv);
   ax::graph::install_renderer();
 
-  NodeRegistry::instance().LoadDefered();
-  NodeHandle<> nh1 = g.PushBack(NodeRegistry::instance().Create<WhateverNode>()),
-               nh2 = g.PushBack(NodeRegistry::instance().Create<EchoString>()),
-               nh3 = g.PushBack(NodeRegistry::instance().Create<ConstIntegerNode>()),
-               nh4 = g.PushBack(NodeRegistry::instance().Create<EchoInteger>()),
-               nh5 = g.PushBack(NodeRegistry::instance().Create<ConstantString>()),
-               nh6 = g.PushBack(NodeRegistry::instance().Create<ReadContext<std::string>>()),
-               nh7 = g.PushBack(NodeRegistry::instance().Create<EchoString>());
-  g.Connect(nh1.GetOutput(WhateverNode::out::z), nh2.GetInput(EchoString::in::str));
-  g.Connect(nh3.GetOutput(ConstIntegerNode::out::value), nh1.GetInput("x").value());
-  g.Connect(nh3.GetOutput(ConstIntegerNode::out::value), nh4.GetInput(0));
+  auto& reg = ax::graph::get_internal_node_registry();
+  ConstIntegerNode::RegisterTo(reg);
+  WhateverNode::RegisterTo(reg);
+  EchoString::RegisterTo(reg);
+  EchoInteger::RegisterTo(reg);
+  ConstantString::RegisterTo(reg);
+  ReadContext<std::string>::RegisterTo(reg);
 
-  g.Connect(nh5.GetOutput(ConstantString::out::value), nh6.GetInput("key").value());
-  g.Connect(nh5.GetOutput(ConstantString::out::value), nh7.GetInput(0));
-  g.Connect(nh6.GetOutput(0), nh7.GetInput(0));
-
-  g.TopologySort();
-
-  Context rt;
-  rt.PushStack();
-  rt.Emplace("what", std::string("is?"));
-
-  for (auto const &node : g.GetNodes()) {
-    (*node)(rt);
-  }
+  ax::math::RealSparseMatrix sparse_matrix;
 
   ax::gl::enter_main_loop();
   ax::clean_up();

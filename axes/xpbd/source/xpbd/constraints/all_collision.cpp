@@ -4,15 +4,15 @@
 
 #include "ax/geometry/intersection/edge_edge.hpp"
 #include "ax/geometry/intersection/vertex_face.hpp"
-#include "ax/utils/iota.hpp"
-
+#include "ax/utils/ndrange.hpp"
+#include <range/v3/view/enumerate.hpp>
 namespace ax::xpbd {
 
 using namespace geo;
 // two main collision:
 // 1. vertex-to-triangle
 // 2. edge-to-edge
-// for each collision, we need to determine the real collision type:
+// for each collision, we need to determine the Real collision type:
 // 1. v-t
 // 2. v-e
 // 3. v-v
@@ -25,7 +25,7 @@ using v3 = math::RealVector3;
 std::pair<CollisionKind, I4> determine_collision(v3 const& v_start, v3 const& v_end,
                                                  v3 const& f0_start, v3 const& f1_start,
                                                  v3 const& f2_start, v3 const& f0_end,
-                                                 v3 const& f1_end, v3 const& f2_end, real tol) {
+                                                 v3 const& f1_end, v3 const& f2_end, Real tol) {
   // Need to determine: v-t? v-v? v-e?
   // question is, should this be a CCD?
 }
@@ -79,7 +79,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
   };
 
   for (Index i = 0; i < nV; ++i) {
-    for (auto [j, f] : utils::enumerate(g.faces_)) {
+    for (auto [j, f] : utils::views::enumerate(g.faces_)) {
       auto const& x0 = g.last_vertices_.col(i);
       auto const& fx0 = g.last_vertices_.col(f.x());
       auto const& fy0 = g.last_vertices_.col(f.y());
@@ -102,8 +102,8 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
     }
   }
 
-  for (auto [i, e1] : utils::enumerate(g.edges_)) {
-    for (auto [j, e2] : utils::enumerate(g.edges_)) {
+  for (auto [i, e1] : utils::views::enumerate(g.edges_)) {
+    for (auto [j, e2] : utils::views::enumerate(g.edges_)) {
       if (i == j) continue;
       if (e1.x() == e2.x() || e1.x() == e2.y() || e1.y() == e2.x() || e1.y() == e2.y()) continue;
       auto const& e00 = g.last_vertices_.col(e1.x());
@@ -146,11 +146,11 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
 
     di.col(0) = g.last_vertices_.col(v);
     actual.col(0) = g.vertices_.col(v) - g.last_vertices_.col(v);
-    for (auto [i, v] : utils::enumerate(face)) {
+    for (auto [i, v] : utils::views::enumerate(face)) {
       di.col(i + 1) = g.last_vertices_.col(v);
       actual.col(i + 1) = g.vertices_.col(v) - g.last_vertices_.col(v);
     }
-    real const mass = g.mass_[v];
+    Real const mass = g.mass_[v];
     origin_.emplace_back(di);
     stiffness_.push_back(mass * 10);
     rho_.push_back(mass * 10);

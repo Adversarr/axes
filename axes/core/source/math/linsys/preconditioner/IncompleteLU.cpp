@@ -12,5 +12,5 @@ void Preconditioner_IncompleteLU::Factorize() {
   AX_THROW_IF_FALSE(impl_.info() == Eigen::Success, "The factorization has not been computed.");
 }
 
-matxxr Preconditioner_IncompleteLU::Solve(matxxr const &b) { return impl_.solve(b); }
+RealMatrixX Preconditioner_IncompleteLU::Solve(RealMatrixX const &b) { return impl_.solve(b); }
 }  // namespace ax::math

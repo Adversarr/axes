@@ -10,8 +10,8 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/math/formatting.hpp"
 #include "ax/gl/config.hpp"
 
 namespace ax::gl {
@@ -164,7 +164,7 @@ math::IndexVec2 Window::GetPos() const { return impl_->pos_; }
 
 math::IndexVec2 Window::GetFrameBufferSize() const { return impl_->fb_size_; }
 
-math::RealVector2 Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<real>(); }
+math::RealVector2 Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<Real>(); }
 
 math::RealVector2 Window::GetCursorPos() const {
   double pos_x, pos_y;

@@ -1,6 +1,6 @@
 #include "ax/xpbd/constraints/colliding_balls.hpp"
 
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/xpbd/details/relaxations.hpp"
 
 namespace ax::xpbd {
@@ -13,8 +13,8 @@ ConstraintSolution Constraint_CollidingBalls::SolveDistributed() {
   ConstraintSolution sol(nV);
 
   auto dual_old = dual_;
-  for (auto i : utils::iota(nC)) {
-    real rho = this->rho_[i];
+  for (auto i : utils::range(nC)) {
+    Real rho = this->rho_[i];
     auto C = constraint_mapping_[i];
     m32 z;
     z.col(0) = constrained_vertices_position_[C[0]];
@@ -53,10 +53,10 @@ void Constraint_CollidingBalls::BeginStep() {
   constraint_mapping_.clear();
 }
 
-real Constraint_CollidingBalls::UpdateDuality() {
-  real sqr_dual_residual = 0;
+Real Constraint_CollidingBalls::UpdateDuality() {
+  Real sqr_dual_residual = 0;
   auto& local = this->constrained_vertices_position_;
-  for (auto i : utils::iota(GetNumConstraints())) {
+  for (auto i : utils::range(GetNumConstraints())) {
     auto& g = gap_[i];
     auto const& d = dual_[i];
     m32 z;
@@ -71,7 +71,7 @@ real Constraint_CollidingBalls::UpdateDuality() {
 
 void Constraint_CollidingBalls::EndStep() {}
 
-void Constraint_CollidingBalls::UpdateRhoConsensus(real scale) {
+void Constraint_CollidingBalls::UpdateRhoConsensus(Real scale) {
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
@@ -102,11 +102,11 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
 
   // Current implementation is brute force.
   Index const nV = g.vertices_.cols();
-  for (Index i : utils::iota(nV)) {
+  for (Index i : utils::range(nV)) {
     for (Index j = i + 1; j < nV; ++j) {
       v3 const& pi = g.vertices_.col(i);
       v3 const& pj = g.vertices_.col(j);
-      real distance = math::norm(pi - pj);
+      Real distance = math::norm(pi - pj);
       if (distance < ball_radius_ + tol_ * 3) {
         // std::cout << "collision: " << i << " " << j << " d: " << distance << std::endl;
         if (put_coll({i, j})) {
@@ -118,7 +118,7 @@ void Constraint_CollidingBalls::UpdatePositionConsensus() {
     }
   }
 
-  real const dt2 = g.dt_ * g.dt_;
+  Real const dt2 = g.dt_ * g.dt_;
   if (new_collisions.size() > 0) {
     for (auto v : new_colliding_vertices) {
       constrained_vertices_ids_.push_back(v);

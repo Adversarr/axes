@@ -36,11 +36,11 @@ public:
     return *this;
   }
 
-  DenseSolverBase& SetProblem(matxxr const &A) {
+  DenseSolverBase& SetProblem(RealMatrixX const &A) {
     return SetProblem(make_dense_problem(A));
   }
 
-  DenseSolverBase& SetProblem(matxxr &&A) {
+  DenseSolverBase& SetProblem(RealMatrixX &&A) {
     return SetProblem(make_dense_problem(A));
   }
 

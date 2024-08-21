@@ -3,15 +3,15 @@
 
 namespace ax::fem {
 
-template <Index dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_GPU
+template <int dim, template <int> class ElasticModelTemplate> class ElasticityCompute_GPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using elem_stress_t = math::aligned_vector<math::RealMatrix<dim, dim>>;
   using vert_stress_t = math::RealField<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::spmatr;
+  using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
+  using vert_hessian_t = math::RealSparseMatrix;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
   explicit ElasticityCompute_GPU(MeshPtr const& mesh);
 

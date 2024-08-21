@@ -1,5 +1,5 @@
 #include "ax/math/functional.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include <doctest/doctest.h>
 
 #include <ax/math/common.hpp>
@@ -101,11 +101,11 @@ TEST_CASE("iter") {
 
 TEST_CASE("mult-iota") {
   using namespace ax;
-  auto iota1 = utils::multi_iota(2, 3, 4);
+  auto iota1 = utils::ndrange<Index>(2, 3, 4);
   auto it1 = iota1.begin();
-  for (auto i: utils::iota(2)) {
-    for (auto j: utils::iota(3)) {
-      for (auto k: utils::iota(4)) {
+  for (auto i: utils::range(2)) {
+    for (auto j: utils::range(3)) {
+      for (auto k: utils::range(4)) {
         auto [ii, jj, kk] = *(it1++);
         CHECK_EQ(i, ii);
         CHECK_EQ(j, jj);
@@ -113,15 +113,15 @@ TEST_CASE("mult-iota") {
       }
     }
   }
-  auto iota2 = utils::multi_iota(
-    utils::ituple(0, 2), 
-    utils::ituple(0, 3, 2),
+  auto iota2 = utils::ndrange<Index>(
+    utils::make_index_tuple(0, 2),
+    utils::make_index_tuple(0, 3, 2),
     4);
 
   auto it2 = iota2.begin();
-  for (auto i: utils::iota(0, 2)) {
-    for (auto j: utils::iota(0, 3, 2)) {
-      for (auto k: utils::iota(4)) {
+  for (auto i: utils::range(0, 2)) {
+    for (auto j: utils::range(0, 3, 2)) {
+      for (auto k: utils::range(4)) {
         auto [ii, jj, kk] = *(it2++);
         CHECK_EQ(i, ii);
         CHECK_EQ(j, jj);

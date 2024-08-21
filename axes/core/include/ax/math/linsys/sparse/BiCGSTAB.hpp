@@ -10,11 +10,11 @@ public:
 
   void Factorize() final;
 
-  LinsysSolveResult Solve(matxxr const &b, matxxr const &x0) override;
+  LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
   SparseSolverKind GetKind() const final { return SparseSolverKind::kBiCGSTAB; }
 
 private:
-  Eigen::BiCGSTAB<spmatr> solver_;
+  Eigen::BiCGSTAB<RealSparseMatrix> solver_;
 };
 }  // namespace ax::math

@@ -29,7 +29,7 @@ DenseSolverKind kinds[] = {DenseSolverKind::kPartialPivLU,
 
 TEST_CASE("Solve Invertible") {
   using namespace ax::math;
-  matxxr A(2, 2);
+  RealMatrixX A(2, 2);
   A << 1, 2, 3, 4;
   RealVectorX b = RealVectorX::Ones(2);
   RealVectorX x = A.inverse() * b;
@@ -44,7 +44,7 @@ TEST_CASE("Solve Invertible") {
 
 TEST_CASE("Solve Non-Invertible") {
   using namespace ax::math;
-  matxxr A(2, 2);
+  RealMatrixX A(2, 2);
   A << 1, 2, 2, 4;
   RealVectorX b = RealVectorX::Ones(2);
   for (auto kind : {
@@ -83,14 +83,14 @@ TEST_CASE("Solve Non-Invertible") {
 
 TEST_CASE("Sparse LU") {
   using namespace ax::math;
-  spmatr A(2, 2);
+  RealSparseMatrix A(2, 2);
   A.insert(0, 0) = 4;
   A.insert(0, 1) = 1;
   A.insert(1, 0) = 1;
   A.insert(1, 1) = 4;
   A.makeCompressed();
-  matxxr x = RealVectorX::Ones(2);
-  matxxr b = A * x;
+  RealMatrixX x = RealVectorX::Ones(2);
+  RealMatrixX b = A * x;
   for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
                     SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
                     SparseSolverKind::kCholmod}) {

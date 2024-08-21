@@ -4,7 +4,7 @@
 #include "ax/core/config.hpp"
 #include "ax/math/common.hpp"
 #include "ax/utils/common.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "common.hpp"
 namespace ax::geo {
 

@@ -13,7 +13,7 @@
 #include "ax/math/io.hpp"
 #include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/utils/asset.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
 
 ABSL_FLAG(std::string, resolution, "low", "low, mid, high");
@@ -53,7 +53,7 @@ void update_rendering() {
   ts->GetElasticity().GatherEnergyToVertices();
   auto e_per_vert = ts->GetElasticity().GetEnergyOnVertices();
 
-  static real m = 0, M = 0;
+  static Real m = 0, M = 0;
   m = e_per_vert.minCoeff();
   M = e_per_vert.maxCoeff();
 
@@ -94,7 +94,7 @@ void put_into_data() {
   }
 
   math::RealVectorX u = ts->GetDisplacement().reshaped();
-  for (auto _ : utils::iota(static_cast<Index>(nrandomgk))) {
+  for (auto _ : utils::range(static_cast<Index>(nrandomgk))) {
     math::RealVectorX g = math::RealVectorX::Random(ndof) * dt * 0.1;
     g *= ts->GetMesh()->GetDirichletBoundaryMask().reshaped();
     auto result = solver->Solve(g);
@@ -119,7 +119,7 @@ void write_into_seps() {
   static int cnt = 0;
   if (uk.size() > static_cast<size_t>(seperation)) {
     Index n_dof = uk.front().size();
-    math::matxxr X;
+    math::RealMatrixX X;
     X.resize(n_dof, seperation);
     for (Index i = 0; i < seperation; ++i) {
       X.col(i) = uk[i];
@@ -185,7 +185,7 @@ void ui_callback(gl::UiRenderEvent) {
 }
 
 void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts) {
-  for (auto i : utils::iota(tets.cols())) {
+  for (auto i : utils::range(tets.cols())) {
     auto a = verts.col(tets(0, i));
     auto b = verts.col(tets(1, i));
     auto c = verts.col(tets(2, i));
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
   AX_CHECK_OK(ts->Initialize());
 
   /************************* SECT: Setup Boundaries *************************/
-  for (auto i : utils::iota(input_mesh.vertices_.cols())) {
+  for (auto i : utils::range(input_mesh.vertices_.cols())) {
     const auto& position = input_mesh.vertices_.col(i);
     if (position.x() > 4.9) {
       ts->GetMesh()->MarkDirichletBoundary(i, 0, position.x());
@@ -243,8 +243,8 @@ int main(int argc, char** argv) {
   auto edges = geo::get_edges(input_mesh.indices_);
   printf("Edge set size=%ld\n", edges.cols());
 
-  math::matxxr V = input_mesh.vertices_.transpose();
-  math::matxxi E = input_mesh.indices_.transpose();
+  math::RealMatrixX V = input_mesh.vertices_.transpose();
+  math::IndexMatrixX E = input_mesh.indices_.transpose();
   (math::write_npy_v10(dest + "/vertices.npy", V));
   (math::write_npy_v10(dest + "/elements.npy", E));
   math::RealVectorX bc_mask = ts->GetMesh()->GetDirichletBoundaryMask().row(0).transpose();
@@ -260,20 +260,20 @@ int main(int argc, char** argv) {
   {
     auto solver = math::SparseSolver_Cholmod();
     solver.SetProblem(L).Compute();
-    math::matxxr inv = solver.Inverse();
+    math::RealMatrixX inv = solver.Inverse();
     (math::write_npy_v10(dest + "/laplacian.npy", inv));
   }
 
   {
-    math::spmatr P = ts->GetMassMatrix();
-    math::spmatr_for_each(P, [](Index, Index, real& val) {
+    math::RealSparseMatrix P = ts->GetMassMatrix();
+    math::for_each_entry(P, [](Index, Index, Real& val) {
       val = 1.0;
     });
     P = (P * P).eval();
     P.makeCompressed();
-    math::matxxi non_zero_entries(2, P.nonZeros());
+    math::IndexMatrixX non_zero_entries(2, P.nonZeros());
     Index cnt = 0;
-    math::spmatr_for_each(P, [&](Index i, Index j, real) {
+    math::for_each_entry(P, [&](Index i, Index j, Real) {
       non_zero_entries.col(cnt++) = math::IndexVec2{i, j};
     });
 

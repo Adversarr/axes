@@ -41,8 +41,8 @@ protected:
  * @return true
  * @return false
  */
-inline bool examine_arjimo_condition(real f_step, real f_original, real expected_descent,
-                                     real required_descent_rate) {
+inline bool examine_arjimo_condition(Real f_step, Real f_original, Real expected_descent,
+                                     Real required_descent_rate) {
   return f_step <= f_original + expected_descent * required_descent_rate;
 }
 
@@ -60,7 +60,7 @@ inline bool examine_arjimo_condition(real f_step, real f_original, real expected
  * @return false
  */
 inline bool examine_curvature_condition(Variable const& step_dir, Gradient const& grad_step,
-                                        real expected_descent, real required_curvature_rate) {
+                                        Real expected_descent, Real required_curvature_rate) {
   return -math::dot(grad_step, step_dir) <= -required_curvature_rate * expected_descent;
 }
 
@@ -77,7 +77,7 @@ inline bool examine_curvature_condition(Variable const& step_dir, Gradient const
  * @return false
  */
 inline bool examine_strong_wolfe_condition(Variable const& step_dir, Gradient const& grad_step,
-                                           real expected_descent, real required_curvature_rate) {
+                                           Real expected_descent, Real required_curvature_rate) {
   return math::abs(math::dot(grad_step, step_dir))
          <= math::abs(required_curvature_rate * expected_descent);
 }

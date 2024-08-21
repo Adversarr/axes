@@ -12,12 +12,12 @@ AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
  * @brief Base class for general elasticity computation.
  * @tparam dim
  */
-template <Index dim> class ElasticityComputeBase {
+template <int dim> class ElasticityComputeBase {
 public:
-  using elem_stress_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim, dim>>;
+  using elem_stress_t = math::aligned_vector<math::RealMatrix<dim, dim>>;
   using vert_stress_t = math::RealField<dim>;
-  using elem_hessian_t = elasticity::vector_for_eigen_type<math::RealMatrix<dim * dim, dim * dim>>;
-  using vert_hessian_t = math::spmatr;
+  using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
+  using vert_hessian_t = math::RealSparseMatrix;
   using MeshPtr = std::shared_ptr<TriMesh<dim>>;
 
   explicit ElasticityComputeBase(std::shared_ptr<TriMesh<dim>> mesh);
@@ -48,7 +48,7 @@ public:
 
 protected:
   std::shared_ptr<TriMesh<dim>> mesh_;
-  elasticity::DeformationGradientCache<dim> rinv_;
+  elasticity::DeformGradCache<dim> rinv_;
   math::RealField1 rest_volume_;
   math::RealField2 lame_;
 

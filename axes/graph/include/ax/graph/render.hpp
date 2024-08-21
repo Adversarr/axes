@@ -15,12 +15,13 @@ std::unique_ptr<GraphExecutorBase>& ensure_executor();
 void install_renderer(GraphRendererOptions opt = {});
 
 using RenderFn = std::function<void(NodeBase*)>;
-struct CustomNodeRender {
-  RenderFn widget_;
-};
+struct CustomNodeRender { RenderFn widget_; };
+struct CustomNodeWidget { RenderFn widget_; };
 
 void add_custom_node_render(std::string t, CustomNodeRender const& widget);
+void add_custom_node_widget(std::string t, CustomNodeWidget const& widget);
 CustomNodeRender const* get_custom_node_render(std::string name);
+CustomNodeWidget const* get_custom_node_widget(std::string name);
 
 void begin_draw_node(NodeBase* node);
 void draw_node_header_default(NodeBase* node);

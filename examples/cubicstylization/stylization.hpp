@@ -16,8 +16,8 @@ public:
 
   SurfaceMesh mesh_;
 
-  real rho_ = 1e-3;
-  real lambda_ = 1.0;
-  real tau_ = 2.0;
-  real mu_ = 10.0;
+  Real rho_ = 1e-3;
+  Real lambda_ = 1.0;
+  Real tau_ = 2.0;
+  Real mu_ = 10.0;
 };

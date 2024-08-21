@@ -11,9 +11,9 @@
 namespace ax::optim::test {
 
 /************************* SECT: RosenbrockProblem *************************/
-real rosenbrock(Variable const& x_mat) {
+Real rosenbrock(Variable const& x_mat) {
   math::RealVectorX x = x_mat;
-  real f = 0;
+  Real f = 0;
   for (Index i = 0; i < x.size() - 1; ++i) {
     f += math::square(x[i] - 1) + 100 * math::square(x[i + 1] - math::square(x[i]));
   }
@@ -32,7 +32,7 @@ Gradient rosenbrock_grad(Variable const& x_mat) {
 
 DenseHessian rosenbrock_hessian(Variable const& x_mat) {
   math::RealVectorX x = x_mat;
-  math::matxxr hessian = math::zeros(x.size(), x.size());
+  math::RealMatrixX hessian = math::zeros(x.size(), x.size());
   for (Index i = 0; i < x.size() - 1; ++i) {
     hessian(i, i) = 2 - 400 * x[i + 1] + 1200 * math::square(x[i]);
     hessian(i, i + 1) = -400 * x[i];
@@ -58,7 +58,7 @@ RosenbrockProblem::RosenbrockProblem() {
 
 /************************* SECT: Least Square *************************/
 LeastSquareProblem::LeastSquareProblem(DenseHessian const& A, Variable const& b) : A_(A), b_(b) {
-  SetEnergy([this](Variable const& x) -> real {
+  SetEnergy([this](Variable const& x) -> Real {
     return (0.5 * (x - b_).transpose() * A_ * (x - b_))(0, 0);
   });
   SetGrad([this](Variable const& x) { return A_ * (x - b_); });
@@ -71,7 +71,7 @@ SparseLeastSquareProblem::SparseLeastSquareProblem(SparseHessian const& A, Varia
     : A_(A), b_(b) {
   AX_CHECK(A.rows() == A.cols(), "A must be square");
   AX_CHECK(A.rows() == b.rows(), "A and b must have the same rows");
-  SetEnergy([this](Variable const& x) -> real {
+  SetEnergy([this](Variable const& x) -> Real {
     Variable residual = x - b_;
     return 0.5 * math::inner(residual.reshaped(), A_, residual.reshaped());
   });

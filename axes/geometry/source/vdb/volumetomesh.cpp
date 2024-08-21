@@ -6,11 +6,11 @@ namespace ax::vdb {
 
 struct VolumeToMesh::Impl {
   openvdb::tools::VolumeToMesh algo_;
-  Impl(real isovalue, real adaptivity, bool relaxDisorientedTriangles)
+  Impl(Real isovalue, Real adaptivity, bool relaxDisorientedTriangles)
       : algo_(isovalue, adaptivity, relaxDisorientedTriangles) {};
 };
 
-VolumeToMesh::VolumeToMesh(real isovalue, real adaptivity, bool relaxDisorientedTriangles) {
+VolumeToMesh::VolumeToMesh(Real isovalue, Real adaptivity, bool relaxDisorientedTriangles) {
   impl_ = std::make_unique<Impl>(isovalue, adaptivity, relaxDisorientedTriangles);
 };
 

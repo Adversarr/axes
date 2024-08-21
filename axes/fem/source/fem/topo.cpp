@@ -7,7 +7,7 @@
 
 namespace ax::fem {
 
-template <Index dim>
+template <int dim>
 std::pair<std::vector<Index>, std::vector<Index>> optimize_topology(math::IndexField<dim + 1> const& topo, Index n_vert) {
   using namespace boost;
   using namespace std;

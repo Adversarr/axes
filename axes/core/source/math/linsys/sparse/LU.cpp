@@ -17,8 +17,8 @@ void SparseSolver_LU::Factorize() {
       to_string(solver_.info()));
 }
 
-LinsysSolveResult SparseSolver_LU::Solve(matxxr const &b, matxxr const &) {
-  matxxr x = solver_.solve(b);
+LinsysSolveResult SparseSolver_LU::Solve(RealMatrixX const &b, RealMatrixX const &) {
+  RealMatrixX x = solver_.solve(b);
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_LU: solve failed");
   return x;
 }

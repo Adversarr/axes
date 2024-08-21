@@ -1,19 +1,19 @@
 #pragma once
-#include "ax/math/approx.hpp"
+#include "ax/math/utils/approx.hpp"
 #include "ax/math/functional.hpp"
 #include "common.hpp"
 
 namespace ax::math {
 
-template <Index dim> struct RootInfo {
+template <int dim> struct RootInfo {
   bool valid_[dim];
-  real root_[dim];
+  Real root_[dim];
   Index degree_;
 };
 
 // a x + b = 0
-RootInfo<1> AX_HOST_DEVICE AX_FORCE_INLINE solve_linear(real a, real b, real lb, real ub,
-                                                        real tol = math::epsilon<real>) {
+RootInfo<1> AX_HOST_DEVICE AX_FORCE_INLINE solve_linear(Real a, Real b, Real lb, Real ub,
+                                                        Real tol = math::epsilon<Real>) {
   RootInfo<1> info;
   info.valid_[0] = false;
   if (approx(a, tol) == 0.) {
@@ -24,7 +24,7 @@ RootInfo<1> AX_HOST_DEVICE AX_FORCE_INLINE solve_linear(real a, real b, real lb,
     }
   } else {
     info.degree_ = 1;
-    real root = -b / a;
+    Real root = -b / a;
     if (lb - tol < root && root < ub + tol) {
       info.valid_[0] = true;
       info.root_[0] = root;
@@ -35,15 +35,15 @@ RootInfo<1> AX_HOST_DEVICE AX_FORCE_INLINE solve_linear(real a, real b, real lb,
 
 namespace details {
 
-AX_HOST_DEVICE AX_FORCE_INLINE void step_newton_once(real& x, real a, real b, real c, real d,
+AX_HOST_DEVICE AX_FORCE_INLINE void step_newton_once(Real& x, Real a, Real b, Real c, Real d,
                                                      RootInfo<2> const& info2,
-                                                     real lb, real ub, real tol) {
+                                                     Real lb, Real ub, Real tol) {
   // f(x) = a x^3 + b x^2 + c x + d
   // f'(x) = 3 a x^2 + 2 b x + c
   // x = x - f(x) / f'(x)
   if (lb >= ub) return;
-  real partial_f = 3 * a * x * x + 2 * b * x + c;
-  real f = a * x * x * x + b * x * x + c * x + d;
+  Real partial_f = 3 * a * x * x + 2 * b * x + c;
+  Real f = a * x * x * x + b * x * x + c * x + d;
   if (abs(f) < tol) {
     return;
   }
@@ -53,8 +53,8 @@ AX_HOST_DEVICE AX_FORCE_INLINE void step_newton_once(real& x, real a, real b, re
 }  // namespace details
 
 // a x^2 + b x + c = 0
-RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real c, real lb, real ub,
-                                                           real tol = math::epsilon<real>) {
+RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(Real a, Real b, Real c, Real lb, Real ub,
+                                                           Real tol = math::epsilon<Real>) {
   RootInfo<2> info;
   info.valid_[0] = info.valid_[1] = false;
   if (approx(a, tol) == 0.) {
@@ -66,13 +66,13 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
   }
 
   info.degree_ = 2;
-  real const discriminant = b * b - 4 * a * c;
+  Real const discriminant = b * b - 4 * a * c;
   if (discriminant >= -tol * tol) /* does have real root */ {
     if (discriminant <= tol * tol) {
       info.root_[0] = (info.root_[1] = -0.5 * b / a);
       info.valid_[0] = (info.valid_[1] = (lb - tol < info.root_[0] && info.root_[0] < ub + tol));
     } else {
-      real const sqrt_discriminant = sqrt(discriminant);
+      Real const sqrt_discriminant = sqrt(discriminant);
       info.root_[0] = (-b - sqrt_discriminant) / (2 * a);
       info.valid_[0] = (lb - tol < info.root_[0] && info.root_[0] < ub + tol);
       Index const next = info.valid_[0] ? 1 : 0;
@@ -84,8 +84,8 @@ RootInfo<2> AX_HOST_DEVICE AX_FORCE_INLINE solve_quadratic(real a, real b, real 
 }
 
 // a x^3 + b x^2 + c x + d = 0
-RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, real d, real lb,
-                                                       real ub, real tol = math::epsilon<real>,
+RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(Real a, Real b, Real c, Real d, Real lb,
+                                                       Real ub, Real tol = math::epsilon<Real>,
                                                        Index max_iteration = 16) {
   RootInfo<3> info;
   info.valid_[0] = info.valid_[1] = info.valid_[2] = false;
@@ -101,8 +101,8 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
     // a != 0.
     // first find two stationary points, we assume our stationary point solver is stable enough.
     RootInfo<2> grad_info = solve_quadratic(3 * a, 2 * b, c, lb, ub, tol);
-    real lower_bounds[3] = {ub, ub, ub};
-    real upper_bounds[3] = {lb, lb, lb};
+    Real lower_bounds[3] = {ub, ub, ub};
+    Real upper_bounds[3] = {lb, lb, lb};
     if (grad_info.valid_[0] && grad_info.valid_[1]) /* both is valid */ {
       if (grad_info.root_[0] == grad_info.root_[1]) /* same root */ {
         lower_bounds[0] = grad_info.root_[0] - tol;
@@ -124,8 +124,8 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
       }
       // do with the multiple roots.
       for (Index i = 0; i < 2; ++i) {
-        real const x = grad_info.root_[i];
-        real const f = a * x * x * x + b * x * x + c * x + d;
+        Real const x = grad_info.root_[i];
+        Real const f = a * x * x * x + b * x * x + c * x + d;
         if (abs(f) < tol) {
           info.valid_[i] = true;
           info.root_[i] = x;
@@ -139,8 +139,8 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
       upper_bounds[1] = ub + tol;
       info.root_[1] = 0.5 * (lower_bounds[1] + upper_bounds[1]);
 
-      real const x = grad_info.root_[0];
-      real const f = a * x * x * x + b * x * x + c * x + d;
+      Real const x = grad_info.root_[0];
+      Real const f = a * x * x * x + b * x * x + c * x + d;
       if (abs(f) < tol) {
         info.valid_[0] = true;
         info.root_[0] = x;
@@ -152,8 +152,8 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
       lower_bounds[1] = grad_info.root_[1] - tol;
       upper_bounds[1] = ub + tol;
       info.root_[1] = 0.5 * (lower_bounds[1] + upper_bounds[1]);
-      real const x = grad_info.root_[1];
-      real const f = a * x * x * x + b * x * x + c * x + d;
+      Real const x = grad_info.root_[1];
+      Real const f = a * x * x * x + b * x * x + c * x + d;
       if (abs(f) < tol) {
         info.valid_[0] = true;
         info.root_[0] = x;
@@ -176,10 +176,10 @@ RootInfo<3> AX_HOST_DEVICE AX_FORCE_INLINE solve_cubic(real a, real b, real c, r
 
     // check if the roots are valid.
     for (Index i = 0; i < 3; ++i) {
-      real const l = lower_bounds[i], u = upper_bounds[i];
+      Real const l = lower_bounds[i], u = upper_bounds[i];
       if (l <= u) {
-        real const x = info.root_[i];
-        real const f = a * x * x * x + b * x * x + c * x + d;
+        Real const x = info.root_[i];
+        Real const f = a * x * x * x + b * x * x + c * x + d;
         if (abs(f) < tol) {
           info.valid_[i] = true;
         }

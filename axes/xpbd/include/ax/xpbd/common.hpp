@@ -27,7 +27,7 @@ AX_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
 struct ConstraintSolution {
   math::RealField3 weighted_position_;
   math::RealField1 weights_;
-  real sqr_dual_residual_;
+  Real sqr_dual_residual_;
 
   ConstraintSolution(Index n_vert) : weighted_position_(3, n_vert), weights_(1, n_vert) {
     weighted_position_.setZero();
@@ -54,7 +54,7 @@ public:
 
   // Update dual variable
   virtual ConstraintSolution SolveDistributed() = 0;
-  virtual real UpdateDuality() = 0;
+  virtual Real UpdateDuality() = 0;
 
   virtual void UpdatePositionConsensus();
 
@@ -63,7 +63,7 @@ public:
   virtual void OnAttach() const;
   virtual void OnDetach() const;
 
-  virtual void UpdateRhoConsensus(real scale);
+  virtual void UpdateRhoConsensus(Real scale);
 
   virtual void BeginStep() = 0;
   virtual void EndStep();
@@ -81,9 +81,9 @@ protected:
   // we always assume, to compute the dual variable, always [1] + [2] + ... + [n-1] - [n]
   // if rows=1, then we assume the dual is [1], just the identity of the only vertex
   ConstraintMap constraint_mapping_;  ///< Local constraint map, each index is local.
-  std::vector<real> rho_;                  ///< Local weighting.
-  real rho_global_;                  ///< Global weighting.
-  real primal_tolerance_{1e-7};      ///< Tolerance for primal
+  std::vector<Real> rho_;                  ///< Local weighting.
+  Real rho_global_;                  ///< Global weighting.
+  Real primal_tolerance_{1e-7};      ///< Tolerance for primal
 };
 
 class GlobalServer : utils::Tunable {
@@ -105,13 +105,13 @@ public:
   geo::BroadPhaseResult potential_collisions_;
 
   // High level meta.
-  real dt_;
+  Real dt_;
 
 
-  real primal_dual_threshold_{10};  ///< Threshold for primal-dual convergence.
-  real dual_primal_threshold_{10};  ///< Threshold for dual-primal convergence.
-  real primal_dual_ratio_{1.5};     ///< Ratio for primal-dual, rho *= ratio.
-  real dual_primal_ratio_{1.5};     ///< Ratio for dual-primal, rho /= ratio.
+  Real primal_dual_threshold_{10};  ///< Threshold for primal-dual convergence.
+  Real dual_primal_threshold_{10};  ///< Threshold for dual-primal convergence.
+  Real primal_dual_ratio_{1.5};     ///< Ratio for primal-dual, rho *= ratio.
+  Real dual_primal_ratio_{1.5};     ///< Ratio for dual-primal, rho /= ratio.
 
   // Constraints.
   std::vector<std::unique_ptr<ConstraintBase>> constraints_;

@@ -11,13 +11,13 @@ namespace ax::pde {
  * @param dt The time step.
  * @return The backtraced position.
  */
-template<Index dim>
-AX_FORCE_INLINE math::RealVector<dim> backtrace(const math::RealVector<dim>& X, const math::RealVector<dim>& v, real dt) {
+template<int dim>
+AX_FORCE_INLINE math::RealVector<dim> backtrace(const math::RealVector<dim>& X, const math::RealVector<dim>& v, Real dt) {
   return X - dt * v;
 }
 
-template<Index dim>
-AX_FORCE_INLINE math::veci<dim> to_subscripts(math::RealVector<dim> const& X) {
+template<int dim>
+AX_FORCE_INLINE math::IndexVector<dim> to_subscripts(math::RealVector<dim> const& X) {
   return math::floor(X).template cast<Index>();
 }
 

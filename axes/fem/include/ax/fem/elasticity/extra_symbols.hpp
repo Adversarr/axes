@@ -18,7 +18,7 @@ approx_green_strain(math::MBcr<Derived> F) {
 
 namespace details {
 AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<2, 2> partial_determinant(
-    DeformationGradient<2> const& F) {
+    DeformGrad<2> const& F) {
   // [ f11, -f10;
   //  -f01,  f00]
   math::RealMatrix<2, 2> dJdF;
@@ -27,7 +27,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<2, 2> partial_determinant(
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<3, 3> partial_determinant(
-    DeformationGradient<3> const& F) {
+    DeformGrad<3> const& F) {
   // [Cross[f1, f2], Cross[f2, f0], Cross[f0, f1]]
   math::RealMatrix<3, 3> dJdF;
   dJdF << math::cross(F.col(1), F.col(2)), math::cross(F.col(2), F.col(0)),
@@ -36,7 +36,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<3, 3> partial_determinant(
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE void add_HJ(math::RealMatrix<4, 4>& H, const math::RealMatrix<2, 2>& /*F*/,
-                                           real scale) {
+                                           Real scale) {
   H(3, 0) += scale;
   H(0, 3) += scale;
   H(1, 2) -= scale;
@@ -51,7 +51,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix3 x_hat(math::MBcr<Derived> Fi) {
 }
 
 AX_HOST_DEVICE AX_FORCE_INLINE void add_HJ(math::RealMatrix<9, 9>& H, const math::RealMatrix<3, 3>& F,
-                                           real scale) {
+                                           Real scale) {
   math::RealMatrix3 const f0 = x_hat(F.col(0)) * scale;
   math::RealMatrix3 const f1 = x_hat(F.col(1)) * scale;
   math::RealMatrix3 const f2 = x_hat(F.col(2)) * scale;

@@ -1,8 +1,9 @@
 #include "ax/xpbd/constraints/edge_edge_collider.hpp"
 
 #include "ax/geometry/intersection/edge_edge.hpp"
-#include "ax/utils/iota.hpp"
+#include "ax/utils/ndrange.hpp"
 #include "ax/xpbd/details/relaxations.hpp"
+#include <range/v3/view/enumerate.hpp>
 
 namespace ax::xpbd {
 
@@ -33,13 +34,13 @@ ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
   Index const nV = GetNumConstrainedVertices();
 
   ConstraintSolution sol(nV);
-  for (auto i : utils::iota(nC)) {
+  for (auto i : utils::range(nC)) {
     auto C = constraint_mapping_[i];
     m34 dual_old = dual_[i];
     auto& x = dual_[i];
     auto& u = gap_[i];
-    real& k = stiffness_[i];
-    real& rho = rho_[i];
+    Real& k = stiffness_[i];
+    Real& rho = rho_[i];
     m34 z;
     for (Index i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
     relax_edge_edge_impl(z, u, origin_[i], x, rho_[i], k, tol_);
@@ -56,10 +57,10 @@ ConstraintSolution Constraint_EdgeEdgeCollider::SolveDistributed() {
   return sol;
 }
 
-real Constraint_EdgeEdgeCollider::UpdateDuality() {
+Real Constraint_EdgeEdgeCollider::UpdateDuality() {
   auto const& fetch_from_global = this->constrained_vertices_position_;
-  real sqr_prim_res = 0;
-  for (auto i : utils::iota(this->GetNumConstraints())) {
+  Real sqr_prim_res = 0;
+  for (auto i : utils::range(this->GetNumConstraints())) {
     auto cons = constraint_mapping_[i];
     auto const& d = dual_[i];
     math::RealMatrix<3, 4> z, du;
@@ -73,7 +74,7 @@ real Constraint_EdgeEdgeCollider::UpdateDuality() {
 
 void Constraint_EdgeEdgeCollider::EndStep() {}
 
-void Constraint_EdgeEdgeCollider::UpdateRhoConsensus(real scale) {
+void Constraint_EdgeEdgeCollider::UpdateRhoConsensus(Real scale) {
   for (auto& r : this->rho_) r *= scale;
   this->rho_global_ *= scale;
   for (auto& g : gap_) g /= scale;
@@ -93,8 +94,8 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
   };
 
   // Current implementation is brute force.
-  for (auto [i, e1] : utils::enumerate(g.edges_)) {
-    for (auto [j, e2] : utils::enumerate(g.edges_)) {
+  for (auto [i, e1] : utils::views::enumerate(g.edges_)) {
+    for (auto [j, e2] : utils::views::enumerate(g.edges_)) {
       if (i == j) continue;
       if (e1.x() == e2.x() || e1.x() == e2.y() || e1.y() == e2.x() || e1.y() == e2.y()) continue;
 
@@ -160,7 +161,7 @@ void Constraint_EdgeEdgeCollider::UpdatePositionConsensus() {
   }
 
   Index n_v = this->GetNumConstrainedVertices();
-  for (Index i : utils::iota(n_v)) {
+  for (Index i : utils::range(n_v)) {
     Index iV = cmap[i];
     local[i] = g.vertices_.col(iV);
   }

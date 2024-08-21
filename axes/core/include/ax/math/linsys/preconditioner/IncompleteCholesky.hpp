@@ -8,12 +8,12 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
 
-  matxxr Solve(matxxr const &b) override;
+  RealMatrixX Solve(RealMatrixX const &b) override;
 
   PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteCholesky; }
 
 private:
-  Eigen::IncompleteCholesky<real, Eigen::Lower, Eigen::NaturalOrdering<Index>> impl_;
+  Eigen::IncompleteCholesky<Real, Eigen::Lower, Eigen::NaturalOrdering<Index>> impl_;
 };
 
 }  // namespace ax::math

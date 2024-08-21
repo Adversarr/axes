@@ -9,8 +9,8 @@ using m3 = math::RealMatrix<3, 3>;
 using m34 = math::RealMatrix<3, 4>;
 using m4 = math::RealMatrix<4, 4>;
 
-inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho,
-                                       real& k, real tol) {
+inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, Real rho,
+                                       Real& k, Real tol) {
   // k/2(|| Dx || - d)^2 + rho/2 ||x-(z-u)||^2
   // What i wish: x - u no collision => instead of solving x, solve x - u ?
   // first, test if there is a collision currently.
@@ -20,15 +20,15 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
   // step 1: find the seperating plane.
   math::RealVector3 normal = math::normalized(math::cross(zu.col(2) - zu.col(1), zu.col(3) - zu.col(1)));
   math::RealVector3 center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
-  real c = math::dot(normal, center);
-  real e = math::dot(normal, zu.col(0)) - c;
+  Real c = math::dot(normal, center);
+  Real e = math::dot(normal, zu.col(0)) - c;
   if (e < 0) {
     normal = -normal;
     c = -c;
     e = -e;
   }
 
-  real x0c = math::dot(normal, o.col(0)) - c;
+  Real x0c = math::dot(normal, o.col(0)) - c;
   // project to the plane.
   auto proj = [&](math::RealVector3 const& p) -> math::RealVector3 {
     return p - math::dot(normal, p - center) * normal;
@@ -43,7 +43,7 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
       x = zu;
       return false;
     }
-    real l = (k * tol + rho * e) / (k + rho);
+    Real l = (k * tol + rho * e) / (k + rho);
     if (l <= 0.5 * tol) {
       // We need to enforce the constraint strictly, l >= 0.5 * tol.
       // (k * t + r e) > 0.5 t (k + rho) => 0.5 k t < r e - 0.5 t rho
@@ -56,7 +56,7 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
     x.col(3) -= l * normal / 3;
   } else {
     // step 2: solve vertex.
-    real l = (k * -tol + rho * e) / (k + rho);
+    Real l = (k * -tol + rho * e) / (k + rho);
     if (l >= -0.5 * tol) {
       // We need to enforce the constraint strictly, l <= -0.5 * tol.
       // (k * (-t) + r e) < -0.5 t (k + rho) => 0.5 k t > r e + 0.5 t rho
@@ -72,14 +72,14 @@ inline bool relax_vertex_triangle_impl(m34 const& z, m34 const& u, m34 const& o,
   return true;
 }
 
-inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, real rho,
-                                 real& k, real tol) {
+inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& x, Real rho,
+                                 Real& k, Real tol) {
   m34 const zu = z - u;
   math::RealVector3 normal = math::normalized(math::cross(zu.col(1) - zu.col(0), zu.col(3) - zu.col(2)));
   // TODO: If normal is zero.
   math::RealVector3 center = 0.25 * (zu.col(0) + zu.col(1) + zu.col(2) + zu.col(3));
-  real c = math::dot(normal, center);
-  real e = math::dot(normal, zu.col(3)) - c;
+  Real c = math::dot(normal, center);
+  Real e = math::dot(normal, zu.col(3)) - c;
   if (e < 0) {
     normal = -normal;
     c = -c;
@@ -97,13 +97,13 @@ inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& 
       return false;
     }
 
-    real l = (k * tol + rho * e) / (k + rho);
+    Real l = (k * tol + rho * e) / (k + rho);
     x.col(0) += l * normal;
     x.col(1) += l * normal;
     x.col(2) -= l * normal;
     x.col(3) -= l * normal;
   } else {
-    real l = (k * -tol + rho * e) / (k + rho);
+    Real l = (k * -tol + rho * e) / (k + rho);
     if (l >= -0.5 * tol) {
       k = (rho * e / tol) * 3;
       l = (k * -tol + rho * e) / (k + rho);
@@ -118,8 +118,8 @@ inline bool relax_edge_edge_impl(m34 const& z, m34 const& u, m34 const& o, m34& 
   return true;
 }
 
-inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x, real rho, real& k,
-                                   real tol) {
+inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x, Real rho, Real& k,
+                                   Real tol) {
   // relax vertex edge.
   // First compute the normal of target positions.
   m3 const zu = z - u;
@@ -136,8 +136,8 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   bool const collision = n_unnormalized.dot(o_unnormalized) <= 0;
 
   // compute the unsigned distance of target position.
-  real const area2 = math::norm(math::cross(e1 - v, e2 - v));
-  real const distance_v_e = area2 / math::norm(e1 - e2);
+  Real const area2 = math::norm(math::cross(e1 - v, e2 - v));
+  Real const distance_v_e = area2 / math::norm(e1 - e2);
   if (distance_v_e > tol && !collision) {
     // ok, you can step to zu directly.
     x = zu;
@@ -168,14 +168,14 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   // e1_c and e2_c should have same x component, and v_c should have different x component.
   if (collision) {
     // output position of e1 and e2 should have different sign compared with e1_c and e2_c.
-    real const vcx = v_c.x();
+    Real const vcx = v_c.x();
     bool const sgn_vcx = std::signbit(vcx);
-    real const t = sgn_vcx ? tol : -tol;
+    Real const t = sgn_vcx ? tol : -tol;
     // k/2(x-t)^2 + rho/2 (x-vcx)^2
     // => optimal point is (k+rho) x = k t + rho vcx
     // => x = (kt + rho vcx) / (k+rho)
     // x represents the optimal x coordinate of vertex in 2D plane.
-    real x = (k * t + rho * vcx) / (k + rho);
+    Real x = (k * t + rho * vcx) / (k + rho);
     // also need to test, if x have same sign with t.
     if (abs(x) < 0.5 * abs(t) || std::signbit(x) == sgn_vcx) {
       // need to enlarge k to satisfy the constraint.
@@ -201,15 +201,15 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
     // although there is no collision actually, but the distance is too small.
     // we need to project to a safer range.
     // k/2(x-t)^2 + rho/2 (x-vcx)^2
-    real const vcx = v_c.x();
+    Real const vcx = v_c.x();
     if (vcx >= tol * 0.9) {
       // no no no, you are ok, allow to set zu.
       x = zu;
       return false;
     }
     bool const sgnb = std::signbit(vcx);
-    real const t = sgnb ? -tol : tol;
-    real x = (k * t + rho * vcx) / (k + rho);
+    Real const t = sgnb ? -tol : tol;
+    Real x = (k * t + rho * vcx) / (k + rho);
     // wish |x| > 0.5 |t|
     // => k t + rho vcx = 0.5 t (k + rho)
     // => 0.5 k t = 0.5 rho t - rho vcx
@@ -238,8 +238,8 @@ inline bool relax_vertex_edge_impl(m3 const& z, m3 const& u, m3 const& o, m3& x,
   return true;
 }
 
-inline bool relax_vertex_vertex_impl(m32 const& z, m32 const& u, m32 const& o, m32& dual, real &k, real rho,
-                                     real radius, real eps) {
+inline bool relax_vertex_vertex_impl(m32 const& z, m32 const& u, m32 const& o, m32& dual, Real &k, Real rho,
+                                     Real radius, Real eps) {
   // Very similar to spring, let L = radius + eps.
   // The spring energy:
   //   f(x) = 1/2 k (|| D x || - (L + eps))^2
@@ -258,14 +258,14 @@ inline bool relax_vertex_vertex_impl(m32 const& z, m32 const& u, m32 const& o, m
   v3 const c = 0.5 * (zu.col(0) + zu.col(1));
   v3 const d = zu.col(0) - zu.col(1);
 
-  real const d_norm = d.norm();
+  Real const d_norm = d.norm();
   // std::cout << "d_norm: " << d_norm << std::endl;
   if (d_norm >= radius + eps) {
     dual = zu;
     return false;
   }
 
-  real dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
+  Real dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);
   if (dx_norm < radius) {
     k = 4 * rho * (radius - d_norm) / eps;
     dx_norm = (rho * d_norm + k * (radius + eps)) / (k + rho);

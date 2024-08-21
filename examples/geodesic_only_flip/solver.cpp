@@ -5,7 +5,7 @@
 
 #include "ax/core/logging.hpp"
 #include "ax/geometry/halfedge.hpp"
-#include "ax/math/approx.hpp"
+#include "ax/math/utils/approx.hpp"
 
 Dijkstra::Dijkstra(geo::SurfaceMesh mesh) : mesh_(std::move(mesh)) {
   // Initialize the edge flipper
@@ -62,7 +62,7 @@ Path Dijkstra::ShortestPath(Index start, Index end) {
       if (visited(v)) {
         continue;
       }
-      real new_dist = distances(u) + (mesh_.vertices_.col(u) - mesh_.vertices_.col(v)).norm();
+      Real new_dist = distances(u) + (mesh_.vertices_.col(u) - mesh_.vertices_.col(v)).norm();
       if (new_dist < distances(v)) {
         distances(v) = new_dist;
         from(v) = u;
@@ -93,7 +93,7 @@ struct Widge {
 
 struct Edge {
   Index from, to;
-  real len;
+  Real len;
 };
 
 struct Graph {
@@ -112,7 +112,7 @@ struct Graph {
     return nullptr;
   }
 
-  void Emplace(Index from, Index to, real len) {
+  void Emplace(Index from, Index to, Real len) {
     if (from >= to) {
       std::swap(from, to);
     }
@@ -136,7 +136,7 @@ struct Graph {
   }
 };
 
-std::map<geo::HalfedgeEdge*, real> edge_length_cache;
+std::map<geo::HalfedgeEdge*, Real> edge_length_cache;
 
 Widge unfold(geo::HalfedgeMesh mesh, Path p0, Index va_in_path, Index vb_in_path, Index vc_in_path) {
   // Unfold the mesh to a widge
@@ -167,7 +167,7 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, Index va_in_path, Index vb_in_path
 
   std::vector<geo::HalfedgeVertex*> abc_widge_vertices{A.vertex_};
   std::vector<geo::HalfedgeFace*> faces;
-  real sum_angles = 0;
+  Real sum_angles = 0;
   auto e = edge_ab;
   bool correct = true;
   do {
@@ -176,7 +176,7 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, Index va_in_path, Index vb_in_path
     auto oppo = e->next_->Head();
     math::RealVector3 e1 = from->position_ - B->position_;
     math::RealVector3 e2 = oppo->position_ - B->position_;
-    real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
+    Real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
     sum_angles += angle12;
     abc_widge_vertices.push_back(oppo);
     faces.push_back(e->face_);
@@ -203,7 +203,7 @@ Widge unfold(geo::HalfedgeMesh mesh, Path p0, Index va_in_path, Index vb_in_path
       auto oppo = e->next_->Head();
       math::RealVector3 e1 = from->position_ - B->position_;
       math::RealVector3 e2 = oppo->position_ - B->position_;
-      real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
+      Real angle12 = acos(e1.dot(e2) / (e1.norm() * e2.norm()));
       sum_angles += angle12;
       abc_widge_vertices.push_back(oppo);
       faces.push_back(e->pair_->face_);
@@ -248,10 +248,10 @@ void flip_out(geo::HalfedgeMesh& m, Widge const& w) {
   }
 }
 
-real angle_of(real a, real b, real c) {
+Real angle_of(Real a, Real b, Real c) {
   // Opposite is c.
-  real cosine_c = (a*a + b*b - c*c) / (2*a*b);
-  real ang = acos(cosine_c);
+  Real cosine_c = (a*a + b*b - c*c) / (2*a*b);
+  Real ang = acos(cosine_c);
   return ang;
 }
 

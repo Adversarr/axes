@@ -2,7 +2,7 @@
 
 namespace ax::geo {
 
-void BroadPhaseBase::ExpandAABB(real epsilon) {
+void BroadPhaseBase::ExpandAABB(Real epsilon) {
   for (auto& c : colliders_) {
     c.aabb_.min().array() -= epsilon;
     c.aabb_.max().array() += epsilon;

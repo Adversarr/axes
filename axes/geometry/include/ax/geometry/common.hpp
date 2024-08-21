@@ -11,7 +11,7 @@ namespace ax::geo {
 
 /****************************** Point ******************************/
 
-template <Index dim> class VertexN {
+template <int dim> class VertexN {
 public:
   using value_type = math::RealVector<dim>;
 
@@ -31,7 +31,7 @@ using Vertex3 = VertexN<3>;
 
 /****************************** Line segment ******************************/
 
-template <Index dim> class SegmentN {
+template <int dim> class SegmentN {
 public:
   using value_type = math::RealVector<dim>;
 
@@ -51,7 +51,7 @@ public:
 
   AX_HOST_DEVICE AX_FORCE_INLINE value_type Midpoint() const { return origin_ + (direction_ / 2); }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE real Length() const { return math::norm(direction_); }
+  AX_HOST_DEVICE AX_FORCE_INLINE Real Length() const { return math::norm(direction_); }
 
 private:
   value_type origin_;
@@ -63,7 +63,7 @@ using Segment3 = SegmentN<3>;
 
 /****************************** Triangle Face ******************************/
 
-template <Index dim> class TriangleN {
+template <int dim> class TriangleN {
 public:
   using value_type = math::RealVector<dim>;
 
@@ -143,7 +143,7 @@ private:
 
 /****************************** Simplex ******************************/
 
-template <Index dim> class SimplexN {
+template <int dim> class SimplexN {
 public:
   using value_type = math::RealVector<dim>;
   using container = std::array<value_type, dim + 1>;
@@ -172,7 +172,7 @@ using Simplex3 = SimplexN<3>;
  *
  * @tparam dim The dimension of the quadrahedron.
  */
-template <Index dim> class Quadrahedron {
+template <int dim> class Quadrahedron {
 public:
   using value_type = math::RealVector3;
   using container = std::array<value_type, (1 << dim)>;
@@ -225,7 +225,7 @@ struct TetraMesh {
  *
  * @tparam dim The dimension of the point cloud.
  */
-template <Index dim> using PointCloudN = math::RealField<dim>;
+template <int dim> using PointCloudN = math::RealField<dim>;
 
 using PointCloud2 = PointCloudN<2>;
 using PointCloud3 = PointCloudN<3>;
@@ -235,6 +235,6 @@ using PointCloud3 = PointCloudN<3>;
  *
  * @tparam dim The dimension of the point cloud.
  */
-template <Index dim> using PointCloudWithNormal = std::pair<PointCloudN<dim>, math::RealField<dim>>;
+template <int dim> using PointCloudWithNormal = std::pair<PointCloudN<dim>, math::RealField<dim>>;
 
 }  // namespace ax::geo

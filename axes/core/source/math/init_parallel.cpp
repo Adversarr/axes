@@ -1,4 +1,4 @@
-#include "ax/math/init_parallel.hpp"
+#include "ax/math/utils/init_parallel.hpp"
 
 #include <Eigen/Core>
 #include <thread>

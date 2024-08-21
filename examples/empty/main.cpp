@@ -2,12 +2,12 @@
 
 #include <ax/math/shape.hpp>
 
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/math/accessor.hpp"
-#include "ax/math/structure_binding.hpp"
 #include "ax/math/common.hpp"
-#include "ax/math/formatting.hpp"
+#include "ax/math/utils/structure_binding.hpp"
 #include "ax/math/views.hpp"
 #include "ax/utils/pretty_typename.hpp"
 #include "ax/utils/time.hpp"

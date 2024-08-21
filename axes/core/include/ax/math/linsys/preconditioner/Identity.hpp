@@ -6,7 +6,7 @@ class Preconditioner_Identity : public PreconditionerBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
-  matxxr Solve(matxxr const &b) override;
+  RealMatrixX Solve(RealMatrixX const &b) override;
 
   PreconditionerKind GetKind() const final { return PreconditionerKind::kIdentity; }
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include <range/v3/core.hpp>
+#include <range/v3/range_fwd.hpp>  // IWYU pragma: export
 
 /**
  * NOTE: Export all ranges and views from the ranges-v3 library.

@@ -12,8 +12,8 @@ void SparseSolver_QR::Factorize() {
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_QR: factorization failed");
 }
 
-LinsysSolveResult SparseSolver_QR::Solve(matxxr const &b, matxxr const &) {
-  matxxr x = solver_.solve(b);
+LinsysSolveResult SparseSolver_QR::Solve(RealMatrixX const &b, RealMatrixX const &) {
+  RealMatrixX x = solver_.solve(b);
   AX_THROW_IF_FALSE(solver_.info() == Eigen::Success, "SparseSolver_QR: solve failed");
   return {x};
 }

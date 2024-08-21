@@ -47,7 +47,7 @@ figure out the number of bytes by multiplying the number of elements given by th
 shape=() means there is 1 element) by dtype.itemsize.
 */
 
-void write_npy_v10(std::ostream& out, const real* p, size_t write_length, size_t f, size_t i,
+void write_npy_v10(std::ostream& out, const Real* p, size_t write_length, size_t f, size_t i,
                    size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
     throw std::runtime_error("The write length is not correct.");
@@ -79,7 +79,7 @@ void write_npy_v10(std::ostream& out, const real* p, size_t write_length, size_t
 
   out.write(reinterpret_cast<char*>(&header_len), 2);
   out.write(header.c_str(), header_len);
-  out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(real)));
+  out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(Real)));
 
   if (!out.good()) {
     throw std::runtime_error("Failed to write to the ostream properly.");
@@ -126,7 +126,7 @@ static void write_npy_v10(std::ostream& out, const Index* p, size_t write_length
   }
 }
 
-void write_npy_v10(std::string path, const Vector<real, Eigen::Dynamic>& vec) {
+void write_npy_v10(std::string path, const Vector<Real, Eigen::Dynamic>& vec) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // return void{voidCode::kInvalidArgument, "Failed to open the file."};
@@ -148,14 +148,14 @@ void write_npy_v10(std::string path, const Vector<Index, Eigen::Dynamic>& vec) {
                 static_cast<size_t>(vec.size()));
 }
 
-void write_npy_v10(std::string path, const Matrix<real, dynamic, dynamic>& mat) {
+void write_npy_v10(std::string path, const Matrix<Real, dynamic, dynamic>& mat) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // void{voidCode::kInvalidArgument, "Failed to open the file."};
     throw std::runtime_error("Failed to open the file.");
   }
 
-  std::vector<real> data;
+  std::vector<Real> data;
   data.reserve(static_cast<size_t>(mat.cols() * mat.rows()));
   for (Index j = 0; j < mat.rows(); ++j) {
     for (Index i = 0; i < mat.cols(); ++i) {
@@ -299,7 +299,7 @@ struct Header {
   }
 };
 
-math::matxxr read_npy_v10_real(std::string path) {
+math::RealMatrixX read_npy_v10_real(std::string path) {
   std::ifstream in(path, std::ios::binary);
   AX_THROW_IF_FALSE(in, "Failed to open the file: ", path);
 
@@ -330,7 +330,7 @@ math::matxxr read_npy_v10_real(std::string path) {
   }
   Index rows = header_obj.shape_[0];
   Index cols = header_obj.shape_.size() > 1 ? header_obj.shape_[1] : 1;
-  math::matxxr mat(rows, cols);
+  math::RealMatrixX mat(rows, cols);
 
   if (header_obj.descr_[0] != '<') {
     throw make_runtime_error("The data type is not little endianed.");
@@ -346,7 +346,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (Index j = 0; j < rows; ++j) {
           float val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = static_cast<real>(val);
+          mat(j, i) = static_cast<Real>(val);
         }
       }
     } else {
@@ -354,7 +354,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (Index i = 0; i < cols; ++i) {
           float val;
           in.read(reinterpret_cast<char*>(&val), 4);
-          mat(j, i) = static_cast<real>(val);
+          mat(j, i) = static_cast<Real>(val);
         }
       }
     }
@@ -364,7 +364,7 @@ math::matxxr read_npy_v10_real(std::string path) {
         for (Index j = 0; j < rows; ++j) {
           double val;
           in.read(reinterpret_cast<char*>(&val), 8);
-          mat(j, i) = static_cast<real>(val);
+          mat(j, i) = static_cast<Real>(val);
         }
       }
     } else {
@@ -374,7 +374,7 @@ math::matxxr read_npy_v10_real(std::string path) {
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
             throw make_runtime_error("Invalid npy file.");
           }
-          mat(j, i) = static_cast<real>(val);
+          mat(j, i) = static_cast<Real>(val);
         }
       }
     }
@@ -384,7 +384,7 @@ math::matxxr read_npy_v10_real(std::string path) {
   return mat;
 }
 
-math::matxxi read_npy_v10_Index(std::string path) {
+math::IndexMatrixX read_npy_v10_Index(std::string path) {
   std::ifstream in(path, std::ios::binary);
   // if (!in.is_open()) {
   //   throw FileNotFoundError(path);
@@ -418,7 +418,7 @@ math::matxxi read_npy_v10_Index(std::string path) {
   }
   Index rows = header_obj.shape_[0];
   Index cols = header_obj.shape_.size() > 1 ? header_obj.shape_[1] : 1;
-  math::matxxi mat(rows, cols);
+  math::IndexMatrixX mat(rows, cols);
 
   if (header_obj.descr_[0] != '<') {
     throw make_runtime_error("The data type is not little endianed.");
@@ -472,7 +472,7 @@ math::matxxi read_npy_v10_Index(std::string path) {
   return mat;
 }
 
-void write_sparse_matrix(std::string path, const spmatr& mat) {
+void write_sparse_matrix(std::string path, const RealSparseMatrix& mat) {
   std::ofstream out(path);
   if (!out.is_open()) {
     throw std::runtime_error("Failed to open the file. " + path);
@@ -504,13 +504,13 @@ void write_sparse_matrix(std::string path, const spmatr& mat) {
   out << "\n" << mat.rows() << " " << mat.cols() << " " << mat.nonZeros() << "\n";
 
   for (Index k = 0; k < mat.outerSize(); ++k) {
-    for (spmatr::InnerIterator it(mat, k); it; ++it) {
+    for (RealSparseMatrix::InnerIterator it(mat, k); it; ++it) {
       out << it.row() + 1 << " " << it.col() + 1 << " " << it.value() << "\n";
     }
   }
 }
 
-spmatr read_sparse_matrix(std::string path) {
+RealSparseMatrix read_sparse_matrix(std::string path) {
   std::ifstream in(path);
   AX_THROW_IF_FALSE(in, "Failed to open the file: {}", path);
   char line[1024];
@@ -530,14 +530,14 @@ spmatr read_sparse_matrix(std::string path) {
   if (n_success != 3) {
     throw make_runtime_error("The file is not a valid MatrixMarket file.");
   }
-  sp_coeff_list triplets;
+  SparseCOO triplets;
   triplets.reserve(static_cast<size_t>(nonzeros));
   for (int i = 0; i < nonzeros; ++i) {
     if (!in.getline(line, 1024)) {
       throw make_runtime_error("The file is not a valid MatrixMarket file.");
     }
     int r, c;
-    real val;
+    Real val;
     n_success = std::sscanf(line, "%d %d %lf", &r, &c, &val);
     if (n_success != 3) {
       throw make_runtime_error("Line {} is not a valid triplet: {}", i, line);

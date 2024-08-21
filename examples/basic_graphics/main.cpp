@@ -2,23 +2,21 @@
 #include <absl/flags/flag.h>
 #include <imgui.h>
 
-#include "ax/core/logging.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
+#include "ax/core/logging.hpp"
 #include "ax/geometry/normal.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/geometry/transforms.hpp"
+#include "ax/gl/colormap.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/extprim/axes.hpp"
-#include "ax/gl/colormap.hpp"
 #include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/gl/primitives/quiver.hpp"
 #include "ax/gl/window.hpp"
 #include "ax/utils/time.hpp"
-
-#include "ax/math/formatting.hpp"
-
 
 using namespace ax;
 
@@ -152,7 +150,7 @@ int main(int argc, char** argv) {
     ctx.TickRender();
 
     i64 current = utils::get_current_time_nanos();
-    real dt = (current - start) / 1.0e9;
+    Real dt = (current - start) / 1.0e9;
     if (rotate) {
       math::RealMatrix4 model = geo::rotate_y(dt * 0.3);
       ctx.SetGlobalModelMatrix(model.cast<f32>());

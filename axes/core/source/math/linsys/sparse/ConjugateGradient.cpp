@@ -5,7 +5,6 @@
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse.hpp"
 
-#include <cblas.h>
 
 namespace ax::math {
 

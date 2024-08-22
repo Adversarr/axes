@@ -12,6 +12,8 @@ using Dispatcher = entt::dispatcher; ///< Alias for entt::dispatcher
 using Entity = entt::entity;         ///< Alias for entt::entity
 using EntityID = entt::entt_traits<Entity>::entity_type;
 
+constexpr Entity NullEntity = entt::null;
+
 /****************************** Registry ******************************/
 
 /**
@@ -44,7 +46,7 @@ AX_FORCE_INLINE void destroy_entity(Entity entity) { global_registry().destroy(e
  * @param entity 
  * @return bool 
  */
-AX_FORCE_INLINE bool is_alive(Entity entity) { return global_registry().valid(entity); }
+AX_FORCE_INLINE bool is_valid(Entity entity) { return global_registry().valid(entity); }
 
 using entt::to_integral;
 using entt::to_entity;
@@ -57,7 +59,8 @@ using entt::to_entity;
  * @tparam Components The components to view
  * @return auto The view
  */
-template <typename... Components> AX_FORCE_INLINE auto view_component() {
+template <typename... Components>
+AX_FORCE_INLINE auto view_component() {
   return global_registry().view<Components...>();
 }
 
@@ -67,7 +70,8 @@ template <typename... Components> AX_FORCE_INLINE auto view_component() {
  * @tparam Components The component
  * @return auto The view
  */
-template <typename T, typename... Args> T& add_component(Entity entity, Args&&... args) {
+template <typename T, typename... Args>
+T& add_component(Entity entity, Args&&... args) {
   return global_registry().emplace<T>(entity, std::forward<Args>(args)...);
 }
 
@@ -77,7 +81,8 @@ template <typename T, typename... Args> T& add_component(Entity entity, Args&&..
  * @tparam T The component
  * @return auto The view
  */
-template <typename T, typename ... Args> T& add_or_replace_component(Entity entity, Args&&... args) {
+template <typename T, typename... Args>
+T& add_or_replace_component(Entity entity, Args&&... args) {
   return global_registry().emplace_or_replace<T>(entity, std::forward<Args>(args)...);
 }
 
@@ -88,7 +93,8 @@ template <typename T, typename ... Args> T& add_or_replace_component(Entity enti
  * @param entity The entity
  * @return T& The component
  */
-template <typename T> T& get_component(Entity entity) { return global_registry().get<T>(entity); }
+template <typename T>
+T& get_component(Entity entity) { return global_registry().get<T>(entity); }
 
 /**
  * @brief Get a component from the global registry
@@ -97,7 +103,8 @@ template <typename T> T& get_component(Entity entity) { return global_registry()
  * @param entity The entity
  * @return T* The component
  */
-template <typename T> T* try_get_component(Entity entity) {
+template <typename T>
+T* try_get_component(Entity entity) {
   return global_registry().try_get<T>(entity);
 }
 
@@ -109,7 +116,8 @@ template <typename T> T* try_get_component(Entity entity) {
  * @return true If the entity has the component
  * @return false If the entity does not have the component
  */
-template <typename T> bool has_component(Entity entity) {
+template <typename T>
+bool has_component(Entity entity) {
   return nullptr != try_get_component<T>(entity);
 }
 
@@ -121,12 +129,29 @@ template <typename T> bool has_component(Entity entity) {
  * @return true If the component was removed
  * @return false If the component was not removed
  */
-template <typename T> bool remove_component(Entity entity) {
+template <typename T>
+bool remove_component(Entity entity) {
   return 0 < global_registry().remove<T>(entity);
 }
 
-template <typename T, typename Fn> decltype(auto) patch_component(Entity ent, Fn&& fn) {
+template <typename T, typename Fn>
+decltype(auto) patch_component(Entity ent, Fn&& fn) {
   return global_registry().patch<T>(ent, std::forward<Fn>(fn));
+}
+
+template <typename T>
+decltype(auto) on_destroy() {
+  return global_registry().on_destroy<T>();
+}
+
+template <typename T>
+decltype(auto) on_update() {
+  return global_registry().on_update<T>();
+}
+
+template <typename T>
+decltype(auto) on_construct() {
+  return global_registry().on_construct<T>();
 }
 
 /****************************** Resource ******************************/
@@ -137,7 +162,8 @@ template <typename T, typename Fn> decltype(auto) patch_component(Entity ent, Fn
  * @tparam T The resource type
  * @return T& The resource
  */
-template <typename T> T& get_resource() { return global_registry().ctx().get<T>(); }
+template <typename T>
+T& get_resource() { return global_registry().ctx().get<T>(); }
 
 /**
  * @brief Get a resource from the global registry
@@ -145,7 +171,8 @@ template <typename T> T& get_resource() { return global_registry().ctx().get<T>(
  * @tparam T The resource type
  * @return T* The resource
  */
-template <typename T> T* try_get_resource() { return global_registry().ctx().find<T>(); }
+template <typename T>
+T* try_get_resource() { return global_registry().ctx().find<T>(); }
 
 /**
  * @brief Check if a resource is in the global registry
@@ -154,7 +181,8 @@ template <typename T> T* try_get_resource() { return global_registry().ctx().fin
  * @return true If the resource is in the global registry
  * @return false If the resource is not in the global registry
  */
-template <typename T, typename... Args> T& add_resource(Args&&... args) {
+template <typename T, typename... Args>
+T& add_resource(Args&&... args) {
   return global_registry().ctx().emplace<T>(std::forward<Args>(args)...);
 }
 
@@ -163,9 +191,11 @@ template <typename T, typename... Args> T& add_resource(Args&&... args) {
  * 
  * @tparam T The resource type
  */
-template <typename T> void erase_resource() { global_registry().ctx().erase<T>(); }
+template <typename T>
+void erase_resource() { global_registry().ctx().erase<T>(); }
 
-template <typename T> T& ensure_resource() {
+template <typename T>
+T& ensure_resource() {
   if (auto* resource = try_get_resource<T>()) {
     return *resource;
   }
@@ -182,12 +212,24 @@ template <typename T> T& ensure_resource() {
 entt::dispatcher& global_dispatcher();
 
 /**
+ * @brief Get the sink of a event type from the global dispatcher
+ *
+ * @tparam Event
+ * @return
+ */
+template <typename Event>
+decltype(auto) sink() {
+  return global_dispatcher().sink<Event>();
+}
+
+/**
  * @brief Emit a event to the global dispatcher, Run immediately
  * 
  * @tparam Event The event type
  * @param event The event
  */
-template <typename Event> void emit(Event&& event) {
+template <typename Event>
+void emit(Event&& event) {
   global_dispatcher().trigger(std::forward<Event>(event));
 }
 
@@ -197,7 +239,8 @@ template <typename Event> void emit(Event&& event) {
  * @tparam Event The event type
  * @param event The event
  */
-template <typename Event> void emit_enqueue(Event&& event) {
+template <typename Event>
+void emit_enqueue(Event&& event) {
   global_dispatcher().enqueue(std::forward<Event>(event));
 }
 
@@ -207,7 +250,8 @@ template <typename Event> void emit_enqueue(Event&& event) {
  * @tparam Event The event type
  * @param event The event
  */
-template <typename Event> void trigger_queue() { global_dispatcher().update<Event>(); }
+template <typename Event>
+void trigger_queue() { global_dispatcher().update<Event>(); }
 
 /**
  * @brief Trigger all the events in the global dispatcher, Run immediately
@@ -234,8 +278,8 @@ entt::connection connect(Args&&... args) {
  * @tparam Candidate The function to disconnect
  * @tparam Args The arguments
  */
-template <typename Event, auto Candidate, typename... Args> void disconnect(Args&&... args) {
+template <typename Event, auto Candidate, typename... Args>
+void disconnect(Args&&... args) {
   global_dispatcher().sink<Event>().template disconnect<Candidate>(std::forward<Args>(args)...);
 }
-
-}  // namespace ax
+} // namespace ax

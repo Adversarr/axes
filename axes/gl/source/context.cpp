@@ -7,6 +7,7 @@
 #include "ax/core/excepts.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/extprim/axes.hpp"
+#include "ax/gl/extprim/grid.hpp"
 #include "impl/render_line.hpp"
 #include "impl/render_mesh.hpp"
 #include "impl/render_point.hpp"
@@ -47,12 +48,15 @@ struct Context::Impl {
 
   entt::entity axis_entity_;
   entt::entity light_entity_;
+  entt::entity grid_entity_;
 
   bool render_axis_{true};
   bool render_light_{false};
+  bool render_grid_{true};
 
   bool update_light_{true};
   bool update_axes_{true};
+  bool update_grid_{true};
 
   bool is_pressing_meta_key_ = false;
   bool is_pressing_ctrl_key_ = false;
@@ -80,6 +84,8 @@ struct Context::Impl {
   void UpdateLight();
 
   void UpdateAxes();
+
+  void UpdateGrid();
 
   void OnMenuBar() {
     if (ImGui::BeginMenu("File")) {
@@ -143,8 +149,8 @@ void Context::Impl::OnKey(const KeyboardEvent& evt) {
 }
 
 void Context::Impl::OnFramebufferSize(const FrameBufferSizeEvent& evt) {
-  glViewport(0, 0, evt.size_.x(), evt.size_.y());
-  camera_.SetAspect(evt.size_.x(), evt.size_.y());
+  glViewport(0, 0, evt.width_, evt.height_);
+  camera_.SetAspect(evt.width_, evt.height_);
 }
 
 void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
@@ -212,6 +218,7 @@ void Context::Impl::OnUiRender(UiRenderEvent const&) {
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
       ImGui::Checkbox("Perspective", &camera_.use_perspective_);
       update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
+      update_grid_ = ImGui::Checkbox("Render grid", &render_grid_);
       update_light_ = ImGui::Checkbox("Render light", &render_light_);
       update_light_ |= ImGui::InputFloat3("Light", &light_.position_.x());
       update_light_ |= ImGui::SliderFloat("Light Ambi", &light_.ambient_strength_, 0.0f, 1.0f);
@@ -254,7 +261,6 @@ void Context::Impl::UpdateLight() {
       mesh.use_lighting_ = false;
       mesh.is_flat_ = true;
       mesh.use_global_model_ = true;
-      mesh;
     });
   } else {
     remove_component<Mesh>(light_entity_);
@@ -270,11 +276,32 @@ void Context::Impl::UpdateAxes() {
     if (!has_component<Lines>(axis_entity_)) {
       add_component<Lines>(axis_entity_);
     }
-    patch_component<Lines>(axis_entity_, [&](Lines& lines) { lines = prim::Axes().Draw(); });
+    patch_component<Lines>(axis_entity_, [&](Lines& lines) {
+      lines = prim::Axes().Draw();
+      lines.dim_far_away_from_center_ = false;
+    });
   } else {
     remove_component<Lines>(axis_entity_);
   }
   update_axes_ = false;
+}
+void Context::Impl::UpdateGrid() {
+  if (!update_grid_) {
+    return;
+  }
+  if (render_grid_) {
+    if (!has_component<Lines>(grid_entity_)) {
+      add_component<Lines>(grid_entity_);
+    }
+    patch_component<Lines>(grid_entity_, [&](Lines& lines) {
+      lines = prim::Grid().Draw();
+      lines.colors_.setConstant(0.3);
+      lines.dim_far_away_from_center_ = false;
+    });
+  } else {
+    remove_component<Lines>(grid_entity_);
+  }
+  update_grid_ = false;
 }
 
 Context::Context(Context&&) noexcept = default;
@@ -307,6 +334,7 @@ Context::Context() {
 
   impl_->axis_entity_ = cmpt::create_named_entity("SceneAxis");
   impl_->light_entity_ = cmpt::create_named_entity("SceneLight");
+  impl_->grid_entity_ = cmpt::create_named_entity("SceneGrid");
 
   /* SECT: std::vectoren on Signals */
   impl_->connections_.emplace_back(connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
@@ -335,11 +363,6 @@ Context::Context() {
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
   AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG), "Failed to Initialize ImGUI_OpenGL3");
-
-
-  auto fb_scale = impl_->window_.GetFrameBufferScale();
-  // ImGui::GetIO().DisplayFramebufferScale.x = static_cast<f32>(fb_scale.x());
-  // ImGui::GetIO().DisplayFramebufferScale.y = static_cast<f32>(fb_scale.y());
 
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
@@ -386,6 +409,7 @@ void Context::TickLogic() {
   impl_->window_.PollEvents();
   impl_->UpdateLight();
   impl_->UpdateAxes();
+  impl_->UpdateGrid();
   for (auto& renderer : impl_->renderers_) {
     renderer->TickLogic();
   }

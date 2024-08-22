@@ -1,1 +1,0 @@
-# Mesh Decimate (QEM algorithm)

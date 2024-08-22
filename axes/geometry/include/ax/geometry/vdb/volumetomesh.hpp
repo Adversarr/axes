@@ -1,23 +1,26 @@
 #pragma once
 
-#include "ax/core/common.hpp"
 #include "ax/geometry/common.hpp"
+#include "ax/utils/opt.hpp"
 #include "ax/vdb/common.hpp"
 
-
 namespace ax::vdb {
-
-class VolumeToMesh {
+class VolumeToMesh final : utils::Tunable {
 public:
-  VolumeToMesh(Real isovalue = 0, Real adaptivity = 0, bool relaxDisorientedTriangles = true);
+  explicit VolumeToMesh(Real isovalue = 0, Real adaptivity = 0,
+                        bool relax_disoriented_triangles = true);
 
-  ~VolumeToMesh();
+  ~VolumeToMesh() override;
 
   geo::SurfaceMesh operator()(vdb::RealGridPtr tree) const;
 
-  struct Impl;
-private:
-  std::unique_ptr<Impl> impl_;
-};
+  void SetOptions(utils::Options const& option) override;
 
+  utils::Options GetOptions() const override;
+
+private:
+  Real isovalue_ = 0;
+  Real adaptivity_ = 0;
+  bool relax_disoriented_triangles_ = true;
+};
 }

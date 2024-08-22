@@ -10,7 +10,8 @@ AX_DEFINE_ENUM_CLASS(OptimizerKind,
     kNewton,
     kGradientDescent,
     kLbfgs,
-    kFista);
+    kFista,
+    kNonlinearCg);
 
 class OptimizerBase : public utils::Tunable {
 public:

@@ -15,7 +15,7 @@ struct WindowPosEvent {
 };
 
 struct FrameBufferSizeEvent {
-  math::IndexVector2 size_;
+  int width_, height_;
 };
 
 struct DropEvent {

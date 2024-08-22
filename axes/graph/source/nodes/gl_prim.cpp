@@ -53,7 +53,7 @@ public:
     }
 
     if (last_used_entity != actual_used_entity_ && last_used_entity != entt::null) {
-      if (global_registry().valid(last_used_entity)) {
+      if (is_valid(last_used_entity)) {
         destroy_entity(last_used_entity);
       }
     }
@@ -96,7 +96,7 @@ public:
   }
 
   ~Render_Mesh() override {
-    if (global_registry().valid(actual_used_entity_)) {
+    if (is_valid(actual_used_entity_)) {
       // Entity still alive.
       if (has_component<gl::Mesh>(actual_used_entity_)) {
         remove_component<gl::Mesh>(actual_used_entity_);

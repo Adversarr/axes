@@ -3,15 +3,10 @@
 #include <openvdb/tools/VolumeToMesh.h>
 
 namespace ax::vdb {
-
-struct VolumeToMesh::Impl {
-  openvdb::tools::VolumeToMesh algo_;
-  Impl(Real isovalue, Real adaptivity, bool relaxDisorientedTriangles)
-      : algo_(isovalue, adaptivity, relaxDisorientedTriangles) {};
-};
-
-VolumeToMesh::VolumeToMesh(Real isovalue, Real adaptivity, bool relaxDisorientedTriangles) {
-  impl_ = std::make_unique<Impl>(isovalue, adaptivity, relaxDisorientedTriangles);
+VolumeToMesh::VolumeToMesh(Real isovalue, Real adaptivity, bool relax_disoriented_triangles)
+  : isovalue_(isovalue),
+    adaptivity_(adaptivity),
+    relax_disoriented_triangles_(relax_disoriented_triangles) {
 };
 
 VolumeToMesh::~VolumeToMesh() = default;
@@ -20,8 +15,8 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
   std::vector<openvdb::Vec3s> points;
   std::vector<openvdb::Vec3I> triangles;
   std::vector<openvdb::Vec4I> quads;
-  auto& mesher = impl_->algo_;
 
+  openvdb::tools::VolumeToMesh mesher(isovalue_, adaptivity_, relax_disoriented_triangles_);
   mesher(*tree);
 
   for (size_t i = 0; i < mesher.pointListSize(); ++i) {
@@ -42,7 +37,8 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
 
   math::RealField3 vertices(3, points.size());
   for (size_t i = 0; i < points.size(); ++i) {
-    vertices.col(static_cast<Index>(i)) = math::RealVector3(points[i].x(), points[i].y(), points[i].z());
+    vertices.col(static_cast<Index>(i)) = math::RealVector3(points[i].x(), points[i].y(),
+                                                            points[i].z());
   }
 
   math::IndexField3 indices(3, triangles.size());
@@ -54,4 +50,16 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
   return {vertices, indices};
 }
 
-}  // namespace ax::vdb
+void VolumeToMesh::SetOptions(utils::Options const& option) {
+  AX_SYNC_OPT(option, Real, isovalue);
+  AX_SYNC_OPT(option, Real, adaptivity);
+  AX_SYNC_OPT(option, bool, relax_disoriented_triangles);
+}
+
+utils::Options VolumeToMesh::GetOptions() const {
+  return {{"isovalue", isovalue_},
+          {"adaptivity", adaptivity_},
+          {"relax_disoriented_triangles", relax_disoriented_triangles_}};
+}
+
+} // namespace ax::vdb

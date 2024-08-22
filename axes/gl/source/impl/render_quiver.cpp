@@ -27,11 +27,11 @@ void QuiverRenderer::Setup() {
 
   prog_.Append(std::move(vs)).Append(std::move(fs)).Link();
 
-  global_registry().on_destroy<Quiver>().connect<&QuiverRenderer::Erase>(*this);
-  global_registry().on_update<Quiver>().connect<&update_render>();
+  on_destroy<Quiver>().connect<&QuiverRenderer::Erase>(*this);
+  on_update<Quiver>().connect<&update_render>();
 }
 
-QuiverRenderer::~QuiverRenderer() { global_registry().on_destroy<Quiver>().disconnect<&QuiverRenderer::Erase>(*this); }
+QuiverRenderer::~QuiverRenderer() { on_destroy<Quiver>().disconnect<&QuiverRenderer::Erase>(*this); }
 
 void QuiverRenderer::TickRender() {
   prog_.Use();
@@ -71,7 +71,7 @@ void QuiverRenderer::CleanUp() { global_registry().clear<QuiverRenderData>(); }
 
 QuiverRenderData::QuiverRenderData(Quiver const& quiver) {
   vertices_.resize(static_cast<size_t>(quiver.positions_.cols() * 2));
-  for (auto i = 0; i < quiver.positions_.cols(); ++i) {
+  for (Index i = 0; i < quiver.positions_.cols(); ++i) {
     auto position = quiver.positions_.col(i);
     auto color = quiver.colors_.col(i);
     math::RealVector3 direction = quiver.directions_.col(i);

@@ -25,7 +25,7 @@ struct Window::Impl {
   bool should_close_;
   GLFWwindow* window_ = nullptr;
 
-  static Window::Impl* Extract(GLFWwindow* window) {
+  static Window::Impl* ExtractImpl(GLFWwindow* window) {
     return static_cast<Window::Impl*>(glfwGetWindowUserPointer(window));
   }
 };
@@ -35,7 +35,7 @@ static void window_size_fn(GLFWwindow* window, int width, int height) {
   WindowSizeEvent event;
   event.size_ = {width, height};
 
-  auto impl = Window::Impl::Extract(window);
+  auto impl = Window::Impl::ExtractImpl(window);
   impl->size_ = event.size_;
   emit_enqueue(event);
 }
@@ -44,17 +44,16 @@ static void window_pos_fn(GLFWwindow* window, int pos_x, int pos_y) {
   WindowPosEvent event;
   event.pos_ = {pos_x, pos_y};
 
-  auto impl = Window::Impl::Extract(window);
+  auto impl = Window::Impl::ExtractImpl(window);
   impl->pos_ = event.pos_;
   emit_enqueue(event);
 }
 
 static void framebuffer_size_fn(GLFWwindow* window, int width, int height) {
-  FrameBufferSizeEvent event;
-  event.size_ = {width, height};
+  FrameBufferSizeEvent event{width, height};
 
-  auto impl = Window::Impl::Extract(window);
-  impl->fb_size_ = event.size_;
+  auto *impl = Window::Impl::ExtractImpl(window);
+  impl->fb_size_ = {width, height};
   emit_enqueue(event);
 }
 static void drop_fn(GLFWwindow* /* window */, int count, const char** paths) {

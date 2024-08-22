@@ -37,7 +37,6 @@ static int partially_match(std::string const& str, const char* user_input, size_
 }
 
 namespace ax::graph {
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Global Data
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,22 +58,21 @@ char json_out_path[64] = "blueprint.json";
 
 std::unique_ptr<GraphExecutorBase>& ensure_executor() {
   auto& g = ensure_resource<Graph>();
-  if (auto* ptr = try_get_resource<std::unique_ptr<GraphExecutorBase>>()) {
-    if_likely(&(ptr->get()->GetGraph()) == &g) { return *ptr; }
-    else {
-      erase_resource<std::unique_ptr<GraphExecutorBase>>();
-      return add_resource<std::unique_ptr<GraphExecutorBase>>(
+  if (auto* ptr = try_get_resource<std::unique_ptr<GraphExecutorBase> >()) {
+    if_likely(&(ptr->get()->GetGraph()) == &g) { return *ptr; } else {
+      erase_resource<std::unique_ptr<GraphExecutorBase> >();
+      return add_resource<std::unique_ptr<GraphExecutorBase> >(
           std::make_unique<GraphExecutorBase>(g));
     }
   } else {
     auto& r
-        = add_resource<std::unique_ptr<GraphExecutorBase>>(std::make_unique<GraphExecutorBase>(g));
+        = add_resource<std::unique_ptr<GraphExecutorBase> >(std::make_unique<GraphExecutorBase>(g));
     return r;
   }
 }
 
 void draw_node_header_default(NodePtr node) {
-  ImGui::TextColored(ImVec4(0.1, 0.5, 0.8, 1), "= %s", node->GetDescriptor().Name().c_str());
+  ImGui::TextColored(ImVec4(0.1f, 0.5f, 0.8f, 1), "= %s", node->GetDescriptor().Name().c_str());
 }
 
 void draw_node_content_default(NodeBase* node) {
@@ -138,7 +136,7 @@ void end_draw_node() {
   ImGui::PopID();
 }
 
-void draw_node(NodeBase* node) {
+static void draw_node(NodeBase* node) {
   if (const auto* render = get_custom_node_render(node->GetDescriptor().Name()); render) {
     render->widget_(node);
   } else {
@@ -162,7 +160,7 @@ static void draw_link(Link<> const& link) {
 static NodeBase* add_node(Graph& g, char const* name) {
   auto& reg = get_internal_node_registry();
   reg.LoadDefered();
-  auto node_ptr = reg.Create(name);  // May throw?
+  auto node_ptr = reg.Create(name); // May throw?
   auto nh = g.PushBack(std::move(node_ptr));
   draw_node(nh.operator->());
   return nh.operator->();
@@ -249,7 +247,7 @@ static bool try_do_connect_pin(Graph& g, ed::PinId input_id, ed::PinId output_id
 static void handle_inputs() {
   auto& g = ensure_resource<Graph>();
   if (ed::BeginCreate()) {
-    ed::PinId input_id, output_id;  // NOTE: I/O of Link is O/I of each node!
+    ed::PinId input_id, output_id; // NOTE: I/O of Link is O/I of each node!
     if (ed::QueryNewLink(&input_id, &output_id)) {
       if (input_id && output_id) {
         if (ed::AcceptNewItem()) {
@@ -330,8 +328,8 @@ static void show_create_node_window(Graph& g) {
 static void show_link_context_menu(ed::LinkId select_link0, InputSocket* link) {
   ImGui::TextUnformatted("Link Context Menu");
   if (link) {
-    ImGui::Text("InputSocket addr: {}", fmt::ptr(link));
-    ImGui::Text("OutputSocket addr: {}", fmt::ptr(link->From()));
+    ImGui::Text("InputSocket addr: %p", link);
+    ImGui::Text("OutputSocket addr: %p", link->From());
     ImGui::Separator();
     if (ImGui::MenuItem("Delete?")) {
       ed::DeleteLink(select_link0);
@@ -350,6 +348,7 @@ static void show_node_context_menu(ed::NodeId select_node0, NodeBase const* node
     }
   }
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Handle User Selection
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -383,9 +382,14 @@ static void handle_selection() {
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
   if (ImGui::BeginPopup("Node Context Menu")) {
-    auto* ptr = select_node0.AsPointer<NodeBase>();
+    const auto* ptr = select_node0.AsPointer<NodeBase>();
     show_node_context_menu(select_node0, ptr);
     ImGui::EndPopup();
+  }
+
+  if (ImGui::BeginPopup("Link Context Menu")) {
+    show_link_context_menu(select_link0, select_link0.AsPointer<InputSocket>());
+    ImGui::EndGroup();
   }
 
   if (ImGui::BeginPopup("Create New Node", ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -486,7 +490,7 @@ static void draw_config_window(gl::UiRenderEvent) {
   }
   if (!ImGui::Begin("Graph Commander", &is_config_open_,
                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar
-                        | ImGuiWindowFlags_AlwaysAutoResize)) {
+                    | ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::End();
     return;
   }
@@ -566,7 +570,7 @@ static void draw_config_window(gl::UiRenderEvent) {
   if (auto* node = selected_node_.AsPointer<NodeBase>()) {
     auto const& name = node->GetDescriptor().Name();
     ImGui::SeparatorText(name.c_str());
-    if (auto const *renderer = get_custom_node_widget(node->GetDescriptor().Name())) {
+    if (auto const* renderer = get_custom_node_widget(node->GetDescriptor().Name())) {
       renderer->widget_(node);
     }
   }
@@ -729,7 +733,8 @@ static void on_menu_bar(gl::MainMenuBarRenderEvent) {
   }
 }
 
-void on_tick_logic(gl::TickLogicEvent) {
+static void on_tick_logic(gl::TickLogicEvent) {
+  // TODO:
   if (!running_) {
     return;
   }
@@ -820,5 +825,4 @@ CustomNodeWidget const* get_custom_node_widget(std::string name) {
   }
   return nullptr;
 }
-
-}  // namespace ax::graph
+} // namespace ax::graph

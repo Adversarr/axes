@@ -28,18 +28,19 @@ struct LineRenderData {
   Vao vao_;
   bool enable_{true};
   bool use_global_model_{true};
-  LineRenderData(Lines const& line);
+  bool dim_far_away_from_center_{true};
+  explicit LineRenderData(Lines const& line);
   ~LineRenderData();
 };
 
 class LineRenderer final : public RenderBase {
 public:
   LineRenderer();
-  virtual ~LineRenderer();
+  ~LineRenderer() override;
   virtual void TickRender() override;
   virtual void TickLogic() override;
   virtual void Erase(Entity entity) override;
-  void RenderGui() final;
+  void RenderGui() override;
   virtual void Setup() override;
   virtual void CleanUp() override;
 

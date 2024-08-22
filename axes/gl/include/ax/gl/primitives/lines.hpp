@@ -14,6 +14,7 @@ public:
   math::RealField4 instance_color_;
 
   bool use_global_model_{true};
+  bool dim_far_away_from_center_{true};
 
   static Lines Create(Mesh const& mesh);
 };

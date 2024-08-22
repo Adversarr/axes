@@ -51,6 +51,12 @@ void LineRenderer::TickRender() {
     } else {
       prog_.SetUniform("model", eye);
     }
+    if (line_data.dim_far_away_from_center_) {
+      prog_.SetUniform("dim_far_away_from_center", 1);
+    } else {
+      prog_.SetUniform("dim_far_away_from_center", 0);
+    }
+
     if (!line_data.instance_data_.empty()) {
       AXGL_WITH_BIND(line_data.vao_) {
         line_data.vao_.DrawElementsInstanced(PrimitiveType::kLines, line_data.indices_.size(),
@@ -80,6 +86,7 @@ LineRenderer::~LineRenderer() {
 
 LineRenderData::LineRenderData(const Lines& lines) {
   use_global_model_ = lines.use_global_model_;
+  dim_far_away_from_center_ = lines.dim_far_away_from_center_;
   /************************* SECT: Setup Buffers *************************/
   vertices_.reserve(static_cast<size_t>(lines.vertices_.cols()));
   for (Index i = 0; i < lines.vertices_.cols(); i++) {

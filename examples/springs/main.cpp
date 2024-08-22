@@ -107,17 +107,17 @@ int main(int argc, char** argv) {
   for (Index i = 0; i < ndiv; i++) {
     for (Index j = 0; j < ndiv; j++) {
       if (i < ndiv - 1) {
-        springs.col(cnt) = math::IndexVec2(i * ndiv + j, (i + 1) * ndiv + j);
+        springs.col(cnt) = math::IndexVector2(i * ndiv + j, (i + 1) * ndiv + j);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j)).norm();
         cnt++;
       }
       if (j < ndiv - 1) {
-        springs.col(cnt) = math::IndexVec2(i * ndiv + j, i * ndiv + j + 1);
+        springs.col(cnt) = math::IndexVector2(i * ndiv + j, i * ndiv + j + 1);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col(i * ndiv + j + 1)).norm();
         cnt++;
       }
       if (i < ndiv - 1 && j < ndiv - 1) {
-        springs.col(cnt) = math::IndexVec2(i * ndiv + j, (i + 1) * ndiv + j + 1);
+        springs.col(cnt) = math::IndexVector2(i * ndiv + j, (i + 1) * ndiv + j + 1);
         initial[cnt] = (vertices.col(i * ndiv + j) - vertices.col((i + 1) * ndiv + j + 1)).norm();
         cnt++;
       }

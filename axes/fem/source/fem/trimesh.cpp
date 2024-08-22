@@ -184,10 +184,10 @@ template <int dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
   surface.indices_.resize(3, elem.cols() * 4);
   for (Index i = 0; i < elem.cols(); ++i) {
     auto const& e = elem.col(i);
-    surface.indices_.col(4 * i) = math::IndexVec3{e(0), e(1), e(2)};
-    surface.indices_.col(4 * i + 1) = math::IndexVec3{e(0), e(1), e(3)};
-    surface.indices_.col(4 * i + 2) = math::IndexVec3{e(1), e(2), e(3)};
-    surface.indices_.col(4 * i + 3) = math::IndexVec3{e(2), e(0), e(3)};
+    surface.indices_.col(4 * i) = math::IndexVector3{e(0), e(1), e(2)};
+    surface.indices_.col(4 * i + 1) = math::IndexVector3{e(0), e(1), e(3)};
+    surface.indices_.col(4 * i + 2) = math::IndexVector3{e(1), e(2), e(3)};
+    surface.indices_.col(4 * i + 3) = math::IndexVector3{e(2), e(0), e(3)};
   }
   return surface;
 }

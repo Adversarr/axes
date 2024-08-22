@@ -127,7 +127,7 @@ SurfaceMesh HalfedgeMesh::ToTriangleMesh() const {
 
   for (auto [id, face] : utils::views::enumerate(faces_)) {
     auto e = face->halfedge_entry_;
-    math::IndexVec3 ijk;
+    math::IndexVector3 ijk;
     for (Index i = 0; i < 3; ++i) {
       if (auto it = vertex_map.find(e->vertex_); it == vertex_map.end()) {
         AX_ERROR("Vertex not found in the vertex map: f{}, e{}", id, i);

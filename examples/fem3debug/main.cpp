@@ -29,13 +29,13 @@ void update_entity() {
   msh.vertices_ = input_mesh.vertices_;
   msh.indices_.resize(3, input_mesh.indices_.cols() * 4);
   for (Index i = 0; i < input_mesh.indices_.cols(); ++i) {
-    msh.indices_.col(i * 4 + 0) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+    msh.indices_.col(i * 4 + 0) = math::IndexVector3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
                                               input_mesh.indices_(2, i)};
-    msh.indices_.col(i * 4 + 1) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
+    msh.indices_.col(i * 4 + 1) = math::IndexVector3{input_mesh.indices_(0, i), input_mesh.indices_(1, i),
                                               input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 2) = math::IndexVec3{input_mesh.indices_(0, i), input_mesh.indices_(2, i),
+    msh.indices_.col(i * 4 + 2) = math::IndexVector3{input_mesh.indices_(0, i), input_mesh.indices_(2, i),
                                               input_mesh.indices_(3, i)};
-    msh.indices_.col(i * 4 + 3) = math::IndexVec3{input_mesh.indices_(1, i), input_mesh.indices_(2, i),
+    msh.indices_.col(i * 4 + 3) = math::IndexVector3{input_mesh.indices_(1, i), input_mesh.indices_(2, i),
                                               input_mesh.indices_(3, i)};
   }
   for (auto v : math::each(msh.vertices_)) {

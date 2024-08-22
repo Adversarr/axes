@@ -18,9 +18,9 @@ namespace ax::gl {
 
 /****************************** PImpl ******************************/
 struct Window::Impl {
-  math::IndexVec2 size_;
-  math::IndexVec2 pos_;
-  math::IndexVec2 fb_size_;
+  math::IndexVector2 size_;
+  math::IndexVector2 pos_;
+  math::IndexVector2 fb_size_;
   math::FloatVector2 fb_scale_;
   bool should_close_;
   GLFWwindow* window_ = nullptr;
@@ -158,11 +158,11 @@ Window::~Window() {
 }
 
 /****************************** Meta Data Getters ******************************/
-math::IndexVec2 Window::GetSize() const { return impl_->size_; }
+math::IndexVector2 Window::GetSize() const { return impl_->size_; }
 
-math::IndexVec2 Window::GetPos() const { return impl_->pos_; }
+math::IndexVector2 Window::GetPos() const { return impl_->pos_; }
 
-math::IndexVec2 Window::GetFrameBufferSize() const { return impl_->fb_size_; }
+math::IndexVector2 Window::GetFrameBufferSize() const { return impl_->fb_size_; }
 
 math::RealVector2 Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<Real>(); }
 

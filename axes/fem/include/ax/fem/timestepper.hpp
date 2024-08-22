@@ -163,8 +163,8 @@ private:
   bool has_initialized_{false};
   bool has_simulation_begun_{false};
 
-  template <template <Index> class ElasticModelTemplate,
-            template <Index, template <Index> class> class Compute = ElasticityCompute_CPU>
+  template <template <int> class ElasticModelTemplate,
+            template <Index, template <int> class> class Compute = ElasticityCompute_CPU>
   void SetupElasticity();
 };
 

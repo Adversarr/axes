@@ -7,13 +7,13 @@
 using namespace ax;
 using namespace ax::math;
 TEST_CASE("math-types") {
-  IndexVec2 v2i{1, 2};
+  IndexVector2 v2i{1, 2};
   CHECK(v2i.x() == 1);
   CHECK(v2i.y() == 2);
 }
 
 TEST_CASE("ones") {
-  IndexVec2 v2i = math::ones<2, 1, Index>();
+  IndexVector2 v2i = math::ones<2, 1, Index>();
   CHECK(v2i.x() == 1);
   CHECK(v2i.y() == 1);
 
@@ -26,7 +26,7 @@ TEST_CASE("ones") {
 }
 
 TEST_CASE("zeros") {
-  IndexVec2 v2i = math::zeros<2, 1, Index>();
+  IndexVector2 v2i = math::zeros<2, 1, Index>();
   CHECK(v2i.x() == 0);
   CHECK(v2i.y() == 0);
 

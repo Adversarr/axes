@@ -10,7 +10,7 @@ namespace ax::fem {
  * @tparam dim
  * @tparam ElasticModelTemplate
  */
-template <int dim, template <Index> class ElasticModelTemplate> class ElasticityCompute_CPU
+template <int dim, template <int> class ElasticModelTemplate> class ElasticityCompute_CPU
     : public ElasticityComputeBase<dim> {
   using ElasticModel = ElasticModelTemplate<dim>;
 

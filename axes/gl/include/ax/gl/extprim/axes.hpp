@@ -33,9 +33,9 @@ public:
     lines.colors_.block<3, 1>(0, 4) = color_.col(2);
     lines.colors_.block<3, 1>(0, 5) = color_.col(2);
     lines.indices_ = math::zeros<2, Index>(3);
-    lines.indices_.col(0) = math::IndexVec2{0, 1};
-    lines.indices_.col(1) = math::IndexVec2{2, 3};
-    lines.indices_.col(2) = math::IndexVec2{4, 5};
+    lines.indices_.col(0) = math::IndexVector2{0, 1};
+    lines.indices_.col(1) = math::IndexVector2{2, 3};
+    lines.indices_.col(2) = math::IndexVector2{4, 5};
     return lines;
   }
 };

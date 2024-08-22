@@ -7,15 +7,15 @@ namespace ax::gl {
 /****************************** Events ******************************/
 
 struct WindowSizeEvent {
-  math::IndexVec2 size_;
+  math::IndexVector2 size_;
 };
 
 struct WindowPosEvent {
-  math::IndexVec2 pos_;
+  math::IndexVector2 pos_;
 };
 
 struct FrameBufferSizeEvent {
-  math::IndexVec2 size_;
+  math::IndexVector2 size_;
 };
 
 struct DropEvent {
@@ -56,11 +56,11 @@ public:
 
   /****************************** Meta Data Getters ******************************/
 
-  math::IndexVec2 GetSize() const;
+  math::IndexVector2 GetSize() const;
 
-  math::IndexVec2 GetPos() const;
+  math::IndexVector2 GetPos() const;
 
-  math::IndexVec2 GetFrameBufferSize() const;
+  math::IndexVector2 GetFrameBufferSize() const;
 
   math::RealVector2 GetFrameBufferScale() const;
 

@@ -64,7 +64,7 @@ static bool prec(Index dofs, HessianEntryInfo const& a, HessianEntryInfo const& 
   return a.global_j_ * dofs + a.global_i_ < b.global_j_ * dofs + b.global_i_;
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 struct ElasticityCompute_CPU<dim, ElasticModelTemplate>::Impl {
   tbb::affinity_partitioner e_ap, h_ap, s_ap, svd_ap;
   std::vector<HessianEntryInfo> hessian_entries_;
@@ -237,7 +237,7 @@ math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
  * SECT: CPU Implementation
  *************************/
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
   Index const n_elem = this->mesh_->GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
@@ -259,7 +259,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
       this->impl_->e_ap);
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
   Index const n_elem = this->mesh_->GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
@@ -282,7 +282,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
       this->impl_->s_ap);
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projection) {
   Index const n_elem = this->mesh_->GetNumElements();
   auto const& dg_l = this->deformation_gradient_;
@@ -309,7 +309,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
       this->impl_->h_ap);
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherEnergyToVertices() {
   auto const& mesh = this->mesh_;
   auto const& e = this->energy_on_elements_;
@@ -325,7 +325,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherEnergyToVertices() 
   }
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherStressToVertices() {
   auto& result = this->stress_on_vertices_; result.setZero();
   auto const& mesh = *(this->mesh_);
@@ -346,7 +346,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherStressToVertices() 
   }
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices() {
   math::SparseCOO coo;
   auto& result = this->hessian_on_vertices_;
@@ -419,7 +419,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
   // });
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<dim> const& pose,
                                                               ElasticityUpdateLevel upt) {
   Index const n_elem = this->mesh_->GetNumElements();
@@ -453,7 +453,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<di
       this->impl_->svd_ap);
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   auto const& rest_pose = this->mesh_->GetVertices();
   Index const n_elem = this->mesh_->GetNumElements();
@@ -539,13 +539,13 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   ElasticityComputeBase<dim>::RecomputeRestPose();
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh)
     : ElasticityComputeBase<dim>(mesh) {
   this->impl_ = std::make_unique<Impl>();
 }
 
-template <int dim, template <Index> class ElasticModelTemplate>
+template <int dim, template <int> class ElasticModelTemplate>
 ElasticityCompute_CPU<dim, ElasticModelTemplate>::~ElasticityCompute_CPU(){}
 
 template class ElasticityComputeBase<2>;

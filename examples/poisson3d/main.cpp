@@ -62,7 +62,7 @@ void print_basic_test_case() {
 
   vertices *= 0.1;
   math::IndexField4 elements(4, 1);
-  elements.col(0) = IndexVec4{0, 1, 2, 3};
+  elements.col(0) = IndexVector4{0, 1, 2, 3};
 
   std::shared_ptr<fem::TriMesh<3>> pmesh = std::make_shared<fem::TriMesh<3>>();
   pmesh->SetMesh(elements, vertices);

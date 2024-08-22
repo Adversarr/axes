@@ -32,20 +32,30 @@ public:
   void OnConstruct() { owned_entity_ = create_entity(); }
 
   void RenderWidget() const noexcept {
-    ImGui::Text("Actual: %d", to_integral(actual_used_entity_));
-    ImGui::Text("Owned : %d", to_integral(owned_entity_));
+    ImGui::Text("Actual Entity ID: %d", to_integral(actual_used_entity_));
+    ImGui::Text(" Owned Entity ID: %d", to_integral(owned_entity_));
   }
 
   static void RenderWidgetHelper(NodeBase* ptr) { static_cast<Render_Mesh*>(ptr)->RenderWidget(); }
 
   static void OnRegister() { add_custom_node_widget(name(), {RenderWidgetHelper}); }
 
-  void operator()(Context& ctx) override {
-    const auto* entity = Get(in::entity);
+  void OnConnectDispatch(in::mesh_) {
+    DoRenderToEntity();
+  }
+
+  void DoRenderToEntity() {const auto* entity = Get(in::entity);
+    const Entity last_used_entity = actual_used_entity_;
     if (entity != nullptr) {
       actual_used_entity_ = *entity;
     } else {
       actual_used_entity_ = owned_entity_;
+    }
+
+    if (last_used_entity != actual_used_entity_ && last_used_entity != entt::null) {
+      if (global_registry().valid(last_used_entity)) {
+        destroy_entity(last_used_entity);
+      }
     }
 
     const auto& mesh = Ensure(in::mesh);
@@ -81,8 +91,21 @@ public:
     });
   }
 
+  void operator()(Context&) override {
+    DoRenderToEntity();
+  }
+
+  ~Render_Mesh() override {
+    if (global_registry().valid(actual_used_entity_)) {
+      // Entity still alive.
+      if (has_component<gl::Mesh>(actual_used_entity_)) {
+        remove_component<gl::Mesh>(actual_used_entity_);
+      }
+    }
+  }
+
 private:
-  Entity owned_entity_, actual_used_entity_;
+  Entity owned_entity_, actual_used_entity_ = entt::null;
 };
 
 void register_gl(NodeRegistry& reg) { Render_Mesh::RegisterTo(reg); }

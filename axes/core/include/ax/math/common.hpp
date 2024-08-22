@@ -65,10 +65,10 @@ using FloatVectorX = FloatVector<dynamic>;  ///< Alias for vector with single pr
  */
 template <int dim> using IndexVector = Vector<Index, dim>;
 
-using IndexVecX = IndexVector<dynamic>;
-using IndexVec2 = IndexVector<2>;  ///< Alias for 2D Index vector.
-using IndexVec3 = IndexVector<3>;  ///< Alias for 3D Index vector.
-using IndexVec4 = IndexVector<4>;  ///< Alias for 4D Index vector.
+using IndexVectorX = IndexVector<dynamic>;
+using IndexVector2 = IndexVector<2>;  ///< Alias for 2D Index vector.
+using IndexVector3 = IndexVector<3>;  ///< Alias for 3D Index vector.
+using IndexVector4 = IndexVector<4>;  ///< Alias for 4D Index vector.
 
 /****************************** Matrices ******************************/
 

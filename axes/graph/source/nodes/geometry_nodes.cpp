@@ -102,12 +102,12 @@
 //   AX_NODE_COMMON_WITH_CTOR(Make_XyPlane, "Make_XyPlane",
 //                            "Creates a xy plane (Default = [0,1]x[0,1] with 1x1 resolution)");
 //   AX_NODE_INPUTS((math::RealVector2, size, "The size of the plane"),
-//                  (math::IndexVec2, resolution, "The resolution of the plane"));
+//                  (math::IndexVector2, resolution, "The resolution of the plane"));
 //   AX_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The resulting surface mesh"));
 //
 //   void Apply(size_t ) override {
 //     math::RealVector2 size_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(size, math::RealVector2(1, 1));
-//     math::IndexVec2 resolution_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(resolution, math::IndexVec2(1, 1));
+//     math::IndexVector2 resolution_inuse = AX_NODE_INPUT_EXTRACT_DEFAULT(resolution, math::IndexVector2(1, 1));
 //     if (resolution_inuse.x() < 1 || resolution_inuse.y() < 1) {
 //       throw make_out_of_range("Resolution must be at least 1x1.");
 //     }

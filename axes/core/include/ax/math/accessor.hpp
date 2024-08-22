@@ -16,74 +16,21 @@ template <typename T>
 class Span;
 
 template <typename T>
-class Span<const T> {
-public:
-  friend class Span<T>;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span() noexcept = default;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const T* data, size_t size) noexcept
-      : data_(data), size_(size) {}
-
-  // copy, move, assignments
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span&) noexcept = default;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(const Span&) noexcept = default;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(Span&&) noexcept = default;
-  AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(Span&&) noexcept = default;
-
-  AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(const Span<T>& other) noexcept {
-    data_ = other.data_;
-    size_ = other.size_;
-    return *this;
-  }
-
-  AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(Span<T>&& other) noexcept {
-    data_ = other.data_;
-    size_ = other.size_;
-    return *this;
-  }
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T>& other) noexcept
-      : data_(other.data_), size_(other.size_) {}
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(Span<T>&& other) noexcept
-      : data_(other.data_), size_(other.size_) {}
-
-  using index_type = size_t;
-  using difference_type = std::ptrdiff_t;
-  using type = const T*;
-  using value_type = const T;
-  using Reference = const T&;
-  using ConstReference = const T&;
-
-  using iterator = const T*;
-  using const_iterator = const T*;
-  using pointer = const T*;
-  using const_pointer = const T*;
-
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference operator[](const index_type& ind) const noexcept {
-    return data_[ind];
-  }
-  AX_FORCE_INLINE AX_HOST_DEVICE pointer data() noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE iterator begin() noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE iterator end() noexcept { return data_ + size_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator begin() const noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator end() const noexcept { return data_ + size_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE size_t size() const noexcept { return size_; }
-
-private:
-  pointer data_{nullptr};
-  index_type size_{0};
-};
-
-template <typename T>
 class Span {
 public:
-  friend class Span<const T>;
+  using ConstInverted = std::conditional_t<std::is_const_v<T>, Span<std::remove_const_t<T>>,
+                                           Span<const T>>;
+
   AX_FORCE_INLINE AX_HOST_DEVICE Span() noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span(T* data, size_t size) noexcept : data_(data), size_(size) {}
 
   // copy, move, assignments
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span&) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T> &other) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(const Span&) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span(Span&&) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(Span&&) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(const ConstInverted& other) noexcept
+      : data_(other.data()), size_(other.size()) {}
 
   using index_type = size_t;
   using difference_type = std::ptrdiff_t;

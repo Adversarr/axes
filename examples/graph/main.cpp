@@ -52,10 +52,6 @@ public:
                  (int, y, "Describe y", 42 /* default value = 42 */));
   CG_NODE_OUTPUTS((std::string, z, "z equals x + y"));
 
-  static void OnRegister() /* optional */ { printf("Do whatever you want!\n"); }
-
-  void OnConstruct() /* optional */ { std::cout << "Constructing Whatever..." << std::endl; }
-
   void operator()(Context &) final {
     auto x = GetOr(in::x);
     auto y = *GetOr<int>(1);
@@ -70,8 +66,6 @@ public:
   CG_NODE_OUTPUTS();
 
   void OnConnectDispatch(in::str_) /* automatically called. */ {
-    std::cout << "EchoString::on_connect" << std::endl;
-    std::cout << " has GetInput set? " << std::boolalpha << Has(in::str) << std::endl;
   }
 
   void operator()(Context &) final {

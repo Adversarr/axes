@@ -50,8 +50,8 @@ gl::Lines create_dummy_line() {
   lines.colors_ = lines.colors_ * 0.5;
   lines.colors_.colwise() += math::ones<4>();
   lines.indices_.resize(2, 2);
-  lines.indices_.col(0) = math::IndexVec2{0, 1};
-  lines.indices_.col(1) = math::IndexVec2{1, 2};
+  lines.indices_.col(0) = math::IndexVector2{0, 1};
+  lines.indices_.col(1) = math::IndexVector2{1, 2};
   lines;
   return lines;
 }

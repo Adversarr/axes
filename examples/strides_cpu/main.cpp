@@ -116,9 +116,9 @@ int main(int argc, char** argv) {
   // print_stl_vector<RealVector2>();
   // print_stl_vector<RealVector3>();
   // print_stl_vector<RealVector4>();
-  // print_stl_vector<IndexVec2>();
-  // print_stl_vector<IndexVec3>();
-  // print_stl_vector<IndexVec4>();
+  // print_stl_vector<IndexVector2>();
+  // print_stl_vector<IndexVector3>();
+  // print_stl_vector<IndexVector4>();
   //
   // RealField4 f;
   // Eigen::Block<Eigen::Matrix<double, 4, -1>, 4, 1, true> t = f.col(0);

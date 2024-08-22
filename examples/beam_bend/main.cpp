@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
   (math::write_npy_v10(dest + "/elements.npy", E));
   math::RealVectorX bc_mask = ts->GetMesh()->GetDirichletBoundaryMask().row(0).transpose();
   (math::write_npy_v10(dest + "/bc_masks.npy", bc_mask));
-  math::IndexVecX node_type = (1 - bc_mask.array()).cast<Index>();
+  math::IndexVectorX node_type = (1 - bc_mask.array()).cast<Index>();
   (math::write_npy_v10(dest + "/node_types.npy", node_type));
   math::RealVectorX mass
       = ts->GetMassMatrixOriginal() * math::RealVectorX::Ones(ts->GetMesh()->GetNumVertices());
@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
     math::IndexMatrixX non_zero_entries(2, P.nonZeros());
     Index cnt = 0;
     math::for_each_entry(P, [&](Index i, Index j, Real) {
-      non_zero_entries.col(cnt++) = math::IndexVec2{i, j};
+      non_zero_entries.col(cnt++) = math::IndexVector2{i, j};
     });
 
     math::write_npy_v10(dest + "/mass_pattern.npy", non_zero_entries);

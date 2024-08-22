@@ -5,7 +5,7 @@ namespace xx {
 
 using ax::math::RealVector3;
 using ax::math::RealVector2;
-using ax::math::IndexVec3;
+using ax::math::IndexVector3;
 using ax::math::RealMatrix3;
 using ax::math::RealMatrix2;
 using Parameterization = ax::math::RealField2;

@@ -19,7 +19,7 @@ using namespace geo;
 // 3. e-e
 // for each type of collision, we need to define the `relax` method.
 
-using I4 = math::IndexVec4;
+using I4 = math::IndexVector4;
 using v3 = math::RealVector3;
 
 std::pair<CollisionKind, I4> determine_collision(v3 const& v_start, v3 const& v_end,

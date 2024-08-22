@@ -43,11 +43,11 @@ IndexField3 make_triangles(Index nx, Index ny) {
       Index Index10 = (i + 1) * ny + j;
       Index Index11 = (i + 1) * ny + j + 1;
       if (j % 2 == 0) {
-        triangles.col(id++) = IndexVec3{Index00, Index11, Index01};
-        triangles.col(id++) = IndexVec3{Index00, Index11, Index10};
+        triangles.col(id++) = IndexVector3{Index00, Index11, Index01};
+        triangles.col(id++) = IndexVector3{Index00, Index11, Index10};
       } else {
-        triangles.col(id++) = IndexVec3{Index00, Index01, Index10};
-        triangles.col(id++) = IndexVec3{Index01, Index11, Index10};
+        triangles.col(id++) = IndexVector3{Index00, Index01, Index10};
+        triangles.col(id++) = IndexVector3{Index01, Index11, Index10};
       }
     }
   }

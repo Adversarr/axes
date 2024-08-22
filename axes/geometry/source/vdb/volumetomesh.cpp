@@ -48,7 +48,7 @@ geo::SurfaceMesh VolumeToMesh::operator()(vdb::RealGridPtr tree) const {
   math::IndexField3 indices(3, triangles.size());
   for (size_t i = 0; i < triangles.size(); ++i) {
     indices.col(static_cast<Index>(i))
-        = math::IndexVec3(triangles[i].x(), triangles[i].y(), triangles[i].z());
+        = math::IndexVector3(triangles[i].x(), triangles[i].y(), triangles[i].z());
   }
 
   return {vertices, indices};

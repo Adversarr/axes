@@ -37,18 +37,18 @@ SurfaceMesh cube(Real size) {
   vertices.col(6) = math::RealVector3{-1, 1, -1};
   vertices.col(7) = math::RealVector3{-1, -1, -1};
 
-  indices.col(0) = math::IndexVec3{0, 1, 2};
-  indices.col(1) = math::IndexVec3{0, 2, 3};
-  indices.col(2) = math::IndexVec3{0, 3, 4};
-  indices.col(3) = math::IndexVec3{0, 4, 5};
-  indices.col(4) = math::IndexVec3{0, 5, 6};
-  indices.col(5) = math::IndexVec3{0, 6, 1};
-  indices.col(6) = math::IndexVec3{1, 6, 7};
-  indices.col(7) = math::IndexVec3{1, 7, 2};
-  indices.col(8) = math::IndexVec3{7, 4, 3};
-  indices.col(9) = math::IndexVec3{7, 3, 2};
-  indices.col(10) = math::IndexVec3{4, 7, 6};
-  indices.col(11) = math::IndexVec3{4, 6, 5};
+  indices.col(0) = math::IndexVector3{0, 1, 2};
+  indices.col(1) = math::IndexVector3{0, 2, 3};
+  indices.col(2) = math::IndexVector3{0, 3, 4};
+  indices.col(3) = math::IndexVector3{0, 4, 5};
+  indices.col(4) = math::IndexVector3{0, 5, 6};
+  indices.col(5) = math::IndexVector3{0, 6, 1};
+  indices.col(6) = math::IndexVector3{1, 6, 7};
+  indices.col(7) = math::IndexVector3{1, 7, 2};
+  indices.col(8) = math::IndexVector3{7, 4, 3};
+  indices.col(9) = math::IndexVector3{7, 3, 2};
+  indices.col(10) = math::IndexVector3{4, 7, 6};
+  indices.col(11) = math::IndexVector3{4, 6, 5};
 
   vertices *= size;
 
@@ -77,8 +77,8 @@ SurfaceMesh sphere(Real radius, Index slices, Index stacks) {
   Index k = 0;
   for (Index i = 0; i < stacks; ++i) {
     for (Index j = 0; j < slices; ++j) {
-      indices.col(k++) = math::IndexVec3{i * (slices + 1) + j, (i + 1) * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1};
-      indices.col(k++) = math::IndexVec3{i * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1, i * (slices + 1) + j + 1};
+      indices.col(k++) = math::IndexVector3{i * (slices + 1) + j, (i + 1) * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1};
+      indices.col(k++) = math::IndexVector3{i * (slices + 1) + j, (i + 1) * (slices + 1) + j + 1, i * (slices + 1) + j + 1};
     }
   }
 
@@ -148,11 +148,11 @@ TetraMesh tet_cube(Real half_size, Index nx, Index ny, Index nz) {
           std::swap(Index110, Index111);
         }
 
-        elements.col(id++) = IndexVec4{Index000, Index100, Index010, Index001};
-        elements.col(id++) = IndexVec4{Index010, Index100, Index110, Index111};
-        elements.col(id++) = IndexVec4{Index100, Index010, Index001, Index111};
-        elements.col(id++) = IndexVec4{Index100, Index001, Index101, Index111};
-        elements.col(id++) = IndexVec4{Index011, Index001, Index010, Index111};
+        elements.col(id++) = IndexVector4{Index000, Index100, Index010, Index001};
+        elements.col(id++) = IndexVector4{Index010, Index100, Index110, Index111};
+        elements.col(id++) = IndexVector4{Index100, Index010, Index001, Index111};
+        elements.col(id++) = IndexVector4{Index100, Index001, Index101, Index111};
+        elements.col(id++) = IndexVector4{Index011, Index001, Index010, Index111};
       }
     }
   }

@@ -95,7 +95,7 @@ void update_rendering() {
 
   lines.indices_.resize(2, edges.size());
   for (Index i = 0; i < edges.size(); ++i) {
-    lines.indices_.col(i) = math::IndexVec2{edges[i].first, edges[i].second};
+    lines.indices_.col(i) = math::IndexVector2{edges[i].first, edges[i].second};
   }
   lines.colors_.setOnes(4, g.vertices_.size());
   lines;

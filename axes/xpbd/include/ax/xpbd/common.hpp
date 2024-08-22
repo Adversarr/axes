@@ -100,8 +100,8 @@ public:
   math::RealField1 mass_;
 
   // For Collision Detectors.
-  std::vector<math::IndexVec3> faces_;
-  std::vector<math::IndexVec2> edges_;
+  std::vector<math::IndexVector3> faces_;
+  std::vector<math::IndexVector2> edges_;
   geo::BroadPhaseResult potential_collisions_;
 
   // High level meta.

@@ -44,8 +44,8 @@ inline math::IndexField3 make_grid_triangles(Index nx, Index ny) {
       Index Index01 = i * ny + j + 1;
       Index Index10 = (i + 1) * ny + j;
       Index Index11 = (i + 1) * ny + j + 1;
-      triangles.col(id++) = math::IndexVec3{Index00, Index11, Index01};
-      triangles.col(id++) = math::IndexVec3{Index00, Index11, Index10};
+      triangles.col(id++) = math::IndexVector3{Index00, Index11, Index01};
+      triangles.col(id++) = math::IndexVector3{Index00, Index11, Index10};
     }
   }
   return triangles;

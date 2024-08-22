@@ -203,8 +203,8 @@ void BroadPhase_FlatOctree::Impl::BuildTree() {
       if (nodes_.find(*holding) == nodes_.end()) {
         auto [x, y, z] = holding.value();
         AlignedBox3 node_aabb{
-          math::IndexVec3{x, y, z}.cast<Real>() * root_level_size_,
-          math::IndexVec3{x+1, y+1, z+1}.cast<Real>() * root_level_size_,
+          math::IndexVector3{x, y, z}.cast<Real>() * root_level_size_,
+          math::IndexVector3{x+1, y+1, z+1}.cast<Real>() * root_level_size_,
         };
         nodes_.emplace(*holding, TreeNode{node_aabb, nullptr, this});
       }

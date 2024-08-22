@@ -1,84 +1,120 @@
+#include "ax/geometry/io.hpp"
+
 #include <imgui.h>
 #include <imgui_node_editor.h>
-
+#include <range/v3/view/zip.hpp>
 #include <exception>
 
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/geometry/common.hpp"
-#include "ax/geometry/io.hpp"
 #include "ax/graph/render.hpp"
 #include "ax/math/io.hpp"
+
+#include "ax/math/accessor.hpp"
 #include "ax/utils/asset.hpp"
+#include "ax/utils/ranges.hpp"
 
 namespace ed = ax::NodeEditor;
 using namespace ax;
 using namespace graph;
 
 namespace ax::nodes {
-
 class Load_Obj final : public NodeDerive<Load_Obj> {
 public:
   CG_NODE_COMMON(Load_Obj, "Load/Obj", "Loads a mesh from an obj file");
   CG_NODE_INPUTS((std::string, file, "The path to the obj file"),
-                 (bool, reload, "If true, the obj file will be reloaded every frame", false));
+                 (bool, flip_yz, "If true, the y and z axis will be flipped (e.g. blender)", true));
   CG_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The mesh read from the obj file"));
 
+  static void RenderWidget(NodeBase* ptr) {
+    static_cast<Load_Obj*>(ptr)->RenderWidgetThis();
+  }
+
+  void RenderWidgetThis() noexcept {
+    ImGui::Text("Is loaded: %s", is_loaded_ ? "true" : "false");
+    ImGui::Text("Mesh file: \"%s\"", last_input_.c_str());
+    ImGui::PushID(this);
+    if (ImGui::Button("Reload!")) {
+      try {
+        DoLoading();
+      } catch (std::exception const& e) {
+        AX_ERROR("Failed reload: {}", e.what());
+      }
+    }
+    ImGui::PopID();
+  }
+
+  static void OnRegister() {
+    add_custom_node_widget(name(), {RenderWidget});
+  }
+
   void DoLoading() {
-    std::string const& file_name = Ensure(in::file);
-    auto mesh = geo::read_obj(file_name);
-    SetAll(std::move(mesh));
+    std::string const &file_name = Ensure(in::file);
+    bool flip_yz = GetOr(in::flip_yz);
+    if (file_name != last_input_) {
+      is_loaded_ = false;
+      last_input_ = file_name;
+      geo::SurfaceMesh mesh = geo::read_obj(file_name);
+      if (flip_yz) {
+        auto vert = math::make_accessor(mesh.vertices_);
+        auto ind = math::make_accessor(mesh.indices_);
+        for (auto v: vert) {
+          std::swap(v.y(), v.z());
+        }
+        for (auto i: ind) {
+          std::swap(i.y(), i.z());
+        }
+      }
+      // Successfully loaded, set load
+      is_loaded_ = true;
+      SetAll(std::move(mesh));
+    }
   }
 
   void OnConnectDispatch(in::file_) try {
     DoLoading();
   } catch (...) {
-    AX_WARN("Input file is not valid");
   }
 
-  void operator()(Context& ctx) override {
-    Index frame_id = 0;
-    if (ctx.Has("frame_id")) {
-      const auto frame_id_any = ctx.Get("frame_id");
-      try {
-        frame_id = std::any_cast<Index>(frame_id_any);
-      } catch (std::bad_any_cast const&) {
-        AX_WARN("frame_id is not an Index");
-      }
-    }
-
-    if (GetOr(in::reload) || frame_id == 0) {
-      DoLoading();
-    }
+  void operator()(Context &ctx) override {
+    DoLoading();
   }
+
+  std::string last_input_;
+  bool is_loaded_ = false;
 };
 
 class Asset_Selector_MeshObj final : public NodeDerive<Asset_Selector_MeshObj> {
 public:
-  CG_NODE_COMMON(Asset_Selector_MeshObj, "Asset/Selector/MeshObj", "Select an asset from a mesh/obj");
+  CG_NODE_COMMON(Asset_Selector_MeshObj, "Asset/Selector/MeshObj",
+                 "Select an asset from a mesh/obj");
   CG_NODE_INPUTS();
+
   CG_NODE_OUTPUTS((std::string, asset, "The selected asset"));
 
-  static void RenderThis(NodeBase* base) {
-    auto* node = static_cast<Asset_Selector_MeshObj*>(base);
+  static void RenderThis(NodeBase *base) {
+    auto *node = static_cast<Asset_Selector_MeshObj *>(base);
     begin_draw_node(node);
     draw_node_header_default(node);
     draw_node_content_default(node);
-    if (! all_obj_files_in_asset_.empty()) {
+    if (!all_obj_files_in_asset_.empty()) {
       ImGui::Text("Selected: %s", all_obj_files_in_asset_[node->selected_].c_str());
     }
     end_draw_node();
   }
 
-  static void RenderThisWidget(NodeBase* base) {
-    auto* node = static_cast<Asset_Selector_MeshObj*>(base);
+  static void RenderThisWidget(NodeBase *base) {
+    auto *node = static_cast<Asset_Selector_MeshObj *>(base);
     ImGui::BeginChild("Asset Selector");
     ImGui::PushID(node);
+    bool changed = false;
     if (ImGui::BeginCombo("##Asset Selector", all_obj_files_in_asset_[node->selected_].c_str())) {
       for (size_t i = 0; i < all_obj_files_in_asset_.size(); ++i) {
         bool is_selected = (node->selected_ == i);
         if (ImGui::Selectable(all_obj_files_in_asset_[i].c_str(), is_selected)) {
           node->selected_ = i;
+          changed = true;
         }
 
         if (is_selected) {
@@ -86,6 +122,9 @@ public:
         }
       }
       ImGui::EndCombo();
+    }
+    if (changed) {
+      node->SetOutput();
     }
     ImGui::PopID();
     ImGui::EndChild();
@@ -97,57 +136,61 @@ public:
     Reload();
   }
 
-  void operator()(Context& ctx) override {
-    if (all_obj_files_in_asset_.empty()) {
+  void OnConstruct() {
+    SetOutput();
+  }
+
+  void SetOutput() {if (all_obj_files_in_asset_.empty()) {
       AX_WARN("No obj files found in asset '/mesh/obj/'!");
       SetAll("");
     } else {
       Set(out::asset, utils::get_asset(all_obj_files_in_asset_[selected_]));
-    }
+    }}
+
+  void operator()(Context &ctx) override {
+    SetOutput();
   }
 
-  static void Reload() {
-    all_obj_files_in_asset_ = utils::discover_assets("/mesh/obj/");
-  }
+  static void Reload() { all_obj_files_in_asset_ = utils::discover_assets("/mesh/obj/"); }
 
   inline static std::vector<std::string> all_obj_files_in_asset_;
   size_t selected_ = 0;
 };
 
-void register_io(NodeRegistry& reg) {
+void register_io(NodeRegistry &reg) {
   Asset_Selector_MeshObj::RegisterTo(reg);
   Load_Obj::RegisterTo(reg);
 }
-
 }  // namespace ax::nodes
-// namespace ax::nodes {
-//
-// class ReadObjNode : public NodeBase {
-// public:
-//   AX_NODE_COMMON_WITH_CTOR(ReadObjNode, "Read_obj", "Reads an obj file and outputs a mesh");
-//   AX_NODE_INPUTS((std::string, file, "The path to the obj file"),
-//                  (bool, reload, "If true, the obj file will be reloaded every frame"));
-//   AX_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The mesh read from the obj file"));
-//
-//   void DoApply(bool do_not_throw) {
-//     auto const& file = AX_NODE_INPUT_ENSURE_EXTRACT(file);
-//
-//     try {
-//       auto mesh = geo::read_obj(file);
-//       *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh);
-//     } catch (...) {
-//       if (!do_not_throw) {
-//         std::throw_with_nested(make_runtime_error("Read Obj failed"));
-//       }
-//     }
-//   }
-//
-//   void Apply(size_t frame_id) override {
-//     bool reload = AX_NODE_INPUT_EXTRACT_DEFAULT(reload, false);
-//     if (frame_id == 0 || reload) {
-//       DoApply(false);
-//     }
-//   }
+
+ // namespace ax::nodes {
+ //
+ // class ReadObjNode : public NodeBase {
+ // public:
+ //   AX_NODE_COMMON_WITH_CTOR(ReadObjNode, "Read_obj", "Reads an obj file and outputs a mesh");
+ //   AX_NODE_INPUTS((std::string, file, "The path to the obj file"),
+ //                  (bool, reload, "If true, the obj file will be reloaded every frame"));
+ //   AX_NODE_OUTPUTS((geo::SurfaceMesh, mesh, "The mesh read from the obj file"));
+ //
+ //   void DoApply(bool do_not_throw) {
+ //     auto const& file = AX_NODE_INPUT_ENSURE_EXTRACT(file);
+ //
+ //     try {
+ //       auto mesh = geo::read_obj(file);
+ //       *RetriveOutput<geo::SurfaceMesh>(0) = std::move(mesh);
+ //     } catch (...) {
+ //       if (!do_not_throw) {
+ //         std::throw_with_nested(make_runtime_error("Read Obj failed"));
+ //       }
+ //     }
+ //   }
+ //
+ //   void Apply(size_t frame_id) override {
+ //     bool reload = AX_NODE_INPUT_EXTRACT_DEFAULT(reload, false);
+ //     if (frame_id == 0 || reload) {
+ //       DoApply(false);
+ //     }
+ //   }
 
 //   void PreApply() override { DoApply(true); }
 // };
@@ -286,7 +329,8 @@ void register_io(NodeRegistry& reg) {
 //
 // class ExportNumpy_RealMatrixX : public NodeBase {
 // public:
-//   // ExportNumpy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor,
+//   id) {}
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<ExportNumpy_RealMatrixX>()
 //   //       .SetName("Write_npy_RealMatrixX")
@@ -322,7 +366,8 @@ void register_io(NodeRegistry& reg) {
 //
 // class ExportNumpy_IndexMatrixX : public NodeBase {
 // public:
-//   // ExportNumpy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // ExportNumpy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor,
+//   id) {}
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<ExportNumpy_IndexMatrixX>()
 //   //       .SetName("Write_npy_RealMatrixX")
@@ -358,7 +403,8 @@ void register_io(NodeRegistry& reg) {
 //
 // class Read_npy_RealMatrixX : public NodeBase {
 // public:
-//   // Read_npy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // Read_npy_RealMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id)
+//   {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Read_npy_RealMatrixX>()
@@ -369,8 +415,8 @@ void register_io(NodeRegistry& reg) {
 //   //       .AddOutput<math::RealMatrixX>("out", "The RealMatrixX read from the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
-//   AX_NODE_COMMON_WITH_CTOR(Read_npy_RealMatrixX, "Read_npy_RealMatrixX", "Imports a numpy file to a RealMatrixX");
-//   AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
+//   AX_NODE_COMMON_WITH_CTOR(Read_npy_RealMatrixX, "Read_npy_RealMatrixX", "Imports a numpy file to
+//   a RealMatrixX"); AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
 //                  (bool, reload, "Reload every frame"));
 //   AX_NODE_OUTPUTS((RealMatrixX, out, "The RealMatrixX read from the numpy file"));
 //
@@ -398,7 +444,8 @@ void register_io(NodeRegistry& reg) {
 // };
 // class Read_npy_IndexMatrixX : public NodeBase {
 // public:
-//   // Read_npy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id) {}
+//   // Read_npy_IndexMatrixX(NodeDescriptor const* descriptor, Index id) : NodeBase(descriptor, id)
+//   {}
 //   //
 //   // static void register_this() {
 //   //   NodeDescriptorFactory<Read_npy_IndexMatrixX>()
@@ -409,8 +456,8 @@ void register_io(NodeRegistry& reg) {
 //   //       .AddOutput<math::IndexMatrixX>("out", "The RealMatrixX read from the numpy file")
 //   //       .FinalizeAndRegister();
 //   // }
-//   AX_NODE_COMMON_WITH_CTOR(Read_npy_IndexMatrixX, "Read_npy_IndexMatrixX", "Imports a numpy file to a RealMatrixX");
-//   AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
+//   AX_NODE_COMMON_WITH_CTOR(Read_npy_IndexMatrixX, "Read_npy_IndexMatrixX", "Imports a numpy file
+//   to a RealMatrixX"); AX_NODE_INPUTS((std::string, file, "The path to the numpy file"),
 //                  (bool, reload, "Reload every frame"));
 //   AX_NODE_OUTPUTS((IndexMatrixX, out, "The RealMatrixX read from the numpy file"));
 //
@@ -452,8 +499,8 @@ void register_io(NodeRegistry& reg) {
 //
 //   AX_NODE_COMMON_WITH_CTOR(Read_SparseMatrix, "Read_SparseMatrix",
 //                            "Reads a sparse matrix from a file");
-//   AX_NODE_INPUTS((std::string, file, "The path to the file"), (bool, reload, "Reload every frame"));
-//   AX_NODE_OUTPUTS((RealSparseMatrix, matrix, "The read sparse matrix"));
+//   AX_NODE_INPUTS((std::string, file, "The path to the file"), (bool, reload, "Reload every
+//   frame")); AX_NODE_OUTPUTS((RealSparseMatrix, matrix, "The read sparse matrix"));
 //
 //   void DoApply() {
 //     auto* file = RetriveInput<std::string>(0);

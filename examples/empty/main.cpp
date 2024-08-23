@@ -12,6 +12,8 @@
 #include "ax/utils/pretty_typename.hpp"
 #include "ax/utils/time.hpp"
 
+#include <tbb/tbb.h>
+
 using namespace ax;
 
 static void benchmark_mm(int scale) {

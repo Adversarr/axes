@@ -7,6 +7,8 @@
 
 namespace ax::par {
 
+template <typename Tp> struct ExecutionPolicy {};
+
 template <typename Derived>
 class LauncherBase {
 public:
@@ -22,6 +24,8 @@ public:
   AX_HOST void Invoke(Fn&& fn, Args&&... args) {
     static_cast<Derived*>(this)->InvokeImpl(std::forward<Fn>(fn), std::forward<Args>(args)...);
   }
+
+protected:
 };
 
 }  // namespace ax::par

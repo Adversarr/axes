@@ -14,6 +14,7 @@
 #include "ax/math/views.hpp"
 #include "ax/optim/spsdm/eigenvalue.hpp"
 #include "ax/utils/ndrange.hpp"
+#include "taskflow/algorithm/for_each.hpp"
 
 // TBB States that, The relation between GRAINSIZE and INSTRUCTION COUNT should be:
 //    G * IC >= 100,000
@@ -52,8 +53,8 @@ namespace ax::fem {
 struct HessianEntryInfo {
   // The local Hessian
   Index element_id_;
-  Index local_i_;   // range 0..dof (dof = dim*(dim+1))
-  Index local_j_;   // range 0..dof
+  Index local_i_;  // range 0..dof (dof = dim*(dim+1))
+  Index local_j_;  // range 0..dof
   // The global Hessian
   Index global_i_;  // range 0..n_vert * dim
   Index global_j_;  // range 0..n_vert * dim (i.e. global dof)
@@ -67,11 +68,15 @@ static bool prec(Index dofs, HessianEntryInfo const& a, HessianEntryInfo const& 
 template <int dim, template <int> class ElasticModelTemplate>
 struct ElasticityCompute_CPU<dim, ElasticModelTemplate>::Impl {
   tbb::affinity_partitioner e_ap, h_ap, s_ap, svd_ap;
+
   std::vector<HessianEntryInfo> hessian_entries_;
   std::vector<size_t> outer_start_;
+
+  tf::Executor executor_;
 };
 
-template <int dim> static bool check_cache(elasticity::DeformGradCache<dim> const& cache) {
+template <int dim>
+static bool check_cache(elasticity::DeformGradCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
     Real detR = R_inv.determinant();
@@ -98,7 +103,8 @@ static math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 co
   return result;
 }
 
-template <int dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
+template <int dim>
+typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
     TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     elasticity::DeformGradCache<dim> const& cache) {
   typename TriMesh<dim>::vertex_list_t result;
@@ -202,11 +208,12 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
 
 template <int dim>
 math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
-                              std::vector<elasticity::HessianTensor<dim>> const& hessian,
-                              elasticity::DeformGradCache<dim> const& cache) {
+                          std::vector<elasticity::HessianTensor<dim>> const& hessian,
+                          elasticity::DeformGradCache<dim> const& cache) {
   math::SparseCOO coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
-  std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(mesh.GetNumElements());
+  std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(
+      mesh.GetNumElements());
   tbb::parallel_for(tbb::blocked_range<Index>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
                     [&](tbb::blocked_range<Index> const& r) {
                       for (Index i = r.begin(); i < r.end(); ++i) {
@@ -243,20 +250,36 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateEnergy() {
   auto const& dg_l = this->deformation_gradient_;
   const bool energy_requires_svd = ElasticModel().EnergyRequiresSvd();
   auto& element_energy = this->energy_on_elements_;
-  tbb::parallel_for(
-      tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
-      [&](const tbb::blocked_range<Index>& r) {
+  // tbb::parallel_for(
+  //     tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+  //     [&](const tbb::blocked_range<Index>& r) {
+  //       ElasticModel model;
+  //       math::decomp::SvdResult<dim, Real> tomb;
+  //       for (Index i = r.begin(); i < r.end(); ++i) {
+  //         auto si = static_cast<size_t>(i);
+  //         elasticity::DeformGrad<dim> const& F = dg_l[si];
+  //         model.SetLame(this->lame_.col(i));
+  //         element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[si] :
+  //         tomb)
+  //                             * this->rest_volume_(i);
+  //       }
+  //     },
+  //     this->impl_->e_ap);
+
+  tf::Taskflow flow;
+  math::decomp::SvdResult<dim, Real> tomb;
+  flow.for_each_index(
+      static_cast<Index>(0), n_elem, static_cast<Index>(1),
+      [&](Index i) {
+        auto si = static_cast<size_t>(i);
+        elasticity::DeformGrad<dim> const& F = dg_l[si];
         ElasticModel model;
-        math::decomp::SvdResult<dim, Real> tomb;
-        for (Index i = r.begin(); i < r.end(); ++i) {
-          auto si = static_cast<size_t>(i);
-          elasticity::DeformGrad<dim> const& F = dg_l[si];
-          model.SetLame(this->lame_.col(i));
-          element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[si] : tomb)
-                              * this->rest_volume_(i);
-        }
+        model.SetLame(this->lame_.col(i));
+        element_energy[i] = model.Energy(F, energy_requires_svd ? this->svd_results_[si] : tomb)
+                            * this->rest_volume_(i);
       },
-      this->impl_->e_ap);
+      tf::StaticPartitioner(AX_FEM_COMPUTE_ENERGY_GRAIN));
+  this->impl_->executor_.run(flow).wait();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -266,20 +289,36 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
   auto const& lame = this->lame_;
   const bool stress_requires_svd = ElasticModel().StressRequiresSvd();
   auto& stress = this->stress_on_elements_;
-  tbb::parallel_for(
-      tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN),
-      [&](const tbb::blocked_range<Index>& r) {
+  // tbb::parallel_for(
+  //     tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_STRESS_GRAIN),
+  //     [&](const tbb::blocked_range<Index>& r) {
+  //       ElasticModel model;
+  //       math::decomp::SvdResult<dim, Real> tomb;
+  //       for (Index i = r.begin(); i < r.end(); ++i) {
+  //         size_t si = static_cast<size_t>(i);
+  //         elasticity::DeformGrad<dim> const& F = dg_l[si];
+  //         model.SetLame(lame.col(i));
+  //         stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si] : tomb)
+  //                      * this->rest_volume_(i);
+  //       }
+  //     },
+  //     this->impl_->s_ap);
+
+  math::decomp::SvdResult<dim, Real> tomb;
+  tf::Taskflow flow;
+  flow.for_each_index(
+      static_cast<Index>(0), n_elem, static_cast<Index>(1),
+      [&](Index i) {
+        size_t si = static_cast<size_t>(i);
+        elasticity::DeformGrad<dim> const& F = dg_l[si];
         ElasticModel model;
-        math::decomp::SvdResult<dim, Real> tomb;
-        for (Index i = r.begin(); i < r.end(); ++i) {
-          size_t si = static_cast<size_t>(i);
-          elasticity::DeformGrad<dim> const& F = dg_l[si];
-          model.SetLame(lame.col(i));
-          stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si] : tomb)
-                       * this->rest_volume_(i);
-        }
+        model.SetLame(lame.col(i));
+        stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si]
+                                                         : tomb)
+                     * this->rest_volume_(i);
       },
-      this->impl_->s_ap);
+      tf::StaticPartitioner(AX_FEM_COMPUTE_STRESS_GRAIN));
+  this->impl_->executor_.run(flow).wait();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -327,7 +366,8 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherEnergyToVertices() 
 
 template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherStressToVertices() {
-  auto& result = this->stress_on_vertices_; result.setZero();
+  auto& result = this->stress_on_vertices_;
+  result.setZero();
   auto const& mesh = *(this->mesh_);
   auto const& cache = this->rinv_;
   auto const& stress = this->stress_on_elements_;
@@ -431,26 +471,47 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<di
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)
         || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::kStress)
         || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::kHessian);
-  tbb::parallel_for(
-      tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
-      [&](const tbb::blocked_range<Index>& r) {
-        AX_FEM_COMPUTE_SVD_ALGORITHM<dim, Real> svd;
-        for (Index i = r.begin(); i < r.end(); ++i) {
-          auto const si = static_cast<size_t>(i);
-          math::RealMatrix<dim, dim> Ds;
-          math::IndexVector<dim + 1> element = this->mesh_->GetElement(i);
-          math::RealVector<dim> local_zero = pose.col(element.x());
-          for (Index I = 1; I <= dim; ++I) {
-            Ds.col(I - 1) = pose.col(element[I]) - local_zero;
-          }
-          dg_l[si] = Ds * this->rinv_[si];
-          if (need_svd) {
-            svd_results_[si] = svd.Solve(dg_l[si]);
-            math::decomp::svd_remove_rotation(svd_results_[si]);
-          }
+  // tbb::parallel_for(
+  //     tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
+  //     [&](const tbb::blocked_range<Index>& r) {
+  //       AX_FEM_COMPUTE_SVD_ALGORITHM<dim, Real> svd;
+  //       for (Index i = r.begin(); i < r.end(); ++i) {
+  //         auto const si = static_cast<size_t>(i);
+  //         math::RealMatrix<dim, dim> Ds;
+  //         math::IndexVector<dim + 1> element = this->mesh_->GetElement(i);
+  //         math::RealVector<dim> local_zero = pose.col(element.x());
+  //         for (Index I = 1; I <= dim; ++I) {
+  //           Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+  //         }
+  //         dg_l[si] = Ds * this->rinv_[si];
+  //         if (need_svd) {
+  //           svd_results_[si] = svd.Solve(dg_l[si]);
+  //           math::decomp::svd_remove_rotation(svd_results_[si]);
+  //         }
+  //       }
+  //     },
+  //     this->impl_->svd_ap);
+
+  tf::Taskflow flow;
+  flow.for_each_index(
+      static_cast<Index>(0), n_elem, static_cast<Index>(1),
+      [&](Index i) {
+        auto const si = static_cast<size_t>(i);
+        math::RealMatrix<dim, dim> Ds;
+        math::IndexVector<dim + 1> element = this->mesh_->GetElement(i);
+        math::RealVector<dim> local_zero = pose.col(element.x());
+        for (Index I = 1; I <= dim; ++I) {
+          Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+        }
+        dg_l[si] = Ds * this->rinv_[si];
+        if (need_svd) {
+          AX_FEM_COMPUTE_SVD_ALGORITHM<dim, Real> svd;
+          svd_results_[si] = svd.Solve(dg_l[si]);
+          math::decomp::svd_remove_rotation(svd_results_[si]);
         }
       },
-      this->impl_->svd_ap);
+      tf::StaticPartitioner(AX_FEM_COMPUTE_ENERGY_GRAIN));
+  this->impl_->executor_.run(flow).wait();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -481,7 +542,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   auto& entries = this->impl_->hessian_entries_;
   entries.clear();
   auto elem_accessor = make_accessor(this->mesh_->GetElements());
-  for (auto [i, elem]: enumerate(elem_accessor)) {
+  for (auto [i, elem] : enumerate(elem_accessor)) {
     for (auto [ei, ej, li, lj] : utils::ndrange<Index>(dim + 1, dim + 1, dim, dim)) {
       Index vert_i = elem[ei], vert_j = elem[ej];
       Index dof_i = vert_i * dim + li, dof_j = vert_j * dim + lj;
@@ -491,7 +552,8 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   }
   std::sort(entries.begin(), entries.end(),
             [&](HessianEntryInfo const& a, HessianEntryInfo const& b) {
-              return prec(n_elem * dim, a, b); });
+              return prec(n_elem * dim, a, b);
+            });
   // 2.2 make a demo, and let eigen fill in the entries:
   SparseCOO coo;
   for (const auto& entry : entries) {
@@ -500,7 +562,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   this->hessian_on_vertices_ = make_sparse_matrix(dim * n_vert, dim * n_vert, coo);
   this->hessian_on_vertices_.makeCompressed();
   // 2.3 examine that the cache is correct.
-  std::vector<size_t> &outer_start = impl_->outer_start_;
+  std::vector<size_t>& outer_start = impl_->outer_start_;
   outer_start.push_back(0);
   math::for_each_entry(this->hessian_on_vertices_, [&](Index i, Index j, Real) {
     size_t last_end = outer_start.back();
@@ -540,13 +602,14 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
-ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh)
+ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(
+    std::shared_ptr<TriMesh<dim>> mesh)
     : ElasticityComputeBase<dim>(mesh) {
   this->impl_ = std::make_unique<Impl>();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
-ElasticityCompute_CPU<dim, ElasticModelTemplate>::~ElasticityCompute_CPU(){}
+ElasticityCompute_CPU<dim, ElasticModelTemplate>::~ElasticityCompute_CPU() {}
 
 template class ElasticityComputeBase<2>;
 template class ElasticityComputeBase<3>;

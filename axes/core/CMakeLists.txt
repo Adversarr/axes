@@ -8,6 +8,7 @@ find_package(OpenVDB REQUIRED)
 find_package(CHOLMOD REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(Taskflow REQUIRED)
 find_package(cxxopts REQUIRED)
 
 # set default bla to openblas.
@@ -68,8 +69,8 @@ target_link_libraries(axes_core
     SuiteSparse::CHOLMOD
     spdlog::spdlog_header_only
     fmt::fmt-header-only
-    BLAS::BLAS
-#    Backward::Interface
+    # BLAS::BLAS
+    Taskflow::Taskflow
 )
 
 if (AX_ENABLE_CUDA)

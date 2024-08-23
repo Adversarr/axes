@@ -15,7 +15,6 @@ axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(cubic_solver "axes_core")
 axes_add_example(graph "axes_graph")
 axes_add_example(strides_cpu "axes_core")
-axes_add_example(surface_reconstruct "axes_gl")
 
 # admm
 axes_add_example(cadmm "axes_gl;axes_xpbd")

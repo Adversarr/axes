@@ -390,7 +390,7 @@ template <int dim> Real TimeStepperBase<dim>::LinfResidual(math::RealField<dim> 
 }
 
 template <int dim>
-template <template <int> class ElasticModelTemplate, template <Index, template <int> class> class Compute>
+template <template <int> class ElasticModelTemplate, template <int, template <int> class> class Compute>
 void TimeStepperBase<dim>::SetupElasticity() {
   elasticity_ = std::make_shared<Compute<dim, ElasticModelTemplate>>(mesh_);
 }

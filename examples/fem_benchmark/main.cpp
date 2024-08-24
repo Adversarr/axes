@@ -25,18 +25,6 @@
 #include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
 
-// ABSL_FLAG(std::string, input, "plane.obj", "Input 2D Mesh.");
-// ABSL_FLAG(int, N, 3, "Num of division.");
-// ABSL_FLAG(bool, flip_yz, false, "flip yz");
-// ABSL_FLAG(std::string, scene, "bend", "id of scene, 0 for twist, 1 for bend.");
-// ABSL_FLAG(std::string, elast, "stable_neohookean",
-//           "Hyperelasticity model, nh=Neohookean arap=Arap");
-// ABSL_FLAG(std::string, optim, "newton", "optimizer newton 'naive' or 'liu'");
-// ABSL_FLAG(std::string, device, "gpu", "cpu or gpu");
-// ABSL_FLAG(bool, optopo, true, "Optimize topology using RCM.");
-// ABSL_FLAG(std::string, lbfgs, "laplacian", "naive, laplacian, hard");
-// ABSL_FLAG(double, youngs, 1e7, "Youngs");
-
 int nx;
 using namespace ax;
 Entity out;
@@ -230,6 +218,7 @@ int main(int argc, char** argv) {
       "device", "cpu or gpu", cxxopts::value<std::string>()->default_value("gpu"))(
       "optopo", "Optimize topology using RCM.", cxxopts::value<bool>()->default_value("true"))(
       "lbfgs", "naive, laplacian, hard", cxxopts::value<std::string>()->default_value("laplacian"));
+
   ax::gl::init(argc, argv);
   fps.setZero(100);
   auto sname = get_parse_result()["scene"].as<std::string>();
@@ -327,7 +316,7 @@ int main(int argc, char** argv) {
   );
   ts->Initialize();
 
-  std::cout << "Running Parameters: " << ts->GetOptions() << std::endl;
+  AX_WARN("Timestepper Options: {}", boost::json::value(ts->GetOptions()));
 
   if (scene == SCENE_TWIST || scene == SCENE_ARMADILLO_DRAG || scene == SCENE_ARMADILLO_EXTREME) {
     ts->SetExternalAcceleration(math::RealField3::Zero(3, ts->GetMesh()->GetNumVertices()));

@@ -103,7 +103,7 @@ MeshRenderData::MeshRenderData(const Mesh& mesh) {
   vertices_.reserve(static_cast<size_t>(mesh.vertices_.size()));
   auto normals = mesh.normals_;
   if (normals.cols() < mesh.vertices_.cols()) {
-    AX_WARN("Mesh Normal not set. Compute automatically");
+    AX_TRACE("Mesh Normal not set. Compute automatically");
     normals = geo::normal_per_vertex(mesh.vertices_, mesh.indices_);
   }
   for (Index i = 0; i < mesh.vertices_.cols(); i++) {

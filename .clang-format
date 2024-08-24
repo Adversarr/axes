@@ -13,5 +13,14 @@
   NamespaceIndentation: None
   BreakBeforeBinaryOperators: All
   BreakBeforeTernaryOperators: true
-
+  BracedInitializerIndentWidth: 2
+  AllowShortBlocksOnASingleLine: Never
+  AllowShortCaseLabelsOnASingleLine: false
+  AllowShortEnumsOnASingleLine: false
+  AllowShortFunctionsOnASingleLine: Empty
+  AllowShortIfStatementsOnASingleLine: Never
+  AllowShortLambdasOnASingleLine: Empty
+  AllowShortLoopsOnASingleLine: false
+  IfMacros: [if_unlikely, if_likely]
+  SeparateDefinitionBlocks: Always
 ...

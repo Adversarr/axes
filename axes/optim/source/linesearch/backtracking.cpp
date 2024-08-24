@@ -1,25 +1,27 @@
 #include "ax/optim/linesearch/backtracking.hpp"
 
-#include "ax/math/utils/formatting.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 namespace ax::optim {
 
-
 OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, Variable const& x0,
-                                           Gradient const& grad, Variable const& dir) const {
+                                            Gradient const& grad, Variable const& dir) const {
   // SECT: Check Inputs
-  AX_THROW_IF_LT(initial_step_length_, 0, "Initial step length must be positive");
-  AX_THROW_IF_FALSE(0 < step_shrink_rate_ && step_shrink_rate_ < 1, "Step shrink rate must be in (0, 1)");
-  AX_THROW_IF_FALSE(0 < required_descent_rate_ && required_descent_rate_ < 1, "Required descent rate must be in (0, 1)");
+  AX_THROW_IF_LT(initial_step_size_, 0, "Initial step length must be positive");
+  AX_THROW_IF_FALSE(0 < step_shrink_rate_ && step_shrink_rate_ < 1,
+                    "Step shrink rate must be in (0, 1)");
+  AX_THROW_IF_FALSE(0 < required_descent_rate_ && required_descent_rate_ < 1,
+                    "Required descent rate must be in (0, 1)");
   AX_THROW_IF_FALSE(prob.HasGrad(), "Gradient function not set");
   AX_THROW_IF_FALSE(prob.HasEnergy(), "Energy function not set");
 
   // SECT: Backtracking Line Search
-  Real alpha = initial_step_length_;
+  Real alpha = initial_step_size_;
   Real const f0 = prob.EvalEnergy(x0);
-  AX_THROW_IF_FALSE(math::isfinite(f0), "Invalid x0 in Line Search, Energy returns infinite number.");
+  AX_THROW_IF_FALSE(math::isfinite(f0),
+                    "Invalid x0 in Line Search, Energy returns infinite number.");
   Real expected_descent = math::dot(grad, dir);
   if (expected_descent >= 0 || !math::isfinite(expected_descent)) {
     throw make_runtime_error("Invalid descent direction: Dot[grad, dir]={}", expected_descent);
@@ -52,7 +54,6 @@ OptResult Linesearch_Backtracking::Optimize(OptProblem const& prob, Variable con
 }
 
 void Linesearch_Backtracking::SetOptions(utils::Options const& options) {
-  AX_SYNC_OPT(options, Real, initial_step_length);
   AX_SYNC_OPT(options, Real, step_shrink_rate);
   AX_SYNC_OPT(options, Real, required_descent_rate);
   LinesearchBase::SetOptions(options);
@@ -60,11 +61,12 @@ void Linesearch_Backtracking::SetOptions(utils::Options const& options) {
 
 utils::Options Linesearch_Backtracking::GetOptions() const {
   utils::Options opt = LinesearchBase::GetOptions();
-  opt["initial_step_length"] = initial_step_length_;
   opt["step_shrink_rate"] = step_shrink_rate_;
   opt["required_descent_rate"] = required_descent_rate_;
   return opt;
 }
 
-LineSearchKind Linesearch_Backtracking::GetKind() const { return LineSearchKind::kBacktracking; }
+LineSearchKind Linesearch_Backtracking::GetKind() const {
+  return LineSearchKind::kBacktracking;
+}
 }  // namespace ax::optim

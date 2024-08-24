@@ -102,6 +102,21 @@ void Camera::SetAspect(Index x, Index y) {
   aspect_ = static_cast<f32>(x) / static_cast<f32>(y);
   SetAspect(aspect_);
 }
+
+static void apply_transform(math::FloatMatrix4 const& transform, math::FloatVector3& vector, f32 w) {
+  math::FloatVector4 v = math::FloatVector4(vector.x(), vector.y(), vector.z(), w);
+  v[3] = w;
+  v = transform * v;
+  vector = v.head<3>();
+}
+
+void Camera::ApplyTransform(math::FloatMatrix4 const& transform) {
+  apply_transform(transform, position_, 1.0f);
+  apply_transform(transform, front_, 0.0f);
+  apply_transform(transform, right_, 0.0f);
+  apply_transform(transform, up_, 0.0f);
+}
+
 f32 Camera::GetAspect() const { return aspect_; }
 
 math::FloatMatrix4 Camera::LookAt() const {

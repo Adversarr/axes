@@ -185,13 +185,18 @@ void Context::Impl::OnCursorMove(const CursorMoveEvent& evt) {
       // Rotate the world model matrix.
       dx *= mouse_sensitivity_ * 0.005f;
       dy *= mouse_sensitivity_ * 0.005f;
-      auto up = camera_.GetUp();
-      auto right = camera_.GetRight();
+      model_rotate_x_ += dx;
+      model_rotate_y_ += dy;
 
+      // Rotate the camera about zero.
+      auto up = math::FloatVector3::UnitY();
+      auto right = camera_.GetRight();
       const math::FloatMatrix3 rx = Eigen::AngleAxis<f32>(dy, right).toRotationMatrix();
       const math::FloatMatrix3 ry = Eigen::AngleAxis<f32>(-dx, up).toRotationMatrix();
-
-      model_.topLeftCorner<3, 3>() *= rx * ry;
+      const math::FloatMatrix3 rot = rx * ry;
+      math::FloatMatrix4 affine = math::eye<4, float>();
+      affine.topLeftCorner<3, 3>() = rot;
+      camera_.ApplyTransform(affine);
     }
   }
   prev_cursor_pos_ = evt.pos_;

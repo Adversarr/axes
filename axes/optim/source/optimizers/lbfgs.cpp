@@ -1,10 +1,10 @@
 #include "ax/optim/optimizers/lbfgs.hpp"
 
-#include "ax/math/utils/formatting.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/math/linsys/common.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/time.hpp"
@@ -83,9 +83,13 @@ struct RotatingHistoryBuffer {
     return y_[rotate_id];
   }
 
-  bool Empty() const { return pushed_size_ == 0; }
+  bool Empty() const {
+    return pushed_size_ == 0;
+  }
 
-  size_t Size() const { return pushed_size_; }
+  size_t Size() const {
+    return pushed_size_;
+  }
 
   std::vector<Variable> s_;
   std::vector<Gradient> y_;
@@ -112,7 +116,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
   bool converge_grad = false;
   bool converge_var = false;
   bool verbose = verbose_;
-  RotatingHistoryBuffer bfgs(history_size_);
+  RotatingHistoryBuffer bfgs(static_cast<size_t>(history_size_));
   bfgs.Reshape(rows, cols);
 
   Variable s_new(rows, cols);
@@ -202,14 +206,17 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
     Real const d_dot_grad = math::dot(dir, grad);
     if (d_dot_grad >= 0.) {
       AX_ERROR("L-BFGS: Direction may not descent: value={} Early break! |r|={}", d_dot_grad,
-          math::norm(dir));
+               math::norm(dir));
       break;
     }
-
 
     // SECT: Line search
     Real f_opt;
     auto ls_result = linesearch_->Optimize(problem_, x, grad, dir);
+    if (!ls_result) {
+      AX_ERROR("Linesearch failed: {}", ls_result.err_msg_);
+      break;
+    }
     Variable& x_opt = ls_result.x_opt_;
 
     s_new = x_opt - x;
@@ -251,7 +258,7 @@ Optimizer_Lbfgs::Optimizer_Lbfgs() {
 
   auto* ls = static_cast<Linesearch_Backtracking*>(linesearch_.get());
   ls->required_descent_rate_ = 1e-4;
-  ls->initial_step_length_ = 1.0;
+  ls->initial_step_size_ = 1.0;
   ls->step_shrink_rate_ = 0.7;
 
   SetApproxSolve(approx_solve_default);

@@ -1,6 +1,6 @@
-#include "ax/math/utils/formatting.hpp"
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
@@ -13,17 +13,20 @@ math::RealMatrixX A;
 math::RealVectorX b;
 
 int main(int argc, char** argv) {
-  get_program_options().add_options()
-    ("problem", "Problem to solve", cxxopts::value<std::string>()->default_value("sp_lstsq"))
-    ("optimizer", "Optimizer", cxxopts::value<std::string>()->default_value("lbfgs"))
-    ("verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("dof", "Degrees of freedom", cxxopts::value<Index>()->default_value("2"));
+  get_program_options().add_options()("problem", "Problem to solve",
+                                      cxxopts::value<std::string>()->default_value("sp_lstsq"))(
+      "optimizer", "Optimizer", cxxopts::value<std::string>()->default_value("lbfgs"))(
+      "verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))(
+      "dof", "Degrees of freedom", cxxopts::value<Index>()->default_value("2"))(
+      "pcg_strategy", "PCG strategy",
+      cxxopts::value<std::string>()->default_value("kFletcherReeves"));
 
   init(argc, argv);
 
   std::shared_ptr<optim::OptimizerBase> optimizer;
   std::shared_ptr<optim::OptProblem> prob;
   optim::Variable optimal, x0;
+
   n = get_parse_result()["dof"].as<Index>();
   bool verbose = get_parse_result()["verbose"].as<bool>();
   std::string problem = get_parse_result()["problem"].as<std::string>();
@@ -32,12 +35,9 @@ int main(int argc, char** argv) {
   /************************* SECT: Optimizer Options *************************/
   utils::Options opt{
     {"verbose", verbose},
-    {"max_iter", Index(200)},
+    {"max_iter", static_cast<Index>(200)},
     {"linesearch", "kBacktracking"},
-    {"linesearch_opt", utils::Options{
-      {"required_descent_rate", Real(1e-4)},
-    }}
-  };
+    {"linesearch_opt", utils::Options{{"required_descent_rate", 1e-4}, {"verbose", true}}}};
 
   /************************* SECT: Create Optimizer *************************/
   if (optimizer_name == "newton") {
@@ -47,6 +47,11 @@ int main(int argc, char** argv) {
     optimizer = std::make_shared<optim::Optimizer_Lbfgs>();
   } else if (optimizer_name == "gd") {
     optimizer = std::make_shared<optim::Optimizer_GradientDescent>();
+  } else if (optimizer_name == "pcg") {
+    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::kNonlinearCg);
+    optimizer->SetOptions({
+      {"strategy", get_parse_result()["pcg_strategy"].as<std::string>()},
+    });
   } else {
     AX_CRITICAL("Unknown optimizer: {}", optimizer_name);
     abort();
@@ -92,6 +97,11 @@ int main(int argc, char** argv) {
     AX_CRITICAL("Unknown problem: {}", problem);
     abort();
   }
+  prob->SetVerbose([verbose](Index iter, const optim::Variable& x, Real f) {
+    if (verbose) {
+      AX_INFO("Iter: {}, x: {}, f: {}", iter, x, f);
+    }
+  });
 
   /************************* SECT: Run Optimize *************************/
   auto start = utils::get_current_time_nanos();

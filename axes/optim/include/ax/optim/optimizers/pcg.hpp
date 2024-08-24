@@ -1,19 +1,18 @@
 #pragma once
 
-#include "ax/optim/optimizer_base.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
+#include "ax/optim/optimizer_base.hpp"
 
 namespace ax::optim {
-AX_DEFINE_ENUM_CLASS(NonlinearCgStrategy, FletcherReeves, PolakRibiere, HestenesStiefel,
-                     HagerZhang);
 
-struct NonlinearCgPreconditioner {
-  std::function<Variable(const Gradient&)> fn_;
+AX_DEFINE_ENUM_CLASS(NonlinearCgStrategy, kFletcherReeves, kPolakRibiere, kHestenesStiefel,
+                     kDaiYuan, kPolakRibiereClamped, kHestenesStiefelClamped);
 
-  static NonlinearCgPreconditioner Dummy() noexcept {
-    return {[](const Gradient& x) { return x; }};
-  }
-};
+using NonlinearCgPreconditioner = std::function<Variable(const Variable&, const Gradient&)>;
+
+namespace details {
+NonlinearCgPreconditioner Dummy() noexcept;
+}  // namespace details
 
 class Optimizer_NonlinearCg final : public OptimizerBase {
 public:
@@ -29,12 +28,12 @@ public:
 
   void SetOptions(utils::Options const& option) override;
 
-
   OptResult Optimize(OptProblem const& prob, const Variable& x0) const override;
 
 private:
-  NonlinearCgStrategy strategy_ = NonlinearCgStrategy::FletcherReeves;
-  NonlinearCgPreconditioner precond_ = NonlinearCgPreconditioner::Dummy();
-  std::unique_ptr<LinesearchBase> linesearch_{nullptr};
+  NonlinearCgStrategy strategy_ = NonlinearCgStrategy::kFletcherReeves;
+  mutable NonlinearCgPreconditioner precond_;
+  std::unique_ptr<LinesearchBase> linesearch_;
+  Index restart_period_ = 50;
 };
-}
+}  // namespace ax::optim

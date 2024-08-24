@@ -21,6 +21,8 @@ public:
 
   void SetAspect(Index x, Index y);
 
+  void ApplyTransform(math::FloatMatrix4 const& transform);
+
   math::FloatMatrix4 LookAt() const;
   math::FloatMatrix4 Perspective() const;
   math::FloatMatrix4 Ortho() const;

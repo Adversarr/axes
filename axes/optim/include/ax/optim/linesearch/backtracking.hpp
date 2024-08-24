@@ -16,7 +16,6 @@ public:
 
   LineSearchKind GetKind() const override;
 
-  Real initial_step_length_ = 1.0;
   Real step_shrink_rate_ = 0.5;
   Real required_descent_rate_ = 1e-4;
 };

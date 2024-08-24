@@ -157,7 +157,7 @@ public:
     void Deserialize(boost::json::object const& obj) override try {         \
       auto array = obj.at("value").as_array();                              \
       for (Index i = 0; i < value_.rows(); ++i) {                           \
-        value_[i] = array.at(i).deser();                                    \
+        value_[i] = array.at(static_cast<size_t>(i)).deser();               \
       }                                                                     \
       SetOutput();                                                          \
     } catch (std::exception const& e) {                                     \

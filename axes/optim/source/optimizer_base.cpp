@@ -1,9 +1,11 @@
 #include "ax/optim/optimizer_base.hpp"
 
 #include "ax/core/logging.hpp"
+#include "ax/optim/optimizers/fista.hpp"
 #include "ax/optim/optimizers/gd.hpp"
 #include "ax/optim/optimizers/lbfgs.hpp"
 #include "ax/optim/optimizers/newton.hpp"
+#include "ax/optim/optimizers/pcg.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::optim {
@@ -16,6 +18,11 @@ std::unique_ptr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
       return std::make_unique<Optimizer_Lbfgs>();
     case OptimizerKind::kGradientDescent:
       return std::make_unique<Optimizer_GradientDescent>();
+    case OptimizerKind::kFista:
+      return std::make_unique<Optimizer_Fista>();
+    case OptimizerKind::kNonlinearCg:
+      return std::make_unique<Optimizer_NonlinearCg>();
+
     default:
       return nullptr;
   }
@@ -71,11 +78,11 @@ void OptimizerBase::SetOptions(utils::Options const& options) {
 
 utils::Options OptimizerBase::GetOptions() const {
   utils::Options options{
-      {"max_iter", max_iter_},
-      {"tol_var", tol_var_},
-      {"tol_grad", tol_grad_},
-      {"verbose", Index(verbose_ ? 1 : 0)},
-      // {"record_trajectory", Index(record_trajectory_ ? 1 : 0)},
+    {"max_iter", max_iter_},
+    {"tol_var", tol_var_},
+    {"tol_grad", tol_grad_},
+    {"verbose", Index(verbose_ ? 1 : 0)},
+    // {"record_trajectory", Index(record_trajectory_ ? 1 : 0)},
   };
   return options;
 }

@@ -31,11 +31,10 @@ void Optimizer_NonlinearCg::SetStrategy(NonlinearCgStrategy strategy) {
 
 void Optimizer_NonlinearCg::SetOptions(utils::Options const& option) {
   OptimizerBase::SetOptions(option);
-  if (utils::extract_and_create<LinesearchBase, LineSearchKind>(option, "linesearch",
-                                                                linesearch_)) {
-    utils::extract_tunable(option, "linesearch_opt", linesearch_.get());
-  }
   AX_SYNC_OPT(option, Index, restart_period);
+  utils::extract_and_create<LinesearchBase, LineSearchKind>(option, "linesearch", linesearch_);
+  utils::extract_tunable(option, "linesearch_opt", linesearch_.get());
+  AX_SYNC_OPT_ENUM(option, NonlinearCgStrategy, strategy_, strategy);
 }
 
 OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable& x0) const {
@@ -47,7 +46,6 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
   }
 
   // initialize the variables
-  Index rows = x0.rows(), cols = x0.cols();
   Variable x = x0, x_old = x0;
 
   Gradient grad = prob.EvalGrad(x);  // grad = \nabla f(x)
@@ -57,7 +55,6 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
 
   Index iter = 0;
   Real delta_new = math::dot(grad, s);
-  Real delta_0 = delta_new;
   Index cnt_restart = 0;
   bool converged_grad = false, converged_var = false;
   Real expect_descent = 0;

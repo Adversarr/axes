@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   utils::Options opt{
     {"verbose", verbose},
     {"max_iter", static_cast<Index>(200)},
-    {"linesearch", "kBacktracking"},
+    {"linesearch", "kWolfe"},
     {"linesearch_opt", utils::Options{{"required_descent_rate", 1e-4}, {"verbose", true}}}};
 
   /************************* SECT: Create Optimizer *************************/

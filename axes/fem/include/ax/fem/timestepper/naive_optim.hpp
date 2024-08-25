@@ -13,6 +13,8 @@ public:
   void SetOptions(utils::Options const& opt) final;
   utils::Options GetOptions() const final;
 
+  optim::OptimizerBase* GetOptimizer() const;
+
 private:
   std::unique_ptr<optim::OptimizerBase> optimizer_;
 };

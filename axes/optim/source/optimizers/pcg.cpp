@@ -152,6 +152,13 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
   }
 }
 
+void Optimizer_NonlinearCg::SetPreconditioner(NonlinearCgPreconditioner precond) {
+  precond_ = precond;
+  if (!precond) {
+    AX_WARN("Preconditioner is set to null");
+  }
+}
+
 namespace details {
 NonlinearCgPreconditioner Dummy() noexcept {
   return [](const Variable& /*x*/, const Gradient& g) {

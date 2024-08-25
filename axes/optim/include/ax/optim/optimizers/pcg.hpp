@@ -30,6 +30,8 @@ public:
 
   OptResult Optimize(OptProblem const& prob, const Variable& x0) const override;
 
+  void SetPreconditioner(NonlinearCgPreconditioner precond);
+
 private:
   NonlinearCgStrategy strategy_ = NonlinearCgStrategy::kFletcherReeves;
   mutable NonlinearCgPreconditioner precond_;

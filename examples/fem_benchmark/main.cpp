@@ -21,6 +21,7 @@
 #include "ax/math/accessor.hpp"
 #include "ax/math/io.hpp"
 #include "ax/math/views.hpp"
+#include "ax/optim/optimizers/pcg.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
@@ -40,7 +41,7 @@ int scene;
 std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
-  auto &elast = ts->GetElasticity();
+  auto& elast = ts->GetElasticity();
   elast.Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::kEnergy);
   elast.UpdateEnergy();
   elast.GatherEnergyToVertices();
@@ -63,7 +64,7 @@ void update_rendering() {
     mesh.colors_.topRows<3>() = cmap(e_per_vert);
   });
 
-  patch_component<gl::Lines>(out, [&](gl::Lines & lines) {
+  patch_component<gl::Lines>(out, [&](gl::Lines& lines) {
     if (lines.indices_.size() == 0) {
       lines = gl::Lines::Create(mesh);
     }
@@ -208,13 +209,15 @@ void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts)
 }
 
 int main(int argc, char** argv) {
-  ax::get_program_options().add_options()
-    ("youngs", "Youngs", cxxopts::value<Real>()->default_value("1e7"))(
+  ax::get_program_options().add_options()("youngs", "Youngs",
+                                          cxxopts::value<Real>()->default_value("1e7"))(
       "N", "Num of division", cxxopts::value<int>()->default_value("3"))(
-      "scene", "id of scene, 0 for twist, 1 for bend.", cxxopts::value<std::string>()->default_value("bend"))(
+      "scene", "id of scene, 0 for twist, 1 for bend.",
+      cxxopts::value<std::string>()->default_value("bend"))(
       "elast", "Hyperelasticity model, nh=Neohookean arap=Arap",
       cxxopts::value<std::string>()->default_value("stable_neohookean"))(
-      "optim", "optimizer newton 'naive' or 'liu'", cxxopts::value<std::string>()->default_value("newton"))(
+      "optim", "optimizer newton 'naive' or 'liu'",
+      cxxopts::value<std::string>()->default_value("newton"))(
       "device", "cpu or gpu", cxxopts::value<std::string>()->default_value("gpu"))(
       "optopo", "Optimize topology using RCM.", cxxopts::value<bool>()->default_value("true"))(
       "lbfgs", "naive, laplacian, hard", cxxopts::value<std::string>()->default_value("laplacian"));
@@ -261,7 +264,7 @@ int main(int argc, char** argv) {
   if (auto opt = get_parse_result()["optim"].as<std::string>(); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
     auto strategy = get_parse_result()["lbfgs"].as<std::string>();
-    auto *p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
+    auto* p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
     if (strategy == "naive") {
       std::cout << "LBFGS: Naive" << std::endl;
       p_ts->SetOptions({{"lbfgs_strategy", "kNaive"}});
@@ -276,8 +279,21 @@ int main(int argc, char** argv) {
     std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
     ts->SetOptions({{"optimizer_opt", utils::Options{{"verbose", true}}}});
+  } else if (opt == "ncg") {
+    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
+    ts->SetOptions(
+        {{"optimizer", "kNonlinearCg"},
+         {"optimizer_opt", utils::Options{{"strategy", "kPolakRibiere"}, {"verbose", true}}}});
+
+    auto* ptr = reinterpret_cast<fem::Timestepper_NaiveOptim<3>*>(ts.get())->GetOptimizer();
+    auto* ncg = dynamic_cast<optim::Optimizer_NonlinearCg*>(ptr);
+    ncg->SetPreconditioner(
+        [](const optim::Variable& x, const optim::Gradient& g) -> optim::Variable {
+          return g * dt;
+        });
+
   } else {
-    AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton'");
+    AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton', got {}", opt);
   }
   ts->SetYoungs(youngs);
   ts->SetPoissonRatio(0.45);
@@ -290,7 +306,7 @@ int main(int argc, char** argv) {
   input_mesh.indices_ = ts->GetMesh()->GetElements();
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
     auto vertices_accessor = math::make_accessor(input_mesh.vertices_);
-    for (auto [i, position]: math::enumerate(vertices_accessor)) {
+    for (auto [i, position] : math::enumerate(vertices_accessor)) {
       if (math::abs(position.x()) > 4.9) {
         // Mark as dirichlet bc.
         if (scene == SCENE_TWIST || position.x() > 4.9) {

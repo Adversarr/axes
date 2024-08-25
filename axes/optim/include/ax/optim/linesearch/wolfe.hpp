@@ -3,6 +3,7 @@
 #include "ax/utils/common.hpp"
 #include "ax/utils/opt.hpp"
 #include "linesearch.hpp"
+
 namespace ax::optim {
 
 class Linesearch_Wofle : public LinesearchBase {
@@ -20,6 +21,11 @@ public:
   Real required_curvature_rate_ = 0.9;
 
   bool strong_wolfe_ = false;
+
+private:
+  bool SatisfiesTerminationCondition(const Variable& dir, const Real& step_length, const Real& f0,
+                                     const Real& expected_descent, const Real& f,
+                                     const Gradient& g) const;
 };
 
 }  // namespace ax::optim

@@ -9,15 +9,15 @@ namespace ax::optim {
 /**
  * @brief Test the arjimo condition.
  *
- *        see https://en.wikipedia.org/wiki/Wolfe_conditions#Armijo_rule_and_curvature
- *
- * @param f_step f(x + alpha p)
  * @param f_original f(x)
  * @param expected_descent p dot grad
  * @param required_descent_rate c1 in the wiki
  * @param step_length
  * @return true
  * @return false
+ *        see https://en.wikipedia.org/wiki/Wolfe_conditions#Armijo_rule_and_curvature
+ *
+ * @param f_step f(x + alpha p)
  */
 inline bool examine_arjimo_condition(Real f_step, Real f_original, Real expected_descent,
                                      Real required_descent_rate) {

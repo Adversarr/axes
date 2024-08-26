@@ -313,7 +313,7 @@ Context::Context(Context&&) noexcept = default;
 
 float get_hidpi_scale() {
   auto scale = 1.0f;
-  auto const& prog_option = get_parse_result();
+  auto const& prog_option = po::get_parse_result();
   for (auto const& option : prog_option) {
     if (option.key() == "gl_hidpi_scale") {
       scale = prog_option["gl_hidpi_scale"].as<float>();

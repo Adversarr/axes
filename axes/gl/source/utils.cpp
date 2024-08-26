@@ -12,19 +12,23 @@ namespace ax::gl {
 
 void init(bool is_registering) {
   if (is_registering) {
-    ax::add_init_hook("InitializeAxglContext", []() -> void { add_resource<Context>(); });
+    ax::add_init_hook("InitializeAxglContext", []() -> void {
+      add_resource<Context>();
+    });
   } else {
     add_resource<Context>();
   }
 
-  ax::add_clean_up_hook("CleanupAxglContext", []() -> void { erase_resource<Context>(); });
+  ax::add_clean_up_hook("CleanupAxglContext", []() -> void {
+    erase_resource<Context>();
+  });
 }
 
 void init(int argc, char** argv) {
   init(true);
-  get_program_options().add_options()("gl_hidpi_scale", "HiDPI scale factor",
-                                      cxxopts::value<float>()->default_value("1.5"));
-  ax::init(argc, argv);
+  po::get_program_options().add_options()("gl_hidpi_scale", "HiDPI scale factor",
+                                          cxxopts::value<float>()->default_value("1.5"));
+  ax::initialize(argc, argv);
 }
 
 void enter_main_loop() {

@@ -19,7 +19,7 @@ __global__ void read_from_span(Span<const float> buffer) {
 
 
 int main(int argc, char** argv) {
-  ax::init(argc, argv);
+  ax::initialize(argc, argv);
 
   thrust::host_vector<float> host(9 * 10);
   for (int i = 0; i < host.size(); i++) {

@@ -56,7 +56,7 @@ using namespace math;
 
 
 int main(int argc, char** argv) {
-  init(argc, argv);
+  initialize(argc, argv);
   benchmark_mm(10);
   benchmark_transpose_inplace(10);
 

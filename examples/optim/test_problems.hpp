@@ -1,5 +1,6 @@
 #pragma once
-#include "common.hpp"
+#include "ax/optim/common.hpp"
+
 namespace ax::optim::test {
 
 class RosenbrockProblem : public OptProblem {
@@ -29,6 +30,11 @@ public:
 private:
   SparseHessian A_;
   Variable b_;
+};
+
+class PoissonProblem : public SparseLeastSquareProblem {
+public:
+  explicit PoissonProblem(Index n);
 };
 
 }  // namespace ax::optim::test

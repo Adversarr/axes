@@ -72,7 +72,7 @@ void print_basic_test_case() {
 }
 
 int main(int argc, char** argv) {
-  init(argc, argv);
+  initialize(argc, argv);
   print_basic_test_case();
   math::RealMatrixX input_mesh_vertices
       = math::read_npy_v10_real(utils::get_asset("/mesh/npy/beam_high_res_vertices.npy"));

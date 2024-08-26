@@ -18,7 +18,7 @@ constexpr Index DIM = 3;
 std::shared_ptr<fem::TriMesh<DIM>> mesh;
 auto kE = fem::ElasticityUpdateLevel::kEnergy;
 int main(int argc, char** argv) {
-  init(argc, argv);
+  initialize(argc, argv);
 
   math::RealVector2 lame = ax::fem::elasticity::compute_lame(1e4, 0.3);
 

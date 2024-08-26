@@ -1,6 +1,7 @@
 #define EIGEN_RUNTIME_NO_MALLOC
 #include <ax/math/common.hpp>
 #include <ax/utils/ndrange.hpp>
+
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/math/sparse.hpp"
@@ -75,8 +76,8 @@ void conjugate_gradient_naive(RealSparseMatrix const& A, RealMatrixX const& b, R
   }
 }
 
-void conjugate_gradient_raw_ptr(RealSparseMatrix const& A, Real const* b_data, Real *x_data,
-                              Index row, Index col, Index niter) {
+void conjugate_gradient_raw_ptr(RealSparseMatrix const& A, Real const* b_data, Real* x_data,
+                                Index row, Index col, Index niter) {
   Eigen::Map<const RealMatrixX> b(b_data, row, col);
   Eigen::Map<RealMatrixX> x(x_data, row, col);
   RealMatrixX r = b - A * x;
@@ -102,11 +103,11 @@ void conjugate_gradient_raw_ptr(RealSparseMatrix const& A, Real const* b_data, R
   } while (0)
 
 int main(int argc, char** argv) {
-  get_program_options().add_options()("ndof", "degree of freedom",
-                                      cxxopts::value<Index>()->default_value("1000"))(
+  po::get_program_options().add_options()("ndof", "degree of freedom",
+                                          cxxopts::value<Index>()->default_value("1000"))(
       "nsample", "number of samples", cxxopts::value<Index>()->default_value("1"))(
       "niteration", "number of iterations", cxxopts::value<Index>()->default_value("50"));
-  init(argc, argv);
+  initialize(argc, argv);
 
   // print_field<RealField1>();
   // print_field<RealField2>();
@@ -126,13 +127,13 @@ int main(int argc, char** argv) {
   constexpr size_t a = std::alignment_of_v<RealMatrix<12, 12>>;
 
   // Allocate A, b, x
-  Index ndof = get_parse_result()["ndof"].as<Index>();
-  Index nsample = get_parse_result()["nsample"].as<Index>();
-  Index niteration = get_parse_result()["niteration"].as<Index>();
+  Index ndof = po::get_parse_result()["ndof"].as<Index>();
+  Index nsample = po::get_parse_result()["nsample"].as<Index>();
+  Index niteration = po::get_parse_result()["niteration"].as<Index>();
   auto A = laplacian_1d(ndof);  // very small
   RealMatrixX b = RealMatrixX::Random(ndof, nsample);
 
-  for (int i = 0; i < 10; ++ i) {
+  for (int i = 0; i < 10; ++i) {
     // Solve Ax = b
     RealMatrixX x = RealMatrixX::Zero(ndof, nsample);
     conjugate_gradient(A, b, x, 10);  ///< launch a warm-up run

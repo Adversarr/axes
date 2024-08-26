@@ -209,22 +209,21 @@ void fix_negative_volume(math::IndexField4& tets, math::RealField3 const& verts)
 }
 
 int main(int argc, char** argv) {
-  ax::get_program_options().add_options()("youngs", "Youngs",
-                                          cxxopts::value<Real>()->default_value("1e7"))(
-      "N", "Num of division", cxxopts::value<int>()->default_value("3"))(
-      "scene", "id of scene, 0 for twist, 1 for bend.",
-      cxxopts::value<std::string>()->default_value("bend"))(
-      "elast", "Hyperelasticity model, nh=Neohookean arap=Arap",
-      cxxopts::value<std::string>()->default_value("stable_neohookean"))(
-      "optim", "optimizer newton 'naive' or 'liu'",
-      cxxopts::value<std::string>()->default_value("newton"))(
-      "device", "cpu or gpu", cxxopts::value<std::string>()->default_value("gpu"))(
-      "optopo", "Optimize topology using RCM.", cxxopts::value<bool>()->default_value("true"))(
-      "lbfgs", "naive, laplacian, hard", cxxopts::value<std::string>()->default_value("laplacian"));
+  po::add_option({
+    po::make_option<Real>("youngs", "Youngs modulus", "1e7"),
+    po::make_option<int>("N", "Num of division", "3"),
+    po::make_option("scene", "id of scene, 0 for twist, 1 for bend.", "bend"),
+    po::make_option("elast", "Hyperelasticity model, nh=Neohookean arap=Arap", "stable_neohookean"),
+    po::make_option("optim", "optimizer newton 'naive' or 'liu'", "newton"),
+    po::make_option("device", "cpu or gpu", "gpu"),
+    po::make_option<bool>("optopo", "Optimize topology using RCM", "true"),
+    po::make_option("lbfgs", "naive, laplacian, hard", "laplacian"),
+    po::make_option("ls", "Line searcher", "kWolfe"),
+  });
 
   ax::gl::init(argc, argv);
   fps.setZero(100);
-  auto sname = get_parse_result()["scene"].as<std::string>();
+  auto sname = po::get_parse_result()["scene"].as<std::string>();
   if (sname == "twist") {
     scene = SCENE_TWIST;
   } else if (sname == "bend") {
@@ -236,11 +235,11 @@ int main(int argc, char** argv) {
   } else {
     AX_CHECK(false, "Invalid scene name.");
   }
-  nx = get_parse_result()["N"].as<int>();
+  nx = po::get_parse_result()["N"].as<int>();
 
   std::string tet_file, vet_file;
 
-  auto youngs = get_parse_result()["youngs"].as<Real>();
+  auto youngs = po::get_parse_result()["youngs"].as<Real>();
 
   lame = fem::elasticity::compute_lame(youngs, 0.45);
   if (scene == SCENE_TWIST || scene == SCENE_BEND) {
@@ -261,9 +260,9 @@ int main(int argc, char** argv) {
   input_mesh.vertices_ = vet.transpose();
   // input_mesh = cube;
 
-  if (auto opt = get_parse_result()["optim"].as<std::string>(); opt == "liu") {
+  if (auto opt = po::get_parse_result()["optim"].as<std::string>(); opt == "liu") {
     ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
-    auto strategy = get_parse_result()["lbfgs"].as<std::string>();
+    auto strategy = po::get_parse_result()["lbfgs"].as<std::string>();
     auto* p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
     if (strategy == "naive") {
       std::cout << "LBFGS: Naive" << std::endl;
@@ -291,7 +290,6 @@ int main(int argc, char** argv) {
         [](const optim::Variable& x, const optim::Gradient& g) -> optim::Variable {
           return g * dt;
         });
-
   } else {
     AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton', got {}", opt);
   }
@@ -323,13 +321,15 @@ int main(int argc, char** argv) {
   }
 
   ts->SetDensity(1e3);
-  ts->SetupElasticity(get_parse_result()["elast"].as<std::string>(),
+  ts->SetupElasticity(po::get_parse_result()["elast"].as<std::string>(),
 #ifdef AX_HAS_CUDA
-                      get_parse_result()["device"].as<std::string>()
+                      po::get_parse_result()["device"].as<std::string>()
 #else
                       "cpu"
 #endif
   );
+  std::string ls = po::get_parse_result()["ls"].as<std::string>();
+  ts->SetOptions({{"optimizer_opt", utils::Options{{"linesearch", ls}}}});
   ts->Initialize();
 
   AX_WARN("Timestepper Options: {}", boost::json::value(ts->GetOptions()));

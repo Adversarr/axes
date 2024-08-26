@@ -141,7 +141,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Op
   utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver", solver_);
   extract_tunable(option, "sparse_solver_opt", solver_.get());
   /* SECT: Lbfgs Options */
-  extract_tunable(option, "lbfgs_opt", &optimizer_);
+  extract_tunable(option, "optimizer_opt", &optimizer_);
   /* SECT: More Options */
   TimeStepperBase<dim>::SetOptions(option);
 }
@@ -149,7 +149,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Op
 template <int dim> utils::Options Timestepper_QuasiNewton<dim>::GetOptions() const {
   auto option = TimeStepperBase<dim>::GetOptions();
   option["lbfgs_strategy"] = utils::reflect_name(strategy_).value();
-  option["lbfgs_opt"] = optimizer_.GetOptions();
+  option["optimizer_opt"] = optimizer_.GetOptions();
   if (solver_) {
     option["sparse_solver"] = utils::reflect_name(solver_->GetKind()).value();
     option["sparse_solver_opt"] = solver_->GetOptions();

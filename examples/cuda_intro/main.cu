@@ -34,7 +34,7 @@ __global__ void gpu_test_accessor(FieldAccessor<Real, 1> accessor) {
 
 int main(int argc, char** argv) {
   // Test whether cuda is available.
-  init(argc, argv);
+  initialize(argc, argv);
   int count;
   cudaError_t err = cudaGetDeviceCount(&count);
   if (err == cudaErrorNoDevice) {

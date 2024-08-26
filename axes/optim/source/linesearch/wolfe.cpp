@@ -1,3 +1,4 @@
+// #define SPDLOG_ACTIVE_LEVEL 0
 #include "ax/optim/linesearch/wolfe.hpp"
 
 #include "ax/core/excepts.hpp"
@@ -74,16 +75,16 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   Real f_last = f0;
   Real g_dot_dir = math::nan<>;
   Real g_dot_dir_last = expected_descent;
+  bool success = false;
 
   // Implements algorithm 3.6
   auto zoom = [&](Real lo, Real hi, Real f_at_lo, Real g_at_lo, Real f_at_hi) {
     Real a, f_at_a;
-    Real a_last, f_last;
-    bool success = false;
+    Real a_last = math::nan<>, f_last = math::nan<>;
+    success = false;
     Real epsilon = 1e-6;
     for (int i = 0; i < 100; ++i) {
-      // Line 1 Interpolate: TODO: Should be configurable.
-      // TODO: follow the code in scipy/optimize/_linesearch.py:573
+      // follow the code in scipy/optimize/_linesearch.py:573
       auto [mi, ma] = std::minmax(lo, hi);
       if (i > 0) {
         // Try to solve cubic.
@@ -91,18 +92,18 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
       }
       if ((i == 0) || a < mi + epsilon || a > ma - epsilon || !math::isfinite(a)) {
         a = fit_quadratic_and_solve(f_at_lo, g_at_lo, f_at_hi, lo, hi);
-        // AX_INFO("Fit result {:12.6e}", a);
+        AX_DEBUG("Fit result {:12.6e}", a);
         if (!math::isfinite(a) || a < mi + epsilon || a > ma - epsilon) {
           a = 0.5 * (lo + hi);
         }
       }
-      // AX_INFO("i={:3} lo={:12.6e} hi={:12.6e} a={:12.6e}", i, lo, hi, a);
+      AX_DEBUG("i={:3} lo={:12.6e} hi={:12.6e} a={:12.6e}", i, lo, hi, a);
       // Line 2 Check the termination condition:
       f_at_a = prob.EvalEnergy(x0 + a * dir);                           // Line 2
       if (f_at_a >= f0 + required_descent_rate_ * a * expected_descent  // Line 3
           || f_at_a >= f_at_lo) {                                       // Line 3
-        // AX_INFO("f_at_a={:12.6e} f0={:12.6e} expected_descent={:12.6e}", f_at_a, f0,
-        //         expected_descent);
+        AX_DEBUG("f_at_a={:12.6e} f0={:12.6e} expected_descent={:12.6e}", f_at_a, f0,
+                 expected_descent);
         a_last = hi;
         f_last = f_at_hi;
         hi = a;            // step size is still too large
@@ -116,7 +117,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
         if (grad_at_a * (hi - lo) >= 0) {  // Line 8
           a_last = hi;
           f_last = f_at_hi;
-          hi = lo;                         // Line 9
+          hi = lo;  // Line 9
           f_at_hi = f_at_lo;
         }
         a_last = lo;
@@ -139,21 +140,22 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
     const bool is_too_large = f > f0 + required_descent_rate_ * alpha * expected_descent;
     const bool is_not_descent = f > f_last && iter > 1;
     if (is_too_large || is_not_descent) {  // Line 5
-      // AX_INFO("Too large step, find a proper alpha between alpha_last and alpha!");
+      AX_DEBUG("Too large step, find a proper alpha between alpha_last and alpha!");
       std::tie(alpha, f) = zoom(alpha_last, alpha, f_last, g_dot_dir_last, f);  // Line 6
       break;
     }
 
     Gradient g = prob.EvalGrad(x);  // Line 7
     g_dot_dir = math::dot(g, dir);
-    // AX_INFO("Alpha={:12.6e} f={:12.6e} g_dot_dir={:12.6e} iter={}", alpha, f, g_dot_dir, iter);
+    AX_DEBUG("Alpha={:12.6e} f={:12.6e} g_dot_dir={:12.6e} iter={}", alpha, f, g_dot_dir, iter);
     if (math::abs(g_dot_dir) <= -required_curvature_rate_ * expected_descent) {  // Line 8
-      // AX_INFO("Satisfies strong wolfe. break directly");
+      AX_DEBUG("Satisfies strong wolfe. break directly");
+      success = true;
       break;  // Line 9
     }
 
     if (g_dot_dir >= 0.) {  // Line 10
-      // AX_INFO("Too small, zooming and break");
+      AX_DEBUG("Too small, zooming and break");
       std::tie(alpha, f) = zoom(alpha, alpha_last, f, g_dot_dir, f_last);  // Line 11
       break;
     }
@@ -169,7 +171,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   opt.x_opt_ = x0 + alpha * dir;  // cannot be x directly, because we may zoom alpha then break.
   opt.f_opt_ = f;
   opt.n_iter_ = iter;
-  opt.converged_ = iter < max_iter_;
+  opt.converged_ = success;
   opt.step_length_ = alpha;
   return opt;
 }

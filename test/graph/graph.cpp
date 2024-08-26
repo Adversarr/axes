@@ -16,7 +16,7 @@ public:
 };
 
 TEST_CASE("Graph") {
-  ax::init();
+  ax::initialize();
   auto node_desc = NodeDescriptorFactory<IntToString>{}
           .SetName("Node")
           .SetDescription("Node description")

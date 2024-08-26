@@ -1,4 +1,6 @@
-#include "ax/optim/test_problems.hpp"
+#include "test_problems.hpp"
+
+#include <iostream>
 
 #include "ax/core/logging.hpp"
 #include "ax/math/functional.hpp"
@@ -61,11 +63,17 @@ LeastSquareProblem::LeastSquareProblem(DenseHessian const& A, Variable const& b)
   SetEnergy([this](Variable const& x) -> Real {
     return (0.5 * (x - b_).transpose() * A_ * (x - b_))(0, 0);
   });
-  SetGrad([this](Variable const& x) { return A_ * (x - b_); });
-  SetHessian([this](Variable const&) { return A_; });
+  SetGrad([this](Variable const& x) {
+    return A_ * (x - b_);
+  });
+  SetHessian([this](Variable const&) {
+    return A_;
+  });
 }
 
-Variable LeastSquareProblem::Optimal(Variable const&) { return b_; }
+Variable LeastSquareProblem::Optimal(Variable const&) {
+  return b_;
+}
 
 SparseLeastSquareProblem::SparseLeastSquareProblem(SparseHessian const& A, Variable const& b)
     : A_(A), b_(b) {
@@ -83,8 +91,27 @@ SparseLeastSquareProblem::SparseLeastSquareProblem(SparseHessian const& A, Varia
   });
 }
 
-Variable SparseLeastSquareProblem::Optimal(Variable const&) {
+Variable SparseLeastSquareProblem::Optimal(Variable const& x0) {
   return b_;
+}
+
+static auto prepare_laplace(Index n) {
+  math::SparseCOO coo;
+  for (Index i = 0; i < n; ++i) {
+    coo.push_back({i, i, 2});
+    if (i > 0) {
+      coo.push_back({i, i - 1, -1});
+    }
+    if (i < n - 1) {
+      coo.push_back({i, i + 1, -1});
+    }
+  }
+  math::RealSparseMatrix laplace = math::make_sparse_matrix(n, n, coo);
+  return laplace;
+}
+
+PoissonProblem::PoissonProblem(Index n)
+    : SparseLeastSquareProblem(prepare_laplace(n), Variable::Random(n, 1)) {
 }
 
 }  // namespace ax::optim::test

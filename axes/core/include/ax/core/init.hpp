@@ -18,10 +18,41 @@ namespace ax {
  * @param argc The number of command-line arguments.
  * @param argv An array of command-line arguments.
  */
-void init(int argc, char** argv);
-void init();
-cxxopts::Options& get_program_options();
-cxxopts::ParseResult& get_parse_result();
+void initialize(int argc, char** argv);
+void initialize();
+
+namespace po {
+using cxxopts::Option;
+using cxxopts::Options;
+using cxxopts::ParseResult;
+
+template <typename T = std::string>
+Option make_option(std::string name, std::string desc, std::string default_value) {
+  return Option(std::move(name), std::move(desc),
+                cxxopts::value<T>()->default_value(std::move(default_value)));
+}
+
+template <>
+inline Option make_option<bool>(std::string name, std::string desc, std::string default_value) {
+  return Option(std::move(name), std::move(desc),
+                cxxopts::value<bool>()->default_value(default_value));
+}
+
+inline Option make_option(std::string name, std::string desc) {
+  return Option(std::move(name), std::move(desc), cxxopts::value<bool>());
+}
+
+Options& get_program_options();
+ParseResult& get_parse_result();
+
+template <typename T = std::string, typename... Args>
+void add_option(const std::string& name, const std::string& desc, Args&&... args) {
+  get_program_options().add_option(make_option<T>(name, desc, std::forward<Args>(args)...));
+}
+
+void add_option(const Option& opt);
+void add_option(std::initializer_list<Option> opt_list);
+}  // namespace po
 
 /**
  * @brief Clean up the core module.

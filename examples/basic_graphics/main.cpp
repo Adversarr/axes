@@ -96,7 +96,7 @@ gl::Mesh create_dummy_sphere() {
 }
 
 int main(int argc, char** argv) {
-  ax::init(argc, argv);
+  ax::initialize(argc, argv);
   auto& ctx = add_resource<gl::Context>();
 
   // SECT: Connect the echo events if the flag is set

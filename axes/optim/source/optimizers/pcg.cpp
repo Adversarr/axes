@@ -128,7 +128,7 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
 
     search_dir = -s + beta * search_dir;
     expect_descent = math::dot(search_dir, grad);  // expect_descent = -grad[n] dot search_dir[n]
-    fmt::print("beta={:12.6e}, stepsize={:12.6e}\n", beta, result.step_length_);
+    // fmt::print("beta={:12.6e}, stepsize={:12.6e}\n", beta, result.step_length_);
 
     // Restart.
     ++cnt_restart;

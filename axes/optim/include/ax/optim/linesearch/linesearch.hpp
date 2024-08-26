@@ -27,6 +27,7 @@ public:
 
   Index max_iter_{100};
   Real min_step_size_{1e-5};
+  Real max_step_size_{1e3};
   Real initial_step_size_{1.0};
   bool verbose_{false};
 };

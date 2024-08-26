@@ -15,17 +15,12 @@ public:
   void SetOptions(utils::Options const& options) override;
   utils::Options GetOptions() const override;
 
-  // Typical value for Newton's method:
+  // Typical value for many Gradient based methods, which is a common choice.
   Real step_shrink_rate_ = 0.5;
   Real required_descent_rate_ = 1e-4;
   Real required_curvature_rate_ = 0.9;
 
   bool strong_wolfe_ = false;
-
-private:
-  bool SatisfiesTerminationCondition(const Variable& dir, const Real& step_length, const Real& f0,
-                                     const Real& expected_descent, const Real& f,
-                                     const Gradient& g) const;
 };
 
 }  // namespace ax::optim

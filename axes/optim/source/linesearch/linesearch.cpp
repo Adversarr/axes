@@ -24,6 +24,7 @@ utils::Options LinesearchBase::GetOptions() const {
   utils::Options opt = utils::Tunable::GetOptions();
   opt["max_iter"] = max_iter_;
   opt["min_step_size"] = min_step_size_;
+  opt["max_step_size"] = max_step_size_;
   opt["initial_step_size"] = initial_step_size_;
   opt["verbose"] = verbose_;
   return opt;
@@ -32,6 +33,7 @@ utils::Options LinesearchBase::GetOptions() const {
 void LinesearchBase::SetOptions(const utils::Options& option) {
   AX_SYNC_OPT(option, Index, max_iter);
   AX_SYNC_OPT(option, Real, min_step_size);
+  AX_SYNC_OPT(option, Real, max_step_size);
   AX_SYNC_OPT(option, Real, initial_step_size);
   AX_SYNC_OPT(option, bool, verbose);
 }

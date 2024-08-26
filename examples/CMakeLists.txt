@@ -39,3 +39,9 @@ if (AX_ENABLE_CUDA)
   axes_add_example(map_to_cuda "axes_core")
 endif()
 
+find_package(benchmark CONFIG QUIET)
+if (benchmark_FOUND)
+  axes_add_example(optimizer_benchmark "benchmark::benchmark;axes_optim")
+endif()
+
+

@@ -62,10 +62,6 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   AX_THROW_IF_TRUE(expected_descent >= 0 || !math::isfinite(expected_descent),
                    "Invalid descent direction: expected_descent={:12.6e}", expected_descent);
 
-  auto select_alpha = [this](Real l, Real h) {
-    return step_shrink_rate_ * (l + h);
-  };
-
   Index iter = 0;
   Variable x;
 
@@ -84,6 +80,10 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
     success = false;
     Real epsilon = 1e-6;
     for (int i = 0; i < 100; ++i) {
+      if (verbose_) {
+        AX_INFO("Zooming: i={:3} lo={:12.6e} hi={:12.6e}", i, lo, hi);
+      }
+
       // follow the code in scipy/optimize/_linesearch.py:573
       auto [mi, ma] = std::minmax(lo, hi);
       if (i > 0) {
@@ -94,7 +94,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
         a = fit_quadratic_and_solve(f_at_lo, g_at_lo, f_at_hi, lo, hi);
         AX_DEBUG("Fit result {:12.6e}", a);
         if (!math::isfinite(a) || a < mi + epsilon || a > ma - epsilon) {
-          a = 0.5 * (lo + hi);
+          a = step_shrink_rate_ * hi + (1 - step_shrink_rate_) * lo;
         }
       }
       AX_DEBUG("i={:3} lo={:12.6e} hi={:12.6e} a={:12.6e}", i, lo, hi, a);
@@ -139,6 +139,11 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
     f = prob.EvalEnergy(x);
     const bool is_too_large = f > f0 + required_descent_rate_ * alpha * expected_descent;
     const bool is_not_descent = f > f_last && iter > 1;
+    if (verbose_) {
+      AX_INFO("Outer {:3}: alpha_last={:12.6e} alpha={:12.6e} f={:12.6e} f_last={:12.6e}", iter,
+              alpha_last, alpha, f, f_last);
+    }
+
     if (is_too_large || is_not_descent) {  // Line 5
       AX_DEBUG("Too large step, find a proper alpha between alpha_last and alpha!");
       std::tie(alpha, f) = zoom(alpha_last, alpha, f_last, g_dot_dir_last, f);  // Line 6
@@ -163,8 +168,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
     g_dot_dir_last = g_dot_dir;
     alpha_last = alpha;
     f_last = f;
-
-    alpha *= 2;
+    alpha *= step_expand_rate_;
   }
 
   OptResult opt;
@@ -178,21 +182,23 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
 
 void Linesearch_Wofle::SetOptions(utils::Options const& options) {
   AX_SYNC_OPT(options, Real, step_shrink_rate);
+  AX_SYNC_OPT(options, Real, step_expand_rate);
   AX_SYNC_OPT(options, Real, required_descent_rate);
   AX_SYNC_OPT(options, Real, required_curvature_rate);
-  AX_SYNC_OPT(options, bool, strong_wolfe);
   LinesearchBase::SetOptions(options);
 }
 
 utils::Options Linesearch_Wofle::GetOptions() const {
   utils::Options opt = LinesearchBase::GetOptions();
   opt["step_shrink_rate"] = step_shrink_rate_;
+  opt["step_expand_rate"] = step_expand_rate_;
   opt["required_descent_rate"] = required_descent_rate_;
-  opt["strong_wolfe"] = strong_wolfe_;
+  opt["required_curvature_rate"] = required_curvature_rate_;
   return opt;
 }
 
 LineSearchKind Linesearch_Wofle::GetKind() const {
   return LineSearchKind::kWolfe;
 }
+
 }  // namespace ax::optim

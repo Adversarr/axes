@@ -255,12 +255,6 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
 
 Optimizer_Lbfgs::Optimizer_Lbfgs() {
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
-
-  auto* ls = static_cast<Linesearch_Backtracking*>(linesearch_.get());
-  ls->required_descent_rate_ = 1e-4;
-  ls->initial_step_size_ = 1.0;
-  ls->step_shrink_rate_ = 0.7;
-
   SetApproxSolve(approx_solve_default);
 }
 

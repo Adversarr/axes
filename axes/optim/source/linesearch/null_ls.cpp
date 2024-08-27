@@ -7,7 +7,7 @@ LineSearchKind Linesearch_Null::GetKind() const {
 }
 
 OptResult Linesearch_Null::Optimize(const OptProblem& prob, const Variable& x0,
-                                    const Gradient& grad, const Variable& dir) const {
+                                    const Gradient& /*grad*/, const Variable& dir) const {
   Variable x = x0 + initial_step_size_ * dir;
   Real energy = prob.EvalEnergy(x);
 

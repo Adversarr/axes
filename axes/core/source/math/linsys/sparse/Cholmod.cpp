@@ -1,11 +1,18 @@
 #include "ax/math/linsys/sparse/Cholmod.hpp"
+#ifdef AX_HAS_CHOLMOD
+#  include <cholmod.h>
+#endif
 
-#include <cholmod.h>
 #include "ax/core/logging.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::math {
 
+SparseSolver_Cholmod::SparseSolver_Cholmod() = default;
+
+SparseSolver_Cholmod::~SparseSolver_Cholmod() = default;
+
+#ifdef AX_HAS_CHOLMOD
 static AX_CONSTEXPR char const* cholmod_status_to_string(int status) {
   switch (status) {
     case CHOLMOD_OK:
@@ -57,10 +64,6 @@ struct SparseSolver_Cholmod::Impl {
 
   cholmod_dense *Ywork = nullptr, *Ework = nullptr;
 };
-
-SparseSolver_Cholmod::SparseSolver_Cholmod() {}
-
-SparseSolver_Cholmod::~SparseSolver_Cholmod() {}
 
 void SparseSolver_Cholmod::AnalyzePattern() {
   auto& A = cached_problem_->A_;
@@ -196,7 +199,7 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const& b, RealMatrixX 
 void SparseSolver_Cholmod::SetOptions(utils::Options const& opt) {
   auto [has_kind, kind] = utils::extract_enum<CholmodSupernodalKind>(opt, "supernodal_kind");
   if (has_kind) {
-    if (! kind) {
+    if (!kind) {
       throw std::invalid_argument("Cholmod::SetOptions: invalid supernodal_kind");
     }
     supernodal_kind_ = *kind;
@@ -232,4 +235,38 @@ math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   return res;
 }
 
+SparseSolverKind SparseSolver_Cholmod::GetKind() const {
+  return static_cast<SparseSolverKind>(-1);
+}
+#else
+struct SparseSolver_Cholmod::Impl {};
+
+void SparseSolver_Cholmod::AnalyzePattern() {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+void SparseSolver_Cholmod::Factorize() {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const&, RealMatrixX const&) {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+void SparseSolver_Cholmod::SetOptions(utils::Options const&) {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+utils::Options SparseSolver_Cholmod::GetOptions() const {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
+  throw std::runtime_error("Cholmod is not available");
+}
+
+SparseSolverKind SparseSolver_Cholmod::GetKind() const {
+  return SparseSolverKind::kCholmod;
+}
+#endif
 }  // namespace ax::math

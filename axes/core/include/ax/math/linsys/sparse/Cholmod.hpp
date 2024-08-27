@@ -1,18 +1,19 @@
 #pragma once
 #include "ax/math/linsys/sparse.hpp"
+
 namespace ax::math {
 
 AX_DEFINE_ENUM_CLASS(CholmodSupernodalKind,
-                        kAuto,        // automatic
-                        kSimplicial,  // use simplicial LDLT
-                        kSupernodal   // use supernodal LLT, numerical issue may occur
+                     kAuto,        // automatic
+                     kSimplicial,  // use simplicial LDLT
+                     kSupernodal   // use supernodal LLT, numerical issue may occur
 );
 
 class SparseSolver_Cholmod final : public SparseSolverBase {
 public:
   SparseSolver_Cholmod();
   ~SparseSolver_Cholmod() override;
-  SparseSolverKind GetKind() const override { return SparseSolverKind::kCholmod; }
+  SparseSolverKind GetKind() const override;
 
   void AnalyzePattern() override;
   void Factorize() override;

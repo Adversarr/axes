@@ -4,6 +4,14 @@
 
 namespace ax::optim {
 
+namespace details {
+static NonlinearCgPreconditioner make_dummy_ncg_precond() noexcept {
+  return [](const Variable& /*x*/, const Gradient& g) {
+    return g;
+  };
+}
+}  // namespace details
+
 Optimizer_NonlinearCg::Optimizer_NonlinearCg() {
   linesearch_ = LinesearchBase::Create(LineSearchKind::kBacktracking);
 }
@@ -42,7 +50,7 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
   AX_THROW_IF_FALSE(prob.HasEnergy(), "Problem does not have energy.");
   AX_THROW_IF_FALSE(prob.HasGrad(), "Problem does not have gradient.");
   if (!precond_) {
-    precond_ = details::Dummy();
+    precond_ = details::make_dummy_ncg_precond();
   }
 
   // initialize the variables
@@ -57,12 +65,15 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
   Real delta_new = math::dot(grad, s);
   Index cnt_restart = 0;
   bool converged_grad = false, converged_var = false;
+  Index last_linesearch_iterations = -1;
   Real expect_descent = 0;
+  Real beta = 0;
   for (; iter < max_iter_; ++iter) {
     if (verbose_) {
       prob.EvalVerbose(iter, x, f);
-      AX_INFO("iter {:3}: f={:12.6e}, |grad|={:12.6e}, |s|={:12.6e}, delta={:12.6e}", iter, f,
+      AX_INFO("iter {:3}: f={:12.6e}, |g|={:12.6e}, |s|={:12.6e}, delta={:12.6e}", iter, f,
               math::norm(grad), math::norm(s), delta_new);
+      AX_INFO("last: linesearch_iter={:3}, beta={:12.6e}", last_linesearch_iterations, beta);
     }
 
     converged_grad = prob.EvalConvergeGrad(x, grad) < tol_grad_;
@@ -78,6 +89,7 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
       AX_ERROR("Linesearch failed: {}", result.err_msg_);
       break;
     }
+    last_linesearch_iterations = result.n_iter_;
 
     // Update x, grad.
     x_old = std::move(x);                  //    x_old = x[n - 1]
@@ -91,17 +103,19 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
     Real delta_mid = math::dot(grad, s);  //   grad[n] dot s[n-1]
     s = precond_(x, grad);                //         s  =  s[n]
     delta_new = math::dot(grad, s);       //   grad[n] dot s[n]
-    Real beta = 0;
     switch (strategy_) {
-      case NonlinearCgStrategy::kFletcherReeves:
+      case NonlinearCgStrategy::kFletcherReeves: {
         beta = delta_new / delta_old;
         break;
-      case NonlinearCgStrategy::kPolakRibiere:
+      }
+      case NonlinearCgStrategy::kPolakRibiere: {
         beta = (delta_new - delta_mid) / delta_old;
         break;
-      case NonlinearCgStrategy::kPolakRibiereClamped:
+      }
+      case NonlinearCgStrategy::kPolakRibiereClamped: {
         beta = std::max(0.0, (delta_new - delta_mid) / delta_old);
         break;
+      }
 
       case NonlinearCgStrategy::kHestenesStiefel: {
         // currently, expected_descent=-grad[n-1] dot search_dir[n-1]
@@ -128,7 +142,6 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
 
     search_dir = -s + beta * search_dir;
     expect_descent = math::dot(search_dir, grad);  // expect_descent = -grad[n] dot search_dir[n]
-    // fmt::print("beta={:12.6e}, stepsize={:12.6e}\n", beta, result.step_length_);
 
     // Restart.
     ++cnt_restart;
@@ -159,11 +172,4 @@ void Optimizer_NonlinearCg::SetPreconditioner(NonlinearCgPreconditioner precond)
   }
 }
 
-namespace details {
-NonlinearCgPreconditioner Dummy() noexcept {
-  return [](const Variable& /*x*/, const Gradient& g) {
-    return g;
-  };
-}
-}  // namespace details
 }  // namespace ax::optim

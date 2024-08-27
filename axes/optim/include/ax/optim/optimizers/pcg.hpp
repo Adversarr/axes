@@ -10,10 +10,6 @@ AX_DEFINE_ENUM_CLASS(NonlinearCgStrategy, kFletcherReeves, kPolakRibiere, kHeste
 
 using NonlinearCgPreconditioner = std::function<Variable(const Variable&, const Gradient&)>;
 
-namespace details {
-NonlinearCgPreconditioner Dummy() noexcept;
-}  // namespace details
-
 class Optimizer_NonlinearCg final : public OptimizerBase {
 public:
   Optimizer_NonlinearCg();

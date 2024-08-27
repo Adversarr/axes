@@ -7,8 +7,15 @@
 
 namespace ax::math {
 
-BOOST_DEFINE_FIXED_ENUM_CLASS(SparseSolverKind, Index, kLDLT, kLLT, kLU, kQR, kConjugateGradient,
-                              kLeastSquaresConjugateGradient, kBiCGSTAB, kCholmod);
+AX_DEFINE_ENUM_CLASS(SparseSolverKind,
+                     // Eigen solvers
+                     kLDLT, kLLT, kLU, kQR, kConjugateGradient, kLeastSquaresConjugateGradient,
+                     kBiCGSTAB,
+#ifdef AX_HAS_CHOLMOD
+                     // Cholmod
+                     kCholmod
+#endif
+);
 
 class SparseSolverBase : public utils::Tunable {
 public:
@@ -62,6 +69,7 @@ public:
    * @return
    */
   virtual LinsysSolveResult Solve(RealMatrixX const& b, RealMatrixX const& x0 = {}) = 0;
+
   AX_FORCE_INLINE LinsysSolveResult operator()(RealMatrixX const& b, RealMatrixX const& x0 = {}) {
     return Solve(b, x0);
   }

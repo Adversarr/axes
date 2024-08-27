@@ -9,7 +9,7 @@ public:
   void Factorize() override;
   RealMatrixX Solve(RealMatrixX const &b) override;
 
-  PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteLU; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::IncompleteLU; }
 
 private:
   Eigen::IncompleteLUT<Real, Index> impl_;

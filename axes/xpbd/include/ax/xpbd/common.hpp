@@ -13,16 +13,16 @@
 
 namespace ax::xpbd {
 
-AX_DEFINE_ENUM_CLASS(ConstraintKind, kInertia,
-                  kSpring,  // the most common elasticity term.
-                  kTetra,   // FEM-like energy.
-                  kCollision,
-                  kPlaneCollider,
-                  kBallCollider,
-                  kVertexFaceCollider,
-                  kEdgeEdgeCollider,
-                  kCollidingBalls,
-                  kHard);
+AX_DEFINE_ENUM_CLASS(ConstraintKind, Inertia,
+                  Spring,  // the most common elasticity term.
+                  Tetra,   // FEM-like energy.
+                  Collision,
+                  PlaneCollider,
+                  BallCollider,
+                  VertexFaceCollider,
+                  EdgeEdgeCollider,
+                  CollidingBalls,
+                  Hard);
 
 struct ConstraintSolution {
   math::RealField3 weighted_position_;

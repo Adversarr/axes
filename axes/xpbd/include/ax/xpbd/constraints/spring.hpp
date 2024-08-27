@@ -9,7 +9,7 @@ public:
 
   void SetSprings(math::IndexField2 const& indices, math::RealField1 const& stiffness);
 
-  ConstraintKind GetKind() const override { return ConstraintKind::kSpring; }
+  ConstraintKind GetKind() const override { return ConstraintKind::Spring; }
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;

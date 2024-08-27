@@ -69,7 +69,9 @@ struct Context::Impl {
 
   std::vector<entt::connection> connections_;
 
-  void OnContextShouldShutdown(ContextShouldShutdownEvent const&) { acknowledged_should_shutdown_ = true; }
+  void OnContextShouldShutdown(ContextShouldShutdownEvent const&) {
+    acknowledged_should_shutdown_ = true;
+  }
 
   void OnKey(const KeyboardEvent& evt);
 
@@ -87,12 +89,7 @@ struct Context::Impl {
 
   void UpdateGrid();
 
-  void OnMenuBar() {
-    if (ImGui::BeginMenu("File")) {
-      ImGui::Checkbox("Settings", &is_context_window_open_);
-      ImGui::EndMenu();
-    }
-  }
+  void OnMenuBar();
 };
 
 void Context::Impl::OnKey(const KeyboardEvent& evt) {
@@ -218,8 +215,8 @@ void Context::Impl::OnUiRender(UiRenderEvent const&) {
   if (ImGui::Begin("AXGL Context", &is_context_window_open_)) {
     if (ImGui::CollapsingHeader("Scene")) {
       ImGui::InputFloat("Mouse Sensitivity", &mouse_sensitivity_);
-      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(), camera_.GetPosition().y(),
-                  camera_.GetPosition().z());
+      ImGui::Text("Camera Position: %.2f, %.2f, %.2f", camera_.GetPosition().x(),
+                  camera_.GetPosition().y(), camera_.GetPosition().z());
       ImGui::Text("Camera Yaw=%.2f Pitch=%.2f", camera_.GetYaw(), camera_.GetPitch());
       ImGui::Checkbox("Perspective", &camera_.use_perspective_);
       update_axes_ = ImGui::Checkbox("Render axes", &render_axis_);
@@ -290,6 +287,7 @@ void Context::Impl::UpdateAxes() {
   }
   update_axes_ = false;
 }
+
 void Context::Impl::UpdateGrid() {
   if (!update_grid_) {
     return;
@@ -307,6 +305,13 @@ void Context::Impl::UpdateGrid() {
     remove_component<Lines>(grid_entity_);
   }
   update_grid_ = false;
+}
+
+void Context::Impl::OnMenuBar() {
+  if (ImGui::BeginMenu("File")) {
+    ImGui::Checkbox("Settings", &is_context_window_open_);
+    ImGui::EndMenu();
+  }
 }
 
 Context::Context(Context&&) noexcept = default;
@@ -342,7 +347,8 @@ Context::Context() {
   impl_->grid_entity_ = cmpt::create_named_entity("SceneGrid");
 
   /* SECT: std::vectoren on Signals */
-  impl_->connections_.emplace_back(connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
+  impl_->connections_.emplace_back(
+      connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
   impl_->connections_.emplace_back(connect<KeyboardEvent, &Impl::OnKey>(*impl_));
   impl_->connections_.emplace_back(connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_));
   impl_->connections_.emplace_back(connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_));
@@ -362,12 +368,14 @@ Context::Context() {
   ImGui::GetStyle().ScaleAllSizes(scale);
   ImGui::GetIO().FontGlobalScale = scale;
 
-  AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
+  AX_THROW_IF_FALSE(ImGui_ImplGlfw_InitForOpenGL(
+                        static_cast<GLFWwindow*>(impl_->window_.GetWindowInternal()), true),
                     "Failed to Initialize ImGUI_Glfw");
 #ifdef __EMSCRIPTEN__
   ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
 #endif
-  AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG), "Failed to Initialize ImGUI_OpenGL3");
+  AX_THROW_IF_FALSE(ImGui_ImplOpenGL3_Init(AXGL_GLSL_VERSION_TAG),
+                    "Failed to Initialize ImGUI_OpenGL3");
 
   /* SECT: Setup SubRenderers */
   impl_->renderers_.emplace_back(std::make_unique<LineRenderer>());
@@ -392,9 +400,13 @@ Context::~Context() {
   AX_TRACE("Destroy OpenGL context");
 }
 
-Window& Context::GetWindow() { return impl_->window_; }
+Window& Context::GetWindow() {
+  return impl_->window_;
+}
 
-Camera& Context::GetCamera() { return impl_->camera_; }
+Camera& Context::GetCamera() {
+  return impl_->camera_;
+}
 
 /************************* SECT: Tick Logic and Tick Renderers *************************/
 
@@ -410,7 +422,9 @@ void Context::Initialize() {
 }
 
 void Context::TickLogic() {
-  if_unlikely(!impl_->has_setuped_) { Initialize(); }
+  if_unlikely (!impl_->has_setuped_) {
+    Initialize();
+  }
   impl_->window_.PollEvents();
   impl_->UpdateLight();
   impl_->UpdateAxes();
@@ -427,7 +441,7 @@ void Context::TickRender() {
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
   auto [r, g, b, a] = math::unpack(impl_->clear_color_);
-  glClearColor(r, g, b ,a);
+  glClearColor(r, g, b, a);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   for (auto& renderer : impl_->renderers_) {
     renderer->TickRender();
@@ -460,16 +474,24 @@ void Context::TickRender() {
   impl_->window_.SwapBuffers();
 }
 
-bool Context::ShouldClose() const { return impl_->acknowledged_should_shutdown_; }
+bool Context::ShouldClose() const {
+  return impl_->acknowledged_should_shutdown_;
+}
 
 void Context::AppendEntityRenderer(std::unique_ptr<RenderBase> renderer) {
   impl_->renderers_.push_back(std::move(renderer));
 }
 
-Light& Context::GetLight() { return impl_->light_; }
+Light& Context::GetLight() {
+  return impl_->light_;
+}
 
-math::FloatMatrix4 const& Context::GetGlobalModelMatrix() const { return impl_->model_; }
+math::FloatMatrix4 const& Context::GetGlobalModelMatrix() const {
+  return impl_->model_;
+}
 
-void Context::SetGlobalModelMatrix(math::FloatMatrix4 const& value) { impl_->model_ = value; }
+void Context::SetGlobalModelMatrix(math::FloatMatrix4 const& value) {
+  impl_->model_ = value;
+}
 
 }  // namespace ax::gl

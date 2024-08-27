@@ -5,7 +5,7 @@ namespace ax::xpbd {
 
 class Constraint_Tetra final : public ConstraintBase {
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kTetra; }
+  ConstraintKind GetKind() const override { return ConstraintKind::Tetra; }
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;

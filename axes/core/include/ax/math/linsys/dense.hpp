@@ -5,53 +5,46 @@
 namespace ax::math {
 
 /****************************** Embedded Solver Kinds ******************************/
-BOOST_DEFINE_FIXED_ENUM_CLASS(DenseSolverKind, Index,
-  // SPSD
-  kLDLT,
-  kLLT,
+AX_DEFINE_ENUM_CLASS(DenseSolverKind,
+                     // SPSD
+                     LDLT, LLT,
 
-  // LU Solvers
-  kPartialPivLU,
-  kFullPivLU,
+                     // LU Solvers
+                     PartialPivLU, FullPivLU,
 
-  // QR-based Solvers
-  kHouseholderQR,
-  kColPivHouseholderQR,
-  kFullPivHouseHolderQR,
-  kCompleteOrthognalDecomposition,
+                     // QR-based Solvers
+                     HouseholderQR, ColPivHouseholderQR, FullPivHouseHolderQR,
+                     CompleteOrthognalDecomposition,
 
-  // SVD-based Solvers
-  kJacobiSVD,
-  kBDCSVD);
+                     // SVD-based Solvers
+                     JacobiSVD, BDCSVD);
 
 /****************************** Implement ******************************/
 class DenseSolverBase : public utils::Tunable {
 public:
   static std::unique_ptr<DenseSolverBase> Create(DenseSolverKind kind);
 
-  virtual ~DenseSolverBase() = default;
+  ~DenseSolverBase() override = default;
 
   DenseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Dense> problem) {
     cached_problem_ = std::move(problem);
     return *this;
   }
 
-  DenseSolverBase& SetProblem(RealMatrixX const &A) {
+  DenseSolverBase& SetProblem(RealMatrixX const& A) {
     return SetProblem(make_dense_problem(A));
   }
 
-  DenseSolverBase& SetProblem(RealMatrixX &&A) {
+  DenseSolverBase& SetProblem(RealMatrixX&& A) {
     return SetProblem(make_dense_problem(A));
   }
 
   virtual void Compute() = 0;
-  virtual RealVectorX Solve(RealVectorX const &b) = 0;
+  virtual RealVectorX Solve(RealVectorX const& b) = 0;
   virtual DenseSolverKind GetKind() const = 0;
-
 
 protected:
   std::shared_ptr<LinsysProblem_Dense> cached_problem_;
 };
 
 }  // namespace ax::math
-

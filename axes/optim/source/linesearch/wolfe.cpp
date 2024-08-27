@@ -198,7 +198,7 @@ utils::Options Linesearch_Wofle::GetOptions() const {
 }
 
 LineSearchKind Linesearch_Wofle::GetKind() const {
-  return LineSearchKind::kWolfe;
+  return LineSearchKind::Wolfe;
 }
 
 }  // namespace ax::optim

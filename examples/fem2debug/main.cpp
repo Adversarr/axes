@@ -42,7 +42,7 @@ void update_entity() {
   mesh->SetMesh(F, V.topRows<2>());
   fem::ElasticityCompute_CPU<2, fem::elasticity::NeoHookeanBW> elast(mesh);
   add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh));
-  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
+  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::Hessian);
   elast.UpdateStress();
   elast.GatherStressToVertices();
   auto force = elast.GetStressOnVertices();

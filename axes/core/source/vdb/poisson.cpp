@@ -11,7 +11,7 @@ void PoissonSolverBase::SetBoundaryCondition(BcFunc boundary_condition) {
 
 std::unique_ptr<PoissonSolverBase> PoissonSolverBase::Create(PoissonSolverKind kind) {
   switch (kind) {
-    case PoissonSolverKind::kVdb:
+    case PoissonSolverKind::Vdb:
       return std::make_unique<VdbPoissonSolver>();
       // case PoissonSolverKind::kMultigrid:
       //   return utils::make_unique<MultigridPoissonSolver>();

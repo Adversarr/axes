@@ -468,9 +468,9 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<di
   dg_l.resize(static_cast<size_t>(n_elem));
   svd_results_.resize(static_cast<size_t>(n_elem));
   bool const need_svd
-      = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)
-        || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::kStress)
-        || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::kHessian);
+      = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::Energy)
+        || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::Stress)
+        || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::Hessian);
   // tbb::parallel_for(
   //     tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_ENERGY_GRAIN),
   //     [&](const tbb::blocked_range<Index>& r) {

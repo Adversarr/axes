@@ -5,8 +5,8 @@
 
 namespace ax::optim {
 
-AX_DEFINE_ENUM_CLASS(NonlinearCgStrategy, kFletcherReeves, kPolakRibiere, kHestenesStiefel,
-                     kDaiYuan, kPolakRibiereClamped, kHestenesStiefelClamped);
+AX_DEFINE_ENUM_CLASS(NonlinearCgStrategy, FletcherReeves, PolakRibiere, HestenesStiefel,
+                     DaiYuan, PolakRibiereClamped, HestenesStiefelClamped);
 
 using NonlinearCgPreconditioner = std::function<Variable(const Variable&, const Gradient&)>;
 
@@ -29,7 +29,7 @@ public:
   void SetPreconditioner(NonlinearCgPreconditioner precond);
 
 private:
-  NonlinearCgStrategy strategy_ = NonlinearCgStrategy::kFletcherReeves;
+  NonlinearCgStrategy strategy_ = NonlinearCgStrategy::FletcherReeves;
   mutable NonlinearCgPreconditioner precond_;
   std::unique_ptr<LinesearchBase> linesearch_;
   Index restart_period_ = 50;

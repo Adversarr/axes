@@ -9,18 +9,16 @@ namespace ax::math {
 
 AX_DEFINE_ENUM_CLASS(SparseSolverKind,
                      // Eigen solvers
-                     kLDLT, kLLT, kLU, kQR, kConjugateGradient, kLeastSquaresConjugateGradient,
-                     kBiCGSTAB,
-#ifdef AX_HAS_CHOLMOD
+                     LDLT, LLT, LU, QR, ConjugateGradient, LeastSquaresConjugateGradient, BiCGSTAB,
+
                      // Cholmod
-                     kCholmod
-#endif
-);
+                     Cholmod);
 
 class SparseSolverBase : public utils::Tunable {
 public:
   SparseSolverBase();
-  virtual ~SparseSolverBase() = default;
+  ~SparseSolverBase() override = default;
+
   static std::unique_ptr<SparseSolverBase> Create(SparseSolverKind kind);
   virtual SparseSolverKind GetKind() const = 0;
 

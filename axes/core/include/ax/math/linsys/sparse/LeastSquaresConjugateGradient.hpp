@@ -11,7 +11,7 @@ public:
 
   LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
-  SparseSolverKind GetKind() const final { return SparseSolverKind::kLeastSquaresConjugateGradient; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::LeastSquaresConjugateGradient; }
 
 private:
   Eigen::LeastSquaresConjugateGradient<RealSparseMatrix> solver_;

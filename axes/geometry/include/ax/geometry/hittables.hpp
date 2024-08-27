@@ -47,14 +47,14 @@ template <int dim> AX_HOST_DEVICE AX_FORCE_INLINE bool has_collide(AlignedBoxN<d
   return a.intersects(b);
 }
 
-AX_DEFINE_ENUM_CLASS(CollisionKind, kVertexFace, kVertexEdge, kVertexVertex, kEdgeEdge, kNone);
+AX_DEFINE_ENUM_CLASS(CollisionKind, VertexFace, VertexEdge, VertexVertex, EdgeEdge, None);
 
 struct CollisionInfo {
   bool valid_;
   CollisionKind type_;
   Real rel_t_;
 
-  inline CollisionInfo() : valid_(false), type_(CollisionKind::kVertexFace), rel_t_(0) {}
+  inline CollisionInfo() : valid_(false), type_(CollisionKind::VertexFace), rel_t_(0) {}
 
   AX_DECLARE_CONSTRUCTOR(CollisionInfo, default, default);
 
@@ -65,7 +65,7 @@ struct CollisionInfo {
   inline static CollisionInfo VertexFace(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
-    info.type_ = CollisionKind::kVertexFace;
+    info.type_ = CollisionKind::VertexFace;
     info.rel_t_ = rel_t;
     return info;
   }
@@ -73,7 +73,7 @@ struct CollisionInfo {
   inline static CollisionInfo VertexEdge(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
-    info.type_ = CollisionKind::kVertexEdge;
+    info.type_ = CollisionKind::VertexEdge;
     info.rel_t_ = rel_t;
     return info;
   }
@@ -81,7 +81,7 @@ struct CollisionInfo {
   inline static CollisionInfo VertexVertex(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
-    info.type_ = CollisionKind::kVertexVertex;
+    info.type_ = CollisionKind::VertexVertex;
     info.rel_t_ = rel_t;
     return info;
   }
@@ -89,7 +89,7 @@ struct CollisionInfo {
   inline static CollisionInfo EdgeEdge(Real rel_t) {
     CollisionInfo info;
     info.valid_ = true;
-    info.type_ = CollisionKind::kEdgeEdge;
+    info.type_ = CollisionKind::EdgeEdge;
     info.rel_t_ = rel_t;
     return info;
   }
@@ -102,20 +102,20 @@ struct BroadPhaseCollisionInfo {
 };
 
 /************************* SECT: Broad Phase *************************/
-AX_DEFINE_ENUM_CLASS(PrimitiveKind, kVertex, kSegment, kTriangle);
+AX_DEFINE_ENUM_CLASS(PrimitiveKind, Vertex, Segment, Triangle);
 
 namespace details {
 
 template <typename T> struct primitive_kind_refl;
 
 template <> struct primitive_kind_refl<Vertex3> {
-  static constexpr PrimitiveKind value = PrimitiveKind::kVertex;
+  static constexpr PrimitiveKind value = PrimitiveKind::Vertex;
 };
 template <> struct primitive_kind_refl<Segment3> {
-  static constexpr PrimitiveKind value = PrimitiveKind::kSegment;
+  static constexpr PrimitiveKind value = PrimitiveKind::Segment;
 };
 template <> struct primitive_kind_refl<Triangle3> {
-  static constexpr PrimitiveKind value = PrimitiveKind::kTriangle;
+  static constexpr PrimitiveKind value = PrimitiveKind::Triangle;
 };
 }  // namespace details
 
@@ -135,14 +135,14 @@ using BroadPhaseResult = std::map<CollisionKind, std::vector<BroadPhaseCollision
 
 inline CollisionKind get_collision_kind(PrimitiveKind a, PrimitiveKind b) {
   if (static_cast<int>(b) < static_cast<int>(a)) return get_collision_kind(b, a);
-  if (a == PrimitiveKind::kVertex && b == PrimitiveKind::kTriangle) {
-    return CollisionKind::kVertexFace;
-  } else if (a == PrimitiveKind::kVertex && b == PrimitiveKind::kSegment) {
-    return CollisionKind::kVertexEdge;
-  } else if (a == PrimitiveKind::kVertex && b == PrimitiveKind::kVertex) {
-    return CollisionKind::kVertexVertex;
-  } else if (a == PrimitiveKind::kSegment && b == PrimitiveKind::kSegment) {
-    return CollisionKind::kEdgeEdge;
+  if (a == PrimitiveKind::Vertex && b == PrimitiveKind::Triangle) {
+    return CollisionKind::VertexFace;
+  } else if (a == PrimitiveKind::Vertex && b == PrimitiveKind::Segment) {
+    return CollisionKind::VertexEdge;
+  } else if (a == PrimitiveKind::Vertex && b == PrimitiveKind::Vertex) {
+    return CollisionKind::VertexVertex;
+  } else if (a == PrimitiveKind::Segment && b == PrimitiveKind::Segment) {
+    return CollisionKind::EdgeEdge;
   }
   AX_UNREACHABLE();
 }

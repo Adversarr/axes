@@ -12,6 +12,10 @@ SparseSolver_Cholmod::SparseSolver_Cholmod() = default;
 
 SparseSolver_Cholmod::~SparseSolver_Cholmod() = default;
 
+SparseSolverKind SparseSolver_Cholmod::GetKind() const {
+  return SparseSolverKind::Cholmod;
+}
+
 #ifdef AX_HAS_CHOLMOD
 static AX_CONSTEXPR char const* cholmod_status_to_string(int status) {
   switch (status) {
@@ -73,13 +77,13 @@ void SparseSolver_Cholmod::AnalyzePattern() {
   auto& A_chol = impl_->A;
 
   switch (supernodal_kind_) {
-    case CholmodSupernodalKind::kAuto:
+    case CholmodSupernodalKind::Auto:
       common.supernodal = CHOLMOD_AUTO;
       break;
-    case CholmodSupernodalKind::kSimplicial:
+    case CholmodSupernodalKind::Simplicial:
       common.supernodal = CHOLMOD_SIMPLICIAL;
       break;
-    case CholmodSupernodalKind::kSupernodal:
+    case CholmodSupernodalKind::Supernodal:
       common.supernodal = CHOLMOD_SUPERNODAL;
       break;
     default:
@@ -151,13 +155,13 @@ int SparseSolver_Cholmod::FactorizeOnce() {
 void SparseSolver_Cholmod::Factorize() {
   int status = FactorizeOnce();
   if (status == CHOLMOD_NOT_POSDEF) {
-    if (supernodal_kind_ != CholmodSupernodalKind::kSimplicial) {
+    if (supernodal_kind_ != CholmodSupernodalKind::Simplicial) {
       // Retry with simplicial
       AX_WARN("Cholmod failed to factorize with supernodal, retry with simplicial");
     } else {
       throw std::runtime_error("Cholmod::Factorize failed");
     }
-    supernodal_kind_ = CholmodSupernodalKind::kSimplicial;
+    supernodal_kind_ = CholmodSupernodalKind::Simplicial;
     AnalyzePattern();
     status = FactorizeOnce();
   }
@@ -235,9 +239,6 @@ math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   return res;
 }
 
-SparseSolverKind SparseSolver_Cholmod::GetKind() const {
-  return static_cast<SparseSolverKind>(-1);
-}
 #else
 struct SparseSolver_Cholmod::Impl {};
 
@@ -265,8 +266,5 @@ math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   throw std::runtime_error("Cholmod is not available");
 }
 
-SparseSolverKind SparseSolver_Cholmod::GetKind() const {
-  return SparseSolverKind::kCholmod;
-}
 #endif
 }  // namespace ax::math

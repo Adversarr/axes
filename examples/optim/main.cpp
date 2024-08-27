@@ -37,8 +37,8 @@ int main(int argc, char** argv) {
       "verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))(
       "dof", "Degrees of freedom", cxxopts::value<Index>()->default_value("2"))(
       "pcg_strategy", "PCG strategy",
-      cxxopts::value<std::string>()->default_value("kFletcherReeves"))(
-      "linesearch", "Line search method", cxxopts::value<std::string>()->default_value("kWolfe"));
+      cxxopts::value<std::string>()->default_value("FletcherReeves"))(
+      "linesearch", "Line search method", cxxopts::value<std::string>()->default_value("Wolfe"));
 
   initialize(argc, argv);
 
@@ -60,11 +60,11 @@ int main(int argc, char** argv) {
 
   /************************* SECT: Create Optimizer *************************/
   if (optimizer_name == "lbfgs") {
-    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::kLbfgs);
+    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::Lbfgs);
   } else if (optimizer_name == "gd") {
-    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::kGradientDescent);
+    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::GradientDescent);
   } else if (optimizer_name == "pcg") {
-    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::kNonlinearCg);
+    optimizer = optim::OptimizerBase::Create(optim::OptimizerKind::NonlinearCg);
     optimizer->SetOptions({
       {"strategy", po::get_parse_result()["pcg_strategy"].as<std::string>()},
     });

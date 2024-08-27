@@ -108,6 +108,6 @@ utils::Options Linesearch_Backtracking::GetOptions() const {
 }
 
 LineSearchKind Linesearch_Backtracking::GetKind() const {
-  return LineSearchKind::kBacktracking;
+  return LineSearchKind::Backtracking;
 }
 }  // namespace ax::optim

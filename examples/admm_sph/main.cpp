@@ -45,7 +45,7 @@ void render_aabb() {
     box.max() = g.vertices_.col(i);
     box.min().array() -= R;
     box.max().array() += R;
-    otree.AddCollider(box, i, i, geo::PrimitiveKind::kVertex);
+    otree.AddCollider(box, i, i, geo::PrimitiveKind::Vertex);
   }
 
   otree.DetectCollisions();
@@ -248,39 +248,39 @@ int main(int argc, char** argv) {
 
   g.mass_.setConstant(1, nV, 0.01);
   g.ext_accel_.row(1).array() -= 9.8;
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::Inertia));
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kTetra));
   // auto* tetra = reinterpret_cast<xpbd::Constraint_Tetra*>(g.constraints_.back().get());
   // tetra->SetTetrahedrons(cube.indices_, math::RealField1::Constant(1, cube.indices_.cols(), 1e5));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kCollidingBalls));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::CollidingBalls));
   auto* cb = reinterpret_cast<xpbd::Constraint_CollidingBalls*>(g.constraints_.back().get());
   cb->ball_radius_ = R * 2;
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::PlaneCollider));
   bottom = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   bottom->normal_ = math::RealVector3{0, 1, 0};
   bottom->offset_ = -.5;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::PlaneCollider));
   auto* left = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   left->normal_ = math::RealVector3{1, 0, 0};
   left->offset_ = -.5;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::PlaneCollider));
   auto* right = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   right->normal_ = math::RealVector3{-1, 0, 0};
   right->offset_ = -.5;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::PlaneCollider));
   auto* front = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   front->normal_ = math::RealVector3{0, 0, 1};
   front->offset_ = -.5;
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kPlaneCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::PlaneCollider));
   auto* back = reinterpret_cast<xpbd::Constraint_PlaneCollider*>(g.constraints_.back().get());
   back->normal_ = math::RealVector3{0, 0, -1};
   back->offset_ = -.5;

@@ -5,7 +5,7 @@
 namespace ax::xpbd {
 class Constraint_VertexFaceCollider : public ConstraintBase {
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kVertexFaceCollider; }
+  ConstraintKind GetKind() const override { return ConstraintKind::VertexFaceCollider; }
   Constraint_VertexFaceCollider() = default;
   ~Constraint_VertexFaceCollider() override = default;
 

@@ -13,7 +13,7 @@ template <int dim> void Timestepper_QuasiNewton<dim>::Initialize() {
   TimeStepperBase<dim>::Initialize();
   if (!solver_) {
     AX_WARN("Use default sparse solver: Cholmod.");
-    solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kCholmod);
+    solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::Cholmod);
   }
 }
 

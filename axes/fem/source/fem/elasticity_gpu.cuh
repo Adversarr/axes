@@ -151,9 +151,9 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::RealField<di
   AX_CHECK(error == cudaSuccess, "Failed to copy pose to GPU: {}", cudaGetErrorString(error));
   Index n_elem = this->mesh_->GetNumElements();
   bool const need_svd
-      = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::kEnergy)
-        || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::kStress)
-        || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::kHessian);
+      = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::Energy)
+        || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::Stress)
+        || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::Hessian);
   compute_deformation_gradient<dim><<<(n_elem + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
       thrust::raw_pointer_cast(impl_->elements_.data()),
       thrust::raw_pointer_cast(impl_->pose_gpu_.data()),

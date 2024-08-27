@@ -7,11 +7,11 @@
 namespace ax::optim {
 
 AX_DEFINE_ENUM_CLASS(OptimizerKind,
-    kNewton,
-    kGradientDescent,
-    kLbfgs,
-    kFista,
-    kNonlinearCg);
+    Newton,
+    GradientDescent,
+    Lbfgs,
+    Fista,
+    NonlinearCg);
 
 class OptimizerBase : public utils::Tunable {
 public:

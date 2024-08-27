@@ -6,7 +6,7 @@ namespace ax::xpbd {
 
 class Constraint_PlaneCollider final : public ConstraintBase {
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kPlaneCollider; }
+  ConstraintKind GetKind() const override { return ConstraintKind::PlaneCollider; }
   ~Constraint_PlaneCollider() override = default;
 
   ConstraintSolution SolveDistributed() override;

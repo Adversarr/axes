@@ -19,7 +19,7 @@ public:
   // };
 
   Constraint_AllCollision() = default;
-  ConstraintKind GetKind() const override { return ConstraintKind::kCollision; }
+  ConstraintKind GetKind() const override { return ConstraintKind::Collision; }
   ~Constraint_AllCollision() = default;
 
   ConstraintSolution SolveDistributed() override;

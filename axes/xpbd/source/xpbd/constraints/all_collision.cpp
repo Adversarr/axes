@@ -140,7 +140,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
     auto const& face = g.faces_[f];
     this->constraint_mapping_.emplace_back(query(v), query(face.x()), query(face.y()),
                                            query(face.z()));
-    kind_.push_back(CollisionKind::kVertexFace);
+    kind_.push_back(CollisionKind::VertexFace);
     auto& di = dual_.emplace_back();
     auto& actual = gap_.emplace_back();
 
@@ -161,7 +161,7 @@ void Constraint_AllCollision::UpdatePositionConsensus() {
     auto const& edge2 = g.edges_[e2];
     constraint_mapping_.emplace_back(query(edge1.x()), query(edge1.y()), query(edge2.x()),
                                      query(edge2.y()));
-    kind_.push_back(CollisionKind::kEdgeEdge);
+    kind_.push_back(CollisionKind::EdgeEdge);
     auto& di = dual_.emplace_back();
     auto& actual = gap_.emplace_back();
     di.col(0) = g.last_vertices_.col(edge1.x());

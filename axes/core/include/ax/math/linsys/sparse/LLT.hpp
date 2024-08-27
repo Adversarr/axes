@@ -11,7 +11,7 @@ public:
 
   LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
-  SparseSolverKind GetKind() const final { return SparseSolverKind::kLLT; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::LLT; }
 
 private:
   Eigen::SimplicialLLT<RealSparseMatrix> solver_;

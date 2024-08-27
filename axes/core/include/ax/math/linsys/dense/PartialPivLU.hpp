@@ -6,7 +6,7 @@ class DenseSolver_PartialPivLU : public DenseSolverBase {
 public:
   RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
-  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kPartialPivLU; }
+  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::PartialPivLU; }
 
 private:
   Eigen::PartialPivLU<RealMatrixX> impl_;

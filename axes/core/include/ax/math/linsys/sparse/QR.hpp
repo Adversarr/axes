@@ -11,7 +11,7 @@ public:
 
   LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
-  SparseSolverKind GetKind() const final { return SparseSolverKind::kQR; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::QR; }
 
 private:
   Eigen::SparseQR<RealSparseMatrix, Eigen::COLAMDOrdering<Index>> solver_;

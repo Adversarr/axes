@@ -9,7 +9,7 @@ public:
   void Factorize() override;
   RealMatrixX Solve(RealMatrixX const &b) override;
 
-  PreconditionerKind GetKind() const final { return PreconditionerKind::kDiagonal; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::Diagonal; }
 
 private:
   Eigen::DiagonalPreconditioner<Real> impl_;

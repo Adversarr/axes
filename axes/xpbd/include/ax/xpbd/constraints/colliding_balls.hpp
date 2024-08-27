@@ -8,7 +8,7 @@ public:
   Constraint_CollidingBalls() = default;
   ~Constraint_CollidingBalls() = default;
 
-  ConstraintKind GetKind() const override { return ConstraintKind::kCollidingBalls; }
+  ConstraintKind GetKind() const override { return ConstraintKind::CollidingBalls; }
 
   ConstraintSolution SolveDistributed() override;
   void BeginStep() override;

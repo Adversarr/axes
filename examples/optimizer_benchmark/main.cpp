@@ -70,8 +70,8 @@ struct Rosenbrock : public BenchmarkProblemBase<Rosenbrock> {
 };
 }  // namespace xx
 
-std::vector<std::string> all_optimizers = {"kNonlinearCg", "kLbfgs"};
-std::vector<std::string> all_linesearch = {"kBacktracking", "kWolfe"};
+std::vector<std::string> all_optimizers = {"NonlinearCg", "Lbfgs"};
+std::vector<std::string> all_linesearch = {"Backtracking", "Wolfe"};
 
 template <typename Problem, size_t kopt, size_t kls>
 void BM_Optimize(benchmark::State& state) {

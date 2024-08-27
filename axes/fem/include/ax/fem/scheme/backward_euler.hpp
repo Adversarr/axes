@@ -6,7 +6,8 @@ namespace ax::fem {
 template <int dim> class TimestepScheme_BackwardEuler : public TimestepSchemeBase<dim> {
 public:
   TimestepScheme_BackwardEuler() = default;
-  ~TimestepScheme_BackwardEuler() = default;
+
+  ~TimestepScheme_BackwardEuler() override = default;
 
   virtual TimestepSchemeKind GetKind() const final { return TimestepSchemeKind::kBackwardEuler; }
 

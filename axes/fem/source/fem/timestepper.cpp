@@ -204,14 +204,14 @@ template <int dim> void TimeStepperBase<dim>::SetLame(const math::RealVector2& u
 
 template <int dim>
 math::RealSparseMatrix TimeStepperBase<dim>::GetStiffnessMatrix(math::RealField<dim> const& u, bool project) const {
-  elasticity_->Update(u, ElasticityUpdateLevel::kHessian);
+  elasticity_->Update(u, ElasticityUpdateLevel::Hessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
   return elasticity_->GetHessianOnVertices();
 }
 
 template <int dim> math::RealField<dim> TimeStepperBase<dim>::GetElasticForce(math::RealField<dim> const& u) const {
-  elasticity_->Update(u, ElasticityUpdateLevel::kStress);
+  elasticity_->Update(u, ElasticityUpdateLevel::Stress);
   elasticity_->UpdateStress();
   elasticity_->GatherStressToVertices();
   return elasticity_->GetStressOnVertices();
@@ -272,7 +272,7 @@ template <int dim> void TimeStepperBase<dim>::SolveTimestep() {
 
 template <int dim> Real TimeStepperBase<dim>::Energy(math::RealField<dim> const& u) const {
   math::RealField<dim> x_new = u + mesh_->GetVertices();
-  elasticity_->Update(x_new, ElasticityUpdateLevel::kEnergy);
+  elasticity_->Update(x_new, ElasticityUpdateLevel::Energy);
   elasticity_->UpdateEnergy();
   // math::RealField<dim> const du = u - u_inertia_;
   // math::RealField<dim> const Mdu = 0.5 * du * mass_matrix_original_;
@@ -289,7 +289,7 @@ template <int dim> Real TimeStepperBase<dim>::Energy(math::RealField<dim> const&
 
 template <int dim> math::RealField<dim> TimeStepperBase<dim>::Gradient(math::RealField<dim> const& u_cur) const {
   math::RealField<dim> x_new = u_cur + mesh_->GetVertices();
-  elasticity_->Update(x_new, ElasticityUpdateLevel::kStress);
+  elasticity_->Update(x_new, ElasticityUpdateLevel::Stress);
   elasticity_->UpdateStress();
   elasticity_->GatherStressToVertices();
   math::RealField<dim> neg_force = elasticity_->GetStressOnVertices();
@@ -306,7 +306,7 @@ template <int dim> math::RealVectorX TimeStepperBase<dim>::GradientFlat(math::Re
 template <int dim> math::RealSparseMatrix TimeStepperBase<dim>::Hessian(math::RealField<dim> const& u, bool project) const {
   math::RealField<dim> x_new = u + mesh_->GetVertices();
   // math::RealField<dim> du = u - u_;
-  elasticity_->Update(x_new, ElasticityUpdateLevel::kHessian);
+  elasticity_->Update(x_new, ElasticityUpdateLevel::Hessian);
   elasticity_->UpdateHessian(project);
   elasticity_->GatherHessianToVertices();
   auto const& stiffness = elasticity_->GetHessianOnVertices();

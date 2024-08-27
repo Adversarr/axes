@@ -8,7 +8,7 @@ public:
   RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
 
-  DenseSolverKind GetKind() const final { return DenseSolverKind::kJacobiSVD; }
+  DenseSolverKind GetKind() const final { return DenseSolverKind::JacobiSVD; }
 
 private:
   Eigen::JacobiSVD<RealMatrixX> impl_;

@@ -23,7 +23,8 @@ AX_DEFINE_ENUM_CLASS(TimestepConvergeNormKind, kL2, kL1, kLinf);
 // One step of Linear solve should give you the correct result.
 // WARNING: You should not apply the base solver to solve real world problems, this implementation
 //          is only reserved for testing.
-template <int dim> class TimeStepperBase : public utils::Tunable {
+template <int dim>
+class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
   TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
@@ -31,15 +32,30 @@ public:
   virtual ~TimeStepperBase();
 
   // Common Data Accessors
-  std::shared_ptr<TriMesh<dim>> GetMesh() { return mesh_; }
-  ElasticityComputeBase<dim> &GetElasticity() { return *elasticity_; }
-  TimestepSchemeBase<dim> &GetIntegrationScheme() { return *integration_scheme_; }
+  std::shared_ptr<TriMesh<dim>> GetMesh() {
+    return mesh_;
+  }
+
+  ElasticityComputeBase<dim> &GetElasticity() {
+    return *elasticity_;
+  }
+
+  TimestepSchemeBase<dim> &GetIntegrationScheme() {
+    return *integration_scheme_;
+  }
+
   virtual void SetOptions(const utils::Options &option) override;
   virtual utils::Options GetOptions() const override;
 
   // External force getter/setter
-  math::RealField<dim> const &GetExternalAcceleration() const { return ext_accel_; }
-  void SetExternalAcceleration(math::RealField<dim> const &ext_force) { ext_accel_ = ext_force; }
+  math::RealField<dim> const &GetExternalAcceleration() const {
+    return ext_accel_;
+  }
+
+  void SetExternalAcceleration(math::RealField<dim> const &ext_force) {
+    ext_accel_ = ext_force;
+  }
+
   void SetExternalAccelerationUniform(math::RealVector<dim> const &ext_force) {
     SetExternalAcceleration(ext_force.replicate(1, mesh_->GetNumVertices()));
   }
@@ -48,25 +64,46 @@ public:
   /*************************
    * SECT: Constant APIs.
    *************************/
-  math::RealField<dim> const &GetDisplacement() const { return u_; }
-  math::RealField<dim> const &GetLastDisplacement() const { return u_back_; }
-  math::RealField<dim> const &GetNextDisplacementDelta() const { return du_; }
-  math::RealField<dim> const &GetVelocity() const { return velocity_; }
+  math::RealField<dim> const &GetDisplacement() const {
+    return u_;
+  }
+
+  math::RealField<dim> const &GetLastDisplacement() const {
+    return u_back_;
+  }
+
+  math::RealField<dim> const &GetNextDisplacementDelta() const {
+    return du_;
+  }
+
+  math::RealField<dim> const &GetVelocity() const {
+    return velocity_;
+  }
+
   math::RealField<dim> GetPosition() const;
   math::RealField<dim> GetLastPosition() const;
 
   // SECT: Density: Will update the mass matrices.
   void SetDensity(Real density);
   void SetDensity(math::RealField1 const &density);
-  math::RealSparseMatrix const &GetMassMatrix() const noexcept { return mass_matrix_; }
-  math::RealSparseMatrix const &GetMassMatrixOriginal() const noexcept { return mass_matrix_original_; }
+
+  math::RealSparseMatrix const &GetMassMatrix() const noexcept {
+    return mass_matrix_;
+  }
+
+  math::RealSparseMatrix const &GetMassMatrixOriginal() const noexcept {
+    return mass_matrix_original_;
+  }
 
   // SECT: Lame:
   void SetYoungs(Real youngs);
   void SetPoissonRatio(Real poisson_ratio);
   void SetLame(const math::RealField2 &lame);
   void SetLame(const math::RealVector2 &u_lame);
-  math::RealField2 const &GetLame() const noexcept { return lame_; }
+
+  math::RealField2 const &GetLame() const noexcept {
+    return lame_;
+  }
 
   void SetupElasticity(std::string name, std::string device);
 
@@ -91,17 +128,26 @@ public:
   // Solve the timestep
   optim::OptProblem AssembleProblem();
   void RecomputeInitialGuess(math::RealField<dim> const &u, math::RealField<dim> const &u_back,
-                             math::RealField<dim> const &velocity, math::RealField<dim> const &velocity_back,
+                             math::RealField<dim> const &velocity,
+                             math::RealField<dim> const &velocity_back,
                              math::RealField<dim> const &ext_accel);
-  math::RealField<dim> const &GetInitialGuess() const { return du_inertia_; }
-  math::RealField<dim> const &GetSolution() const { return du_; }
+
+  math::RealField<dim> const &GetInitialGuess() const {
+    return du_inertia_;
+  }
+
+  math::RealField<dim> const &GetSolution() const {
+    return du_;
+  }
+
   virtual void SolveTimestep();
 
   // SECT: During the timestep, optimizers may require such information
 
   Real Energy(math::RealField<dim> const &u) const;
   math::RealField<dim> GetElasticForce(math::RealField<dim> const &u) const;
-  math::RealSparseMatrix GetStiffnessMatrix(math::RealField<dim> const &u, bool project = false) const;
+  math::RealSparseMatrix GetStiffnessMatrix(math::RealField<dim> const &u,
+                                            bool project = false) const;
   math::RealField<dim> Gradient(math::RealField<dim> const &u) const;
   math::RealVectorX GradientFlat(math::RealVectorX const &u_flat) const;
   math::RealSparseMatrix Hessian(math::RealField<dim> const &u, bool project = true) const;
@@ -111,8 +157,13 @@ public:
   Real L1Residual(math::RealField<dim> const &grad) const;
   Real LinfResidual(math::RealField<dim> const &grad) const;
 
-  std::vector<math::RealField<dim>> const &GetLastTrajectory() const { return last_trajectory_; }
-  std::vector<Real> const &GetLastEnergy() const { return last_energy_; }
+  std::vector<math::RealField<dim>> const &GetLastTrajectory() const {
+    return last_trajectory_;
+  }
+
+  std::vector<Real> const &GetLastEnergy() const {
+    return last_energy_;
+  }
 
 protected:
   /************************* SECT: Common Data *************************/
@@ -137,8 +188,7 @@ protected:
   math::RealField<dim> du_inertia_, du_, u_inertia_;
 
   // runtime parameters.
-  // math::RealVector2 u_lame_;                 ///< Uniform Lame parameters
-  math::RealField2 lame_;                 ///< Lame parameters
+  math::RealField2 lame_;                        ///< Lame parameters
   math::RealSparseMatrix mass_matrix_;           ///< The full mass matrix, (N D, N D)
   math::RealSparseMatrix mass_matrix_original_;  ///< The original mass matrix, (N, N)
 

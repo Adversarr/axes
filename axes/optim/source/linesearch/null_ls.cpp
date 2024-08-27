@@ -3,7 +3,7 @@
 namespace ax::optim {
 
 LineSearchKind Linesearch_Null::GetKind() const {
-  return LineSearchKind::kNull;
+  return LineSearchKind::Null;
 }
 
 OptResult Linesearch_Null::Optimize(const OptProblem& prob, const Variable& x0,

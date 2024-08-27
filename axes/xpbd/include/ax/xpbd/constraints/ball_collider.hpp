@@ -5,7 +5,7 @@ namespace ax::xpbd {
 
 class Constraint_BallCollider final : public ConstraintBase{
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kBallCollider; }
+  ConstraintKind GetKind() const override { return ConstraintKind::BallCollider; }
   ~Constraint_BallCollider() override = default;
 
   ConstraintSolution SolveDistributed() override;

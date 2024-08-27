@@ -5,7 +5,7 @@
 
 namespace ax::vdb {
 
-BOOST_DEFINE_ENUM(PoissonSolverKind, kVdb);
+BOOST_DEFINE_ENUM(PoissonSolverKind, Vdb);
 
 class PoissonSolverBase : public utils::Tunable {
 public:

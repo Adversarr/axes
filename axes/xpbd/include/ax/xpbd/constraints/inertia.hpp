@@ -6,7 +6,7 @@ namespace ax::xpbd {
 
 class Constraint_Inertia final : public ConstraintBase {
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kInertia; }
+  ConstraintKind GetKind() const override { return ConstraintKind::Inertia; }
 
   ConstraintSolution SolveDistributed() override;
 

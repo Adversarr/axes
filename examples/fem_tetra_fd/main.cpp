@@ -16,7 +16,7 @@ using namespace ax;
 constexpr Index DIM = 3;
 
 std::shared_ptr<fem::TriMesh<DIM>> mesh;
-auto kE = fem::ElasticityUpdateLevel::kEnergy;
+auto kE = fem::ElasticityUpdateLevel::Energy;
 int main(int argc, char** argv) {
   initialize(argc, argv);
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
   mesh->SetVertices(original_vertices);
   elast.RecomputeRestPose();
   elast.SetLame(lame);
-  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
+  elast.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::Hessian);
 
   // Compute Gradient by Finite Difference:
   elast.Update(mesh->GetVertices(), kE);

@@ -10,7 +10,7 @@ public:
 
   RealMatrixX Solve(RealMatrixX const &b) override;
 
-  PreconditionerKind GetKind() const final { return PreconditionerKind::kIncompleteCholesky; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::IncompleteCholesky; }
 
 private:
   Eigen::IncompleteCholesky<Real, Eigen::Lower, Eigen::NaturalOrdering<Index>> impl_;

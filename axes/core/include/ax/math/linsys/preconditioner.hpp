@@ -7,8 +7,7 @@
 
 namespace ax::math {
 
-BOOST_DEFINE_FIXED_ENUM_CLASS(PreconditionerKind, Index, kIdentity, kDiagonal, kIncompleteCholesky,
-                              kIncompleteLU);
+AX_DEFINE_ENUM_CLASS(PreconditionerKind, Identity, Diagonal, IncompleteCholesky, IncompleteLU);
 
 class PreconditionerBase : public utils::Tunable {
 public:

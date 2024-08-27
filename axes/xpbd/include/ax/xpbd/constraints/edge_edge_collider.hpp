@@ -6,7 +6,7 @@ namespace ax::xpbd {
 class Constraint_EdgeEdgeCollider : public ConstraintBase {
 public:
   Constraint_EdgeEdgeCollider() = default;
-  ConstraintKind GetKind() const override { return ConstraintKind::kEdgeEdgeCollider; }
+  ConstraintKind GetKind() const override { return ConstraintKind::EdgeEdgeCollider; }
   ~Constraint_EdgeEdgeCollider() = default;
 
   ConstraintSolution SolveDistributed() override;

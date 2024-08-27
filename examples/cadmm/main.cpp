@@ -38,7 +38,7 @@ void render_aabb() {
     box.max() = g.vertices_.col(i);
     box.min().array() -= 0.1;
     box.max().array() += 0.1;
-    otree.AddCollider(box, i, i, geo::PrimitiveKind::kVertex);
+    otree.AddCollider(box, i, i, geo::PrimitiveKind::Vertex);
   }
   
   otree.DetectCollisions();
@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
   ent = create_entity();
   auto& g = xpbd::ensure_server();
   g.dt_ = 1e-2;
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kSpring));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::Spring));
   auto* sp = reinterpret_cast<xpbd::Constraint_Spring*>(g.constraints_.back().get());
   Index nx = absl::GetFlag(FLAGS_nx);
   auto plane = geo::plane(0.5, 0.5, nx, nx);
@@ -204,10 +204,10 @@ int main(int argc, char** argv) {
   math::IndexField2 edges = geo::get_edges(plane.indices_);
   sp->SetSprings(edges, math::RealField1::Constant(1, edges.cols(), 1e4));
 
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kInertia));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::Inertia));
 
   // g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kVertexFaceCollider));
-  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::kBallCollider));
+  g.constraints_.emplace_back(xpbd::ConstraintBase::Create(xpbd::ConstraintKind::BallCollider));
   auto* bc = reinterpret_cast<xpbd::Constraint_BallCollider*>(g.constraints_.back().get());
   bc->center_ = math::RealVector3{0, -1, 0};
   bc->radius_ = 0.4;

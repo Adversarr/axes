@@ -12,15 +12,15 @@ namespace ax::optim {
 
 std::unique_ptr<OptimizerBase> OptimizerBase::Create(OptimizerKind k) {
   switch (k) {
-    case OptimizerKind::kNewton:
+    case OptimizerKind::Newton:
       return std::make_unique<Optimizer_Newton>();
-    case OptimizerKind::kLbfgs:
+    case OptimizerKind::Lbfgs:
       return std::make_unique<Optimizer_Lbfgs>();
-    case OptimizerKind::kGradientDescent:
+    case OptimizerKind::GradientDescent:
       return std::make_unique<Optimizer_GradientDescent>();
-    case OptimizerKind::kFista:
+    case OptimizerKind::Fista:
       return std::make_unique<Optimizer_Fista>();
-    case OptimizerKind::kNonlinearCg:
+    case OptimizerKind::NonlinearCg:
       return std::make_unique<Optimizer_NonlinearCg>();
 
     default:

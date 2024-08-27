@@ -102,4 +102,4 @@ utils::Options Optimizer_GradientDescent::GetOptions() const {
   return opt;
 }
 
-OptimizerKind Optimizer_GradientDescent::GetKind() const { return OptimizerKind::kGradientDescent; }
+OptimizerKind Optimizer_GradientDescent::GetKind() const { return OptimizerKind::GradientDescent; }

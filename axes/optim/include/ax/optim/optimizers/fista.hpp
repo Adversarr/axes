@@ -10,7 +10,7 @@ public:
 
   OptResult Optimize(const OptProblem &problem, const Variable &x0) const final;
 
-  OptimizerKind GetKind() const final { return OptimizerKind::kFista; }
+  OptimizerKind GetKind() const final { return OptimizerKind::Fista; }
 
   void SetMonotonic(bool monotonic) { monotonic_ = monotonic; }
 

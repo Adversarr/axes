@@ -5,9 +5,9 @@ namespace ax::optim {
 
 std::unique_ptr<SpsdModificationBase> SpsdModificationBase::Create(SpsdModificationKind kind) {
   switch (kind) {
-    case SpsdModificationKind::kEigenvalue:
+    case SpsdModificationKind::Eigenvalue:
       return std::make_unique<EigenvalueModification>();
-    case SpsdModificationKind::kCholesky:
+    case SpsdModificationKind::Cholesky:
       return std::make_unique<DiagonalModification>();
     // case SpsdModificationKind::kIdentity:
     //   return std::make_unique<SpsdIdentity>();

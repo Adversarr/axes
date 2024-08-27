@@ -9,13 +9,13 @@ namespace ax::math {
 
 std::unique_ptr<PreconditionerBase> PreconditionerBase::Create(PreconditionerKind kind) {
   switch (kind) {
-    case ax::math::PreconditionerKind::kIdentity:
+    case ax::math::PreconditionerKind::Identity:
       return std::make_unique<Preconditioner_Identity>();
-    case ax::math::PreconditionerKind::kDiagonal:
+    case ax::math::PreconditionerKind::Diagonal:
       return std::make_unique<Preconditioner_Diagonal>();
-    case ax::math::PreconditionerKind::kIncompleteCholesky:
+    case ax::math::PreconditionerKind::IncompleteCholesky:
       return std::make_unique<Preconditioner_IncompleteCholesky>();
-    case ax::math::PreconditionerKind::kIncompleteLU:
+    case ax::math::PreconditionerKind::IncompleteLU:
       return std::make_unique<Preconditioner_IncompleteLU>();
     default:
       return nullptr;

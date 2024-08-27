@@ -14,25 +14,25 @@ namespace ax::math {
 
 std::unique_ptr<DenseSolverBase> DenseSolverBase::Create(DenseSolverKind kind) {
   switch (kind) {
-    case DenseSolverKind::kLDLT:
+    case DenseSolverKind::LDLT:
       return std::make_unique<DenseSolver_LDLT>();
-    case DenseSolverKind::kLLT:
+    case DenseSolverKind::LLT:
       return std::make_unique<DenseSolver_LLT>();
-    case DenseSolverKind::kPartialPivLU:
+    case DenseSolverKind::PartialPivLU:
       return std::make_unique<DenseSolver_PartialPivLU>();
-    case DenseSolverKind::kFullPivLU:
+    case DenseSolverKind::FullPivLU:
       return std::make_unique<DenseSolver_FullPivLU>();
-    case DenseSolverKind::kHouseholderQR:
+    case DenseSolverKind::HouseholderQR:
       return std::make_unique<DenseSolver_HouseholderQR>();
-    case DenseSolverKind::kColPivHouseholderQR:
+    case DenseSolverKind::ColPivHouseholderQR:
       return std::make_unique<DenseSolver_ColPivHouseholderQR>();
-    case DenseSolverKind::kFullPivHouseHolderQR:
+    case DenseSolverKind::FullPivHouseHolderQR:
       return std::make_unique<DenseSolver_FullPivHouseHolderQR>();
-    case DenseSolverKind::kCompleteOrthognalDecomposition:
+    case DenseSolverKind::CompleteOrthognalDecomposition:
       return std::make_unique<DenseSolver_CompleteOrthognalDecomposition>();
-    case DenseSolverKind::kJacobiSVD:
+    case DenseSolverKind::JacobiSVD:
       return std::make_unique<DenseSolver_JacobiSVD>();
-    case DenseSolverKind::kBDCSVD:
+    case DenseSolverKind::BDCSVD:
       return std::make_unique<DenseSolver_BDCSVD>();
     default:
       return nullptr;

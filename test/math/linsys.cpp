@@ -11,21 +11,21 @@ TEST_CASE("Refl") {
   using namespace ax::math;
   auto ldlt = reflect_enum<DenseSolverKind>("kLDLT");
   CHECK(ldlt.has_value());
-  CHECK(ldlt.value() == DenseSolverKind::kLDLT);
+  CHECK(ldlt.value() == DenseSolverKind::LDLT);
 
   auto partialLU = reflect_enum<DenseSolverKind>("kPartialPivLU");
   CHECK(partialLU.has_value());
-  CHECK(partialLU.value() == DenseSolverKind::kPartialPivLU);
+  CHECK(partialLU.value() == DenseSolverKind::PartialPivLU);
 }
 using namespace ax::math;
-DenseSolverKind kinds[] = {DenseSolverKind::kPartialPivLU,
-                           DenseSolverKind::kFullPivLU,
-                           DenseSolverKind::kJacobiSVD,
-                           DenseSolverKind::kBDCSVD,
-                           DenseSolverKind::kFullPivHouseHolderQR,
-                           DenseSolverKind::kHouseholderQR,
-                           DenseSolverKind::kColPivHouseholderQR,
-                           DenseSolverKind::kCompleteOrthognalDecomposition};
+DenseSolverKind kinds[] = {DenseSolverKind::PartialPivLU,
+                           DenseSolverKind::FullPivLU,
+                           DenseSolverKind::JacobiSVD,
+                           DenseSolverKind::BDCSVD,
+                           DenseSolverKind::FullPivHouseHolderQR,
+                           DenseSolverKind::HouseholderQR,
+                           DenseSolverKind::ColPivHouseholderQR,
+                           DenseSolverKind::CompleteOrthognalDecomposition};
 
 TEST_CASE("Solve Invertible") {
   using namespace ax::math;
@@ -48,11 +48,11 @@ TEST_CASE("Solve Non-Invertible") {
   A << 1, 2, 2, 4;
   RealVectorX b = RealVectorX::Ones(2);
   for (auto kind : {
-           DenseSolverKind::kFullPivLU,
-           DenseSolverKind::kFullPivHouseHolderQR,
-           DenseSolverKind::kHouseholderQR,
-           DenseSolverKind::kColPivHouseholderQR,
-           DenseSolverKind::kCompleteOrthognalDecomposition,
+           DenseSolverKind::FullPivLU,
+           DenseSolverKind::FullPivHouseHolderQR,
+           DenseSolverKind::HouseholderQR,
+           DenseSolverKind::ColPivHouseholderQR,
+           DenseSolverKind::CompleteOrthognalDecomposition,
        }) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
@@ -64,9 +64,9 @@ TEST_CASE("Solve Non-Invertible") {
   }
 
   for (auto kind : {
-           DenseSolverKind::kPartialPivLU,
-           DenseSolverKind::kJacobiSVD,
-           DenseSolverKind::kBDCSVD,
+           DenseSolverKind::PartialPivLU,
+           DenseSolverKind::JacobiSVD,
+           DenseSolverKind::BDCSVD,
        }) {
     auto solver = DenseSolverBase::Create(kind);
     CHECK(solver != nullptr);
@@ -91,9 +91,9 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   RealMatrixX x = RealVectorX::Ones(2);
   RealMatrixX b = A * x;
-  for (auto kind : {SparseSolverKind::kLU, SparseSolverKind::kQR,
-                    SparseSolverKind::kConjugateGradient, SparseSolverKind::kLDLT,
-                    SparseSolverKind::kCholmod}) {
+  for (auto kind : {SparseSolverKind::LU, SparseSolverKind::QR,
+                    SparseSolverKind::ConjugateGradient, SparseSolverKind::LDLT,
+                    SparseSolverKind::Cholmod}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     solver->SetProblem(A).Compute();

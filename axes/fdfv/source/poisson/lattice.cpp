@@ -29,7 +29,7 @@ template <int dim> PoissonProblemCellCentered<dim>::PoissonProblemCellCentered(I
 
   // default sparse solver is ldlt.
   sparse_solver_name_ = "kConjugateGradient";
-  sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::kConjugateGradient);
+  sparse_solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::ConjugateGradient);
 }
 
 template <int dim> void PoissonProblemCellCentered<dim>::SetSource(RealLattice const& f) {

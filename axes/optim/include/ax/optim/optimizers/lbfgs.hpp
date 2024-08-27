@@ -17,7 +17,7 @@ public:
 
   OptResult Optimize(OptProblem const& problem, const Variable& x0) const override;
 
-  OptimizerKind GetKind() const override { return OptimizerKind::kLbfgs; }
+  OptimizerKind GetKind() const override { return OptimizerKind::Lbfgs; }
 
   void SetOptions(utils::Options const& options) override;
 

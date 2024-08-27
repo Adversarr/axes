@@ -13,23 +13,23 @@ namespace ax::math {
 
 std::unique_ptr<SparseSolverBase> SparseSolverBase::Create(SparseSolverKind kind) {
   switch (kind) {
-    case SparseSolverKind::kLDLT:
+    case SparseSolverKind::LDLT:
       return std::make_unique<SparseSolver_LDLT>();
-    case SparseSolverKind::kLLT:
+    case SparseSolverKind::LLT:
       return std::make_unique<SparseSolver_LLT>();
-    case SparseSolverKind::kLU:
+    case SparseSolverKind::LU:
       return std::make_unique<SparseSolver_LU>();
-    case SparseSolverKind::kQR:
+    case SparseSolverKind::QR:
       return std::make_unique<SparseSolver_QR>();
-    case SparseSolverKind::kConjugateGradient:
+    case SparseSolverKind::ConjugateGradient:
       return std::make_unique<SparseSolver_ConjugateGradient>();
-    case SparseSolverKind::kLeastSquaresConjugateGradient:
+    case SparseSolverKind::LeastSquaresConjugateGradient:
       return std::make_unique<SparseSolver_LeastSquaresConjugateGradient>();
-    case SparseSolverKind::kBiCGSTAB:
+    case SparseSolverKind::BiCGSTAB:
       return std::make_unique<SparseSolver_BiCGSTAB>();
 
       // SECT: CHOLMOD
-    case SparseSolverKind::kCholmod:
+    case SparseSolverKind::Cholmod:
       return std::make_unique<SparseSolver_Cholmod>();
     default:
       return nullptr;

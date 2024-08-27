@@ -9,7 +9,7 @@ class DenseSolver_HouseholderQR : public DenseSolverBase {
 public:
   RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
-  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kHouseholderQR; }
+  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::HouseholderQR; }
 
 private:
   Eigen::ColPivHouseholderQR<RealMatrixX> impl_;

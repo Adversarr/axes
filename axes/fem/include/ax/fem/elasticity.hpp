@@ -6,7 +6,7 @@
 
 namespace ax::fem {
 
-AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, kEnergy, kStress, kHessian);
+AX_DEFINE_ENUM_CLASS(ElasticityUpdateLevel, Energy, Stress, Hessian);
 
 /**
  * @brief Base class for general elasticity computation.

@@ -30,7 +30,7 @@ TEST_CASE("stress") {
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto elastic = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);
   math::RealVector2 lame = {1.0, 1.0};
-  elastic.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
+  elastic.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::Hessian);
   auto stress = elastic.Stress(lame);
   for (auto const& s : stress) {
     CHECK(doctest::Approx(s.norm()) == 0.0);
@@ -47,7 +47,7 @@ TEST_CASE("Hessian") {
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto stress = fem::ElasticityCompute_CPU<2, elasticity::Linear>(mesh);
   math::RealVector2 lame = {1.0, 1.0};
-  stress.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::kHessian);
+  stress.Update(mesh->GetVertices(), ax::fem::ElasticityUpdateLevel::Hessian);
   for (auto const& s : stress.Hessian(lame)) {
     Real s00 = s(0, 0);
     Real s11 = s(1, 1);

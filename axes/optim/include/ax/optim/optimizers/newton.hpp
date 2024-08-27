@@ -18,7 +18,7 @@ public:
   /****************************** Interfaces ******************************/
   OptResult Optimize(OptProblem const& problem, Variable const& x) const override;
 
-  OptimizerKind GetKind() const override { return OptimizerKind::kNewton; }
+  OptimizerKind GetKind() const override { return OptimizerKind::Newton; }
 
   void SetOptions(utils::Options const& options) override;
 

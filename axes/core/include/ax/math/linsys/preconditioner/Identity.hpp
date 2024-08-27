@@ -8,6 +8,6 @@ public:
   void Factorize() override;
   RealMatrixX Solve(RealMatrixX const &b) override;
 
-  PreconditionerKind GetKind() const final { return PreconditionerKind::kIdentity; }
+  PreconditionerKind GetKind() const final { return PreconditionerKind::Identity; }
 };
 }  // namespace ax::math

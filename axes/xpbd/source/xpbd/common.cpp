@@ -22,23 +22,23 @@ void ConstraintBase::OnDetach() const {}
 std::unique_ptr<ConstraintBase> ConstraintBase::Create(ConstraintKind kind) {
   switch (kind) {
     // TODO: Implement these classes
-    case ConstraintKind::kInertia:
+    case ConstraintKind::Inertia:
       return std::make_unique<Constraint_Inertia>();
-    case ConstraintKind::kSpring:
+    case ConstraintKind::Spring:
       return std::make_unique<Constraint_Spring>();
-    case ConstraintKind::kTetra:
+    case ConstraintKind::Tetra:
       return std::make_unique<Constraint_Tetra>();
-    case ConstraintKind::kPlaneCollider:
+    case ConstraintKind::PlaneCollider:
       return std::make_unique<Constraint_PlaneCollider>();
-    case ConstraintKind::kHard:
+    case ConstraintKind::Hard:
       return std::make_unique<Constraint_Hard>();
-    case ConstraintKind::kBallCollider:
+    case ConstraintKind::BallCollider:
       return std::make_unique<Constraint_BallCollider>();
-    case ConstraintKind::kVertexFaceCollider:
+    case ConstraintKind::VertexFaceCollider:
       return std::make_unique<Constraint_VertexFaceCollider>();
-    case ConstraintKind::kEdgeEdgeCollider:
+    case ConstraintKind::EdgeEdgeCollider:
       return std::make_unique<Constraint_EdgeEdgeCollider>();
-    case ConstraintKind::kCollidingBalls:
+    case ConstraintKind::CollidingBalls:
       return std::make_unique<Constraint_CollidingBalls>();
     default:
       return nullptr;

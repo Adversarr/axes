@@ -8,7 +8,7 @@
 
 namespace ax::optim {
 
-AX_DEFINE_ENUM_CLASS(LineSearchKind, kBacktracking, kWolfe, kExact, kNull);
+AX_DEFINE_ENUM_CLASS(LineSearchKind, Backtracking, Wolfe, Exact, Null);
 
 class LinesearchBase : public utils::Tunable {
 public:

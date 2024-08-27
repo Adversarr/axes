@@ -7,7 +7,7 @@
 namespace ax::optim {
 
 LineSearchKind Linesearch_Exact::GetKind() const {
-  return LineSearchKind::kExact;
+  return LineSearchKind::Exact;
 }
 
 OptResult Linesearch_Exact::Optimize(OptProblem const& prob, Variable const& x0,

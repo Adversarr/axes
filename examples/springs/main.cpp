@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
     }
   }
   std::cout << springs << std::endl;
-  solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::kLDLT);
+  solver = math::SparseSolverBase::Create(ax::math::SparseSolverKind::LDLT);
   // Fixed points are the first row
   fixed.clear();
   for (Index i = 0; i < ndiv; i++) {

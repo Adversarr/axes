@@ -10,7 +10,7 @@ public:
   RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
   virtual DenseSolverKind GetKind() const final {
-    return DenseSolverKind::kCompleteOrthognalDecomposition;
+    return DenseSolverKind::CompleteOrthognalDecomposition;
   }
 
 private:

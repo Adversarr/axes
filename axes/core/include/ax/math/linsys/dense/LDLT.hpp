@@ -7,7 +7,7 @@ class DenseSolver_LDLT final : public DenseSolverBase {
 public:
   RealVectorX Solve(const RealVectorX &b) override;
   void Compute() override;
-  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::kLDLT; }
+  virtual DenseSolverKind GetKind() const final { return DenseSolverKind::LDLT; }
 
 private:
   Eigen::LDLT<RealMatrixX> impl_;

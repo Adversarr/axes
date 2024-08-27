@@ -13,13 +13,13 @@ static NonlinearCgPreconditioner make_dummy_ncg_precond() noexcept {
 }  // namespace details
 
 Optimizer_NonlinearCg::Optimizer_NonlinearCg() {
-  linesearch_ = LinesearchBase::Create(LineSearchKind::kBacktracking);
+  linesearch_ = LinesearchBase::Create(LineSearchKind::Backtracking);
 }
 
 Optimizer_NonlinearCg::~Optimizer_NonlinearCg() = default;
 
 OptimizerKind Optimizer_NonlinearCg::GetKind() const {
-  return OptimizerKind::kNonlinearCg;
+  return OptimizerKind::NonlinearCg;
 }
 
 utils::Options Optimizer_NonlinearCg::GetOptions() const {
@@ -104,33 +104,33 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
     s = precond_(x, grad);                //         s  =  s[n]
     delta_new = math::dot(grad, s);       //   grad[n] dot s[n]
     switch (strategy_) {
-      case NonlinearCgStrategy::kFletcherReeves: {
+      case NonlinearCgStrategy::FletcherReeves: {
         beta = delta_new / delta_old;
         break;
       }
-      case NonlinearCgStrategy::kPolakRibiere: {
+      case NonlinearCgStrategy::PolakRibiere: {
         beta = (delta_new - delta_mid) / delta_old;
         break;
       }
-      case NonlinearCgStrategy::kPolakRibiereClamped: {
+      case NonlinearCgStrategy::PolakRibiereClamped: {
         beta = std::max(0.0, (delta_new - delta_mid) / delta_old);
         break;
       }
 
-      case NonlinearCgStrategy::kHestenesStiefel: {
+      case NonlinearCgStrategy::HestenesStiefel: {
         // currently, expected_descent=-grad[n-1] dot search_dir[n-1]
         Real ed_mid = math::dot(grad, search_dir);  // ed_mid = grad[n] dot search_dir[n-1]
         beta = (delta_new - delta_mid) / (ed_mid - expect_descent);
         break;
       }
 
-      case NonlinearCgStrategy::kHestenesStiefelClamped: {
+      case NonlinearCgStrategy::HestenesStiefelClamped: {
         Real ed_mid = math::dot(grad, search_dir);  // ed_mid = grad[n] dot search_dir[n-1]
         beta = std::max(0.0, (delta_new - delta_mid) / (ed_mid - expect_descent));
         break;
       }
 
-      case NonlinearCgStrategy::kDaiYuan: {
+      case NonlinearCgStrategy::DaiYuan: {
         Real ed_mid = math::dot(grad, search_dir);  // ed_mid = grad[n] dot search_dir[n-1]
         beta = delta_new / (ed_mid - expect_descent);
         break;

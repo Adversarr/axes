@@ -42,7 +42,7 @@ std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
   auto& elast = ts->GetElasticity();
-  elast.Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::kEnergy);
+  elast.Update(ts->GetDisplacement(), fem::ElasticityUpdateLevel::Energy);
   elast.UpdateEnergy();
   elast.GatherEnergyToVertices();
   auto e_per_vert = elast.GetEnergyOnVertices();
@@ -218,10 +218,10 @@ int main(int argc, char** argv) {
     po::make_option("device", "cpu or gpu", "gpu"),
     po::make_option<bool>("optopo", "Optimize topology using RCM", "true"),
     po::make_option("lbfgs", "naive, laplacian, hard", "laplacian"),
-    po::make_option("ls", "Line searcher", "kWolfe"),
+    po::make_option("ls", "Line searcher", "Wolfe"),
   });
 
-  ax::gl::init(argc, argv);
+  gl::init(argc, argv);
   fps.setZero(100);
   auto sname = po::get_parse_result()["scene"].as<std::string>();
   if (sname == "twist") {

@@ -54,18 +54,18 @@ std::pair<CollisionKind, Index> determine_real_collision_kind(m34 const& o, Real
   bool any_vv = vv1 || vv2 || vv3;
   bool any_ve = ve12 || ve23 || ve31;
   if (vf) {
-    return {CollisionKind::kVertexFace, 0};
+    return {CollisionKind::VertexFace, 0};
   } else if (any_vv) {
-    if (vv1) return {CollisionKind::kVertexVertex, 1};
-    if (vv2) return {CollisionKind::kVertexVertex, 2};
-    if (vv3) return {CollisionKind::kVertexVertex, 3};
+    if (vv1) return {CollisionKind::VertexVertex, 1};
+    if (vv2) return {CollisionKind::VertexVertex, 2};
+    if (vv3) return {CollisionKind::VertexVertex, 3};
   } else if (any_ve) {
-    if (ve12) return {CollisionKind::kVertexEdge, 12};
-    if (ve23) return {CollisionKind::kVertexEdge, 23};
-    if (ve31) return {CollisionKind::kVertexEdge, 31};
+    if (ve12) return {CollisionKind::VertexEdge, 12};
+    if (ve23) return {CollisionKind::VertexEdge, 23};
+    if (ve31) return {CollisionKind::VertexEdge, 31};
   } else {
     // actually, cannot determine?
-    return {CollisionKind::kNone, 0};
+    return {CollisionKind::None, 0};
   }
   AX_UNREACHABLE();
 }
@@ -86,7 +86,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
     m34 z;
     for (Index i = 0; i < 4; ++i) z.col(i) = this->constrained_vertices_position_[C[i]];
     auto [kind, id] = determine_real_collision_kind(origin_[i], tol_);
-    if (kind == geo::CollisionKind::kVertexVertex) {
+    if (kind == geo::CollisionKind::VertexVertex) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
       m32 z_vv, u_vv, o_vv;
       z_vv.col(0) = z.col(0);
@@ -102,7 +102,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
       for (Index i = 1; i < 4; ++i) {
         if (i != id) x.col(i) = (z - u).col(i);
       }
-    } else if (kind == geo::CollisionKind::kVertexEdge) {
+    } else if (kind == geo::CollisionKind::VertexEdge) {
       AX_LOG(ERROR) << utils::reflect_name(kind).value_or("?") << " " << id;
       m3 z_ve, u_ve;
       Index unused = 6 - (id / 10) % 10 - id % 10;
@@ -127,7 +127,7 @@ ConstraintSolution Constraint_VertexFaceCollider::SolveDistributed() {
         sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;
         sol.weights_[C[i]] += rho;
       }
-    } else if (kind == geo::CollisionKind::kVertexFace) {
+    } else if (kind == geo::CollisionKind::VertexFace) {
       relax_vertex_triangle_impl(z, u, origin_[i], x, rho_[i], k, tol_);
       for (Index i = 0; i < 4; ++i) {
         sol.weighted_position_.col(C[i]) += (x.col(i) + u.col(i)) * rho;

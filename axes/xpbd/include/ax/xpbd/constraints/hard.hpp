@@ -5,7 +5,7 @@ namespace ax::xpbd {
 
 class Constraint_Hard final : public ConstraintBase {
 public:
-  ConstraintKind GetKind() const override { return ConstraintKind::kHard; }
+  ConstraintKind GetKind() const override { return ConstraintKind::Hard; }
 
   void BeginStep() override;
   Real UpdateDuality() override;

@@ -12,7 +12,7 @@ public:
 
   LinsysSolveResult Solve(RealMatrixX const &b, RealMatrixX const &x0) override;
 
-  SparseSolverKind GetKind() const final { return SparseSolverKind::kBiCGSTAB; }
+  SparseSolverKind GetKind() const final { return SparseSolverKind::BiCGSTAB; }
 
 private:
   Eigen::BiCGSTAB<RealSparseMatrix> solver_;

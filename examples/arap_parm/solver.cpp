@@ -1,22 +1,25 @@
 #include "solver.hpp"
-#include "ax/utils/ndrange.hpp"
-#include "ax/math/linsys/sparse/LDLT.hpp"
-#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
-#include "ax/math/decomp/svd.hpp"
-#include <igl/harmonic.h>
-#include <igl/boundary_loop.h>
-#include <igl/map_vertices_to_circle.h>
 
+#include <igl/boundary_loop.h>
+#include <igl/harmonic.h>
+#include <igl/map_vertices_to_circle.h>
 #include <tbb/parallel_for.h>
 
-//#ifdef __MSVC__
+#include "ax/core/logging.hpp"
+#include "ax/math/decomp/svd.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/linsys/sparse/LDLT.hpp"
+#include "ax/utils/ndrange.hpp"
+
+// #ifdef __MSVC__
 #undef ERROR
-//#endif
+
+// #endif
 
 namespace xx {
 
-
 using namespace ax;
+
 ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
   problem_.input_mesh_ = mesh;
   problem_.iso_coords_.resize(mesh.indices_.cols());
@@ -64,8 +67,8 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
   Eigen::MatrixXd bnd_uv;
   igl::map_vertices_to_circle(V, bnd, bnd_uv);
   igl::harmonic(V, F, bnd, bnd_uv, 1, V_uv);
-  AX_CHECK(V_uv.rows() == V.rows() && V_uv.cols() == 2) << "Invalid tutte embedding";
-  for (Index i: utils::range(V_uv.rows())) {
+  AX_THROW_IF_FALSE(V_uv.rows() == V.rows() && V_uv.cols() == 2, "Invalid tutte embedding");
+  for (Index i : utils::range(V_uv.rows())) {
     problem_.param_(0, i) = V_uv(i, 0);
     problem_.param_(1, i) = V_uv(i, 1);
   }
@@ -73,7 +76,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
   global_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
   {
     Index n_triangle = problem_.input_mesh_.indices_.cols(),
-        n_vertex = problem_.input_mesh_.vertices_.cols();
+          n_vertex = problem_.input_mesh_.vertices_.cols();
     // Step1: Establish the Global Linear System:
     math::SparseCOO coeff_list;
     coeff_list.reserve(n_vertex * 2 + n_triangle * 24);
@@ -96,7 +99,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     }
     global_problem_.A_ = math::make_sparse_matrix(2 * n_vertex, 2 * n_vertex, coeff_list);
     // AX_LOG(INFO) << problem.A_.toDense().determinant();
-  }  
+  }
   global_solver_->SetProblem(global_problem_.A_).Compute();
 }
 
@@ -104,32 +107,31 @@ void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> sol
   local_solver_ = std::move(solver);
 }
 
-ax::Status ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
+void ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
   global_solver_ = std::move(solver);
   global_solver_->SetProblem(global_problem_.A_).Compute();
-  AX_RETURN_OK();
 }
-
 
 SurfaceMesh ParameterizationSolver::Optimal() {
   SurfaceMesh mesh = problem_.input_mesh_;
-  for (Index i: utils::range(problem_.param_.cols())) {
+  for (Index i : utils::range(problem_.param_.cols())) {
     mesh.vertices_.block<2, 1>(0, i) = problem_.param_.col(i);
     mesh.vertices_.col(i).z() = 0;
   }
   return mesh;
 }
 
-Status ParameterizationSolver::Solve(Index max_iter) {
+void ParameterizationSolver::Solve(Index max_iter) {
   bool converged = false;
   Index n_triangle = problem_.input_mesh_.indices_.cols(),
-    n_vertex = problem_.input_mesh_.vertices_.cols();
-  if (!local_solver_) {
-    return utils::FailedPreconditionError("Local solver not set");
-  }
-  
+        n_vertex = problem_.input_mesh_.vertices_.cols();
+  // if (!local_solver_) {
+  //   return utils::FailedPreconditionError("Local solver not set");
+  // }
+  AX_THROW_IF_NULL(local_solver_, "Local solver not set");
+
   math::RealVectorX last_global_optimal(n_vertex * 2);
-  for (Index i: utils::range(n_vertex)) {
+  for (Index i : utils::range(n_vertex)) {
     last_global_optimal(i * 2) = problem_.param_(0, i);
     last_global_optimal(i * 2 + 1) = problem_.param_(1, i);
   }
@@ -158,8 +160,8 @@ Status ParameterizationSolver::Solve(Index max_iter) {
 
     auto global_step_result = global_solver_->Solve(rhs, last_global_optimal);
     if (!global_step_result.converged_) {
-      AX_LOG(ERROR) << "PCG Failed to converge in " << global_step_result.num_iter_ << " iterations";
-      return utils::DataLossError("Global step not converged");
+      AX_ERROR("Global solver failed to converge");
+      return;
     }
     Real dx2 = 0;
     auto global_optimal = global_step_result.solution_;
@@ -168,20 +170,20 @@ Status ParameterizationSolver::Solve(Index max_iter) {
     AX_LOG(INFO) << "A opt=" << problem.A_ * global_optimal;
     AX_LOG(INFO) << "A rhs=" << problem.A_ * rhs;
     AX_LOG(INFO) << "A=" << std::endl << problem.A_;*/
-    for (Index i: utils::range(n_vertex)) {
-      dx2 += math::norm(problem_.param_.col(i) - global_optimal.segment<2>(i * 2));
-      problem_.param_.col(i) = global_optimal.segment<2>(i * 2);
+    for (Index i : utils::range(n_vertex)) {
+      dx2 += math::norm(problem_.param_.col(i) - global_optimal.block<2, 1>(i * 2, 0));
+      problem_.param_.col(i) = global_optimal.block<2, 1>(i * 2, 0);
     }
-    AX_DLOG(INFO) << "Iter " << n_iter << " dx2 = " << dx2;
+    // AX_DLOG(INFO) << "Iter " << n_iter << " dx2 = " << dx2;
+    AX_INFO("Iter {} dx2 = {}", n_iter, dx2);
     n_iter++;
     if (dx2 < 1e-6 || n_iter >= max_iter) {
       converged = true;
     } else {
-      //AX_DLOG(INFO) << "Update to next iteration" << last_global_optimal;
+      // AX_DLOG(INFO) << "Update to next iteration" << last_global_optimal;
       last_global_optimal = global_optimal;
     }
   } while (!converged);
-  AX_RETURN_OK();
 }
 
 std::vector<RealMatrix2> ARAP::Optimal(ParameterizationProblem const& problem) {

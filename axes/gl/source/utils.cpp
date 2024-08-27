@@ -31,13 +31,18 @@ void init(int argc, char** argv) {
   ax::initialize(argc, argv);
 }
 
-void enter_main_loop() {
+int enter_main_loop(bool clean_up_and_exit) {
   auto& c = get_resource<Context>();
   auto& w = c.GetWindow();
   while (!(c.ShouldClose() || w.ShouldClose())) {
     c.TickLogic();
     c.TickRender();
   }
+  if (clean_up_and_exit) {
+    ax::clean_up();
+    return EXIT_SUCCESS;
+  }
+  return 0;
 }
 
 }  // namespace ax::gl

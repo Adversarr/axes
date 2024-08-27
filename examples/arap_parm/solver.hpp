@@ -41,11 +41,10 @@ public:
 
 class ParameterizationSolver {
 public:
-  ParameterizationSolver(SurfaceMesh const& mesh);
+  explicit ParameterizationSolver(SurfaceMesh const& mesh);
   void SetLocalSolver(std::unique_ptr<LocalSolverBase> solver);
-  ax::Status SetGlobalSolver(std::unique_ptr<ax::math::SparseSolverBase> solver);
-
-  ax::Status Solve(ax::Index max_iter = 1000);
+  void SetGlobalSolver(std::unique_ptr<ax::math::SparseSolverBase> solver);
+  void Solve(ax::Index max_iter = 1000);
   
   SurfaceMesh Optimal();
 

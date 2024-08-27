@@ -21,27 +21,22 @@ axes_add_example(cadmm "axes_gl;axes_xpbd")
 axes_add_example(admm_sph "axes_gl;axes_xpbd")
 axes_add_example(springs "axes_graph")
 
-
 # FEM
 axes_add_example(fem2debug "axes_gl;axes_fem")
 axes_add_example(fem3debug "axes_gl;axes_fem")
-axes_add_example(fem3opt "axes_gl;axes_fem")
 axes_add_example(fem_benchmark "axes_gl;axes_fem")
-axes_add_example(beam_bend "axes_gl;axes_fem")
 axes_add_example(fem_tetra_fd "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
-axes_add_example(fem3_experiment "axes_fem;axes_gl")
 
 # CUDA Support
-if (AX_ENABLE_CUDA)
+if(AX_ENABLE_CUDA)
   axes_add_example(cuda_intro "axes_core")
   axes_add_example(fem_tetra_fd_gpu "axes_fem")
   axes_add_example(map_to_cuda "axes_core")
 endif()
 
 find_package(benchmark CONFIG QUIET)
-if (benchmark_FOUND)
+
+if(benchmark_FOUND)
   axes_add_example(optimizer_benchmark "benchmark::benchmark;axes_optim")
 endif()
-
-

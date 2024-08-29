@@ -21,7 +21,7 @@
  ***************************************/
 #ifndef AX_FORCE_INLINE
 #  ifdef _MSC_VER  // for MSVC
-#    define AX_FORCE_INLINE inline __forceinline
+#    define AX_FORCE_INLINE __forceinline
 #  elif defined __GNUC__  // for gcc on Linux/Apple OS X
 #    define AX_FORCE_INLINE __attribute__((always_inline)) inline
 #  elif defined __CUDACC__

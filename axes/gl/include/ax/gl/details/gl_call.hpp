@@ -1,7 +1,6 @@
+#include <string>
 #include <glad/glad.h>  // IWYU pragma: export
-
 #include "ax/utils/common.hpp"  // IWYU pragma: export
-
 namespace ax::gl::details {
 
 std::string to_string(GLenum error_code);

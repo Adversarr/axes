@@ -12,6 +12,10 @@ SparseSolver_Cholmod::SparseSolver_Cholmod() = default;
 
 SparseSolver_Cholmod::~SparseSolver_Cholmod() = default;
 
+SparseSolverKind SparseSolver_Cholmod::GetKind() const {
+  return SparseSolverKind::kCholmod;
+}
+
 #ifdef AX_HAS_CHOLMOD
 static AX_CONSTEXPR char const* cholmod_status_to_string(int status) {
   switch (status) {
@@ -235,9 +239,6 @@ math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   return res;
 }
 
-SparseSolverKind SparseSolver_Cholmod::GetKind() const {
-  return static_cast<SparseSolverKind>(-1);
-}
 #else
 struct SparseSolver_Cholmod::Impl {};
 
@@ -265,8 +266,5 @@ math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   throw std::runtime_error("Cholmod is not available");
 }
 
-SparseSolverKind SparseSolver_Cholmod::GetKind() const {
-  return SparseSolverKind::kCholmod;
-}
 #endif
 }  // namespace ax::math

@@ -4,6 +4,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "ax/math/common.hpp"
+
+#ifdef AX_PLATFORM_WINDOWS
+#undef near
+#undef far
+#endif
+
 namespace ax::gl::details {
 
 template <typename Scalar, int rows>

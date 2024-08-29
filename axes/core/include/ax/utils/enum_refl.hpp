@@ -3,6 +3,7 @@
 #include <boost/describe/enum_from_string.hpp>
 #include <boost/describe/enum_to_string.hpp>
 #include <optional>
+#include <string>
 
 // Enum should be integer, we rely on the negative value to represent invalid enum.
 #define AX_DEFINE_ENUM_CLASS(Enum, ...) BOOST_DEFINE_FIXED_ENUM_CLASS(Enum, int, __VA_ARGS__)
@@ -23,7 +24,7 @@ namespace ax::utils {
  * representation is invalid.
  */
 template <typename Enum>
-std::optional<Enum> reflect_enum(const char* name) {
+inline std::optional<Enum> reflect_enum(const char* name) {
   static_assert(std::is_enum_v<Enum>, "should be a cpp enum.");
   using namespace boost::describe;
   if (Enum e; enum_from_string<Enum, describe_enumerators<Enum>>(name, e)) {
@@ -34,7 +35,7 @@ std::optional<Enum> reflect_enum(const char* name) {
 }
 
 template <typename Enum>
-std::optional<Enum> reflect_enum(std::string const& name) {
+inline std::optional<Enum> reflect_enum(std::string const& name) {
   return reflect_enum<Enum>(name.c_str());
 }
 
@@ -44,13 +45,11 @@ std::optional<Enum> reflect_enum(std::string const& name) {
  * @return A vector containing the names of all enum values.
  */
 template <typename Enum>
-std::vector<std::string> reflect_names() {
-  static std::vector<std::string> names;
-  if (names.empty()) {
-    boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>([&](auto D) {
-      names.push_back(D.name);
-    });
-  }
+inline std::vector<std::string> reflect_names() {
+  std::vector<std::string> names;
+  boost::mp11::mp_for_each<boost::describe::describe_enumerators<Enum>>([&](auto D) {
+    names.push_back(D.name);
+  });
   return names;
 }
 
@@ -62,7 +61,7 @@ std::vector<std::string> reflect_names() {
  * the enum value is invalid.
  */
 template <typename Enum>
-std::optional<std::string> reflect_name(Enum val) {
+inline std::optional<std::string> reflect_name(Enum val) {
   if (auto p = boost::describe::enum_to_string(val, nullptr)) {
     return p;
   } else {
@@ -78,7 +77,7 @@ std::optional<std::string> reflect_name(Enum val) {
  * @return A unique pointer to the created object, or nullptr if the enum value is invalid.
  */
 template <typename Enum, typename T>
-std::unique_ptr<T> reflect_create(std::string_view name) {
+inline std::unique_ptr<T> reflect_create(std::string_view name) {
   std::optional<Enum> val = reflect_enum<Enum>(name);
   if (!val.has_value()) {
     return nullptr;

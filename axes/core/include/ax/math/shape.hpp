@@ -98,7 +98,7 @@ AX_CONSTEXPR AX_HOST_DEVICE IndexType sub2ind(ShapeArray<IndexType, dim> const& 
 
 template <typename IndexType, int dim, size_t i> struct StrideImpl {
   static AX_CONSTEXPR AX_HOST_DEVICE IndexType run(ShapeArray<IndexType, dim> const& shape_array) noexcept {
-    if AX_CONSTEXPR (i >= dim - 1 || dim <= 1) {
+    if constexpr (i >= dim - 1 || dim <= 1) {
       return 1;
     } else {
       return shape_array[i + 1] * StrideImpl<IndexType, dim, i + 1>::run(shape_array);

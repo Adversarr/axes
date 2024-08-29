@@ -11,10 +11,8 @@ AX_DEFINE_ENUM_CLASS(SparseSolverKind,
                      // Eigen solvers
                      kLDLT, kLLT, kLU, kQR, kConjugateGradient, kLeastSquaresConjugateGradient,
                      kBiCGSTAB,
-#ifdef AX_HAS_CHOLMOD
                      // Cholmod
                      kCholmod
-#endif
 );
 
 class SparseSolverBase : public utils::Tunable {

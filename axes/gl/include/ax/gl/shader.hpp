@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <string_view>
 #include <glad/glad.h>
 
 #include "ax/utils/common.hpp"

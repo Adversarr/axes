@@ -5,9 +5,9 @@
 namespace ax::optim {
 
 using LbfgsHessianApproximator
-    = std::function<math::RealVectorX(Gradient const& /*r, solve this*/,
-                                Variable const& /*x_k+1 - x_k, if possible else empty*/,
-                                Variable const& /*g_k+1 - g_k, if possible else empty*/)>;
+    = std::function<Variable(Gradient const& /*r, solve this*/, Variable const& /* x */,
+                             Variable const& /*x_k+1 - x_k, if possible else empty*/,
+                             Variable const& /*g_k+1 - g_k, if possible else empty*/)>;
 
 class Optimizer_Lbfgs : public OptimizerBase {
 public:

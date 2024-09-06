@@ -30,6 +30,8 @@ public:
   Real max_step_size_{1e3};
   Real initial_step_size_{1.0};
   bool verbose_{false};
+
+  Real tol_grad_{1e-6}; ///< tolerance for gradient norm
 };
 
 }  // namespace ax::optim

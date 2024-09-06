@@ -14,12 +14,13 @@ Real cosine_sim(Variable const& a, Variable const& b) {
   return math::dot(a, b) / (a.norm() * b.norm());
 }
 
-static Variable approx_solve_default(Variable const& r, Variable const& sk, Gradient const& yk) {
+static Variable approx_solve_default(Variable const& r, Variable const& x, Variable const& sk,
+                                     Gradient const& yk) {
   if (sk.size() == 0 || yk.size() == 0) {
     return r;
   } else {
-    Real H0 = math::dot(sk, yk) / (math::norm2(yk) + math::epsilon<Real>);
-    return H0 * r;
+    Real h0 = math::dot(sk, yk) / (math::norm2(yk) + math::epsilon<Real>);
+    return h0 * r;
   }
 }
 
@@ -133,7 +134,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
   }
 
   auto check_quality
-      = [&](std::string name, Variable const& residual, math::RealVectorX const& approx) {
+      = [&](std::string name, Variable const& residual, Variable const& approx) {
           math::SparseSolver_ConjugateGradient cg;
           cg.SetProblem(sp_hessian).Compute();
           auto result = cg.Solve(residual, approx);
@@ -152,7 +153,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
     // SECT: Verbose
     problem_.EvalVerbose(iter, x, f_iter);
     if (verbose) {
-      AX_INFO("L-BFGS iter {}:\n  x: {}\n  f: {}\n  grad: {}", iter, x, f_iter, grad);
+      AX_INFO("L-BFGS iter {}: f={:12.6e}  |g|={:12.6e}", iter, f_iter, math::norm(grad));
     }
 
     AX_THROW_IF_FALSE(math::isfinite(f_iter), "LBFGS: Energy function returns Infinite number!");
@@ -181,7 +182,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
       auto const& sback = bfgs.SBack();
       auto const& yback = bfgs.YBack();
       if (approx_solve_) {
-        r = approx_solve_(q, sback, yback);
+        r = approx_solve_(q, x, sback, yback);
       } else {
         r = q;
       }
@@ -193,7 +194,7 @@ OptResult Optimizer_Lbfgs::Optimize(OptProblem const& problem_, const Variable& 
       // SECT: Limited Memory BFGS: Loop over history 2
       bfgs.TwoLoopPost(r);
     } else if (approx_solve_) {
-      r = approx_solve_(r, Variable(), Gradient());
+      r = approx_solve_(r, x, Variable(), Gradient());
       if (check_approx_quality) {
         check_quality("Approx", q, r);
       }

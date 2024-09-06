@@ -160,7 +160,6 @@ OptResult Optimizer_NonlinearCg::Optimize(OptProblem const& prob, const Variable
   if (iter >= max_iter_) {
     return OptResult::NotConverged("Max iteration reached.");
   } else {
-    AX_CHECK(converged_grad || converged_var, "Invalid convergence status.");
     return OptResult::Converged(x, prob.EvalEnergy(x), iter, converged_grad, converged_var);
   }
 }

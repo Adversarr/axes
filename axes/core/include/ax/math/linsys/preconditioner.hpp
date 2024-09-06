@@ -7,7 +7,7 @@
 
 namespace ax::math {
 
-AX_DEFINE_ENUM_CLASS(PreconditionerKind, Identity, Diagonal, IncompleteCholesky, IncompleteLU);
+AX_DEFINE_ENUM_CLASS(PreconditionerKind, Identity, Diagonal, IncompleteCholesky, IncompleteLU, FromLambda);
 
 class PreconditionerBase : public utils::Tunable {
 public:

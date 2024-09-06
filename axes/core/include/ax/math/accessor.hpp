@@ -18,17 +18,19 @@ class Span;
 template <typename T>
 class Span {
 public:
-  using ConstInverted = std::conditional_t<std::is_const_v<T>, Span<std::remove_const_t<T>>,
-                                           Span<const T>>;
+  using ConstInverted
+      = std::conditional_t<std::is_const_v<T>, Span<std::remove_const_t<T>>, Span<const T>>;
 
   AX_FORCE_INLINE AX_HOST_DEVICE Span() noexcept = default;
+
   AX_FORCE_INLINE AX_HOST_DEVICE Span(T* data, size_t size) noexcept : data_(data), size_(size) {}
 
   // copy, move, assignments
-  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T> &other) noexcept = default;
+  AX_FORCE_INLINE AX_HOST_DEVICE Span(const Span<T>& other) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(const Span&) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span(Span&&) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE Span& operator=(Span&&) noexcept = default;
+
   AX_FORCE_INLINE AX_HOST_DEVICE Span(const ConstInverted& other) noexcept
       : data_(other.data()), size_(other.size()) {}
 
@@ -47,16 +49,38 @@ public:
   AX_FORCE_INLINE AX_HOST_DEVICE reference operator[](const index_type& ind) noexcept {
     return data_[ind];
   }
+
   AX_FORCE_INLINE AX_HOST_DEVICE const_reference operator[](const index_type& ind) const noexcept {
     return data_[ind];
   }
-  AX_FORCE_INLINE AX_HOST_DEVICE pointer data() noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_pointer data() const noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE iterator begin() noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE iterator end() noexcept { return data_ + size_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator begin() const noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator end() const noexcept { return data_ + size_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE size_t size() const noexcept { return size_; }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE pointer data() noexcept {
+    return data_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE const_pointer data() const noexcept {
+    return data_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE iterator begin() noexcept {
+    return data_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE iterator end() noexcept {
+    return data_ + size_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator begin() const noexcept {
+    return data_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE const_iterator end() const noexcept {
+    return data_ + size_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE size_t size() const noexcept {
+    return size_;
+  }
 
 private:
   pointer data_{nullptr};
@@ -114,13 +138,15 @@ public:
   using Borrowing = std::conditional_t<is_const, typename BufferTraits<Buffer>::ConstBorrowing,
                                        typename BufferTraits<Buffer>::Borrowing>;
 
-  using Reference = typename BufferTraits<Buffer>::Reference;
-  using ConstReference = typename BufferTraits<Buffer>::ConstReference;
   static constexpr bool constness = is_const;
+  using ConstReference = typename BufferTraits<Buffer>::ConstReference;
+  using Reference
+      = std::conditional_t<constness, ConstReference, typename BufferTraits<Buffer>::Reference>;
 
   // NOTE: We always assume every function in this base class is available both for host and device
   AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(Borrowing data, ShapeType shape) noexcept
       : data_(data), shape_(shape) {}
+
   AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(const FieldAccessorBase&) noexcept = default;
   AX_FORCE_INLINE AX_HOST_DEVICE FieldAccessorBase(FieldAccessorBase&&) noexcept = default;
   FieldAccessorBase& operator=(const FieldAccessorBase&) = delete;
@@ -131,12 +157,18 @@ public:
   AX_FORCE_INLINE AX_HOST_DEVICE Derived& AsDerived() noexcept {
     return static_cast<Derived&>(*this);
   }
+
   AX_FORCE_INLINE AX_HOST_DEVICE const Derived& AsDerived() const noexcept {
     return static_cast<const Derived&>(*this);
   }
 
-  AX_FORCE_INLINE AX_HOST_DEVICE ConstBorrowing Data() const noexcept { return data_; }
-  AX_FORCE_INLINE AX_HOST_DEVICE Borrowing Data() noexcept { return data_; }
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstBorrowing Data() const noexcept {
+    return data_;
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE Borrowing Data() noexcept {
+    return data_;
+  }
 
   template <typename... Args>
   AX_FORCE_INLINE AX_HOST_DEVICE Reference At(Args&&... args) noexcept {
@@ -158,13 +190,17 @@ public:
     return At<Args...>(std::forward<Args>(args)...);
   }
 
-  AX_FORCE_INLINE AX_HOST_DEVICE const ShapeType& GetShape() const noexcept { return shape_; }
+  AX_FORCE_INLINE AX_HOST_DEVICE const ShapeType& GetShape() const noexcept {
+    return shape_;
+  }
 
   AX_FORCE_INLINE AX_HOST_DEVICE IndexType GetTotalMemoryConsumption() const noexcept {
     return AsDerived().GetTotalMemoryConsumptionImpl();
   }
 
-  AX_FORCE_INLINE AX_HOST_DEVICE IndexType Size() const noexcept { return GetShape().Size(); }
+  AX_FORCE_INLINE AX_HOST_DEVICE IndexType Size() const noexcept {
+    return GetShape().Size();
+  }
 
 protected:
   Borrowing data_;
@@ -189,6 +225,7 @@ public:
   using ConstReference = typename Base::ConstReference;
 
   FieldAccessorImplForStlLike(Borrowing data, ShapeType shape) : Base(data, shape) {}
+
   // Allow copy and move:
   FieldAccessorImplForStlLike(const FieldAccessorImplForStlLike&) noexcept = default;
   FieldAccessorImplForStlLike(FieldAccessorImplForStlLike&&) noexcept = default;
@@ -207,10 +244,21 @@ public:
     return Base::Size() * sizeof(T);
   }
 
-  AX_FORCE_INLINE auto begin() noexcept { return Base::data_.begin(); }
-  AX_FORCE_INLINE auto end() noexcept { return Base::data_.end(); }
-  AX_FORCE_INLINE auto begin() const noexcept { return Base::data_.begin(); }
-  AX_FORCE_INLINE auto end() const noexcept { return Base::data_.end(); }
+  AX_FORCE_INLINE auto begin() noexcept {
+    return Base::data_.begin();
+  }
+
+  AX_FORCE_INLINE auto end() noexcept {
+    return Base::data_.end();
+  }
+
+  AX_FORCE_INLINE auto begin() const noexcept {
+    return Base::data_.begin();
+  }
+
+  AX_FORCE_INLINE auto end() const noexcept {
+    return Base::data_.end();
+  }
 };
 
 template <typename Scalar, int Rows, int dim, bool is_const>
@@ -229,8 +277,7 @@ public:
   using Reference = typename Base::Reference;
   using ConstReference = typename Base::ConstReference;
 
-  AX_FORCE_INLINE EigenColumnsAccessor(Borrowing data, ShapeType shape)
-      : Base(data, shape) {}
+  AX_FORCE_INLINE EigenColumnsAccessor(Borrowing data, ShapeType shape) : Base(data, shape) {}
 
   AX_FORCE_INLINE EigenColumnsAccessor(const EigenColumnsAccessor&) noexcept = default;
 
@@ -250,10 +297,21 @@ public:
     return Base::Size() * sizeof(Scalar) * Rows;
   }
 
-  AX_FORCE_INLINE auto begin() noexcept { return Base::data_.colwise().begin(); }
-  AX_FORCE_INLINE auto end() noexcept { return Base::data_.colwise().end(); }
-  AX_FORCE_INLINE auto begin() const noexcept { return Base::data_.colwise().begin(); }
-  AX_FORCE_INLINE auto end() const noexcept { return Base::data_.colwise().end(); }
+  AX_FORCE_INLINE auto begin() noexcept {
+    return Base::data_.colwise().begin();
+  }
+
+  AX_FORCE_INLINE auto end() noexcept {
+    return Base::data_.colwise().end();
+  }
+
+  AX_FORCE_INLINE auto begin() const noexcept {
+    return Base::data_.colwise().begin();
+  }
+
+  AX_FORCE_INLINE auto end() const noexcept {
+    return Base::data_.colwise().end();
+  }
 };
 
 template <typename T, int dim, bool is_const>
@@ -290,10 +348,21 @@ public:
     return Base::Size() * sizeof(T);
   }
 
-  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() noexcept { return Base::data_.begin(); }
-  AX_FORCE_INLINE AX_HOST_DEVICE auto end() noexcept { return Base::data_.end(); }
-  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() const noexcept { return Base::data_.begin(); }
-  AX_FORCE_INLINE AX_HOST_DEVICE auto end() const noexcept { return Base::data_.end(); }
+  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() noexcept {
+    return Base::data_.begin();
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE auto end() noexcept {
+    return Base::data_.end();
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE auto begin() const noexcept {
+    return Base::data_.begin();
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE auto end() const noexcept {
+    return Base::data_.end();
+  }
 };
 
 template <typename /*Buffer*/>

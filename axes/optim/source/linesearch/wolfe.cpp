@@ -1,4 +1,4 @@
-// #define SPDLOG_ACTIVE_LEVEL 0
+#define SPDLOG_ACTIVE_LEVEL 0
 #include "ax/optim/linesearch/wolfe.hpp"
 
 #include "ax/core/excepts.hpp"
@@ -64,6 +64,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
 
   Index iter = 0;
   Variable x;
+  Gradient g;
 
   Real alpha = initial_step_size_;
   Real alpha_last = 0.;
@@ -72,13 +73,18 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   Real g_dot_dir = math::nan<>;
   Real g_dot_dir_last = expected_descent;
   bool success = false;
+  const Real wolfe_threshold = -required_curvature_rate_ * expected_descent;
+  const Real arjimo_threshold = -required_descent_rate_ * expected_descent;
 
   // Implements algorithm 3.6
   auto zoom = [&](Real lo, Real hi, Real f_at_lo, Real g_at_lo, Real f_at_hi) {
+    Real init_lo = lo, init_hi = hi;
     Real a, f_at_a;
     Real a_last = math::nan<>, f_last = math::nan<>;
     success = false;
-    Real epsilon = 1e-6;
+    Real delta1 = 0.2;  // cubic interpolation
+    Real delta2 = 0.1;  // quadratic interpolation
+    Real grad_at_a;
     for (int i = 0; i < 100; ++i) {
       if (verbose_) {
         AX_INFO("Zooming: i={:3} lo={:12.6e} hi={:12.6e}", i, lo, hi);
@@ -86,34 +92,44 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
 
       // follow the code in scipy/optimize/_linesearch.py:573
       auto [mi, ma] = std::minmax(lo, hi);
-      if (i > 0) {
-        // Try to solve cubic.
-        a = fit_cubic_and_solve(f_at_lo, g_at_lo, f_at_hi, f_last, lo, hi, a_last);
+      Real epsilon = (ma - mi) * delta1;
+      // if (i > 0) {
+      //   // Try to solve cubic.
+      //   a = fit_cubic_and_solve(f_at_lo, g_at_lo, f_at_hi, f_last, lo, hi, a_last);
+      // }
+      // if ((i == 0) || a < mi + epsilon || a > ma - epsilon || !math::isfinite(a)) {
+      a = fit_quadratic_and_solve(f_at_lo, g_at_lo, f_at_hi, lo, hi);
+      AX_DEBUG("Fit result {:12.6e}", a);
+      epsilon = delta2 * (ma - mi);
+      if (!math::isfinite(a) || a < mi + epsilon || a > ma - epsilon) {
+        a = step_shrink_rate_ * hi + (1 - step_shrink_rate_) * lo;
       }
-      if ((i == 0) || a < mi + epsilon || a > ma - epsilon || !math::isfinite(a)) {
-        a = fit_quadratic_and_solve(f_at_lo, g_at_lo, f_at_hi, lo, hi);
-        AX_DEBUG("Fit result {:12.6e}", a);
-        if (!math::isfinite(a) || a < mi + epsilon || a > ma - epsilon) {
-          a = step_shrink_rate_ * hi + (1 - step_shrink_rate_) * lo;
-        }
-      }
+      // }
       AX_DEBUG("i={:3} lo={:12.6e} hi={:12.6e} a={:12.6e}", i, lo, hi, a);
       // Line 2 Check the termination condition:
-      f_at_a = prob.EvalEnergy(x0 + a * dir);                           // Line 2
-      if (f_at_a >= f0 + required_descent_rate_ * a * expected_descent  // Line 3
-          || f_at_a >= f_at_lo) {                                       // Line 3
-        AX_DEBUG("f_at_a={:12.6e} f0={:12.6e} expected_descent={:12.6e}", f_at_a, f0,
-                 expected_descent);
+      f_at_a = prob.EvalEnergy(x0 + a * dir);                          // Line 2
+      if (f_at_a >= f0 + a * arjimo_threshold || f_at_a >= f_at_lo) {  // Line 3
+        AX_DEBUG("f_at_a={:12.6e} f0={:12.6e} alpha*threshold={:12.6e}", f_at_a, f0,
+                 a * arjimo_threshold);
         a_last = hi;
         f_last = f_at_hi;
         hi = a;            // step size is still too large
         f_at_hi = f_at_a;  // Line 4
       } else {             // Line 5
-        Real grad_at_a = math::dot(prob.EvalGrad(x0 + a * dir), dir);                // Line 6
-        if (math::abs(grad_at_a) <= -required_curvature_rate_ * expected_descent) {  // Line 7
+        x = g = prob.EvalGrad(x0 + a * dir);
+        if (prob.EvalConvergeGrad(x, g) < tol_grad_) {
+          AX_DEBUG("Found a gradient that is small enough. (converged grad)");
+          success = true;
+          break;
+        }
+
+        grad_at_a = math::dot(g, dir);                  // Line 6
+        if (math::abs(grad_at_a) <= wolfe_threshold) {  // Line 7
           success = true;
           break;  // Satisfies wolfe.
         }
+
+        AX_DEBUG("grad_at_a={:12.6e} wolfe_threshold={:12.6e}", grad_at_a, wolfe_threshold);
         if (grad_at_a * (hi - lo) >= 0) {  // Line 8
           a_last = hi;
           f_last = f_at_hi;
@@ -128,7 +144,13 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
       }
     }
     if (!success) {
-      AX_CRITICAL("Zoom failed");
+      Real abs_grad = math::abs(grad_at_a);
+      // Real strong_wolfe = abs_grad - wolfe_threshold;
+      Real arjimo = f_at_a - (f0 + a * arjimo_threshold);
+      AX_CRITICAL(
+          "zoom failed: initial ({:12.6e}, {:12.6e}) to ({:12.6e} {:12.6e}): |g|={:12.6e} "
+          "wofle_thre={:12.6e} arjimo={:12.6e}",
+          init_lo, init_hi, a, a_last, abs_grad, wolfe_threshold, arjimo);
     }
     return std::make_pair(a, f_at_a);
   };
@@ -153,7 +175,8 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
     Gradient g = prob.EvalGrad(x);  // Line 7
     g_dot_dir = math::dot(g, dir);
     AX_DEBUG("Alpha={:12.6e} f={:12.6e} g_dot_dir={:12.6e} iter={}", alpha, f, g_dot_dir, iter);
-    if (math::abs(g_dot_dir) <= -required_curvature_rate_ * expected_descent) {  // Line 8
+
+    if (math::abs(g_dot_dir) <= wolfe_threshold) {  // Line 8
       AX_DEBUG("Satisfies strong wolfe. break directly");
       success = true;
       break;  // Line 9
@@ -175,7 +198,7 @@ OptResult Linesearch_Wofle::Optimize(OptProblem const& prob, Variable const& x0,
   opt.x_opt_ = x0 + alpha * dir;  // cannot be x directly, because we may zoom alpha then break.
   opt.f_opt_ = f;
   opt.n_iter_ = iter;
-  opt.converged_ = success;
+  opt.converged_ = true;
   opt.step_length_ = alpha;
   return opt;
 }

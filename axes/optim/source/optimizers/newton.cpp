@@ -1,12 +1,13 @@
 #include "ax/optim/optimizers/newton.hpp"
 
-#include "ax/math/utils/formatting.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/math/linsys/dense.hpp"
 #include "ax/math/linsys/dense/LLT.hpp"
 #include "ax/math/linsys/preconditioner/IncompleteCholesky.hpp"
 #include "ax/math/linsys/sparse.hpp"
+#include "ax/math/linsys/sparse/Cholmod.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
 #include "ax/utils/time.hpp"
@@ -38,7 +39,7 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
     // SECT: verbose_
     problem_.EvalVerbose(iter, x, f_iter);
     if (verbose_) {
-      AX_INFO("Newton iter {}:\n  f: {}\n  |g|: {}", iter, f_iter, math::norm2(grad));
+      AX_INFO("Newton iter {:3}: f={:12.6e}  |g|={:12.6e}", iter, f_iter, math::norm(grad));
     }
 
     AX_THROW_IF_FALSE(math::isfinite(f_iter), "Energy function returns NaN or Inf");
@@ -89,6 +90,10 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
         AX_ERROR("Line Search Error: Failed to converge");
         break;
       }
+      if (verbose_) {
+        AX_INFO("linesearch: iter={:3}, step_length={:12.6e}", ls_result.n_iter_,
+                ls_result.step_length_);
+      }
       x = ls_result.x_opt_;
       f_iter = ls_result.f_opt_;
     } else {
@@ -118,11 +123,12 @@ OptResult Optimizer_Newton::Optimize(OptProblem const& problem_, Variable const&
 
 Optimizer_Newton::Optimizer_Newton() {
   dense_solver_ = std::make_unique<math::DenseSolver_LLT>();
+#ifdef AX_HAS_CHOLMOD
+  sparse_solver_ = std::make_unique<math::SparseSolver_Cholmod>();
+#else
   sparse_solver_ = std::make_unique<math::SparseSolver_ConjugateGradient>();
+#endif
   linesearch_ = std::make_unique<Linesearch_Backtracking>();
-  // math::SparseSolver_ConjugateGradient* cg
-  //     = static_cast<math::SparseSolver_ConjugateGradient*>(sparse_solver_.get());
-  sparse_solver_->SetPreconditioner(std::make_unique<math::Preconditioner_IncompleteCholesky>());
 }
 
 void Optimizer_Newton::SetOptions(utils::Options const& options) {

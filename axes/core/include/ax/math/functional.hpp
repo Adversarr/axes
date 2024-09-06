@@ -96,7 +96,7 @@ AX_HOST_DEVICE AX_FORCE_INLINE auto square(Scalar x) {
 
 template <typename Scalar, typename = enable_if_scalar_t<Scalar>>
 AX_HOST_DEVICE AX_FORCE_INLINE auto inverse(Scalar x) {
-  return Scalar(1) / x;
+  return static_cast<Scalar>(1) / x;
 }
 
 /****************************** Unary op available for matrices ******************************/

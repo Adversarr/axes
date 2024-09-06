@@ -15,4 +15,5 @@ sdk
 __pycache__
 NodeEditor.json
 output
-
+out*
+outs_drag

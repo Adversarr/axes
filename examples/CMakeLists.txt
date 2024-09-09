@@ -15,11 +15,12 @@ axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(cubic_solver "axes_core")
 axes_add_example(graph "axes_graph")
 axes_add_example(strides_cpu "axes_core")
+axes_add_example(parallel "axes_core")
 
 # admm
 axes_add_example(cadmm "axes_gl;axes_xpbd")
 axes_add_example(admm_sph "axes_gl;axes_xpbd")
-axes_add_example(springs "axes_graph")
+axes_add_example(springs "axes_gl;axes_optim")
 
 # FEM
 axes_add_example(fem2debug "axes_gl;axes_fem")
@@ -28,11 +29,15 @@ axes_add_example(fem_benchmark "axes_gl;axes_fem")
 axes_add_example(fem_tetra_fd "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
 
+axes_add_example(poisson_bench "axes_fem;axes_gl")
+
 # CUDA Support
 if(AX_ENABLE_CUDA)
   axes_add_example(cuda_intro "axes_core")
   axes_add_example(fem_tetra_fd_gpu "axes_fem")
   axes_add_example(map_to_cuda "axes_core")
+  axes_add_example(cu_admm "axes_gl;axes_fem")
+  axes_add_example(memory "axes_core")
 endif()
 
 find_package(benchmark CONFIG QUIET)

@@ -84,7 +84,7 @@ public:
     is_staggered_ = true;
   }
 
-  IndexVector<D> const& Strides() const { return strides_; }
+  IndexVector<D> const& Stride() const { return strides_; }
   T& operator()(IndexVector<D> const& sub) { return field_[sub2ind(strides_, sub)]; }
   T const& operator()(IndexVector<D> const& sub) const { return field_[sub2ind(strides_, sub)]; }
   template <typename... Idx, typename = std::enable_if_t<sizeof...(Idx) == D>>

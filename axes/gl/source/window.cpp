@@ -50,7 +50,7 @@ static void window_pos_fn(GLFWwindow* window, int pos_x, int pos_y) {
 }
 
 static void framebuffer_size_fn(GLFWwindow* window, int width, int height) {
-  FrameBufferSizeEvent event{width, height};
+  Framesize_tEvent event{width, height};
 
   auto *impl = Window::Impl::ExtractImpl(window);
   impl->fb_size_ = {width, height};
@@ -124,7 +124,7 @@ Window::Window() {
   impl_->size_ = {width, height};
   glfwGetWindowPos(impl_->window_, &width, &height);
   impl_->pos_ = {width, height};
-  glfwGetFramebufferSize(impl_->window_, &width, &height);
+  glfwGetFramesize_t(impl_->window_, &width, &height);
   impl_->fb_size_ = {width, height};
   glfwGetWindowContentScale(impl_->window_, &impl_->fb_scale_.x(), &impl_->fb_scale_.y());
   impl_->should_close_ = false;
@@ -136,7 +136,7 @@ Window::Window() {
   /****************************** Install Fn ******************************/
   glfwSetWindowSizeCallback(impl_->window_, window_size_fn);
   glfwSetWindowPosCallback(impl_->window_, window_pos_fn);
-  glfwSetFramebufferSizeCallback(impl_->window_, framebuffer_size_fn);
+  glfwSetFramesize_tCallback(impl_->window_, framebuffer_size_fn);
   glfwSetDropCallback(impl_->window_, drop_fn);
   glfwSetKeyCallback(impl_->window_, key_fn);
   glfwSetCursorPosCallback(impl_->window_, cursor_pos_fn);
@@ -161,7 +161,7 @@ math::IndexVector2 Window::GetSize() const { return impl_->size_; }
 
 math::IndexVector2 Window::GetPos() const { return impl_->pos_; }
 
-math::IndexVector2 Window::GetFrameBufferSize() const { return impl_->fb_size_; }
+math::IndexVector2 Window::GetFramesize_t() const { return impl_->fb_size_; }
 
 math::RealVector2 Window::GetFrameBufferScale() const { return impl_->fb_scale_.cast<Real>(); }
 
@@ -177,7 +177,7 @@ void Window::PollEvents() const {
   glfwPollEvents();
   trigger_queue<WindowSizeEvent>();
   trigger_queue<WindowPosEvent>();
-  trigger_queue<FrameBufferSizeEvent>();
+  trigger_queue<Framesize_tEvent>();
   trigger_queue<DropEvent>();
   trigger_queue<KeyboardEvent>();
   trigger_queue<CursorMoveEvent>();

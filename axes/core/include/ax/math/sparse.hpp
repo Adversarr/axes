@@ -7,6 +7,9 @@
 
 namespace ax::math {
 
+template <typename Scalar>
+using SparseMatrix = Eigen::SparseMatrix<Scalar, Eigen::ColMajor, Index>;
+
 /**
  * @brief Alias for a sparse matrix with real values, column-major storage, and index type Index.
  */

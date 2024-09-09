@@ -22,3 +22,7 @@
 #include "math/sparse.hpp"
 
 #include "vdb/common.hpp"
+#include "utils/common.hpp"
+#include "utils/enum_refl.hpp"
+#include "utils/opt.hpp"
+#include "utils/ranges.hpp"

@@ -37,15 +37,15 @@
 #endif
 
 #ifndef AX_FEM_COMPUTE_ENERGY_GRAIN
-#  define AX_FEM_COMPUTE_ENERGY_GRAIN 6000
+#  define AX_FEM_COMPUTE_ENERGY_GRAIN 600
 #endif
 
 #ifndef AX_FEM_COMPUTE_STRESS_GRAIN
-#  define AX_FEM_COMPUTE_STRESS_GRAIN 4000
+#  define AX_FEM_COMPUTE_STRESS_GRAIN 400
 #endif
 
 #ifndef AX_FEM_COMPUTE_HESSIAN_GRAIN
-#  define AX_FEM_COMPUTE_HESSIAN_GRAIN 2000
+#  define AX_FEM_COMPUTE_HESSIAN_GRAIN 200
 #endif
 
 namespace ax::fem {
@@ -313,8 +313,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateStress() {
         elasticity::DeformGrad<dim> const& F = dg_l[si];
         ElasticModel model;
         model.SetLame(lame.col(i));
-        stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si]
-                                                         : tomb)
+        stress[si] = model.Stress(F, stress_requires_svd ? this->svd_results_[si] : tomb)
                      * this->rest_volume_(i);
       },
       tf::StaticPartitioner(AX_FEM_COMPUTE_STRESS_GRAIN));
@@ -328,24 +327,42 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
   auto const& lame = this->lame_;
   const bool hessian_requires_svd = ElasticModel().HessianRequiresSvd();
   auto& hessian = this->hessian_on_elements_;
-  tbb::parallel_for(
-      tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
-      [&](const tbb::blocked_range<Index>& r) {
+  // tbb::parallel_for(
+  //     tbb::blocked_range<Index>(0, n_elem, AX_FEM_COMPUTE_HESSIAN_GRAIN),
+  //     [&](const tbb::blocked_range<Index>& r) {
+  //       ElasticModel model;
+  //       math::decomp::SvdResult<dim, Real> tomb;
+  //       for (Index i = r.begin(); i < r.end(); ++i) {
+  //         const size_t si = static_cast<size_t>(i);
+  //         model.SetLame(lame.col(i));
+  //         elasticity::DeformGrad<dim> const& F = dg_l.at(si);
+  //         hessian.at(si)
+  //             = model.Hessian(F, hessian_requires_svd ? (this->svd_results_.at(si)) : tomb)
+  //               * this->rest_volume_(i);
+  //         if (projection) {
+  //           hessian.at(si) = optim::project_spd_by_eigvals<dim * dim>(hessian.at(si), 0.);
+  //         }
+  //       }
+  //     },
+  //     this->impl_->h_ap);
+
+  tf::Taskflow flow;
+  math::decomp::SvdResult<dim> tomb;
+  flow.for_each_index(
+      static_cast<Index>(0), n_elem, static_cast<Index>(1),
+      [&](Index i) {
+        const size_t si = static_cast<size_t>(i);
         ElasticModel model;
-        math::decomp::SvdResult<dim, Real> tomb;
-        for (Index i = r.begin(); i < r.end(); ++i) {
-          const size_t si = static_cast<size_t>(i);
-          model.SetLame(lame.col(i));
-          elasticity::DeformGrad<dim> const& F = dg_l.at(si);
-          hessian.at(si)
-              = model.Hessian(F, hessian_requires_svd ? (this->svd_results_.at(si)) : tomb)
-                * this->rest_volume_(i);
-          if (projection) {
-            hessian.at(si) = optim::project_spd_by_eigvals<dim * dim>(hessian.at(si), 0.);
-          }
+        model.SetLame(lame.col(i));
+        elasticity::DeformGrad<dim> const& F = dg_l.at(si);
+        hessian.at(si) = model.Hessian(F, hessian_requires_svd ? (this->svd_results_.at(si)) : tomb)
+                         * this->rest_volume_(i);
+        if (projection) {
+          hessian.at(si) = optim::project_spd_by_eigvals<dim * dim>(hessian.at(si), 0.);
         }
       },
-      this->impl_->h_ap);
+      tf::StaticPartitioner(AX_FEM_COMPUTE_HESSIAN_GRAIN));
+  this->impl_->executor_.run(flow).wait();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -397,66 +414,36 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
   size_t nE = static_cast<size_t>(mesh.GetNumElements());
   coo.reserve(total);
   std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(nE);
-  tbb::parallel_for(tbb::blocked_range<Index>(0, mesh.GetNumElements(), 500000 / dim * dim * dim),
-                    [&](tbb::blocked_range<Index> const& r) {
-                      for (Index i = r.begin(); i < r.end(); ++i) {
-                        size_t const si = static_cast<size_t>(i);
-                        const auto& H_i = hessian[si];
-                        math::RealMatrix<dim, dim> R = cache[si];
-                        math::RealMatrix<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
-                        per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
-                      }
-                    });
 
-  // for (Index i = 0; i < mesh.GetNumElements(); ++i) {
-  //   const auto& ijk = mesh.GetElement(i);
-  //   const auto& H = per_element_hessian[static_cast<size_t>(i)];
-  //   for (auto [I, J, Di, Dj] : utils::ndrange(dim + 1, dim + 1, dim, dim)) {
-  //     Index i_Index = ijk[I];
-  //     Index j_Index = ijk[J];
-  //     Index H_Index_i = I * dim + Di;
-  //     Index H_Index_j = J * dim + Dj;
-  //     Index global_dof_i_Index = i_Index * dim + Di;
-  //     Index global_dof_j_Index = j_Index * dim + Dj;
-  //     coo.push_back({global_dof_i_Index, global_dof_j_Index, H(H_Index_i, H_Index_j)});
-  //   }
-  // }
-  // Index n_vert = mesh.GetNumVertices();
-  // result = math::make_sparse_matrix(dim * n_vert, dim * n_vert, coo);
-
-  // Assume hessian_on_vertices are prepared, and just gather from entries directly.
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, this->impl_->outer_start_.size() - 1,
-                                               AX_FEM_COMPUTE_ENERGY_GRAIN * 10),
-                    [&](const tbb::blocked_range<size_t>& r) {
-                      for (size_t i = r.begin(); i < r.end(); ++i) {
-                        size_t start = this->impl_->outer_start_[i];
-                        size_t end = this->impl_->outer_start_[i + 1];
-                        Real* value = result.valuePtr() + i;
-                        *value = 0;
-                        for (size_t j = start; j < end; ++j) {
-                          auto const& entry = this->impl_->hessian_entries_[j];
-                          Index local_i = entry.local_i_;
-                          Index local_j = entry.local_j_;
-                          Index elem_id = entry.element_id_;
-                          *value += per_element_hessian[elem_id](local_i, local_j);
-                        }
-                      }
-                    });
-  // size_t ii = 0;
-  // const auto& entries = this->impl_->hessian_entries_;
-  // math::for_each_entry(result, [&](Index i, Index j, Real& value) {
-  //   value = 0;
-  //   auto start = this->impl_->outer_start_[ii];
-  //   auto end = this->impl_->outer_start_[ii + 1];
-  //   for (size_t k = start; k < end; ++k) {
-  //     auto const& entry = entries[k];
-  //     Index local_i = entry.local_i_;
-  //     Index local_j = entry.local_j_;
-  //     Index elem_id = entry.element_id_;
-  //     value += per_element_hessian[elem_id](local_i, local_j);
-  //   }
-  //   ii++;
-  // });
+  tf::Taskflow flow;
+  tf::Executor& executor = this->impl_->executor_;
+  tf::Task compute_vert_stress_local_matrix = flow.for_each_index(
+      static_cast<size_t>(0), nE, static_cast<size_t>(1),
+      [&](size_t si) {
+        const auto& H_i = hessian[si];
+        math::RealMatrix<dim, dim> R = cache[si];
+        math::RealMatrix<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
+        per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
+      },
+      tf::StaticPartitioner(AX_FEM_COMPUTE_STRESS_GRAIN));
+  tf::Task gather_global = flow.for_each_index(
+      static_cast<size_t>(0), this->impl_->outer_start_.size() - 1, static_cast<size_t>(1),
+      [&](size_t i) {
+        size_t start = this->impl_->outer_start_[i];
+        size_t end = this->impl_->outer_start_[i + 1];
+        Real* value = result.valuePtr() + i;
+        *value = 0;
+        for (size_t j = start; j < end; ++j) {
+          auto const& entry = this->impl_->hessian_entries_[j];
+          Index local_i = entry.local_i_;
+          Index local_j = entry.local_j_;
+          Index elem_id = entry.element_id_;
+          *value += per_element_hessian[elem_id](local_i, local_j);
+        }
+      },
+      tf::StaticPartitioner(AX_FEM_COMPUTE_ENERGY_GRAIN));
+  compute_vert_stress_local_matrix.precede(gather_global);
+  executor.run(flow).wait();
 }
 
 template <int dim, template <int> class ElasticModelTemplate>

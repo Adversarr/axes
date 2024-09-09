@@ -13,4 +13,5 @@ axes_add_test(fem axes_fem)
 axes_add_test(geometry axes_geometry)
 axes_add_test(graph axes_graph)
 axes_add_test(xpbd axes_xpbd)
+axes_add_test(core axes_core)
 

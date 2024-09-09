@@ -14,7 +14,11 @@
 // just MSVC + NVCC requires this:
 #ifdef _MSC_VER
 #  include <complex>
-template <typename T> auto arg(T x) { return std::arg(x); }
+
+template <typename T>
+auto arg(T x) {
+  return std::arg(x);
+}
 #endif
 
 #include "ax/fem/elasticity_gpu.cuh"
@@ -26,13 +30,16 @@ namespace ax {
 
 namespace fem {
 
-template <int dim> using SvdR = math::decomp::SvdResult<dim, Real>;
+template <int dim>
+using SvdR = math::decomp::SvdResult<dim, Real>;
 
 struct VertexOnElementInfo {
   Index vert_id;
   Index elem_id;
   Index local_id;
-  AX_HOST_DEVICE VertexOnElementInfo(Index v, Index e, Index l) : vert_id(v), elem_id(e), local_id(l) {}
+
+  AX_HOST_DEVICE VertexOnElementInfo(Index v, Index e, Index l)
+      : vert_id(v), elem_id(e), local_id(l) {}
 
   AX_HOST_DEVICE VertexOnElementInfo(const VertexOnElementInfo& other) = default;
 };
@@ -86,7 +93,8 @@ __global__ void compute_deformation_gradient(math::IndexVector<dim + 1> const* e
                                              math::RealMatrix<dim, dim>* rinv, SvdR<dim>* svdr,
                                              Index n_elem, bool need_svd) {
   Index eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
 
   const math::IndexVector<dim + 1> elem = elements[eid];
   const math::RealVector<dim> x0 = pose[elem[0]];
@@ -110,10 +118,13 @@ __global__ void compute_deformation_gradient(math::IndexVector<dim + 1> const* e
 }
 
 template <int dim>
-__global__ void compute_rest_pose(math::IndexVector<dim + 1> const* elements, math::RealVector<dim> const* pose,
-                                  math::RealMatrix<dim, dim>* rinv, Real* rest_volume, Index n_elem) {
+__global__ void compute_rest_pose(math::IndexVector<dim + 1> const* elements,
+                                  math::RealVector<dim> const* pose,
+                                  math::RealMatrix<dim, dim>* rinv, Real* rest_volume,
+                                  Index n_elem) {
   Index eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
 
   const math::IndexVector<dim + 1> elem = elements[eid];
   const math::RealVector<dim> x0 = pose[elem[0]];
@@ -147,24 +158,22 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::Update(math::RealField<di
                                                               ElasticityUpdateLevel upt) {
   auto error = cudaMemcpy(thrust::raw_pointer_cast(impl_->pose_gpu_.data()), pose.data(),
                           pose.size() * sizeof(Real), cudaMemcpyHostToDevice);
-  // AX_CHECK(error == cudaSuccess) << "Failed to copy pose to GPU." << cudaGetErrorString(error);
   AX_CHECK(error == cudaSuccess, "Failed to copy pose to GPU: {}", cudaGetErrorString(error));
   Index n_elem = this->mesh_->GetNumElements();
   bool const need_svd
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::Energy)
         || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::Stress)
         || (ElasticModel{}.HessianRequiresSvd() && upt == ElasticityUpdateLevel::Hessian);
-  compute_deformation_gradient<dim><<<(n_elem + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks = static_cast<unsigned int>((n_elem + num_threads - 1) / num_threads);
+
+  compute_deformation_gradient<dim><<<num_threads, num_blocks>>>(
       thrust::raw_pointer_cast(impl_->elements_.data()),
       thrust::raw_pointer_cast(impl_->pose_gpu_.data()),
       thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
       thrust::raw_pointer_cast(impl_->svd_results_.data()), n_elem, need_svd);
-
-  // thrust::host_vector<math::RealMatrix<dim, dim>> deformation_gradient_cpu(n_elem);
-  // thrust::copy(impl_->deformation_gradient_.begin(), impl_->deformation_gradient_.end(),
-  //              deformation_gradient_cpu.begin());
-  // std::cout << "Deformation gradient: " << deformation_gradient_cpu[0] << std::endl;
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -232,7 +241,7 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
             });
 
   gather_entries_cpu.resize(n_vert, -1);
-  for (Index i = 0; (size_t)i < info.size(); ++i) {
+  for (Index i = 0; static_cast<size_t>(i) < info.size(); ++i) {
     auto v = info[i].vert_id;
     if (gather_entries_cpu[v] == -1) {
       gather_entries_cpu[v] = i;
@@ -328,7 +337,8 @@ __global__ void compute_energy_impl(math::RealMatrix<dim, dim> const* deformatio
                                     Real const* rest_volume, SvdR<dim> const* svd_results,
                                     Real* energy, math::RealVector2 const* lame, Index n_elem) {
   Index eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
   // printf("E begin: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
   ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
   energy[eid] = model.Energy(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
@@ -341,10 +351,11 @@ __global__ void compute_energy_impl(math::RealMatrix<dim, dim> const* deformatio
 template <int dim, template <int> class ElasticModelTemplate>
 __global__ void compute_stress_impl(math::RealMatrix<dim, dim> const* deformation_gradient,
                                     Real const* rest_volume, SvdR<dim> const* svd_results,
-                                    math::RealVector2 const* lame, elasticity::StressTensor<dim>* stress,
-                                    Index n_elem) {
+                                    math::RealVector2 const* lame,
+                                    elasticity::StressTensor<dim>* stress, Index n_elem) {
   size_t eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
   ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
   stress[eid] = model.Stress(deformation_gradient[eid], svd_results[eid]) * rest_volume[eid];
   // printf("Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
@@ -359,7 +370,8 @@ __global__ void compute_hessian_impl(math::RealMatrix<dim, dim> const* deformati
                                      elasticity::HessianTensor<dim>* hessian,
                                      math::RealVector2 const* lame, Index n_elem, bool projection) {
   Index eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
   // printf("H begin: Lame of %ld is %lf %lf\n", eid, lame[eid][0], lame[eid][1]);
 
   ElasticModelTemplate<dim> model(lame[eid][0], lame[eid][1]);
@@ -384,13 +396,16 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateEnergy() {
   auto const& rest_volume = impl_->rest_volume_gpu_;
   auto const& svd = impl_->svd_results_;
 
-  compute_energy_impl<dim, ElasticModelTemplate>
-      <<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
-          thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
-          thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
-          thrust::raw_pointer_cast(impl_->svd_results_.data()),
-          thrust::raw_pointer_cast(impl_->energy_on_elements_.data()),
-          thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size());
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks = static_cast<unsigned int>(
+      (impl_->deformation_gradient_.size() + num_threads - 1) / num_threads);
+
+  compute_energy_impl<dim, ElasticModelTemplate><<<num_blocks, num_threads>>>(
+      thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+      thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+      thrust::raw_pointer_cast(impl_->svd_results_.data()),
+      thrust::raw_pointer_cast(impl_->energy_on_elements_.data()),
+      thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size());
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -401,14 +416,17 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateStress() {
   auto const& rest_volume = impl_->rest_volume_gpu_;
   auto const& svd = impl_->svd_results_;
 
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks = static_cast<unsigned int>(
+      (impl_->deformation_gradient_.size() + num_threads - 1) / num_threads);
+
   compute_stress_impl<dim, ElasticModelTemplate>
-      <<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
-          thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
-          thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
-          thrust::raw_pointer_cast(impl_->svd_results_.data()),
-          thrust::raw_pointer_cast(impl_->lame_.data()),
-          thrust::raw_pointer_cast(impl_->stress_on_elements_.data()),
-          impl_->deformation_gradient_.size());
+      <<<num_blocks, num_threads>>>(thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+                                    thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+                                    thrust::raw_pointer_cast(impl_->svd_results_.data()),
+                                    thrust::raw_pointer_cast(impl_->lame_.data()),
+                                    thrust::raw_pointer_cast(impl_->stress_on_elements_.data()),
+                                    impl_->deformation_gradient_.size());
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
@@ -419,22 +437,26 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::UpdateHessian(bool projec
   auto const& rest_volume = impl_->rest_volume_gpu_;
   auto const& svd = impl_->svd_results_;
 
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks = static_cast<unsigned int>(
+      (impl_->deformation_gradient_.size() + num_threads - 1) / num_threads);
+
   compute_hessian_impl<dim, ElasticModelTemplate>
-      <<<(impl_->deformation_gradient_.size() + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
-          thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
-          thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
-          thrust::raw_pointer_cast(impl_->svd_results_.data()),
-          thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()),
-          thrust::raw_pointer_cast(impl_->lame_.data()), impl_->deformation_gradient_.size(),
-          projection);
+      <<<num_blocks, num_threads>>>(thrust::raw_pointer_cast(impl_->deformation_gradient_.data()),
+                                    thrust::raw_pointer_cast(impl_->rest_volume_gpu_.data()),
+                                    thrust::raw_pointer_cast(impl_->svd_results_.data()),
+                                    thrust::raw_pointer_cast(impl_->hessian_on_elements_.data()),
+                                    thrust::raw_pointer_cast(impl_->lame_.data()),
+                                    impl_->deformation_gradient_.size(), projection);
 }
 
-template <int dim> __global__ void gather_energy(Real* energy_on_vertices,
-                                                 Real const* energy_on_elements, Index const* entry,
-                                                 VertexOnElementInfo const* gather_info, Index n_vert,
-                                                 Index n_info) {
+template <int dim>
+__global__ void gather_energy(Real* energy_on_vertices, Real const* energy_on_elements,
+                              Index const* entry, VertexOnElementInfo const* gather_info,
+                              Index n_vert, Index n_info) {
   Index vid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (vid >= n_vert) return;
+  if (vid >= n_vert)
+    return;
   Index e = entry[vid];
   Real total_energy = 0;
   if (e == -1) {
@@ -451,13 +473,15 @@ template <int dim> __global__ void gather_energy(Real* energy_on_vertices,
   energy_on_vertices[vid] = total_energy / Real(dim + 1);
 }
 
-template <int dim> __global__ void gather_stress(math::RealVector<dim>* stress_on_vertices,
-                                                 math::RealMatrix<dim, dim> const* stress_on_elements,
-                                                 math::RealMatrix<dim, dim> const* rinv, Index const* entry,
-                                                 VertexOnElementInfo const* gather_info, Index n_vert,
-                                                 Index n_elem, Index n_info) {
+template <int dim>
+__global__ void gather_stress(math::RealVector<dim>* stress_on_vertices,
+                              math::RealMatrix<dim, dim> const* stress_on_elements,
+                              math::RealMatrix<dim, dim> const* rinv, Index const* entry,
+                              VertexOnElementInfo const* gather_info, Index n_vert, Index n_elem,
+                              Index n_info) {
   const Index vid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (vid >= n_vert) return;
+  if (vid >= n_vert)
+    return;
   Index const e = entry[vid];
   math::RealVector<dim> total;
   total.setZero();
@@ -493,7 +517,11 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::GatherEnergyToVertices() 
   auto const& ge = impl_->gather_entries_;
   auto const& gi = impl_->gather_information_;
 
-  gather_energy<dim><<<(this->mesh_->GetNumVertices() + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks
+      = static_cast<unsigned int>((this->mesh_->GetNumVertices() + num_threads - 1) / num_threads);
+
+  gather_energy<dim><<<num_blocks, num_threads>>>(
       thrust::raw_pointer_cast(ev.data()), thrust::raw_pointer_cast(ee.data()),
       thrust::raw_pointer_cast(ge.data()), thrust::raw_pointer_cast(gi.data()),
       this->mesh_->GetNumVertices(), gi.size());
@@ -506,14 +534,20 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::GatherStressToVertices() 
   auto const& ge = impl_->gather_entries_;
   auto const& gi = impl_->gather_information_;
   auto const& ri = impl_->rinv_gpu_;
-  gather_stress<dim><<<(this->mesh_->GetNumVertices() + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks
+      = static_cast<unsigned int>((this->mesh_->GetNumVertices() + num_threads - 1) / num_threads);
+
+  gather_stress<dim><<<num_threads, num_blocks>>>(
       thrust::raw_pointer_cast(sv.data()), thrust::raw_pointer_cast(se.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()), thrust::raw_pointer_cast(ge.data()),
       thrust::raw_pointer_cast(gi.data()), this->mesh_->GetNumVertices(),
       this->mesh_->GetNumElements(), gi.size());
 }
 
-__device__ AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
+__device__ AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(
+    const math::RealMatrix3& DmInv) {
   const Real m = DmInv(0, 0);
   const Real n = DmInv(0, 1);
   const Real o = DmInv(0, 2);
@@ -568,7 +602,8 @@ __device__ AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(const math
 }
 
 // Auto generated code.
-__device__ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
+__device__ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(
+    const math::RealMatrix2& DmInv) {
   const Real m = DmInv(0, 0);
   const Real n = DmInv(0, 1);
   const Real p = DmInv(1, 0);
@@ -592,7 +627,8 @@ __device__ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math:
   return PFPx;
 }
 
-template <int dim> __device__ Index coo_locate_hessian(Index elem_id, Index i, Index j, Index di, Index dj) {
+template <int dim>
+__device__ Index coo_locate_hessian(Index elem_id, Index i, Index j, Index di, Index dj) {
   Index coo_offset = elem_id * (dim + 1) * dim * (dim + 1) * dim;
   Index local_offset = (i * (dim + 1) + j) * dim * dim + di * dim + dj;
   return coo_offset + local_offset;
@@ -604,7 +640,8 @@ __global__ void gather_hessian(SparseCOO* coo, math::IndexVector<dim + 1> const*
                                math::RealMatrix<dim * dim, dim * dim> const* hessian_on_elements,
                                Index n_elem) {
   Index eid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (eid >= n_elem) return;
+  if (eid >= n_elem)
+    return;
 
   math::RealMatrix<dim * dim, dim * dim> const& H = hessian_on_elements[eid];
   math::RealMatrix<dim, dim> const& DmInv = rinv[eid];
@@ -660,7 +697,8 @@ math::RealField1 const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetEne
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
-math::RealField<dim> const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnVertices() {
+math::RealField<dim> const&
+ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetStressOnVertices() {
   auto& gpu = impl_->stress_on_vertices_;
   auto& cpu = this->stress_on_vertices_;
   thrust::host_vector<math::RealVector<dim>> cpu_vec = gpu;
@@ -693,7 +731,8 @@ __global__ void gather_hessian2(Real* dst, HessianGatherInfo* hessian_gather_inf
                                 Index* hessian_gather_entries, SparseCOO* hessian_on_vertices,
                                 Index max_entries) {
   Index i = blockIdx.x * blockDim.x + threadIdx.x;
-  if (i >= max_entries) return;
+  if (i >= max_entries)
+    return;
   dst[i] = 0;
   for (Index entry = hessian_gather_entries[i]; entry < hessian_gather_entries[i + 1]; ++entry) {
     auto& hgi = hessian_gather_info[entry];
@@ -719,13 +758,16 @@ __global__ void gather_hessian2(Real* dst, HessianGatherInfo* hessian_gather_inf
 }
 
 template <int dim, template <int> class ElasticModelTemplate>
-math::RealSparseMatrix const& ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
+math::RealSparseMatrix const&
+ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
   auto& gpu = impl_->hessian_on_vertices_;
   auto& cpu = this->hessian_on_vertices_;
-  Index ndof = dim * this->mesh_->GetNumVertices();
-
   Index nnz = impl_->hessian_gather_entries_.size() - 1;
-  gather_hessian2<dim><<<(nnz + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks = static_cast<unsigned int>((nnz + num_threads - 1) / num_threads);
+
+  gather_hessian2<dim><<<num_blocks, num_threads>>>(
       thrust::raw_pointer_cast(impl_->hessian_on_vertices2_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_info_.data()),
       thrust::raw_pointer_cast(impl_->hessian_gather_entries_.data()),

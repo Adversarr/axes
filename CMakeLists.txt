@@ -31,6 +31,7 @@ option(AX_ENABLE_PYBIND "Enable pybind11." OFF)
 option(AX_ENABLE_AVX "Enable AVX." OFF)
 option(AX_ENABLE_FASTMATH "Enable fast math." OFF)
 option(AX_ENABLE_MSAN "Enable Memory San." OFF)
+option(AX_ENABLE_PCH "Enable precompiled header." ON)
 
 set(AX_SDK_PATH "" CACHE PATH "Path to the SDK")
 

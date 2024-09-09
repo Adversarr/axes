@@ -14,7 +14,7 @@ struct WindowPosEvent {
   math::IndexVector2 pos_;
 };
 
-struct FrameBufferSizeEvent {
+struct Framesize_tEvent {
   int width_, height_;
 };
 
@@ -60,7 +60,7 @@ public:
 
   math::IndexVector2 GetPos() const;
 
-  math::IndexVector2 GetFrameBufferSize() const;
+  math::IndexVector2 GetFramesize_t() const;
 
   math::RealVector2 GetFrameBufferScale() const;
 

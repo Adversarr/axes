@@ -75,7 +75,7 @@ struct Context::Impl {
 
   void OnKey(const KeyboardEvent& evt);
 
-  void OnFramebufferSize(const FrameBufferSizeEvent& evt);
+  void OnFramesize_t(const Framesize_tEvent& evt);
 
   void OnCursorMove(const CursorMoveEvent& evt);
 
@@ -145,7 +145,7 @@ void Context::Impl::OnKey(const KeyboardEvent& evt) {
   }
 }
 
-void Context::Impl::OnFramebufferSize(const FrameBufferSizeEvent& evt) {
+void Context::Impl::OnFramesize_t(const Framesize_tEvent& evt) {
   glViewport(0, 0, evt.width_, evt.height_);
   camera_.SetAspect(evt.width_, evt.height_);
 }
@@ -334,7 +334,7 @@ Context::Context() {
   AX_THROW_IF_FALSE(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)),
                     "Failed to initialize OpenGL context");
 
-  auto fb_size = impl_->window_.GetFrameBufferSize();
+  auto fb_size = impl_->window_.GetFramesize_t();
   impl_->camera_.SetAspect(fb_size.x(), fb_size.y());
   impl_->model_ = math::eye<4>().cast<float>();
   impl_->clear_color_ = math::FloatVector4{0.1f, 0.1f, 0.1f, 1.0f};
@@ -350,7 +350,7 @@ Context::Context() {
   impl_->connections_.emplace_back(
       connect<ContextShouldShutdownEvent, &Impl::OnContextShouldShutdown>(*impl_));
   impl_->connections_.emplace_back(connect<KeyboardEvent, &Impl::OnKey>(*impl_));
-  impl_->connections_.emplace_back(connect<FrameBufferSizeEvent, &Impl::OnFramebufferSize>(*impl_));
+  impl_->connections_.emplace_back(connect<Framesize_tEvent, &Impl::OnFramesize_t>(*impl_));
   impl_->connections_.emplace_back(connect<CursorMoveEvent, &Impl::OnCursorMove>(*impl_));
   impl_->connections_.emplace_back(connect<MouseButtonEvent, &Impl::OnMouse>(*impl_));
   impl_->connections_.emplace_back(connect<UiRenderEvent, &Impl::OnUiRender>(*impl_));

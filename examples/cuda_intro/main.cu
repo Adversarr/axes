@@ -11,6 +11,8 @@
 #include <ax/math/accessor.hpp>
 #include <complex>
 #include <cstdio>
+
+#include <cublas.h>
 template <typename T> auto arg(T x) { return std::arg(x); }
 
 

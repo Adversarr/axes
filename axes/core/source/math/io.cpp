@@ -301,7 +301,7 @@ struct Header {
 
 math::RealMatrixX read_npy_v10_real(std::string path) {
   std::ifstream in(path, std::ios::binary);
-  AX_THROW_IF_FALSE(in, "Failed to open the file: ", path);
+  AX_THROW_IF_FALSE(in, "Failed to open the file: {}", path);
 
   char magic[6];
   in.read(magic, 6);

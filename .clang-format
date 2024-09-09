@@ -17,7 +17,7 @@
   AllowShortBlocksOnASingleLine: Never
   AllowShortCaseLabelsOnASingleLine: false
   AllowShortEnumsOnASingleLine: false
-  AllowShortFunctionsOnASingleLine: Empty
+  AllowShortFunctionsOnASingleLine: Inline
   AllowShortIfStatementsOnASingleLine: Never
   AllowShortLambdasOnASingleLine: Empty
   AllowShortLoopsOnASingleLine: false

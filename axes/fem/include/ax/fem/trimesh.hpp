@@ -222,7 +222,7 @@ protected:
   // We may need to compute the inverse mapping, i.e. the vertex->elements connected to it.
   std::vector<std::vector<ElementPositionPair>> v_e_map_;
 
-  Index n_dof_per_vertex_;                  /**< The number of degrees of freedom per vertex. */
+  Index n_dof_per_vertex_ = 0;            /**< The number of degrees of freedom per vertex. */
   boundary_value_list_t boundary_values_; /**< The list of boundary values. */
   boundary_value_list_t dirichlet_boundary_mask_; /**< The mask for Dirichlet boundaries. */
 };

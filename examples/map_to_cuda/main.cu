@@ -17,6 +17,9 @@ __global__ void read_from_span(Span<const float> buffer) {
   }
 }
 
+__global__ void callable() {
+  
+}
 
 int main(int argc, char** argv) {
   ax::initialize(argc, argv);

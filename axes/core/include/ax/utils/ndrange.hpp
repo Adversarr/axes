@@ -1,10 +1,11 @@
 #pragma once
+#include <range/v3/view/cartesian_product.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/stride.hpp>
-#include <range/v3/view/cartesian_product.hpp>
 #include <range/v3/view/zip.hpp>
 
 #include "ax/core/common.hpp"
+#include "ax/core/dim.hpp"
 #include "ax/utils/dup_tuple.hpp"  // IWYU pragma: export
 #include "ranges.hpp"              // IWYU pragma: export
 
@@ -12,7 +13,8 @@
  * @namespace ax::utils
  * @brief Contains utility functions and aliases for the axes library.
  */
-namespace ax::utils {
+namespace ax {
+namespace utils {
 
 /****************************** range ******************************/
 
@@ -32,7 +34,8 @@ AX_FORCE_INLINE auto range(IndexType end) {
  * @param end The end value of the range.
  * @return A range of values from begin to end.
  */
-template <typename IndexType> AX_FORCE_INLINE auto range(IndexType begin, IndexType end) {
+template <typename IndexType>
+AX_FORCE_INLINE auto range(IndexType begin, IndexType end) {
   return views::iota(begin, end);
 }
 
@@ -80,8 +83,23 @@ AX_FORCE_INLINE auto range(IndexTuple<3> const& beg_end_step) {
  * @param args The ranges of values.
  * @return A Cartesian product of the specified ranges.
  */
-template <typename IndexType, typename... T> AX_FORCE_INLINE auto ndrange(T&&... args) {
+template <typename IndexType, typename... T,
+          typename = std::enable_if_t<(std::is_integral_v<std::remove_cvref_t<T>> && ...)>>
+AX_FORCE_INLINE auto ndrange(T&&... args) {
   return views::cartesian_product(range(std::forward<T>(args))...);
 }
 
-}  // namespace ax::utils
+AX_FORCE_INLINE auto ndrange(const Dim1& dim) {
+  return range(dim.X());
+}
+
+AX_FORCE_INLINE AX_CONSTEXPR auto ndrange(const Dim2& dim) {
+  return ndrange<size_t>(dim.X(), dim.Y());
+}
+
+AX_FORCE_INLINE AX_CONSTEXPR auto ndrange(const Dim3& dim) {
+  return ndrange<size_t>(dim.X(), dim.Y(), dim.Z());
+}
+}  // namespace utils
+
+}  // namespace ax

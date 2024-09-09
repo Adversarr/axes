@@ -10,4 +10,9 @@ constexpr T pow(T x, int n) {
   return output;
 }
 
+template <typename Front, typename... Args>
+AX_HOST_DEVICE AX_CONSTEXPR bool all_equal(Front&& front, Args&&... args) noexcept {
+  return (sizeof...(args) == 0) || ((front == args) && ...);
+}
+
 }

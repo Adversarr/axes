@@ -1100,7 +1100,7 @@ AX_FORCE_INLINE IndexField<rows> make_index_field(Index dofs) {
 template <typename T>
 using aligned_vector = std::vector<T, Eigen::aligned_allocator<T>>;
 
-AX_CONSTEXPR std::string to_string(Eigen::ComputationInfo info) {
+inline std::string to_string(Eigen::ComputationInfo info) {
   switch (info) {
     case Eigen::ComputationInfo::NumericalIssue:
       return "NumericalIssue";
@@ -1114,5 +1114,12 @@ AX_CONSTEXPR std::string to_string(Eigen::ComputationInfo info) {
       return "Unknown";
   }
 }
+
+template <typename Mapped, int Options = Eigen::Unaligned,
+          typename StrideType = Eigen::Stride<0, 0>>
+using Map = Eigen::Map<Mapped, Options, StrideType>;
+
+template <typename Mapped>
+using DefaultMap = Map<Mapped, Eigen::Unaligned, Eigen::Stride<0, 0>>;
 
 }  // namespace ax::math

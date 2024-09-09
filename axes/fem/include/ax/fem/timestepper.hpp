@@ -1,12 +1,11 @@
 #pragma once
+#include "./elasticity_cpu.hpp"
+#include "./trimesh.hpp"
 #include "ax/fem/elasticity/base.hpp"
 #include "ax/math/common.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/utils/enum_refl.hpp"
 #include "ax/utils/opt.hpp"
-#include "elasticity_cpu.hpp"
-#include "scheme.hpp"
-#include "trimesh.hpp"
 
 namespace ax::fem {
 
@@ -27,9 +26,13 @@ template <int dim>
 class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
-  AX_DECLARE_CONSTRUCTOR(TimeStepperBase, delete, default);
-  virtual ~TimeStepperBase();
+  explicit TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
+  TimeStepperBase(const TimeStepperBase &) noexcept = delete;
+  TimeStepperBase &operator=(const TimeStepperBase &) noexcept = delete;
+  TimeStepperBase(TimeStepperBase &&) noexcept = default;
+  TimeStepperBase &operator=(TimeStepperBase &&) noexcept = default;
+
+  ~TimeStepperBase() override;
 
   // Common Data Accessors
   std::shared_ptr<TriMesh<dim>> GetMesh() {
@@ -40,12 +43,8 @@ public:
     return *elasticity_;
   }
 
-  TimestepSchemeBase<dim> &GetIntegrationScheme() {
-    return *integration_scheme_;
-  }
-
-  virtual void SetOptions(const utils::Options &option) override;
-  virtual utils::Options GetOptions() const override;
+  void SetOptions(const utils::Options &option) override;
+  utils::Options GetOptions() const override;
 
   // External force getter/setter
   math::RealField<dim> const &GetExternalAcceleration() const {
@@ -64,20 +63,24 @@ public:
   /*************************
    * SECT: Constant APIs.
    *************************/
-  math::RealField<dim> const &GetDisplacement() const {
+  AX_FORCE_INLINE math::RealField<dim> const &GetDisplacement() const {
     return u_;
   }
 
-  math::RealField<dim> const &GetLastDisplacement() const {
+  AX_FORCE_INLINE math::RealField<dim> const &GetLastDisplacement() const {
     return u_back_;
   }
 
-  math::RealField<dim> const &GetNextDisplacementDelta() const {
+  AX_FORCE_INLINE math::RealField<dim> const &GetNextDisplacementDelta() const {
     return du_;
   }
 
-  math::RealField<dim> const &GetVelocity() const {
+  AX_FORCE_INLINE math::RealField<dim> const &GetVelocity() const {
     return velocity_;
+  }
+
+  AX_FORCE_INLINE math::RealField<dim> const &GetLastVelocity() const {
+    return velocity_back_;
   }
 
   math::RealField<dim> GetPosition() const;
@@ -87,11 +90,11 @@ public:
   void SetDensity(Real density);
   void SetDensity(math::RealField1 const &density);
 
-  math::RealSparseMatrix const &GetMassMatrix() const noexcept {
+  AX_FORCE_INLINE math::RealSparseMatrix const &GetMassMatrix() const noexcept {
     return mass_matrix_;
   }
 
-  math::RealSparseMatrix const &GetMassMatrixOriginal() const noexcept {
+  AX_FORCE_INLINE math::RealSparseMatrix const &GetMassMatrixOriginal() const noexcept {
     return mass_matrix_original_;
   }
 
@@ -127,10 +130,7 @@ public:
   virtual void EndTimestep(math::RealField<dim> const &du);
   // Solve the timestep
   optim::OptProblem AssembleProblem();
-  void RecomputeInitialGuess(math::RealField<dim> const &u, math::RealField<dim> const &u_back,
-                             math::RealField<dim> const &velocity,
-                             math::RealField<dim> const &velocity_back,
-                             math::RealField<dim> const &ext_accel);
+  void RecomputeInitialGuess();
 
   math::RealField<dim> const &GetInitialGuess() const {
     return du_inertia_;
@@ -169,7 +169,8 @@ protected:
   /************************* SECT: Common Data *************************/
   std::shared_ptr<TriMesh<dim>> mesh_;
   std::shared_ptr<ElasticityComputeBase<dim>> elasticity_;
-  std::unique_ptr<TimestepSchemeBase<dim>> integration_scheme_;
+  // NOTE: We only focus on Backward Euler!
+  // std::unique_ptr<TimestepSchemeBase<dim>> integration_scheme_;
 
   // This is a little bit tricky, we need to store the name of the elasticity model
   std::string elasticity_name_{"stable_neohookean"}, device_{"cpu"};

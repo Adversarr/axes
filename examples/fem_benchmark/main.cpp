@@ -4,14 +4,11 @@
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"
 #include "ax/fem/elasticity.hpp"
-#include "ax/fem/elasticity/arap.hpp"
-#include "ax/fem/elasticity/linear.hpp"
-#include "ax/fem/elasticity/stvk.hpp"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
+#include "ax/fem/timestepper/ncg.hpp"
 #include "ax/fem/timestepper/quasi_newton.hpp"
 #include "ax/fem/trimesh.hpp"
-#include "ax/geometry/io.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/colormap.hpp"
 #include "ax/gl/context.hpp"
@@ -21,10 +18,11 @@
 #include "ax/math/accessor.hpp"
 #include "ax/math/io.hpp"
 #include "ax/math/views.hpp"
-#include "ax/optim/optimizers/pcg.hpp"
 #include "ax/utils/asset.hpp"
 #include "ax/utils/ndrange.hpp"
 #include "ax/utils/time.hpp"
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/drop_last.hpp>
 
 int nx;
 using namespace ax;
@@ -38,6 +36,7 @@ math::RealVector2 lame;
 #define SCENE_ARMADILLO_EXTREME 3
 int scene;
 
+math::RealMatrixX g_basis;
 std::unique_ptr<fem::TimeStepperBase<3>> ts;
 
 void update_rendering() {
@@ -154,13 +153,48 @@ void handle_armadillo_extreme(fem::TriMesh<3>& mesh, Real T) {
 
 void ui_callback(gl::UiRenderEvent) {
   static Index frame = 0;
+  static bool save_result = false;
   ImGui::Begin("FEM", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Checkbox("Running", &running);
   ImGui::Text("dt=%lf", dt);
   ImGui::Text("#Elements %ld, #Vertices %ld", ts->GetMesh()->GetNumElements(),
               ts->GetMesh()->GetNumVertices());
+  ImGui::Checkbox("Save Result", &save_result);
+  static float drop_ratio = 0.1;
+  ImGui::InputFloat("drop ratio", &drop_ratio);
   if (ImGui::Button("Step") || running) {
     const auto& vert = ts->GetMesh()->GetVertices();
+    if (save_result) {
+      static size_t cnt = 0;
+      static std::once_flag flag;
+      std::call_once(flag, [&]() {
+        math::RealMatrixX x0 = ts->GetMesh()->GetVertices();
+        math::write_npy_v10(fmt::format("outs/initial.npy"), x0);
+      });
+
+      const auto& traj = ts->GetLastTrajectory();
+      Real g0 = 0;
+      for (const auto& [i, u] : utils::views::enumerate(traj) | utils::views::drop_last(1)) {
+        // Randomly drop some.
+        float r = (rand() % 128) / 128.0f;
+        if (drop_ratio > r) {
+          continue;
+        }
+
+        math::RealMatrixX g = ts->Gradient(u);
+        if (g.norm() < 0.001 * g0 && i > 0) {
+          break;
+        }
+        if (i == 0) {
+          g0 = g.norm();
+        }
+        math::write_npy_v10(fmt::format("outs/grad_{}.npy", cnt), g);
+        math::RealMatrixX du = u - traj[i+1];
+        // std::cout << math::dot(g, du) << std::endl;
+        math::write_npy_v10(fmt::format("outs/pos_{}.npy", cnt), du);
+        ++cnt;
+      }
+    }
     if (scene == SCENE_TWIST) {
       // Apply some Dirichlet BC
       math::RealMatrix3 rotate = Eigen::AngleAxis<Real>(dt, math::RealVector3::UnitX()).matrix();
@@ -187,9 +221,34 @@ void ui_callback(gl::UiRenderEvent) {
     auto time_end = utils::get_current_time_nanos();
     auto time_elapsed = (time_end - time_start) * 1e-9;
     fps[frame++ % fps.size()] = 1.0 / time_elapsed;
-    std::cout << frame << " Dt=" << time_elapsed
-              << "s, FPS=" << fps.sum() / std::min<Index>(100, frame) << std::endl;
+    ;
+    AX_INFO("Dt={}s, FPS={}", time_elapsed, fps.sum() / std::min<Index>(100, frame));
     update_rendering();
+  }
+
+  static bool on_x = false, on_y = false, on_z = false;
+  static float ratio = 0.;
+  bool changed = ImGui::SliderFloat("Ratio", &ratio, -1, 1);
+  static int selected_row = 0;
+  changed |= ImGui::Checkbox("Apply x", &on_x);
+  changed |= ImGui::Checkbox("Apply y", &on_y);
+  changed |= ImGui::Checkbox("Apply z", &on_z);
+  changed |= ImGui::InputInt("Selected Row", &selected_row);
+  selected_row = std::clamp<int>(selected_row, 0, g_basis.cols());
+
+  if (changed) {
+    patch_component<gl::Mesh>(out, [&](gl::Mesh& m) {
+      m.vertices_ = ts->GetPosition();
+      if (on_x) {
+        m.vertices_.row(0) += g_basis.row(selected_row) * ratio;
+      }
+      if (on_y) {
+        m.vertices_.row(1) += g_basis.row(selected_row) * ratio;
+      }
+      if (on_z) {
+        m.vertices_.row(2) += g_basis.row(selected_row) * ratio;
+      }
+    });
   }
   ImGui::End();
 }
@@ -218,7 +277,8 @@ int main(int argc, char** argv) {
     po::make_option("device", "cpu or gpu", "gpu"),
     po::make_option<bool>("optopo", "Optimize topology using RCM", "true"),
     po::make_option("lbfgs", "naive, laplacian, hard", "laplacian"),
-    po::make_option("ls", "Line searcher", "Wolfe"),
+    po::make_option("ls", "Line searcher", "Backtracking"),
+    po::make_option("verbose", "Verbose"),
   });
 
   gl::init(argc, argv);
@@ -252,12 +312,14 @@ int main(int argc, char** argv) {
     vet_file = utils::get_asset("/mesh/npy/armadillo_low_res_larger_vertices.npy");
   }
 
+  g_basis = math::read_npy_v10_real("/home/adversarr/Repo/neural_subspace/basis.npy").transpose();
   auto tet = math::read_npy_v10_Index(tet_file);
   auto vet = math::read_npy_v10_real(vet_file);
   auto cube = geo::tet_cube(0.5, 10 * nx, nx, nx);
   cube.vertices_.row(0) *= 10;
   input_mesh.indices_ = tet.transpose();
   input_mesh.vertices_ = vet.transpose();
+  bool verbose = po::get_parse_result()["verbose"].as<bool>();
   // input_mesh = cube;
 
   if (auto opt = po::get_parse_result()["optim"].as<std::string>(); opt == "liu") {
@@ -270,26 +332,19 @@ int main(int argc, char** argv) {
     } else if (strategy == "laplacian") {
       std::cout << "LBFGS: Liu17" << std::endl;
       p_ts->SetOptions({{"lbfgs_strategy", "kLaplacian"}});
-    } else {
+    } else if (strategy == "hard") {
       std::cout << "LBFGS: Hard" << std::endl;
       p_ts->SetOptions({{"lbfgs_strategy", "kHard"}});
+    } else {
+      p_ts->SetOptions({{"lbfgs_strategy", "kReservedForExperimental"}});
     }
   } else if (opt == "newton") {
     std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
     ts->SetOptions({{"optimizer_opt", utils::Options{{"verbose", true}}}});
   } else if (opt == "ncg") {
-    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
-    ts->SetOptions(
-        {{"optimizer", "kNonlinearCg"},
-         {"optimizer_opt", utils::Options{{"strategy", "kPolakRibiere"}, {"verbose", true}}}});
-
-    auto* ptr = reinterpret_cast<fem::Timestepper_NaiveOptim<3>*>(ts.get())->GetOptimizer();
-    auto* ncg = dynamic_cast<optim::Optimizer_NonlinearCg*>(ptr);
-    ncg->SetPreconditioner(
-        [](const optim::Variable& x, const optim::Gradient& g) -> optim::Variable {
-          return g * dt;
-        });
+    ts = std::make_unique<fem::Timestepper_NonlinearCg<3>>(std::make_shared<fem::TriMesh<3>>());
+    auto* ncg = dynamic_cast<fem::Timestepper_NonlinearCg<3>*>(ts.get());
   } else {
     AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton', got {}", opt);
   }
@@ -329,7 +384,18 @@ int main(int argc, char** argv) {
 #endif
   );
   std::string ls = po::get_parse_result()["ls"].as<std::string>();
-  ts->SetOptions({{"optimizer_opt", utils::Options{{"linesearch", ls}}}});
+  ts->SetOptions({
+    {
+      "optimizer_opt",
+      utils::Options{
+        {"linesearch", ls},
+        {"verbose", verbose},
+      },
+    },
+    {"verbose", verbose},
+    {"record_trajectory", true},
+  });
+
   ts->Initialize();
 
   AX_WARN("Timestepper Options: {}", boost::json::value(ts->GetOptions()));

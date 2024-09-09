@@ -12,6 +12,7 @@
 #include "ax/utils/pretty_typename.hpp"
 #include "ax/utils/time.hpp"
 
+#include <taskflow/taskflow.hpp>
 #include <tbb/tbb.h>
 
 using namespace ax;
@@ -123,7 +124,6 @@ int main(int argc, char** argv) {
   auto [x, y, z] = unpack(RealVector3{3, 2, 1});
   AX_INFO("{}, {}, {}", x, y, z);
   AX_INFO("d={}", d);
-
   clean_up();
   return 0;
 }

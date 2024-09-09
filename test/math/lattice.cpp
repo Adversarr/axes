@@ -8,7 +8,7 @@
 TEST_CASE("Lattice2D") {
   ax::math::Lattice<2, float> lattice({2, 3});
   CHECK(lattice.Shape() == ax::math::IndexVector<2>{2, 3});
-  CHECK(lattice.Strides() == ax::math::IndexVector<2>{3, 1});
+  CHECK(lattice.Stride() == ax::math::IndexVector<2>{3, 1});
   lattice(0, 0) = 1;
   lattice(0, 1) = 2;
   lattice(0, 2) = 3;
@@ -44,7 +44,7 @@ TEST_CASE("Lattice2D") {
 TEST_CASE("StaggeredLattice2D") {
   ax::math::Lattice<2, float> lattice({2, 2}, ax::math::staggered);
   CHECK(lattice.Shape() == ax::math::IndexVector<2>{2, 2});
-  CHECK(lattice.Strides() == ax::math::IndexVector<2>{3, 1});
+  CHECK(lattice.Stride() == ax::math::IndexVector<2>{3, 1});
 
   lattice(0, 0) = 1;
   lattice(1, 0) = 2;

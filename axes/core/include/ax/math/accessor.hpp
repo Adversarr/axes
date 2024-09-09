@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ax/core/buffer/buffer_view.hpp"
 #include "common.hpp"
 #include "shape.hpp"
 
@@ -121,6 +122,15 @@ struct BufferTraits<Span<T>> {
   using IndexType = size_t;
   using Borrowing = Span<T>;
   using ConstBorrowing = Span<const T>;
+  using Reference = T&;
+  using ConstReference = const T&;
+};
+
+template <typename T>
+struct BufferTraits<BufferView<T>> {
+  using IndexType = size_t;
+  using Borrowing = BufferView<T>;
+  using ConstBorrowing = BufferView<const T>;
   using Reference = T&;
   using ConstReference = const T&;
 };
@@ -365,6 +375,67 @@ public:
   }
 };
 
+template <typename T, int dim, bool is_const>
+class BufferViewAccessor
+    : public FieldAccessorBase<BufferViewAccessor<T, dim, is_const>, BufferView<T>, dim, is_const> {
+public:
+  using Base
+      = FieldAccessorBase<BufferViewAccessor<T, dim, is_const>, BufferView<T>, dim, is_const>;
+  using Buffer = BufferView<T>;
+  using ShapeType = typename Base::ShapeType;
+  using IndexType = typename Base::IndexType;
+  using Borrowing = typename Base::Borrowing;
+  using ConstBorrowing = typename Base::ConstBorrowing;
+
+  using Reference = typename Base::Reference;
+  using ConstReference = typename Base::ConstReference;
+
+  AX_FORCE_INLINE AX_HOST_DEVICE BufferViewAccessor(Borrowing data, ShapeType shape)
+      : Base(data, shape) {
+    if constexpr (dim == 1) {
+      assert(ax::details::is_1d(data.Shape()));
+    } else if constexpr (dim == 2) {
+      assert(ax::details::is_2d(data.Shape()));
+    } else {
+      assert(ax::details::is_3d(data.Shape()));
+    }
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE BufferViewAccessor(const BufferViewAccessor&) noexcept = default;
+
+  AX_FORCE_INLINE AX_HOST_DEVICE BufferViewAccessor(BufferViewAccessor&&) noexcept = default;
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE Reference AtImpl(Args&&... args) noexcept {
+    return Base::data_(std::forward<Args>(args)...);
+  }
+
+  template <typename... Args>
+  AX_FORCE_INLINE AX_HOST_DEVICE ConstReference AtImpl(Args&&... args) const noexcept {
+    return Base::data_(std::forward<Args>(args)...);
+  }
+
+  AX_FORCE_INLINE AX_HOST_DEVICE Index GetTotalMemoryConsumptionImpl() const noexcept {
+    return Base::Size() * sizeof(T);
+  }
+
+  auto begin() noexcept {
+    return Base::data_.begin();
+  }
+
+  auto end() noexcept {
+    return Base::data_.end();
+  }
+
+  auto begin() const noexcept {
+    return Base::data_.begin();
+  }
+
+  auto end() const noexcept {
+    return Base::data_.end();
+  }
+};
+
 template <typename /*Buffer*/>
 struct AccessorTypeFor {
   template <int, bool>
@@ -390,6 +461,12 @@ struct AccessorTypeFor<Span<T>> {
   using type = SpanAccessor<T, dim, is_const>;
 };
 
+template <typename T>
+struct AccessorTypeFor<BufferView<T>> {
+  template <int dim, bool is_const>
+  using type = BufferViewAccessor<T, dim, is_const>;
+};
+
 template <typename Buffer, int dim, bool is_const>
 using AccessorTypeForType = typename AccessorTypeFor<Buffer>::template type<dim, is_const>;
 
@@ -406,6 +483,11 @@ Index buffer_size(const Field<Scalar, Rows>& buf) {
 template <typename Tp>
 size_t buffer_size(const Span<Tp>& buf) {
   return buf.size();
+}
+
+template <typename Tp>
+size_t buffer_size(const BufferView<Tp>& buf) {
+  return ax::prod(buf.Shape());
 }
 
 /**
@@ -446,6 +528,53 @@ AX_FORCE_INLINE AX_HOST_DEVICE auto make_accessor(const FieldData& field) {
   using AccessorType = AccessorTypeForType<FieldData, 1, true>;
   using IndexType = typename AccessorType::IndexType;
   return AccessorType{field, Shape<IndexType, 1>{ShapeArray<IndexType, 1>(buffer_size(field))}};
+}
+
+
+// Make buffer accessor for 1D, 2D, 3D buffer, notice that it is impossible to know the dimension
+// at compile time.
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_1d(BufferView<Tp> buf) {
+  assert(ax::details::is_1d(buf.Shape()));
+  return BufferViewAccessor<Tp, 1, false>{buf,
+                                          Shape<size_t, 1>{ShapeArray<size_t, 1>{buf.Shape().X()}}};
+}
+
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_1d(BufferView<const Tp> buf) {
+  assert(ax::details::is_1d(buf.Shape()));
+  return BufferViewAccessor<Tp, 1, true>{buf,
+                                         Shape<size_t, 1>{ShapeArray<size_t, 1>{buf.Shape().X()}}};
+}
+
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_2d(BufferView<Tp> buf) {
+  assert(ax::details::is_2d(buf.Shape()));
+  return BufferViewAccessor<Tp, 2, false>{
+    buf, Shape<size_t, 2>{ShapeArray<size_t, 2>{buf.Shape().X(), buf.Shape().Y()}}};
+}
+
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_2d(BufferView<const Tp> buf) {
+  assert(ax::details::is_2d(buf.Shape()));
+  return BufferViewAccessor<Tp, 2, true>{
+    buf, Shape<size_t, 2>{ShapeArray<size_t, 2>{buf.Shape().X(), buf.Shape().Y()}}};
+}
+
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_3d(BufferView<Tp> buf) {
+  assert(ax::details::is_3d(buf.Shape()));
+  return BufferViewAccessor<Tp, 3, false>{
+    buf,
+    Shape<size_t, 3>{ShapeArray<size_t, 3>{buf.Shape().X(), buf.Shape().Y(), buf.Shape().Z()}}};
+}
+
+template <typename Tp>
+AX_FORCE_INLINE AX_HOST_DEVICE auto make_buf_accessor_3d(BufferView<const Tp> buf) {
+  assert(ax::details::is_3d(buf.Shape()));
+  return BufferViewAccessor<Tp, 3, true>{
+    buf,
+    Shape<size_t, 3>{ShapeArray<size_t, 3>{buf.Shape().X(), buf.Shape().Y(), buf.Shape().Z()}}};
 }
 
 }  // namespace ax::math

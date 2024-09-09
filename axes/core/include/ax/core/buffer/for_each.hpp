@@ -44,6 +44,69 @@ void par_for_each(Fn&& f, BufferView<Front> tsf, BufferView<Ts>... ts) {
   }
 }
 
+template <typename Fn>
+AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<1>& d, Fn&& f) {
+  for (size_t i = 0; i < d.X(); ++i) {
+    f(i);
+  }
+}
+
+template <typename Fn>
+AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<2>& d, Fn&& f) {
+  for (size_t j = 0; j < d.Y(); ++j) {
+    for (size_t i = 0; i < d.X(); ++i) {
+      f(i, j);
+    }
+  }
+}
+
+template <typename Fn>
+AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<3>& d, Fn&& f) {
+  for (size_t k = 0; k < d.Z(); ++k) {
+    for (size_t j = 0; j < d.Y(); ++j) {
+      for (size_t i = 0; i < d.X(); ++i) {
+        f(i, j, k);
+      }
+    }
+  }
+}
+
+template <typename Fn>
+void par_for_each_indexed(const Dim<1>& d, Fn&& f) {
+#ifdef AX_HAS_OPENMP
+#  pragma omp parallel for
+#endif
+  for (size_t i = 0; i < d.X(); ++i) {
+    f(i);
+  }
+}
+
+template <typename Fn>
+void par_for_each_indexed(const Dim<2>& d, Fn&& f) {
+#ifdef AX_HAS_OPENMP
+#  pragma omp parallel for
+#endif
+  for (size_t j = 0; j < d.Y(); ++j) {
+    for (size_t i = 0; i < d.X(); ++i) {
+      f(i, j);
+    }
+  }
+}
+
+template <typename Fn>
+void par_for_each_indexed(const Dim<3>& d, Fn&& f) {
+#ifdef AX_HAS_OPENMP
+#  pragma omp parallel for
+#endif
+  for (size_t k = 0; k < d.Z(); ++k) {
+    for (size_t j = 0; j < d.Y(); ++j) {
+      for (size_t i = 0; i < d.X(); ++i) {
+        f(i, j, k);
+      }
+    }
+  }
+}
+
 }  // namespace details
 
 template <typename Fn, typename Ts>
@@ -67,6 +130,16 @@ template <typename Fn, typename... Ts>
 void par_for_each(std::tuple<BufferView<Ts>...> ts, Fn&& f) {
   std::apply(details::par_for_each<Fn, Ts...>,
              std::tuple_cat(std::forward_as_tuple(std::forward<Fn>(f)), ts));
+}
+
+template <size_t N, typename Fn>
+AX_CONSTEXPR AX_FORCE_INLINE void for_each_indexed(const Dim<N>& d, Fn&& f) {
+  details::for_each_indexed(d, std::forward<Fn>(f));
+}
+
+template <size_t N, typename Fn>
+void par_for_each_indexed(const Dim<N>& d, Fn&& f) {
+  details::par_for_each_indexed(d, std::forward<Fn>(f));
 }
 
 }  // namespace ax

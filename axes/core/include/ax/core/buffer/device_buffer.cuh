@@ -31,25 +31,29 @@ public:
     Swap(new_buffer);
   }
 
-  PtrType Clone() const {
-    auto new_buffer = Create(Base::shape_);
-    // Copy between pitched ptr using cudaMemcpy is ok.
-    cudaError error = cudaSuccess;
-    if (is_1d(Base::shape_)) {
-      error = cudaMemcpy(new_buffer->data_, Base::data_, Base::PhysicalSize(),
-                         cudaMemcpyDeviceToDevice);
-    } else {
-      error =
-          cudaMemcpy2D(new_buffer->data_, new_buffer->Stride().Y(), Base::data_,
-                       Base::strides_.Y(), Base::shape_.X() * sizeof(T),
-                       Base::shape_.Y(), cudaMemcpyDeviceToDevice);
-    }
+  PtrType Clone(const Dim3 & new_shape) const {
+    if (prod(new_shape) == 0) {
+      auto new_buffer = Create(Base::shape_);
+      // Copy between pitched ptr using cudaMemcpy is ok.
+      cudaError error = cudaSuccess;
+      if (is_1d(Base::shape_)) {
+        error = cudaMemcpy(new_buffer->data_, Base::data_, Base::PhysicalSize(),
+                           cudaMemcpyDeviceToDevice);
+      } else {
+        error = cudaMemcpy2D(new_buffer->data_, new_buffer->Stride().Y(),
+                             Base::data_, Base::strides_.Y(),
+                             Base::shape_.X() * sizeof(T), Base::shape_.Y(),
+                             cudaMemcpyDeviceToDevice);
+      }
 
-    if (error != cudaSuccess) {
-      throw make_runtime_error("Failed to copy device buffer: {}",
-                               cudaGetErrorName(error));
+      if (error != cudaSuccess) {
+        throw make_runtime_error("Failed to copy device buffer: {}",
+                                 cudaGetErrorName(error));
+      }
+      return new_buffer;
+    } else {
+      return Create(new_shape);
     }
-    return new_buffer;
   }
 
   static std::unique_ptr<DeviceBufferRaw<T>> Create(Dim3 size) {
@@ -136,12 +140,16 @@ public:
     Swap(new_buffer);
   }
 
-  BasePtrType Clone() const {
-    auto new_buffer = Create(Base::shape_);
-    cudaMemcpy(thrust::raw_pointer_cast(new_buffer->data_.data()),
-               thrust::raw_pointer_cast(data_.data()), Base::PhysicalSize(),
-               cudaMemcpyDeviceToDevice);
-    return new_buffer;
+  BasePtrType Clone(const Dim3 & new_shape) const override {
+    if (prod(new_shape) == 0) {
+      auto new_buffer = Create(Base::shape_);
+      cudaMemcpy(thrust::raw_pointer_cast(new_buffer->data_.data()),
+                 thrust::raw_pointer_cast(data_.data()), Base::PhysicalSize(),
+                 cudaMemcpyDeviceToDevice);
+      return new_buffer;
+    } else {
+      return Create(new_shape);
+    }
   }
 
   static std::unique_ptr<DeviceBuffer<T>> Create(Dim3 size) {

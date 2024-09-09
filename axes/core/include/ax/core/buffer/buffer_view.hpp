@@ -140,6 +140,17 @@ public:
     return *details::buffer_at<const T>(data_, shape_, strides_, x, y, z);
   }
 
+  /////////////////// buffer accessing, raw ptr ///////////////////
+  AX_HOST_DEVICE AX_FORCE_INLINE T* Offset(size_t x, size_t y = 0, size_t z = 0) {
+    assert(data_ != nullptr);
+    return details::buffer_at<T>(data_, shape_, strides_, x, y, z);
+  }
+
+  AX_HOST_DEVICE AX_FORCE_INLINE T const* Offset(size_t x, size_t y = 0, size_t z = 0) const {
+    assert(data_ != nullptr);
+    return details::buffer_at<const T>(data_, shape_, strides_, x, y, z);
+  }
+
   /////////////////// subview ///////////////////
   AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(Dim3 const& shape);  // NOTE: not implemented for future...
 

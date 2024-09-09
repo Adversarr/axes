@@ -9,11 +9,11 @@
 TEST_CASE("Refl") {
   using namespace ax::utils;
   using namespace ax::math;
-  auto ldlt = reflect_enum<DenseSolverKind>("kLDLT");
+  auto ldlt = reflect_enum<DenseSolverKind>("LDLT");
   CHECK(ldlt.has_value());
   CHECK(ldlt.value() == DenseSolverKind::LDLT);
 
-  auto partialLU = reflect_enum<DenseSolverKind>("kPartialPivLU");
+  auto partialLU = reflect_enum<DenseSolverKind>("PartialPivLU");
   CHECK(partialLU.has_value());
   CHECK(partialLU.value() == DenseSolverKind::PartialPivLU);
 }

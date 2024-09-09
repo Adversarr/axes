@@ -11,9 +11,7 @@ public:
   using ConstPtrType = typename Base::ConstPtrType;
   HostBuffer() = default;
 
-  HostBuffer(HostBuffer&& other) noexcept : HostBuffer{} {
-    Swap(other);
-  }
+  HostBuffer(HostBuffer&& other) noexcept : HostBuffer{} { Swap(other); }
 
   ~HostBuffer() noexcept override = default;
 
@@ -33,11 +31,15 @@ public:
     new_buffer.Swap(*this);
   }
 
-  PtrType Clone() const override {
-    auto clone = Create(Buffer<T>::shape_);
-    // std copy will be optimized by the compiler, no need to use memcpy.
-    std::copy(container_.begin(), container_.end(), clone->container_.begin());
-    return clone;
+  PtrType Clone(const Dim3& new_shape) const override {
+    if (prod(new_shape) == 0) {
+      auto clone = Create(Buffer<T>::shape_);
+      // std copy will be optimized by the compiler, no need to use memcpy.
+      std::copy(container_.begin(), container_.end(), clone->container_.begin());
+      return clone;
+    } else {
+      return Create(new_shape);
+    }
   }
 
   void SetBytes(int value) override {
@@ -48,13 +50,9 @@ public:
     return std::unique_ptr<HostBuffer>(new HostBuffer<T, Container>(shape));
   }
 
-  Container& GetUnderlying() noexcept {
-    return container_;
-  }
+  Container& GetUnderlying() noexcept { return container_; }
 
-  const Container& GetUnderlying() const noexcept {
-    return container_;
-  }
+  const Container& GetUnderlying() const noexcept { return container_; }
 
 protected:
   Container container_;

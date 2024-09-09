@@ -3,7 +3,6 @@
 #include <doctest/doctest.h>
 
 #include <ax/math/shape.hpp>
-#include <ax/parallel/parallel.hpp>
 
 #include "ax/core/init.hpp"
 #include "ax/core/logging.hpp"

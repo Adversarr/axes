@@ -1,7 +1,5 @@
 #pragma once
-#include "buffer.hpp"
 #include "buffer_view.hpp"
-#include "host_buffer.hpp"
 
 #ifdef AX_HAS_CUDA
 #  include <cuda_runtime_api.h>
@@ -10,9 +8,9 @@
 namespace ax {
 namespace details {
 
+#ifdef AX_HAS_CUDA
 template <typename From, typename To>
 cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind kind) {
-#ifdef AX_HAS_CUDA
   auto s = cudaSuccess;
   if (from.IsContinuous() && to.IsContinuous()) {
     // For continuous buffer, just do copy
@@ -41,19 +39,15 @@ cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind
     }
   }
   return s;
-#else
-  AX_UNUSED(from, to, kind);
-  AX_CHECK(false, "CUDA is not enabled.");
-  AX_UNREACHABLE();
-#endif
 }
+#endif
 
 template <typename From, typename To>
 void host_copy(BufferView<const From> from, BufferView<To> to) {
   if (from.IsContinuous() && to.IsContinuous()) {
     // Copy anyway.
     const size_t total_src_byte = prod(from.Shape()) * sizeof(From);
-    std::memcpy(to->Data(), from->Data(), total_src_byte);
+    std::memcpy(to.Data(), from.Data(), total_src_byte);
   } else {
     if constexpr (std::is_same_v<From, To>) {
       // Not continuous, we need from and to is same shape and type.
@@ -81,25 +75,25 @@ void host_copy(BufferView<const From> from, BufferView<To> to) {
 
 template <typename From, typename To>
 void copy_dispatch(BufferView<const From> from, BufferView<To> to) {
-  // check copiable
-  if (to->PhysicalSize() < from->PhysicalSize()) {
-    throw make_runtime_error("Buffer size not enough for copy.");
-  }
-
-  if (from->Device() == BufferDevice::Host && to->Device() == BufferDevice::Host) {
+  if (from.Device() == BufferDevice::Host && to.Device() == BufferDevice::Host) {
     host_copy(from, to);
   } else {
+#ifdef AX_HAS_CUDA
     cudaError err;
-    if (from->Device() == BufferDevice::Device && to->Device() == BufferDevice::Device) {
+    if (from.Device() == BufferDevice::Device && to.Device() == BufferDevice::Device) {
       err = cu_copy(from, to, cudaMemcpyDeviceToDevice);
-    } else if (from->Device() == BufferDevice::Host && to->Device() == BufferDevice::Device) {
+    } else if (from.Device() == BufferDevice::Host && to.Device() == BufferDevice::Device) {
       err = cu_copy(from, to, cudaMemcpyHostToDevice);
-    } else /* if (from->Device() == BufferDevice::Device && to->Device() == BufferDevice::Host) */ {
+    } else /* if (from.Device() == BufferDevice::Device && to.Device() == BufferDevice::Host) */ {
       err = cu_copy(from, to, cudaMemcpyDeviceToHost);
     }
     if (err != cudaSuccess) {
       throw make_runtime_error("CUDA copy failed: {}", cudaGetErrorString(err));
     }
+#else
+    AX_CHECK(false, "CUDA is not enabled.");
+    AX_UNREACHABLE();
+#endif
   }
 }
 
@@ -113,8 +107,8 @@ void copy_dispatch(BufferView<const From> from, BufferView<To> to) {
  * @param from
  * @param to
  */
-template <typename From, typename To>
-void copy(BufferView<const From> from, BufferView<To> to) {
+template <typename To, typename From>
+void copy(BufferView<To> to, BufferView<From> from) {
 #ifdef AX_HAS_CUDA
   // check copiable.
   if (from.Device() == BufferDevice::Device || to.Device() == BufferDevice::Device) {
@@ -136,7 +130,7 @@ void copy(BufferView<const From> from, BufferView<To> to) {
                              total_dst_byte);
   }
 
-  details::copy_dispatch<From, To>(from, to);
+  details::copy_dispatch<std::remove_const_t<From>, To>(from, to);
 }
 
 }  // namespace ax

@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/buffer/host_buffer.hpp"
@@ -257,5 +258,20 @@ TEST_CASE("type cast") {
     for_each_indexed(Dim{3, 2, 3}, [scalar323](size_t i, size_t j, size_t k) {
       CHECK(scalar323(i, j, k) == (i + j + k));
     });
+  }
+}
+
+TEST_CASE("buffer copy") {
+  auto buf1 = HostBuffer<int>::Create({2, 3, 4});
+  auto buf2 = HostBuffer<int>::Create({2, 3, 4});
+
+  for_each(buf1->View(), [v = 0](int& x) mutable {
+    x = v++;
+  });
+
+  copy(buf1->ConstView(), buf2->View());
+
+  for (auto [i, j, k] : utils::ndrange<int>(2, 3, 4)) {
+    CHECK(buf1->View()(i, j, k) == buf2->View()(i, j, k));
   }
 }

@@ -78,6 +78,8 @@ template <>
 struct Dim<3> {
   size_t sizes_[3];
 
+  AX_HOST_DEVICE AX_CONSTEXPR Dim() : sizes_{0, 0, 0} {}
+
   AX_HOST_DEVICE AX_CONSTEXPR /* NOLINT: google-explicit-constructor*/ Dim(size_t x)
       : sizes_{x, 0, 0} {}
 
@@ -184,7 +186,7 @@ AX_HOST_DEVICE AX_CONSTEXPR bool is_3d(const Dim<2>& /* dim */) {
 }
 
 AX_HOST_DEVICE AX_CONSTEXPR bool is_3d(const Dim<3>& dim) {
-  return dim.sizes_[2] != 0;
+  return dim.sizes_[2] != 0 && dim.sizes_[1] != 0;
 }
 
 AX_HOST_DEVICE AX_CONSTEXPR size_t prod(const Dim<1>& dim) {
@@ -230,33 +232,6 @@ AX_HOST_DEVICE AX_CONSTEXPR bool is_2d(const Dim<N>& dim) {
 template <size_t N>
 AX_HOST_DEVICE AX_CONSTEXPR bool is_3d(const Dim<N>& dim) {
   return details::is_3d(dim);
-}
-
-template <typename Fn>
-AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<1>& d, Fn&& f) {
-  for (size_t i = 0; i < d.X(); ++i) {
-    f(i);
-  }
-}
-
-template <typename Fn>
-AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<2>& d, Fn&& f) {
-  for (size_t j = 0; j < d.Y(); ++j) {
-    for (size_t i = 0; i < d.X(); ++i) {
-      f(i, j);
-    }
-  }
-}
-
-template <typename Fn>
-AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<3>& d, Fn&& f) {
-  for (size_t k = 0; k < d.Z(); ++k) {
-    for (size_t j = 0; j < d.Y(); ++j) {
-      for (size_t i = 0; i < d.X(); ++i) {
-        f(i, j, k);
-      }
-    }
-  }
 }
 
 }  // namespace ax

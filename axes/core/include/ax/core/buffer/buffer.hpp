@@ -115,7 +115,7 @@ public:
   }
 
   // Clone this buffer, with same size, device, and data.
-  virtual PtrType Clone() const = 0;
+  virtual PtrType Clone(const Dim3& new_shape = {}) const = 0;  // NOLINT: google-default-arguments
 
   /////////////////// buffer size changing and direct settings ///////////////////
   // Resize, will check if the memory is enough, otherwise will throw an std::runtime_error.

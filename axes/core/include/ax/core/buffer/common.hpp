@@ -18,3 +18,15 @@ class BufferView;
 using BufferDim = Dim3;
 
 }  // namespace ax
+
+namespace fmt {
+
+template <>
+struct formatter<ax::BufferDevice> : formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(ax::BufferDevice c, FormatContext& ctx) const {
+    return formatter<std::string_view>::format(ax::utils::reflect_name(c).value_or("???"), ctx);
+  }
+};
+
+}  // namespace fmt

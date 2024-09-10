@@ -269,7 +269,7 @@ TEST_CASE("buffer copy") {
     x = v++;
   });
 
-  copy(buf1->ConstView(), buf2->View());
+  copy(buf2->View(), buf1->ConstView());
 
   for (auto [i, j, k] : utils::ndrange<int>(2, 3, 4)) {
     CHECK(buf1->View()(i, j, k) == buf2->View()(i, j, k));

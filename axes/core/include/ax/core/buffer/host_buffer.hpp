@@ -22,7 +22,7 @@ public:
 
   void Resize(Dim3 const& shape) override {
     if (prod(shape) == container_.size()) {
-      Buffer<T>::shape_ = shape;
+      Base::shape_ = shape;
       return;
     }
 
@@ -47,20 +47,20 @@ public:
   }
 
   static std::unique_ptr<HostBuffer> Create(Dim3 const& shape) {
-    return std::unique_ptr<HostBuffer>(new HostBuffer<T, Container>(shape));
+    return std::make_unique<HostBuffer>(shape);
   }
 
   Container& GetUnderlying() noexcept { return container_; }
 
   const Container& GetUnderlying() const noexcept { return container_; }
 
-protected:
-  Container container_;
-
   explicit HostBuffer(Dim3 const& shape)
       : Buffer<T>(nullptr, shape, BufferDevice::Host), container_(prod(shape)) {
     Buffer<T>::data_ = container_.data();
   }
+
+protected:
+  Container container_;
 };
 
 }  // namespace ax

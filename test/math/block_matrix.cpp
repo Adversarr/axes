@@ -11,8 +11,8 @@ TEST_CASE("block mm") {
 
   // Example from cuSPARSE
   Real values[12] = {1, 0, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0};
-  size_t row_ptrs[3] = {0, 2, 3};
-  size_t col_indices[4] = {0, 2, 1};
+  int row_ptrs[3] = {0, 2, 3};
+  int col_indices[4] = {0, 2, 1};
 
   // Create block matrix
   math::RealBlockMatrix block_matrix(2, 3, 2);

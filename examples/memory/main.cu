@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   initialize(argc, argv);
 
   AX_INFO("Test raw created buffer.");
-  auto bp = DeviceBufferRaw<int>::Create({10, 10});
+  auto bp = DeviceBufferPitched<int>::Create({10, 10});
   auto [x, y, z] = *(bp->Stride());
   AX_INFO("stride: {}, {}, {}", x, y, z);
   dim3 block(1, 1);

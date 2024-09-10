@@ -28,10 +28,11 @@ file(GLOB_RECURSE AX_CORE_SOURCE CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/**.hpp)
 
-if(${AX_HAS_CUDA})
+if(AX_ENABLE_CUDA)
   file(GLOB_RECURSE AX_CORE_CUDA_SOURCE CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/source/**.cuh)
+  message(STATUS "CUDA enabled for axes-fem: ${AX_CORE_CUDA_SOURCE}")
   list(APPEND AX_CORE_SOURCE ${AX_CORE_CUDA_SOURCE})
 endif()
 
@@ -69,7 +70,7 @@ endif()
 
 # optional: CUDA
 if(AX_ENABLE_CUDA)
-  target_link_libraries(axes_core PUBLIC CUDA::cudart)
+  target_link_libraries(axes_core PUBLIC CUDA::cudart CUDA::cublas CUDA::cusparse)
   target_compile_definitions(axes_core PUBLIC "AX_HAS_CUDA")
 endif()
 

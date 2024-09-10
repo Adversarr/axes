@@ -1,5 +1,6 @@
 #pragma once
 #include "buffer_view.hpp"
+#include "ax/core/excepts.hpp"
 
 #ifdef AX_HAS_CUDA
 #  include <cuda_runtime_api.h>
@@ -15,7 +16,7 @@ cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind
   if (from.IsContinuous() && to.IsContinuous()) {
     // For continuous buffer, just do copy
     const size_t physical_size = prod(from.Shape()) * sizeof(From);
-    s = cudaMemcpy(to->Data(), from->Data(), physical_size, kind);
+    s = cudaMemcpy(to.Data(), from.Data(), physical_size, kind);
   } else {
     if constexpr (std::is_same_v<From, To>) {
       // check same shape
@@ -32,7 +33,7 @@ cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind
       const size_t width = x * sizeof(From);      //  Width of matrix transfer (columns in bytes)
       const size_t height = y * (z > 0 ? z : 1);  // Height of matrix transfer (rows)
 
-      s = cudaMemcpy2D(to->Data(), to->Stride().Y(), from->Data(), from->Stride().Y(), width,
+      s = cudaMemcpy2D(to.Data(), to.Stride().Y(), from.Data(), from.Stride().Y(), width,
                        height, kind);
     } else {
       throw std::runtime_error("CUDA copy between different types is not supported.");

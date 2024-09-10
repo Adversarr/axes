@@ -1,7 +1,6 @@
 #pragma once
 #include "ax/core/buffer/buffer.hpp"
-#include "ax/math/common.hpp"
-
+#include "ax/math/sparse.hpp"
 namespace ax::math {
 
 /**
@@ -12,19 +11,27 @@ namespace ax::math {
 class RealBlockMatrix {
 public:
   RealBlockMatrix() = default;
-  RealBlockMatrix(const RealBlockMatrix&) = default;
+  RealBlockMatrix(const RealBlockMatrix&);
 
-  RealBlockMatrix(size_t rows, size_t cols, size_t block_size)
-      : rows_(rows), cols_(cols), block_size_(block_size) {}
+  RealBlockMatrix(size_t rows, size_t cols, size_t block_size,
+                  BufferDevice device = BufferDevice::Host)
+      : rows_(rows), cols_(cols), block_size_(block_size), device_(device) {}
 
-  void SetData(BufferView<const size_t> block_row_ptrs,
-               BufferView<const size_t> block_col_indices,
+  void SetData(BufferView<const int> block_row_ptrs,
+               BufferView<const int> block_col_indices,
                BufferView<const Real> block_values);
+
+  void Set(const RealBlockMatrix& other);
+
+  void SetData(BufferPtr<int> block_row_ptrs,
+               BufferPtr<int> block_col_indices,
+               BufferPtr<Real> block_values);
 
   size_t NumNonZeroBlocks() const { return block_row_ptrs_->Size() - 1; }
 
   // 2D rhs is required.
-  void RightMultiplyTo(BufferView<const Real> rhs, BufferView<Real> dst) const;
+  void RightMultiplyTo(BufferView<const Real> rhs, BufferView<Real> dst, Real alpha = 1,
+                       Real beta = 0) const;
   void LeftMultiplyTo(BufferView<const Real> rhs, BufferView<Real> dst) const;
 
   // The number of row blocks in the matrix.
@@ -40,25 +47,29 @@ public:
   size_t Cols() const { return cols_ * block_size_; }
 
   // Return the device of the internal buffers.
-  BufferDevice GetDevice() const { return block_values_->Device(); }
+  BufferDevice GetDevice() const { return device_; }
 
   math::RealSparseMatrix ToSparseMatrix() const;
 
   // Return the internal buffers.
-  BufferView<const size_t> BlockRowPtrsView() const;
-  BufferView<const size_t> BlockColIndicesView() const;
+  BufferView<const int> BlockRowPtrsView() const;
+  BufferView<const int> BlockColIndicesView() const;
   BufferView<const Real> BlockValuesView() const;
-
 private:
+  void EnsureMatDesc() const;
+
   // Compress in Block CSR.
-  BufferPtr<size_t> block_row_ptrs_;     // 1D buffer. size == rows + 1
-  BufferPtr<size_t> block_col_indices_;  // 1D buffer. size == nnz of block
+  BufferPtr<int> block_row_ptrs_;     // 1D buffer. size == rows + 1
+  BufferPtr<int> block_col_indices_;  // 1D buffer. size == nnz of block
   BufferPtr<Real> block_values_;  // a 3D buffer. (BlockSize.Row, BlockSize.Col, nnz of Blocks)
 
   // Shape of the matrix, count in block
   size_t rows_{0};
   size_t cols_{0};
   size_t block_size_{0};
+
+  BufferDevice device_;
+  mutable std::shared_ptr<void> mat_desc_;
 };
 
 }  // namespace ax::math

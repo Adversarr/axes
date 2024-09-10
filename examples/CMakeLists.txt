@@ -38,6 +38,7 @@ if(AX_ENABLE_CUDA)
   axes_add_example(map_to_cuda "axes_core")
   axes_add_example(cu_admm "axes_gl;axes_fem")
   axes_add_example(memory "axes_core")
+  axes_add_example(test_cu_block_mm "axes_core")
 endif()
 
 find_package(benchmark CONFIG QUIET)

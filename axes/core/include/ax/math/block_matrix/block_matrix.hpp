@@ -72,4 +72,10 @@ private:
   mutable std::shared_ptr<void> mat_desc_;
 };
 
+// NOTE: We use the RealBufferView to represent a view of a block vector.
+// the vector is:
+//    =1 col, if the shape of view is [block_size, nrows].
+//    >1 col, if the shape of view is [block_size, nrows, ncols].
+// but for now, we do not support the second version.
+
 }  // namespace ax::math

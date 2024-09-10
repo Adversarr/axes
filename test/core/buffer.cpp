@@ -102,7 +102,7 @@ TEST_CASE("Map to Eigen") {
       x = static_cast<Real>(v++);
     });
 
-    auto map = make_mapped<math::RealMatrixX>(buffer_ptr->View());
+    auto map = view_as_matrix_full<math::RealMatrixX>(buffer_ptr->View());
     CHECK(map.rows() == 2);
     CHECK(map.cols() == 3);
     for (int j = 0; j < 3; ++j) {
@@ -118,7 +118,7 @@ TEST_CASE("Map to Eigen") {
       x = static_cast<Real>(v++);
     });
 
-    auto map = make_mapped<math::RealMatrixX, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
+    auto map = view_as_matrix_full<math::RealMatrixX, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
         buffer_ptr->View());
     CHECK(map.rows() == 2);
     CHECK(map.cols() == 3);
@@ -131,7 +131,7 @@ TEST_CASE("Map to Eigen") {
 
   SUBCASE("map vector buffer") {
     auto bp = HostBuffer<math::RealVector3>::Create(4);  // r, c = 3, 4
-    auto mapped = make_mapped<math::RealField3>(bp->View());
+    auto mapped = view_as_matrix_full<math::RealField3>(bp->View());
   }
 }
 
@@ -275,3 +275,36 @@ TEST_CASE("buffer copy") {
     CHECK(buf1->View()(i, j, k) == buf2->View()(i, j, k));
   }
 }
+
+
+TEST_CASE("ViewAsEigenMap") {
+  SUBCASE("1d") {
+    auto buf = HostBuffer<Real>::Create({2, 3});
+    for_each(buf->View(), [v = 0](Real& x) mutable {
+      x = static_cast<Real>(v++);
+    });
+
+    // 2x3 buffer, view as 3 of 2x1 vectors.
+    auto map = view_as_matrix_1d<Real, 2>(buf->View());
+    for_each_indexed(Dim{2, 3}, [map, &buf](size_t i, size_t j) {
+      int lid = linear_index(buf->Shape(), {i, j});
+      CHECK(map(j)(i) == buf->View()(i, j));
+    });
+  }
+
+  SUBCASE("2d") {
+    auto buf = HostBuffer<Real>::Create({2, 3, 4});
+    for_each(buf->View(), [v = 0](Real& x) mutable {
+      x = static_cast<Real>(v++);
+    });
+
+    // 2x3x4 buffer, view as 4 of 2x3 matrices.
+    auto map = view_as_matrix_2d<Real, 2, 3>(buf->View());
+    for_each_indexed(buf->Shape(), [map, &buf](size_t i, size_t j, size_t k) {
+      int lid = linear_index(buf->Shape(), {i, j, k});
+      CHECK(map(k)(i, j) == buf->View()(i, j, k));
+    });
+  }
+}
+
+// TEST_CASE();

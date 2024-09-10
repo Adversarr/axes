@@ -241,4 +241,11 @@ BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, Dim3 c
   return BufferView<T>(buffer.data(), shape, strides, BufferDevice::Host);
 }
 
+using RealBufferView = BufferView<Real>;
+using ConstRealBufferView = BufferView<const Real>;
+using IndexBufferView = BufferView<Index>;
+using ConstIndexBufferView = BufferView<const Index>;
+using SizeBufferView = BufferView<size_t>;
+using ConstSizeBufferView = BufferView<const size_t>;
+
 }  // namespace ax

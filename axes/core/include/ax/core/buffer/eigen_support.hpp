@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/core/excepts.hpp"
 #include "ax/math/common.hpp"
 #include "buffer_view.hpp"
 
@@ -114,6 +115,39 @@ void check_is_valid_scalar_map(const BufferView<BufT>& bufv, StrideType stride) 
     }
   }
 }
+
+// Lets go back to Eigen::Map. we can map a 2D(3D) buffer to a 1D(2D) view of Vectors (or 1D view of
+// matrices) but you have to provide the size of the vector (or matrix) at compile time.
+template <typename Scalar, int Rows, int Cols>
+class ViewAsEigenMap {
+public:
+  using MapT = math::Map<math::Matrix<Scalar, Rows, Cols>>;
+  using ConstMapT = math::Map<math::Matrix<const Scalar, Rows, Cols>>;
+  AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMap()
+      = default;  // because BufferView is default constructible.
+  AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMap(ViewAsEigenMap const&) = default;
+  AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMap& operator=(ViewAsEigenMap const&) = default;
+  AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMap(ViewAsEigenMap&&) noexcept = default;
+  AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMap& operator=(ViewAsEigenMap&&) noexcept = default;
+
+  AX_HOST_DEVICE AX_CONSTEXPR MapT operator()(size_t i, size_t j = 0) noexcept {
+    return MapT(bufv_.Offset(0, i, j));
+  }
+
+  AX_HOST_DEVICE AX_CONSTEXPR ConstMapT operator()(size_t i, size_t j = 0) const noexcept {
+    return ConstMapT(bufv_.Offset(0, i, j));
+  }
+
+  AX_HOST_DEVICE AX_CONSTEXPR BufferView<Scalar> GetBufferView() const { return bufv_; }
+
+private:
+  // must be private, because we do not check the input here.
+  AX_HOST_DEVICE AX_CONSTEXPR explicit ViewAsEigenMap(BufferView<Scalar> bufv) : bufv_(bufv) {}
+
+  BufferView<Scalar> bufv_;
+  Dim2 shape_;
+};
+
 }  // namespace details
 
 // Given a BufferView, create a corresponding Eigen::Map.
@@ -220,7 +254,7 @@ BufferView<Scalar> view_as_scalar(
       sizeof(Scalar)
           * ((Options & Eigen::RowMajor) ? Cols
                                          : Rows),  // stride.y is the outer size, we need bytes
-      bufv.Stride().X()};                         // stride.z is the stride of view
+      bufv.Stride().X()};                          // stride.z is the stride of view
     Dim3 shape{((Options & Eigen::RowMajor) ? Cols : Rows),
                ((Options & Eigen::RowMajor) ? Rows : Cols), bufv.Shape().X()};
     return BufferView<Scalar>(reinterpret_cast<Scalar*>(bufv.Data()->data()), shape, stride,

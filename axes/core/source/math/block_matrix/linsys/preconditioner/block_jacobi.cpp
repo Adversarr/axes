@@ -61,7 +61,7 @@ void BlockPreconditioner_BlockJacobi::Solve(ConstRealBufferView b, RealBufferVie
     details::block_jacobi_precond_eval_cpu(x, b, inv_diag_->View(), nullptr);
   } else {
 #ifdef AX_HAS_CUDA
-    details::block_jacobi_precond_eval_gpu(x.View(), b, inv_diag_->View(), nullptr);
+    details::block_jacobi_precond_eval_gpu(x, b, inv_diag_->View(), nullptr);
 #endif
   }
 }

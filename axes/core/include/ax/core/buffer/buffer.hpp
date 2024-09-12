@@ -63,9 +63,7 @@ public:
   Buffer& operator=(Buffer&&) noexcept = delete;  // no move assign.
 
   // Get the logical size of the buffer.
-  size_t Size() const noexcept {
-    return prod(shape_);
-  }
+  size_t Size() const noexcept { return prod(shape_); }
 
   // Get the physical size of the buffer, count in bytes
   size_t PhysicalSize() const noexcept {
@@ -79,40 +77,26 @@ public:
   }
 
   // Get the device of the buffer.
-  BufferDevice Device() const noexcept {
-    return device_;
-  }
+  BufferDevice Device() const noexcept { return device_; }
 
   //////////////////// Getter & Setter ////////////////////
 
   // Get the raw data pointer.
-  T* Data() noexcept {
-    return data_;
-  }
+  T* Data() noexcept { return data_; }
 
   // Get the raw data pointer.
-  const T* Data() const noexcept {
-    return data_;
-  }
+  const T* Data() const noexcept { return data_; }
 
   // Get the shape of the buffer.
-  Dim3 const& Shape() const noexcept {
-    return shape_;
-  }
+  Dim3 const& Shape() const noexcept { return shape_; }
 
   // Get the strides of the buffer.
-  Dim3 const& Stride() const noexcept {
-    return strides_;
-  }
+  Dim3 const& Stride() const noexcept { return strides_; }
 
   // Reserved for simplicity, but it is user's duty to guarantee you are not using a pitched ptr.
-  T& operator[](size_t x) {
-    return data_[x];
-  }
+  T& operator[](size_t x) { return data_[x]; }
 
-  T const& operator[](size_t x) const {
-    return data_[x];
-  }
+  T const& operator[](size_t x) const { return data_[x]; }
 
   // Clone this buffer, with same size, device, and data.
   virtual PtrType Clone(const Dim3& new_shape = {}) const = 0;  // NOLINT: google-default-arguments
@@ -121,9 +105,7 @@ public:
   // Resize, will check if the memory is enough, otherwise will throw an std::runtime_error.
   // valid both for 1D and 2D buffer.
   // WARN: Resizing a buffer will not keep the original data.
-  void Resize(size_t x, size_t y = 1, size_t z = 1) {
-    Resize(Dim3{x, y, z});
-  }
+  void Resize(size_t x, size_t y = 1, size_t z = 1) { Resize(Dim3{x, y, z}); }
 
   virtual void Resize(Dim3 const& shape) = 0;
   virtual void SetBytes(int value) = 0;
@@ -141,17 +123,15 @@ public:
   }
 
   // Get a view of the buffer, for GPU buffer, a shared ptr is not possible.
-  BufferView<T> View() noexcept {
-    return {data_, shape_, strides_, device_};
-  }
+  BufferView<T> View() noexcept { return {data_, shape_, strides_, device_}; }
 
   // Get a view of the buffer, for GPU buffer, a shared ptr is not possible.
-  BufferView<const T> View() const noexcept {
-    return {data_, shape_, strides_, device_};
-  }
+  BufferView<const T> View() const noexcept { return {data_, shape_, strides_, device_}; }
 
-  BufferView<const T> ConstView() const noexcept {
-    return {data_, shape_, strides_, device_};
+  BufferView<const T> ConstView() const noexcept { return {data_, shape_, strides_, device_}; }
+
+  bool IsContinuous() const noexcept {
+    return strides_ == details::compute_continuous_buffer_stride<T>(shape_);
   }
 
 protected:

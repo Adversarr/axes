@@ -1,29 +1,32 @@
 #pragma once
+#include "ax/utils/ensure_cuda_enabled.cuh"
+
 #include "ax/core/buffer/buffer.hpp"
-#include <thrust/device_vector.h>
+#include "ax/core/excepts.hpp"
+#include <cuda_runtime_api.h>
 
 namespace ax {
 
-// A simpler way is use thrust to manage all the memory allocation and
-// deallocation.
 template <typename T> class DeviceBuffer final : public Buffer<T> {
 public:
   using Base = Buffer<T>;
-  using BasePtrType = typename Base::PtrType;
-  using BaseConstPtrType = typename Base::ConstPtrType;
+  using PtrType = typename Base::PtrType;
+  using ConstPtrType = typename Base::ConstPtrType;
   DeviceBuffer() = default;
 
   DeviceBuffer(DeviceBuffer &&other) noexcept : DeviceBuffer() { Swap(other); }
 
-  void Swap(DeviceBuffer &other) {
-    data_.swap(other.data_);
-    Base::SwapBaseData(other);
+  ~DeviceBuffer() {
+    if (Base::data_) {
+      cudaFree(Base::data_);
+    }
+    Base::data_ = nullptr;
   }
 
-  ~DeviceBuffer() = default;
+  void Swap(DeviceBuffer &other) { Base::SwapBaseData(other); }
 
-  void Resize(const Dim3 &shape) override {
-    if (prod(shape) == data_.size()) {
+  void Resize(Dim3 const &shape) override {
+    if (prod(shape) == prod(Base::shape_)) {
       Base::shape_ = shape;
       return;
     }
@@ -32,12 +35,17 @@ public:
     Swap(new_buffer);
   }
 
-  BasePtrType Clone(const Dim3 &new_shape) const override {
+  PtrType Clone(const Dim3 &new_shape) const override {
     if (prod(new_shape) == 0) {
       auto new_buffer = Create(Base::shape_);
-      cudaMemcpy(thrust::raw_pointer_cast(new_buffer->data_.data()),
-                 thrust::raw_pointer_cast(data_.data()), Base::PhysicalSize(),
-                 cudaMemcpyDeviceToDevice);
+      // Copy between pitched ptr using cudaMemcpy is ok.
+      cudaError error = cudaSuccess;
+      error = cudaMemcpy(new_buffer->data_, Base::data_, Base::PhysicalSize(),
+                         cudaMemcpyDeviceToDevice);
+      if (error != cudaSuccess) {
+        throw make_runtime_error("Failed to copy device buffer: {}",
+                                 cudaGetErrorName(error));
+      }
       return new_buffer;
     } else {
       return Create(new_shape);
@@ -49,21 +57,25 @@ public:
   }
 
   void SetBytes(int value) override {
-    thrust::fill(data_.begin(), data_.end(), value);
+    auto error = cudaMemset(Base::data_, value, Base::PhysicalSize());
+    if (error != cudaSuccess) {
+      throw make_runtime_error("Failed to copy device buffer: {}",
+                               cudaGetErrorName(error));
+    }
   }
 
-  thrust::device_vector<T> &GetUnderlying() { return data_; }
-  const thrust::device_vector<T> &GetUnderlying() const { return data_; }
+  explicit DeviceBuffer(Dim3 shape)
+      : Base(nullptr, shape, BufferDevice::Device) {
+    // do malloc
+    void *data;
+    auto result = cudaMalloc(&data, prod(shape) * sizeof(T));
+    if (result != cudaSuccess) {
+      throw make_runtime_error("Failed to create device buffer: {}",
+                               cudaGetErrorName(result));
+    }
 
-  explicit DeviceBuffer(Dim3 size)
-      : Base(nullptr, size, BufferDevice::Device), data_(prod(size)) {
-    Base::data_ = thrust::raw_pointer_cast(data_.data());
-    Base::shape_ = size;
-    Base::strides_ = details::compute_continuous_buffer_stride<T>(size);
+    Base::data_ = static_cast<T *>(data);
   }
-
-private:
-  thrust::device_vector<T> data_;
 };
 
 } // namespace ax

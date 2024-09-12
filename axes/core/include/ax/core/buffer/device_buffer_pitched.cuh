@@ -1,29 +1,32 @@
 #pragma once
+#include "ax/utils/ensure_cuda_enabled.cuh"
+
 #include "ax/core/buffer/buffer.hpp"
 #include "ax/core/excepts.hpp"
 #include <cuda_runtime_api.h>
 
 namespace ax {
 
-template <typename T> class DeviceBufferRaw final : public Buffer<T> {
+template <typename T> class DeviceBufferOptimized final : public Buffer<T> {
 public:
   using Base = Buffer<T>;
   using PtrType = typename Base::PtrType;
   using ConstPtrType = typename Base::ConstPtrType;
-  DeviceBufferRaw() = default;
+  DeviceBufferOptimized() = default;
 
-  DeviceBufferRaw(DeviceBufferRaw &&other) noexcept : DeviceBufferRaw() {
+  DeviceBufferOptimized(DeviceBufferOptimized &&other) noexcept
+      : DeviceBufferOptimized() {
     Swap(other);
   }
 
-  ~DeviceBufferRaw() {
+  ~DeviceBufferOptimized() {
     if (Base::data_) {
       cudaFree(Base::data_);
     }
     Base::data_ = nullptr;
   }
 
-  void Swap(DeviceBufferRaw &other) { Base::SwapBaseData(other); }
+  void Swap(DeviceBufferOptimized &other) { Base::SwapBaseData(other); }
 
   void Resize(Dim3 const &shape) override {
     if (shape == Base::shape_) {
@@ -31,11 +34,11 @@ public:
       return;
     }
 
-    DeviceBufferRaw<T> new_buffer(shape);
+    DeviceBufferOptimized<T> new_buffer(shape);
     Swap(new_buffer);
   }
 
-  PtrType Clone(const Dim3 & new_shape) const {
+  PtrType Clone(const Dim3 &new_shape) const {
     if (prod(new_shape) == 0) {
       auto new_buffer = Create(Base::shape_);
       // Copy between pitched ptr using cudaMemcpy is ok.
@@ -60,8 +63,8 @@ public:
     }
   }
 
-  static std::unique_ptr<DeviceBufferRaw<T>> Create(Dim3 size) {
-    return std::make_unique<DeviceBufferRaw<T>>(size);
+  static std::unique_ptr<DeviceBufferOptimized<T>> Create(Dim3 size) {
+    return std::make_unique<DeviceBufferOptimized<T>>(size);
   }
 
   void SetBytes(int value) override {
@@ -72,7 +75,7 @@ public:
     }
   }
 
-  explicit DeviceBufferRaw(Dim3 shape)
+  explicit DeviceBufferOptimized(Dim3 shape)
       : Base(nullptr, shape, BufferDevice::Device) {
     if (is_1d(shape)) {
       // create a 1d buffer

@@ -153,6 +153,22 @@ AX_HOST_DEVICE AX_CONSTEXPR size_t linear_index(const Dim<N>& dim, const Dim<N>&
   return result;
 }
 
+AX_HOST_DEVICE AX_CONSTEXPR bool is_scalar(const Dim<1>& dim) {
+  return dim.X() == 0;
+}
+
+AX_HOST_DEVICE AX_CONSTEXPR bool is_scalar(const Dim<2>& dim) {
+  return dim.X() == 0 && dim.Y() == 0;
+}
+
+AX_HOST_DEVICE AX_CONSTEXPR bool is_scalar(const Dim<3>& dim) {
+  return dim.X() == 0 && dim.Y() == 0 && dim.Z() == 0;
+}
+
+AX_HOST_DEVICE AX_CONSTEXPR bool is_vector(const Dim<1>& dim) {
+  return dim.X() != 0;
+}
+
 AX_HOST_DEVICE AX_CONSTEXPR bool is_1d(const Dim<1>& /* dim */) {
   return true;
 }

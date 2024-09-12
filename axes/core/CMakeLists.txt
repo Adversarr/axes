@@ -10,7 +10,8 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Taskflow REQUIRED)
 find_package(cxxopts REQUIRED)
-
+set(BLA_VENDOR "OpenBLAS")
+find_package(BLAS QUIET)
 if(AX_ENABLE_OPENMP)
   find_package(OpenMP)
 endif()
@@ -80,6 +81,12 @@ if(AX_ENABLE_OPENMP)
     target_link_libraries(axes_core PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(axes_core PUBLIC "AX_HAS_OPENMP")
   endif()
+endif()
+
+# optional: BLAS
+if (BLAS_FOUND)
+  target_link_libraries(axes_core PUBLIC ${BLAS_LIBRARIES})
+  target_compile_definitions(axes_core PUBLIC "AX_HAS_BLAS")
 endif()
 
 target_compile_definitions(axes_core PRIVATE AX_ROOT_DIR="${AX_ROOT_DIR}")

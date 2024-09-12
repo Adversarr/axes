@@ -1,6 +1,5 @@
 // #include <imgui.h>
 // #include "ax/core/init.hpp"
-#include "ax/gl/utils.hpp"
 #include <imgui.h>
 
 #include <iomanip>
@@ -19,16 +18,16 @@ public:
   CG_NODE_INPUTS();
   CG_NODE_OUTPUTS((int, value, "The constant integer value"));
 
-  static void RenderThis(NodeBase* ptr) {
+  static void RenderThis(NodeBase *ptr) {
     ax::graph::begin_draw_node(ptr);
     ax::graph::draw_node_header_default(ptr);
-    ImGui::Text("  Current: %d", static_cast<ConstIntegerNode*>(ptr)->value_);
+    ImGui::Text("  Current: %d", static_cast<ConstIntegerNode *>(ptr)->value_);
     ax::graph::draw_node_content_default(ptr);
     ax::graph::end_draw_node();
   }
 
-  static void RenderWidget(NodeBase* ptr) {
-    auto* node = static_cast<ConstIntegerNode*>(ptr);
+  static void RenderWidget(NodeBase *ptr) {
+    auto *node = static_cast<ConstIntegerNode *>(ptr);
     ImGui::PushID(node);
     ImGui::InputInt("Value", &node->value_);
     ImGui::PopID();
@@ -42,7 +41,8 @@ public:
   void OnConstruct() /* optional */ { Set(out::value, value_); }
 
   void operator()(Context &) final { SetAll(value_); }
-  int value_ {5};
+
+  int value_{5};
 };
 
 class WhateverNode : public NodeDerive<WhateverNode> {
@@ -62,11 +62,14 @@ public:
 class EchoString : public NodeDerive<EchoString> {
 public:
   CG_NODE_COMMON(EchoString, "EchoString", "EchoStringDescription");
-  CG_NODE_INPUTS((std::string, str, "Input string"));
+  CG_NODE_INPUTS((std::string, str, "Input string"), (std::string, str2, "Input string2"));
   CG_NODE_OUTPUTS();
 
   void OnConnectDispatch(in::str_) /* automatically called. */ {
+    std::cout << "Connected to str" << std::endl;
   }
+
+  void OnConnectDispatch(in::str2_) { std::cout << "Connected to str2" << std::endl; }
 
   void operator()(Context &) final {
     auto str = *Get<std::string>(0);
@@ -99,7 +102,8 @@ public:
 
 namespace compute_graph {
 
-template <typename T> class ReadContext final : public NodeDerive<ReadContext<T>> {
+template <typename T>
+class ReadContext final : public NodeDerive<ReadContext<T>> {
 public:
   CG_NODE_COMMON(ReadContext, "ReadContext", "Extract a value in context");
   CG_NODE_INPUTS((std::string, key, "Variable name"),
@@ -120,7 +124,8 @@ public:
   }
 };
 
-template <typename T> class WriteContext final : public NodeDerive<WriteContext<T>> {
+template <typename T>
+class WriteContext final : public NodeDerive<WriteContext<T>> {
 public:
   CG_NODE_COMMON(WriteContext, "WriteContext", "Write a value to current context frame.");
   CG_NODE_INPUTS((std::string, key, "Variable name"), (T, value, "Value of variable to write"));
@@ -148,7 +153,7 @@ int main(int argc, char **argv) {
   ax::gl::init(argc, argv);
   ax::graph::install_renderer();
 
-  auto& reg = ax::graph::get_internal_node_registry();
+  auto &reg = ax::graph::get_internal_node_registry();
   ConstIntegerNode::RegisterTo(reg);
   WhateverNode::RegisterTo(reg);
   EchoString::RegisterTo(reg);

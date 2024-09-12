@@ -3,7 +3,7 @@
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/core/buffer/copy.hpp"
 #ifdef AX_HAS_CUDA
-#  include "ax/core/buffer/device_buffer_raw.cuh"
+#  include "ax/core/buffer/device_buffer.cuh"
 #endif
 #include "ax/core/buffer/host_buffer.hpp"
 #include "ax/core/excepts.hpp"
@@ -42,7 +42,7 @@ void RealBlockMatrix::SetData(BufferView<const int> block_row_ptrs,
       new_block_row_ptrs = HostBuffer<int>::Create(block_row_ptrs.Shape());
     } else {
 #ifdef AX_HAS_CUDA
-      new_block_row_ptrs = DeviceBufferRaw<int>::Create(block_row_ptrs.Shape());
+      new_block_row_ptrs = DeviceBuffer<int>::Create(block_row_ptrs.Shape());
 #else
       throw make_runtime_error("CUDA is not enabled.");
 #endif
@@ -57,7 +57,7 @@ void RealBlockMatrix::SetData(BufferView<const int> block_row_ptrs,
       new_block_col_indices = HostBuffer<int>::Create(block_col_indices.Shape());
     } else {
 #ifdef AX_HAS_CUDA
-      new_block_col_indices = DeviceBufferRaw<int>::Create(block_col_indices.Shape());
+      new_block_col_indices = DeviceBuffer<int>::Create(block_col_indices.Shape());
 #else
       throw make_runtime_error("CUDA is not enabled.");
 #endif
@@ -72,7 +72,7 @@ void RealBlockMatrix::SetData(BufferView<const int> block_row_ptrs,
       new_block_values = HostBuffer<Real>::Create(block_values.Shape());
     } else {
 #ifdef AX_HAS_CUDA
-      new_block_values = DeviceBufferRaw<Real>::Create(block_values.Shape());
+      new_block_values = DeviceBuffer<Real>::Create(block_values.Shape());
 #else
       throw make_runtime_error("CUDA is not enabled.");
 #endif

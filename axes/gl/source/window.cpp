@@ -124,7 +124,7 @@ Window::Window() {
   impl_->size_ = {width, height};
   glfwGetWindowPos(impl_->window_, &width, &height);
   impl_->pos_ = {width, height};
-  glfwGetFramesize_t(impl_->window_, &width, &height);
+  glfwGetFramebufferSize(impl_->window_, &width, &height);
   impl_->fb_size_ = {width, height};
   glfwGetWindowContentScale(impl_->window_, &impl_->fb_scale_.x(), &impl_->fb_scale_.y());
   impl_->should_close_ = false;
@@ -136,7 +136,7 @@ Window::Window() {
   /****************************** Install Fn ******************************/
   glfwSetWindowSizeCallback(impl_->window_, window_size_fn);
   glfwSetWindowPosCallback(impl_->window_, window_pos_fn);
-  glfwSetFramesize_tCallback(impl_->window_, framebuffer_size_fn);
+  glfwSetFramebufferSizeCallback(impl_->window_, framebuffer_size_fn);
   glfwSetDropCallback(impl_->window_, drop_fn);
   glfwSetKeyCallback(impl_->window_, key_fn);
   glfwSetCursorPosCallback(impl_->window_, cursor_pos_fn);

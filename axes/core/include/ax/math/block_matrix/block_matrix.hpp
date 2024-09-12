@@ -11,7 +11,10 @@ namespace ax::math {
 class RealBlockMatrix {
 public:
   RealBlockMatrix() = default;
-  RealBlockMatrix(const RealBlockMatrix&);
+  RealBlockMatrix(const RealBlockMatrix&) = delete;
+  RealBlockMatrix& operator=(const RealBlockMatrix&) = delete;
+  RealBlockMatrix(RealBlockMatrix&&) = default;
+  RealBlockMatrix& operator=(RealBlockMatrix&&) = default;
 
   RealBlockMatrix(size_t rows, size_t cols, size_t block_size,
                   BufferDevice device = BufferDevice::Host)

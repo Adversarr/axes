@@ -20,7 +20,8 @@ namespace ax::nodes {
 class Render_Mesh final : public NodeDerive<Render_Mesh> {
 public:
   CG_NODE_COMMON(Render_Mesh, "Render/Mesh", "Renders a mesh and attach to entity");
-  CG_NODE_INPUTS((Entity, entity, "Entity", entt::null), (geo::SurfaceMesh, mesh, "Mesh"),
+  CG_NODE_INPUTS((Entity, entity, "Entity", entt::null), 
+                 (geo::SurfaceMesh, mesh, "Mesh"),
                  (math::RealField4, color, "The color of the mesh"),
                  (math::RealVector4, u_color, "The color of the mesh"),
                  (math::RealField3, normal, "The normal of the mesh"),

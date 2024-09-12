@@ -206,7 +206,6 @@ void check_valid_eigen_map_1d(const Dim3& shape, const Dim3& stride) {
 template <typename Scalar, int Rows, int Cols>
 void check_valid_eigen_map_2d(const Dim3& shape, const Dim3& stride) {
   static_assert(Rows != Eigen::Dynamic && Cols != Eigen::Dynamic, "Dynamic size not supported.");
-  constexpr size_t mat_size = Rows * Cols;
   if (!is_3d(shape)) {
     throw std::runtime_error("Buffer must be 3D.");
   }
@@ -303,7 +302,8 @@ AX_HOST_DEVICE AX_CONSTEXPR auto view_as_matrix_full(BufferView<BufT> bufv,
   StrideType stride = details::determine_stride<BufT, StrideType::OuterStrideAtCompileTime,
                                                 StrideType::InnerStrideAtCompileTime>(bufv);
   details::check_is_valid_scalar_map<BufT, MatrixType, MapOptions, StrideType>(bufv, stride);
-  return MapT(bufv.Data(), bufv.Shape().X(), bufv.Shape().Y(), stride);
+  return MapT(bufv.Data(), static_cast<Index>(bufv.Shape().X()),
+              static_cast<Index>(bufv.Shape().Y()), stride);
 }
 
 /**

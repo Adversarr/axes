@@ -11,17 +11,17 @@ namespace details {
 
 template <typename TransformFn, typename ReduceFn, typename ValueType, typename Front,
           typename... Ts>
-ValueType transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g, ValueType init,
-                                    BufferView<Front> tsf, BufferView<Ts>... ts) {
+AX_CONSTEXPR AX_FORCE_INLINE ValueType transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g,
+                                                                 ValueType init,
+                                                                 BufferView<Front> tsf,
+                                                                 BufferView<Ts>... ts) {
   auto x = tsf.Shape().X();
   auto y = tsf.Shape().Y() == 0 ? 1 : tsf.Shape().Y();
   auto z = tsf.Shape().Z() == 0 ? 1 : tsf.Shape().Z();
   ValueType result = init;
   for (size_t k = 0; k < z; ++k) {
     for (size_t j = 0; j < y; ++j) {
-#ifdef AX_HAS_OPENMP
-#  pragma omp simd
-#endif
+#pragma unroll
       for (size_t i = 0; i < x; ++i) {
         result = g(result, f(tsf(i, j, k), ts(i, j, k)...));
       }
@@ -63,14 +63,15 @@ ValueType par_transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g, ValueType
 }  // namespace details
 
 template <typename ValueType, typename TranformFn, typename ReduceFn, typename Front>
-auto transform_reduce(BufferView<Front> ts, ValueType init, TranformFn&& f, ReduceFn&& g) {
+AX_CONSTEXPR AX_FORCE_INLINE auto transform_reduce(BufferView<Front> ts, ValueType init,
+                                                   TranformFn&& f, ReduceFn&& g) {
   return details::transform_reduce_dispatch(std::forward<TranformFn>(f), std::forward<ReduceFn>(g),
                                             init, ts);
 }
 
 template <typename ValueType, typename TranformFn, typename ReduceFn, typename... Ts>
-auto transform_reduce(std::tuple<BufferView<Ts>...> ts, ValueType init, TranformFn&& f,
-                      ReduceFn&& g) {
+AX_CONSTEXPR AX_FORCE_INLINE auto transform_reduce(std::tuple<BufferView<Ts>...> ts, ValueType init,
+                                                   TranformFn&& f, ReduceFn&& g) {
   return std::apply(
       details::transform_reduce_dispatch<TranformFn, ReduceFn, ValueType, Ts...>,
       std::tuple_cat(

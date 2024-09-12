@@ -29,7 +29,7 @@ void SparseSolver_ConjugateGradient::Factorize() {
   }
 }
 
-void batch_dot_to(RealMatrixX const& lhs, RealMatrixX const& rhs, RealVectorX & dest) {
+static void batch_dot_to(RealMatrixX const &lhs, RealMatrixX const &rhs, RealVectorX &dest) {
   for (Index i = 0; i < dest.rows(); ++i) {
     dest[i] = dot(lhs.col(i), rhs.col(i));
   }

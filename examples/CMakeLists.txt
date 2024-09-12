@@ -43,6 +43,8 @@ endif()
 
 find_package(benchmark CONFIG QUIET)
 
+
 if(benchmark_FOUND)
   axes_add_example(optimizer_benchmark "benchmark::benchmark;axes_optim")
+  axes_add_example(bufv_benchmark "benchmark::benchmark;axes_core")
 endif()

@@ -33,6 +33,9 @@ struct BlockedLinsysProblem {
   // Additional checkers.
   std::function<bool(RealBufferView const&, RealBufferView const&)> converge_residual_;
   std::function<bool(RealBufferView const&)> converge_solution_;
+
+  // we can just construct from a r-value.
+  explicit BlockedLinsysProblem(RealBlockMatrix A) : A_(std::move(A)) {}
 };
 
 }  // namespace ax::math

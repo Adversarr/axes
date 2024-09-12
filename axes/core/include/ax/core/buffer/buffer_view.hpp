@@ -6,7 +6,8 @@ namespace details {
 template <typename T>
 AX_HOST_DEVICE AX_FORCE_INLINE T* buffer_at(T* data, Dim3 const& shape, Dim3 const& strides,
                                             size_t x, size_t y, size_t z) {
-  assert(x < shape.X() && (shape.Y() == 0 || y < shape.Y()) && (shape.Z() == 0 || z < shape.Z()));
+  assert((shape.X() == 0 || x < shape.X()) && (shape.Y() == 0 || y < shape.Y())
+         && (shape.Z() == 0 || z < shape.Z()));
   AX_UNUSED(shape);
   using CharT = std::conditional_t<std::is_const_v<T>, const char, char>;
   CharT* base = reinterpret_cast<CharT*>(data);
@@ -152,7 +153,8 @@ public:
   }
 
   /////////////////// subview ///////////////////
-  AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(Dim3 const& shape);  // NOTE: not implemented for future...
+  AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(Dim3 const& shape);   // NOTE: not implemented
+  AX_HOST_DEVICE AX_CONSTEXPR BufferView Reshaped(Dim3 const& shape);  // NOTE: not implemented
 
   AX_HOST_DEVICE AX_CONSTEXPR Dim3 const& Shape() const { return shape_; }
 

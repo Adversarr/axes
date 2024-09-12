@@ -12,7 +12,7 @@
 // Notice that, the stride of buffers are used to determine the BLAS parameter
 // Most op are valid only when stride.y and stride.z are default. and stride.x are used to determine
 // the INCX, or INCY parameter of BLAS operations.
-namespace ax::math {
+namespace ax::math::block_blas {
 
 // the operation type for BLAS operations, we do not have complex numbers,
 // so only transpose is supported.
@@ -21,15 +21,15 @@ AX_DEFINE_ENUM_CLASS(BlasOperation, None, Transpose);
 ///// LEVEL 1 /////
 
 // computes y = x.
-void copy(ConstRealBufferView x, RealBufferView y);
+void copy(RealBufferView y, ConstRealBufferView x);
 // computes x = alpha * x.
 void scal(Real alpha, RealBufferView x);
 // swaps x and y.
 void swap(RealBufferView x, RealBufferView y);
 // computes y = alpha * x + y.
 void axpy(Real alpha, ConstRealBufferView x, RealBufferView y);
-// computes dot product <x, y> into dst.
-void dot(ConstRealBufferView x, ConstRealBufferView y, RealBufferView dst);
+// computes dot product <x, y>
+Real dot(ConstRealBufferView x, ConstRealBufferView y);
 // computes the 2-norm of x.
 Real norm(ConstRealBufferView x);
 // computes the 1-norm of x.

@@ -12,7 +12,7 @@ public:
   void SetProblem(RealBlockMatrix A);
 
   // APIs
-  virtual void Solve(ConstRealBufferView b, RealBufferView x) const = 0;
+  virtual BlockedLinsysSolveStatus Solve(ConstRealBufferView b, RealBufferView x) const = 0;
   virtual void AnalyzePattern();
   virtual void Factorize();
   void Compute();

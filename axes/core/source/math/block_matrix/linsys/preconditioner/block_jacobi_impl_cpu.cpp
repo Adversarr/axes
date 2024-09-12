@@ -16,8 +16,14 @@ void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMa
   std::memset(dst.Data(), 0, sizeof(Real) * prod(dst.Shape()));
 
   size_t bs = mat.BlockSize();
+  if (bs > AX_INVERSE_BLOCK_MAXSIZE) {
+    throw std::runtime_error("Block size is too large for block Jacobi preconditioner.");
+  }
+
+  std::atomic<bool> has_found_zero_diag{false};
   // we assume that, there is no overlapping blocks in original matrix, therefore we do in parallel.
-  par_for_each_indexed(Dim{mat.BlockedRows()}, [bs, bv, br, bc, &dst](size_t row) {
+  par_for_each_indexed(Dim{mat.BlockedRows()}, [bs, bv, br, bc, &dst,
+                                                &has_found_zero_diag](size_t row) {
     int row_start = br(row);
     int row_end = br(row + 1);
 
@@ -27,9 +33,11 @@ void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMa
       }
     }
 
+    bool found_diag = false;
     for (int block_idx = row_start; block_idx < row_end; ++block_idx) {
       int col = bc(static_cast<size_t>(block_idx));
       if (static_cast<int>(row) == col) {
+        found_diag = true;
         for (size_t j = 0; j < bs; ++j) {
           for (size_t i = 0; i < bs; ++i) {
             dst(i, j, row) = bv(i, j, static_cast<size_t>(block_idx));
@@ -38,11 +46,23 @@ void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMa
       }
     }
 
-    Eigen::Map<math::RealMatrixX> inv_diag(dst.Offset(0, 0, row), static_cast<Index>(bs),
-                                           static_cast<Index>(bs));
-    // Perform in-place LDLT decomposition.
-    Eigen::LDLT<Eigen::Ref<math::RealMatrixX>> ldlt_inplace(inv_diag);
+    if_unlikely (!found_diag) {
+      has_found_zero_diag.store(true, std::memory_order_relaxed);
+    }
+
+    Real* ptr = dst.Offset(0, 0, row);
+    if (bs == 2) {
+      details::do_inplace_inverse<2>(ptr);
+    } else if (bs == 3) {
+      details::do_inplace_inverse<3>(ptr);
+    } else if (bs == 4) {
+      details::do_inplace_inverse<4>(ptr);
+    }
   });
+
+  if (has_found_zero_diag) {
+    AX_WARN("Zero diagonal block found in block Jacobi preconditioner. (Will set to identity)");
+  }
 }
 
 void block_jacobi_precond_eval_cpu(BufferView<Real> dst,          // a view of [bs, rows, 0]

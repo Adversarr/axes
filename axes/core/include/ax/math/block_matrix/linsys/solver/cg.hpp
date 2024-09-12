@@ -8,11 +8,12 @@ public:
   BlockSolver_ConjugateGradient() = default;
   virtual ~BlockSolver_ConjugateGradient() = default;
 
-  void Solve(ConstRealBufferView b, RealBufferView x) const override;
+  BlockedLinsysSolveStatus Solve(ConstRealBufferView b, RealBufferView x) const override;
   void AnalyzePattern() override;
   void Factorize() override;
 
   BlockSolverKind GetKind() const override { return BlockSolverKind::ConjugateGradient; }
+  size_t max_iter_{1000};
 };
 
 }  // namespace ax::math

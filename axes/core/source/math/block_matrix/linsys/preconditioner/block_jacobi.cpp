@@ -3,7 +3,6 @@
 #  include "ax/core/buffer/device_buffer.cuh"
 #endif
 #include "ax/core/buffer/host_buffer.hpp"
-
 #include "block_jacobi_impl.hpp"
 
 namespace ax::math {
@@ -40,7 +39,8 @@ void BlockPreconditioner_BlockJacobi::Factorize() {
     }
   }
 
-  AX_CHECK(inv_diag_->IsContinuous(), "(InternalError) inv_diag_ must be continuous for memory mapping.");
+  AX_CHECK(inv_diag_->IsContinuous(),
+           "(InternalError) inv_diag_ must be continuous for memory mapping.");
 
   // Precompute the inverse of the diagonal blocks of A, and store them in inv_diag_.
   if (device == BufferDevice::Host) {
@@ -52,6 +52,18 @@ void BlockPreconditioner_BlockJacobi::Factorize() {
   }
 }
 
+void BlockPreconditioner_BlockJacobi::Solve(ConstRealBufferView b, RealBufferView x) const {
+  auto device = problem_->A_.GetDevice();
+  AX_THROW_IF_NULLPTR(inv_diag_, "inv_diag_ is null. compute inv_diag_ first.");
+  size_t bs = problem_->A_.BlockSize();
 
+  if (device == BufferDevice::Host) {
+    details::block_jacobi_precond_eval_cpu(x, b, inv_diag_->View(), nullptr);
+  } else {
+#ifdef AX_HAS_CUDA
+    details::block_jacobi_precond_eval_gpu(x.View(), b, inv_diag_->View(), nullptr);
+#endif
+  }
+}
 
 };  // namespace ax::math

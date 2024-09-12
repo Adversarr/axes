@@ -168,7 +168,7 @@ auto make_view(BufferPtr&& buffer) {
   return buffer->View();
 }
 
-template <typename... BufferPtr>
+template <typename... BufferPtr, typename = std::enable_if_t<(sizeof...(BufferPtr) > 1)>>
 auto make_view(BufferPtr&&... buffers) {
   return std::make_tuple(buffers->View()...);
 }

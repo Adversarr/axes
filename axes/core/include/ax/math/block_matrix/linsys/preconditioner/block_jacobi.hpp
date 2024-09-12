@@ -14,7 +14,6 @@ public:
 
   BlockPreconditionerKind GetKind() const override { return BlockPreconditionerKind::BlockJacobi; }
 
-private:
   BufferPtr<Real> inv_diag_; // [bs, bs, rows]
 };
 

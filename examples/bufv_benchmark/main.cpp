@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <openblas64/cblas.h>
+#include <openblas/cblas.h>
 
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/core/buffer/eigen_support.hpp"

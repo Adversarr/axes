@@ -1,14 +1,11 @@
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_default.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
-#include "ax/core/buffer/for_each.hpp"
-#include "ax/core/buffer/host_buffer.hpp"
 #include "ax/core/init.hpp"
 #include "ax/math/block_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/block_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/block_matrix/linsys/solver/cg.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
-#include "ax/math/utils/formatting.hpp"
 
 using namespace ax;
 
@@ -84,8 +81,7 @@ static void test_block_jacobi() {
   copy(view_from_matrix(x), d_x);
 
   for (size_t i = 0; i < 4; ++i) {
-    AX_CHECK((x.col(i) - gt.col(i)).norm() < 1e-9, "Solve is wrong, expect {} got {}", gt.col(i),
-             x.col(i));
+    AX_CHECK((x.col(i) - gt.col(i)).norm() < 1e-9, "Solve is wrong at {}", i);
   }
   AX_INFO("Block Jacobi preconditioner test passed.");
 }
@@ -140,8 +136,7 @@ static void test_block_jacobi_gpu() {
   copy(view_from_matrix(x), x_device->View());
 
   for (size_t i = 0; i < 4; ++i) {
-    AX_CHECK((x.col(i) - gt.col(i)).norm() < 1e-9, "Solve is wrong at {}, expect {} got {}", i,
-             gt.col(i), x.col(i));
+    AX_CHECK((x.col(i) - gt.col(i)).norm() < 1e-9, "Solve is wrong at {}", i);
   }
   AX_INFO("Block Jacobi preconditioner test passed.");
 }
@@ -400,16 +395,16 @@ int main(int argc, char** argv) {
   initialize(argc, argv);
 
   test_block_jacobi();
-  test_block_jacobi_gpu();
   test_cg();
-  test_cg_gpu();
-
   test_cg_jacobi();
-  test_cg_gpu_jacobi();
-
   test_cg_jacobi_diag();
-  test_cg_gpu_jacobi_diag();
 
+#ifdef AX_HAS_CUDA
+  test_cg_gpu();
+  test_block_jacobi_gpu();
+  test_cg_gpu_jacobi();
+  test_cg_gpu_jacobi_diag();
+#endif
 
   clean_up();
   return 0;

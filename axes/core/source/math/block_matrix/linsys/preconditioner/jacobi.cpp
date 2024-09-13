@@ -16,13 +16,13 @@ void BlockPreconditioner_Jacobi::Factorize() {
   inv_diag_ = create_buffer<Real>(device, {problem_->A_.BlockSize(), problem_->A_.BlockedRows()});
 
   if (device == BufferDevice::Device) {
-    details::jacobi_precond_precompute_gpu(inv_diag_->View(), problem_->A_);
-  } else {
 #ifdef AX_HAS_CUDA
-    details::jacobi_precond_precompute_cpu(inv_diag_->View(), problem_->A_);
+    details::jacobi_precond_precompute_gpu(inv_diag_->View(), problem_->A_);
 #else
     throw make_runtime_error("BlockPreconditioner_Jacobi::Factorize: CUDA is not enabled.");
 #endif
+  } else {
+    details::jacobi_precond_precompute_cpu(inv_diag_->View(), problem_->A_);
   }
 }
 
@@ -40,13 +40,13 @@ void BlockPreconditioner_Jacobi::Solve(ConstRealBufferView b, RealBufferView x) 
       x.Shape(), b.Shape());
 
   if (inv_diag.Device() == BufferDevice::Device) {
-    details::jacobi_precond_solve_gpu(x, b, inv_diag);
-  } else {
 #ifdef AX_HAS_CUDA
-    details::jacobi_precond_solve_cpu(x, b, inv_diag);
+    details::jacobi_precond_solve_gpu(x, b, inv_diag);
 #else
     throw make_runtime_error("BlockPreconditioner_Jacobi::Solve: CUDA is not enabled.");
 #endif
+  } else {
+    details::jacobi_precond_solve_cpu(x, b, inv_diag);
   }
 }
 

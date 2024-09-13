@@ -14,14 +14,14 @@ public:
    * @param mesh Mesh to compute the deformation gradient for.
    * @param rest_pose Rest pose of the mesh.
    */
-  Deformation(TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose);
+  Deformation(LinearMesh<dim> const& mesh, typename LinearMesh<dim>::vertex_list_t const& rest_pose);
 
   /**
    * @brief Reset the rest pose of the mesh.
    *
    * @param rest_pose Rest pose of the mesh.
    */
-  void UpdateRestPose(typename TriMesh<dim>::vertex_list_t const& rest_pose);
+  void UpdateRestPose(typename LinearMesh<dim>::vertex_list_t const& rest_pose);
 
   /**
    * @brief Compute the deformation gradient for each element in the mesh.
@@ -36,7 +36,7 @@ public:
    * @param current current pose of vertices
    * @return std::vector of deformation gradients for each element in the mesh.
    */
-  elasticity::DeformGradBuffer<dim> Forward(typename TriMesh<dim>::vertex_list_t const& current) const;
+  elasticity::DeformGradBuffer<dim> Forward(typename LinearMesh<dim>::vertex_list_t const& current) const;
 
   /**
    * @brief Return the internal cache of (XH)^-1. X is the rest pose.
@@ -57,7 +57,7 @@ public:
    * 
    * @return typename MeshBase<dim>::vertex_list_t 
    */
-  typename TriMesh<dim>::vertex_list_t StressToVertices(
+  typename LinearMesh<dim>::vertex_list_t StressToVertices(
       std::vector<elasticity::StressTensor<dim>> const& stress) const;
 
   /**
@@ -74,7 +74,7 @@ public:
    * @param stress 
    * @return math::RealField1
    */
-  TriMesh<dim> const& GetMesh() const { return mesh_; }
+  LinearMesh<dim> const& GetMesh() const { return mesh_; }
 
   /**
    * @brief Get the rest volume list of the mesh.
@@ -93,9 +93,9 @@ public:
   }
 
 private:
-  TriMesh<dim> const& mesh_;
+  LinearMesh<dim> const& mesh_;
   elasticity::DeformGradCache<dim> deformation_gradient_cache_;
-  typename TriMesh<dim>::vertex_list_t rest_pose_;
+  typename LinearMesh<dim>::vertex_list_t rest_pose_;
   math::RealField1 rest_pose_volume_;
 };
 

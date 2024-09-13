@@ -18,7 +18,7 @@
 namespace ax::fem {
 
 template <int dim>
-TimeStepperBase<dim>::TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh) {
+TimeStepperBase<dim>::TimeStepperBase(std::shared_ptr<LinearMesh<dim>> mesh) {
   mesh_ = mesh;
   mesh_->SetNumDofPerVertex(dim);
   has_initialized_ = false;

@@ -8,7 +8,7 @@
 namespace ax::fem {
 
 template <int dim>
-Timestepper_NonlinearCg<dim>::Timestepper_NonlinearCg(std::shared_ptr<TriMesh<dim>> mesh)
+Timestepper_NonlinearCg<dim>::Timestepper_NonlinearCg(std::shared_ptr<LinearMesh<dim>> mesh)
     : TimeStepperBase<dim>(std::move(mesh)),
       optimizer_(std::make_unique<optim::Optimizer_NonlinearCg>()) {
 }

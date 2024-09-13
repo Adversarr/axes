@@ -19,10 +19,10 @@ public:
   using vert_stress_t = math::RealField<dim>;
   using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::RealSparseMatrix;
-  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<LinearMesh<dim>>;
   using ElasticityComputeBase<dim>::ElasticityComputeBase;
 
-  explicit ElasticityCompute_CPU(std::shared_ptr<TriMesh<dim>> mesh);
+  explicit ElasticityCompute_CPU(std::shared_ptr<LinearMesh<dim>> mesh);
   ~ElasticityCompute_CPU() override;
 
   void UpdateEnergy() final;

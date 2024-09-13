@@ -65,7 +65,7 @@ if (NOT AX_NO_WARNING)  # Use our customized warning flags
     ax_add_cxx_compiler_flag("-Wsuggest-override")
     ax_add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
     ax_add_cxx_compiler_flag("-Wmissing-declarations")
-    ax_add_cxx_compiler_flag("-Wold-style-cast")
+    # ax_add_cxx_compiler_flag("-Wold-style-cast") # This is not always useful.
     ax_add_cxx_compiler_flag("-Wnon-virtual-dtor")
   endif()
 endif()

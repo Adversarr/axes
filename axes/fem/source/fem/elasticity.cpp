@@ -3,7 +3,7 @@
 namespace ax::fem {
 
 template <int dim>
-ElasticityComputeBase<dim>::ElasticityComputeBase(std::shared_ptr<TriMesh<dim>> mesh)
+ElasticityComputeBase<dim>::ElasticityComputeBase(std::shared_ptr<LinearMesh<dim>> mesh)
     : mesh_(mesh), rinv_(static_cast<size_t>(mesh->GetNumElements())) {}
 
 template <int dim> void ElasticityComputeBase<dim>::SetMesh(const MeshPtr& mesh) {

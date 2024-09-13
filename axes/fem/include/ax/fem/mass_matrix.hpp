@@ -11,7 +11,7 @@ namespace ax::fem {
  */
 template <int dim> class MassMatrixCompute {
 public:
-  explicit MassMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
+  explicit MassMatrixCompute(LinearMesh<dim> const& mesh) : mesh_(mesh) {}
   /**
    * @brief Compute the mass matrix.
    *
@@ -35,7 +35,7 @@ public:
   math::RealVectorX Lumped(Real density);
 
 private:
-  TriMesh<dim> const& mesh_;
+  LinearMesh<dim> const& mesh_;
   bool compute_lamped_;
 };
 

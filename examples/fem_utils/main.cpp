@@ -46,10 +46,10 @@ public:
     } else if (tetras == nullptr) {
       return utils::FailedPreconditionError("Missing input tetras");
     }
-    auto mesh = std::make_unique<TriMesh<3>>();
+    auto mesh = std::make_unique<LinearMesh<3>>();
 
     mesh->SetMesh(*tetras, *vertices);
-    add_or_replace_component<std::unique_ptr<TriMesh<3>>>(*entity, std::move(mesh));
+    add_or_replace_component<std::unique_ptr<LinearMesh<3>>>(*entity, std::move(mesh));
     AX_RETURN_OK();
   }
 
@@ -96,7 +96,7 @@ public:
       return utils::FailedPreconditionError("Missing input entity");
     }
 
-    auto *mesh = try_get_component<std::unique_ptr<TriMesh<3>>>(*entity);
+    auto *mesh = try_get_component<std::unique_ptr<LinearMesh<3>>>(*entity);
     if (mesh == nullptr) {
       return utils::FailedPreconditionError("Entity does not have a mesh.");
     }
@@ -128,7 +128,7 @@ public:
   }
 };
 
-std::unique_ptr<TriMesh<dim>> mesh_;
+std::unique_ptr<LinearMesh<dim>> mesh_;
 std::unique_ptr<MassMatrixCompute<dim>> mm_compute_;
 
 int main(int argc, char **argv) {

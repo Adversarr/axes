@@ -26,7 +26,7 @@ template <int dim>
 class TimeStepperBase : public utils::Tunable {
 public:
   // Constructors and destructors
-  explicit TimeStepperBase(std::shared_ptr<TriMesh<dim>> mesh);
+  explicit TimeStepperBase(std::shared_ptr<LinearMesh<dim>> mesh);
   TimeStepperBase(const TimeStepperBase &) noexcept = delete;
   TimeStepperBase &operator=(const TimeStepperBase &) noexcept = delete;
   TimeStepperBase(TimeStepperBase &&) noexcept = default;
@@ -35,7 +35,7 @@ public:
   ~TimeStepperBase() override;
 
   // Common Data Accessors
-  std::shared_ptr<TriMesh<dim>> GetMesh() {
+  std::shared_ptr<LinearMesh<dim>> GetMesh() {
     return mesh_;
   }
 
@@ -167,7 +167,7 @@ public:
 
 protected:
   /************************* SECT: Common Data *************************/
-  std::shared_ptr<TriMesh<dim>> mesh_;
+  std::shared_ptr<LinearMesh<dim>> mesh_;
   std::shared_ptr<ElasticityComputeBase<dim>> elasticity_;
   // NOTE: We only focus on Backward Euler!
   // std::unique_ptr<TimestepSchemeBase<dim>> integration_scheme_;

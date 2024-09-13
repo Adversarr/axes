@@ -15,7 +15,7 @@ namespace ax::fem {
  *
  * @tparam dim The dimension of the mesh.
  */
-template <int dim> class TriMesh final {
+template <int dim> class LinearMesh final {
 public:
   using element_t = math::IndexVector<dim + 1>;        /**< Type for storing mesh elements. */
   using element_list_t = math::IndexField<dim + 1>; /**< Type for storing a list of mesh elements. */
@@ -32,12 +32,12 @@ public:
    *
    * @param type The type of the mesh.
    */
-  explicit TriMesh();
+  explicit LinearMesh();
 
   /**
    * @brief Destructor for the MeshBase object.
    */
-  ~TriMesh() = default;
+  ~LinearMesh() = default;
 
   /**
    * @brief Sets the mesh elements and vertices.
@@ -230,74 +230,74 @@ protected:
 // NOTE: Some member functions does not have a FRIENDLY return value, we provide it as
 //       a template implementation to avoid the need of defining it in the cpp file.
 // NOTE: Also, some member functions should be defined in header file to achieve inlining.
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::GetElement(Index i) const noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::GetElement(Index i) const noexcept {
   AX_DCHECK(i < elements_.cols(), "Index out of bounds.");
   return elements_.col(i);
 }
 
 template <int dim>
-AX_FORCE_INLINE typename TriMesh<dim>::vertex_t TriMesh<dim>::GetVertex(Index i) const noexcept {
+AX_FORCE_INLINE typename LinearMesh<dim>::vertex_t LinearMesh<dim>::GetVertex(Index i) const noexcept {
   AX_DCHECK(i < vertices_.cols(), "Index out of bounds.");
   return vertices_.col(i);
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() const noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::begin() const noexcept {
   return math::each(elements_).begin();
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::end() const noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::end() const noexcept {
   return math::each(elements_).end();
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::cbegin() const noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::cbegin() const noexcept {
   return math::each(elements_).cbegin();
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::cend() const noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::cend() const noexcept {
   return math::each(elements_).cend();
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::begin() noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::begin() noexcept {
   return math::each(elements_).begin();
 }
 
-template <int dim> AX_FORCE_INLINE auto TriMesh<dim>::end() noexcept {
+template <int dim> AX_FORCE_INLINE auto LinearMesh<dim>::end() noexcept {
   return math::each(elements_).end();
 }
 
-template <int dim> AX_FORCE_INLINE Index TriMesh<dim>::GetNumVertices() const noexcept {
+template <int dim> AX_FORCE_INLINE Index LinearMesh<dim>::GetNumVertices() const noexcept {
   return vertices_.cols();
 }
 
-template <int dim> AX_FORCE_INLINE Index TriMesh<dim>::GetNumElements() const noexcept {
+template <int dim> AX_FORCE_INLINE Index LinearMesh<dim>::GetNumElements() const noexcept {
   return elements_.cols();
 }
 
 template <int dim>
-AX_FORCE_INLINE Real TriMesh<dim>::GetBoundaryValue(Index i, Index dof) const noexcept {
+AX_FORCE_INLINE Real LinearMesh<dim>::GetBoundaryValue(Index i, Index dof) const noexcept {
   AX_DCHECK(0 <= i && i < boundary_values_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return boundary_values_(dof, i);
 }
 
 template <int dim>
-AX_FORCE_INLINE bool TriMesh<dim>::IsDirichletBoundary(Index i, Index dof) const noexcept {
+AX_FORCE_INLINE bool LinearMesh<dim>::IsDirichletBoundary(Index i, Index dof) const noexcept {
   AX_DCHECK(0 <= i && i < dirichlet_boundary_mask_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   return dirichlet_boundary_mask_(dof, i) == 0;
 }
 
 template <int dim>
-typename TriMesh<dim>::vertex_list_t const& TriMesh<dim>::GetVertices() const noexcept {
+typename LinearMesh<dim>::vertex_list_t const& LinearMesh<dim>::GetVertices() const noexcept {
   return vertices_;
 }
 
 template <int dim>
-typename TriMesh<dim>::element_list_t const& TriMesh<dim>::GetElements() const noexcept {
+typename LinearMesh<dim>::element_list_t const& LinearMesh<dim>::GetElements() const noexcept {
   return elements_;
 }
 
-template <int dim> void TriMesh<dim>::SetVertex(Index i, vertex_t const& vertex) {
+template <int dim> void LinearMesh<dim>::SetVertex(Index i, vertex_t const& vertex) {
   AX_DCHECK(0 <= i && i < vertices_.size(), "Index out of range.");
   vertices_.col(i) = vertex;
 }

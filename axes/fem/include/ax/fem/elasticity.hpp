@@ -18,9 +18,9 @@ public:
   using vert_stress_t = math::RealField<dim>;
   using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::RealSparseMatrix;
-  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<LinearMesh<dim>>;
 
-  explicit ElasticityComputeBase(std::shared_ptr<TriMesh<dim>> mesh);
+  explicit ElasticityComputeBase(std::shared_ptr<LinearMesh<dim>> mesh);
   virtual ~ElasticityComputeBase() = default;
 
   void SetMesh(MeshPtr const& mesh);
@@ -47,7 +47,7 @@ public:
   virtual math::RealField1 const& GetEnergyOnVertices() { return energy_on_vertices_; }
 
 protected:
-  std::shared_ptr<TriMesh<dim>> mesh_;
+  std::shared_ptr<LinearMesh<dim>> mesh_;
   elasticity::DeformGradCache<dim> rinv_;
   math::RealField1 rest_volume_;
   math::RealField2 lame_;

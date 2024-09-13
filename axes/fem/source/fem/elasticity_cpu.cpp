@@ -89,7 +89,7 @@ static bool check_cache(elasticity::DeformGradCache<dim> const& cache) {
 }
 
 template <int dim>
-static math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 const& e) {
+static math::RealField1 dg_tev_p1(LinearMesh<dim> const& mesh_, math::RealField1 const& e) {
   Index n_element = mesh_.GetNumElements();
   math::RealField1 result(1, mesh_.GetNumVertices());
   result.setZero();
@@ -104,10 +104,10 @@ static math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 co
 }
 
 template <int dim>
-typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
-    TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
+typename LinearMesh<dim>::vertex_list_t dg_tsv_p1(
+    LinearMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     elasticity::DeformGradCache<dim> const& cache) {
-  typename TriMesh<dim>::vertex_list_t result;
+  typename LinearMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
   // TODO: With Vertex->Element Map, the parallel is possible.
   for (Index i = 0; i < mesh.GetNumElements(); ++i) {
@@ -207,7 +207,7 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
 }
 
 template <int dim>
-math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
+math::SparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
                           std::vector<elasticity::HessianTensor<dim>> const& hessian,
                           elasticity::DeformGradCache<dim> const& cache) {
   math::SparseCOO coo;
@@ -590,7 +590,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
 
 template <int dim, template <int> class ElasticModelTemplate>
 ElasticityCompute_CPU<dim, ElasticModelTemplate>::ElasticityCompute_CPU(
-    std::shared_ptr<TriMesh<dim>> mesh)
+    std::shared_ptr<LinearMesh<dim>> mesh)
     : ElasticityComputeBase<dim>(mesh) {
   this->impl_ = std::make_unique<Impl>();
 }

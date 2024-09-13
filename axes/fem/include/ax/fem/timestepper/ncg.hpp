@@ -7,7 +7,7 @@ namespace ax::fem {
 template <int dim>
 class Timestepper_NonlinearCg final : public TimeStepperBase<dim> {
 public:
-  explicit Timestepper_NonlinearCg(std::shared_ptr<TriMesh<dim>> mesh);
+  explicit Timestepper_NonlinearCg(std::shared_ptr<LinearMesh<dim>> mesh);
   ~Timestepper_NonlinearCg() override;
 
   void SolveTimestep() override;

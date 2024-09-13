@@ -11,7 +11,7 @@ namespace ax::fem {
  */
 template <int dim> class LaplaceMatrixCompute {
 public:
-  explicit LaplaceMatrixCompute(TriMesh<dim> const& mesh) : mesh_(mesh) {}
+  explicit LaplaceMatrixCompute(LinearMesh<dim> const& mesh) : mesh_(mesh) {}
 
   /**
    * @brief Compute the Laplace matrix.
@@ -30,7 +30,7 @@ public:
   math::RealSparseMatrix operator()(math::RealField1 const& W);
 
 private:
-  TriMesh<dim> const& mesh_;
+  LinearMesh<dim> const& mesh_;
 };
 
 }

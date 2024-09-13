@@ -12,7 +12,7 @@ public:
   using vert_stress_t = math::RealField<dim>;
   using elem_hessian_t = math::aligned_vector<math::RealMatrix<dim * dim, dim * dim>>;
   using vert_hessian_t = math::RealSparseMatrix;
-  using MeshPtr = std::shared_ptr<TriMesh<dim>>;
+  using MeshPtr = std::shared_ptr<LinearMesh<dim>>;
   explicit ElasticityCompute_GPU(MeshPtr const& mesh);
 
   ~ElasticityCompute_GPU() override;

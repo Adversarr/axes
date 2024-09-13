@@ -109,7 +109,7 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
 }
 
 template <int dim> static DeformGradCache<dim> dg_rpcache_p1(
-    TriMesh<dim> const& mesh, typename TriMesh<dim>::vertex_list_t const& rest_pose) {
+    LinearMesh<dim> const& mesh, typename LinearMesh<dim>::vertex_list_t const& rest_pose) {
   DeformGradCache<dim> cache;
   Index n_elem = mesh.GetNumElements();
   cache.resize(static_cast<size_t>(n_elem));
@@ -130,7 +130,7 @@ template <int dim> static DeformGradCache<dim> dg_rpcache_p1(
 }
 
 template <int dim>
-static DeformGradBuffer<dim> dg_p1(TriMesh<dim> const& mesh, RealField<dim> const& pose,
+static DeformGradBuffer<dim> dg_p1(LinearMesh<dim> const& mesh, RealField<dim> const& pose,
                                           DeformGradCache<dim> const& Dm_inv) {
   Index n_elem = mesh.GetNumElements();
   DeformGradBuffer<dim> dg(static_cast<size_t>(n_elem));
@@ -154,10 +154,10 @@ static DeformGradBuffer<dim> dg_p1(TriMesh<dim> const& mesh, RealField<dim> cons
   return dg;
 }
 
-template <int dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
-    TriMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
+template <int dim> typename LinearMesh<dim>::vertex_list_t dg_tsv_p1(
+    LinearMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     DeformGradCache<dim> const& cache) {
-  typename TriMesh<dim>::vertex_list_t result;
+  typename LinearMesh<dim>::vertex_list_t result;
   result.setZero(dim, mesh.GetNumVertices());
   // TODO: With Vertex->Element Map, the parallel is possible.
   for (Index i = 0; i < mesh.GetNumElements(); ++i) {
@@ -175,7 +175,7 @@ template <int dim> typename TriMesh<dim>::vertex_list_t dg_tsv_p1(
 }
 
 template <int dim>
-math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
+math::SparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
                               std::vector<elasticity::HessianTensor<dim>> const& hessian,
                               DeformGradCache<dim> const& cache) {
   math::SparseCOO coo;
@@ -215,14 +215,14 @@ math::SparseCOO dg_thv_p1(TriMesh<dim> const& mesh,
  ***********************************************************************************************/
 
 template <int dim>
-Deformation<dim>::Deformation(TriMesh<dim> const& mesh,
-                              typename TriMesh<dim>::vertex_list_t const& rest_pose)
+Deformation<dim>::Deformation(LinearMesh<dim> const& mesh,
+                              typename LinearMesh<dim>::vertex_list_t const& rest_pose)
     : mesh_(mesh) {
   this->UpdateRestPose(rest_pose);
 }
 
 template <int dim>
-void Deformation<dim>::UpdateRestPose(typename TriMesh<dim>::vertex_list_t const& rest_pose) {
+void Deformation<dim>::UpdateRestPose(typename LinearMesh<dim>::vertex_list_t const& rest_pose) {
   rest_pose_ = rest_pose;
   deformation_gradient_cache_ = dg_rpcache_p1<dim>(mesh_, rest_pose);
   // There exist an efficient approximation to compute the volume:
@@ -242,7 +242,7 @@ template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward() const {
 }
 
 template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward(
-    typename TriMesh<dim>::vertex_list_t const& current) const {
+    typename LinearMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }
 
@@ -251,7 +251,7 @@ elasticity::DeformGradCache<dim> const& Deformation<dim>::GetRestPoseCache() con
   return deformation_gradient_cache_;
 }
 
-template <int dim> math::RealField1 dg_tev_p1(TriMesh<dim> const& mesh_, math::RealField1 const& e) {
+template <int dim> math::RealField1 dg_tev_p1(LinearMesh<dim> const& mesh_, math::RealField1 const& e) {
   Index n_element = mesh_.GetNumElements();
   math::RealField1 result(1, mesh_.GetNumVertices());
   result.setZero();
@@ -272,7 +272,7 @@ template <int dim> math::RealField1 Deformation<dim>::EnergyToVertices(math::Rea
   return dg_tev_p1<dim>(mesh_, e);
 }
 
-template <int dim> typename TriMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
+template <int dim> typename LinearMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
     std::vector<elasticity::StressTensor<dim>> const& stress) const {
   Index n_element = mesh_.GetNumElements();
   Index stress_size = static_cast<size_t>(stress.size());

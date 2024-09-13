@@ -17,7 +17,7 @@ namespace axb {
 void bind_naive_optim(py::module& m) {
   m.def(
       "make_timestepper_3d",
-      [](std::shared_ptr<TriMesh<3>> m, std::string name) -> std::shared_ptr<TimeStepperBase<3>> {
+      [](std::shared_ptr<LinearMesh<3>> m, std::string name) -> std::shared_ptr<TimeStepperBase<3>> {
         if (name == "quasi_newton") {
           return std::make_unique<Timestepper_QuasiNewton<3>>(m);
         } else {
@@ -27,44 +27,44 @@ void bind_naive_optim(py::module& m) {
       py::arg("trimesh"), py::arg("method") = "naive_optim");
 
   m.def("make_mesh_3d",
-        []() -> std::shared_ptr<TriMesh<3>> { return std::make_shared<TriMesh<3>>(); });
+        []() -> std::shared_ptr<LinearMesh<3>> { return std::make_shared<LinearMesh<3>>(); });
 
-  py::class_<TriMesh<3>, std::shared_ptr<TriMesh<3>>> tm(m, "TriMesh3D");
+  py::class_<LinearMesh<3>, std::shared_ptr<LinearMesh<3>>> tm(m, "LinearMesh3D");
   tm.def(py::init<>())
-      .def("SetMesh", &TriMesh<3>::SetMesh, py::arg("elements"), py::arg("vertices"))
-      .def("SetVertex", &TriMesh<3>::SetVertex, py::arg("i"), py::arg("vertex"))
-      .def("SetVertices", &TriMesh<3>::SetVertices, py::arg("vertices"))
-      .def("GetVertices", &TriMesh<3>::GetVertices)
-      .def("GetVerticesFlattened", &TriMesh<3>::GetVerticesFlattened)
-      .def("GetNumVertices", &TriMesh<3>::GetNumVertices)
-      .def("GetNumElements", &TriMesh<3>::GetNumElements)
-      .def("GetElements", &TriMesh<3>::GetElements)
-      .def("ResetBoundary", &TriMesh<3>::ResetBoundary, py::arg("i"), py::arg("dof"))
-      .def("ResetAllBoundaries", &TriMesh<3>::ResetAllBoundaries)
-      .def("GetBoundaryValue", &TriMesh<3>::GetBoundaryValue, py::arg("i"), py::arg("dof"))
-      .def("IsDirichletBoundary", &TriMesh<3>::IsDirichletBoundary, py::arg("i"), py::arg("dof"))
-      .def("ExtractSurface", &TriMesh<3>::ExtractSurface)
+      .def("SetMesh", &LinearMesh<3>::SetMesh, py::arg("elements"), py::arg("vertices"))
+      .def("SetVertex", &LinearMesh<3>::SetVertex, py::arg("i"), py::arg("vertex"))
+      .def("SetVertices", &LinearMesh<3>::SetVertices, py::arg("vertices"))
+      .def("GetVertices", &LinearMesh<3>::GetVertices)
+      .def("GetVerticesFlattened", &LinearMesh<3>::GetVerticesFlattened)
+      .def("GetNumVertices", &LinearMesh<3>::GetNumVertices)
+      .def("GetNumElements", &LinearMesh<3>::GetNumElements)
+      .def("GetElements", &LinearMesh<3>::GetElements)
+      .def("ResetBoundary", &LinearMesh<3>::ResetBoundary, py::arg("i"), py::arg("dof"))
+      .def("ResetAllBoundaries", &LinearMesh<3>::ResetAllBoundaries)
+      .def("GetBoundaryValue", &LinearMesh<3>::GetBoundaryValue, py::arg("i"), py::arg("dof"))
+      .def("IsDirichletBoundary", &LinearMesh<3>::IsDirichletBoundary, py::arg("i"), py::arg("dof"))
+      .def("ExtractSurface", &LinearMesh<3>::ExtractSurface)
       .def("FilterMatrixFull",
-           [](TriMesh<3>& tm, math::RealSparseMatrix K) -> math::RealSparseMatrix {
+           [](LinearMesh<3>& tm, math::RealSparseMatrix K) -> math::RealSparseMatrix {
              tm.FilterMatrixFull(K);
              return K;
            })
       .def("FilterMatrixDof",
-           [](TriMesh<3>& tm, Index dof, math::RealSparseMatrix K) -> math::RealSparseMatrix {
+           [](LinearMesh<3>& tm, Index dof, math::RealSparseMatrix K) -> math::RealSparseMatrix {
              tm.FilterMatrixDof(dof, K);
              return K;
            })
-      .def("GetDirichletBoundaryMask", &TriMesh<3>::GetDirichletBoundaryMask)
+      .def("GetDirichletBoundaryMask", &LinearMesh<3>::GetDirichletBoundaryMask)
       .def("__repr__",
-           [](const TriMesh<3>& tm) -> std::string {
+           [](const LinearMesh<3>& tm) -> std::string {
              std::ostringstream oss;
-             oss << "<TriMesh3D with " << tm.GetNumVertices() << " vertices and "
+             oss << "<LinearMesh3D with " << tm.GetNumVertices() << " vertices and "
                  << tm.GetNumElements() << " elements>";
              return oss.str();
            })
-      .def("MarkDirichletBoundary", &TriMesh<3>::MarkDirichletBoundary, py::arg("i"),
+      .def("MarkDirichletBoundary", &LinearMesh<3>::MarkDirichletBoundary, py::arg("i"),
            py::arg("dof"), py::arg("value"))
-      .def("SetNumDofPerVertex", &TriMesh<3>::SetNumDofPerVertex, py::arg("n"));
+      .def("SetNumDofPerVertex", &LinearMesh<3>::SetNumDofPerVertex, py::arg("n"));
 
   py::class_<TimeStepperBase<3>, std::shared_ptr<TimeStepperBase<3>>> tsb3(m, "TimeStepperBase3D");
 
@@ -105,27 +105,27 @@ void bind_naive_optim(py::module& m) {
   tsb3.def("GetLastTrajectory", &TimeStepperBase<3>::GetLastTrajectory)
       .def("GetLastEnergy", &TimeStepperBase<3>::GetLastEnergy);
 
-  m.def("compute_mass_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, Real density) -> math::RealSparseMatrix {
+  m.def("compute_mass_matrix_uniform", [](std::shared_ptr<LinearMesh<3>> tm, Real density) -> math::RealSparseMatrix {
     AX_THROW_IF_NULL(tm);
     MassMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_mass_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
+        [](std::shared_ptr<LinearMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
           AX_THROW_IF_NULL(tm);
           MassMatrixCompute<3> mmc(*tm);
           return mmc(density);
         });
 
-  m.def("compute_laplace_matrix_uniform", [](std::shared_ptr<TriMesh<3>> tm, Real density) -> math::RealSparseMatrix {
+  m.def("compute_laplace_matrix_uniform", [](std::shared_ptr<LinearMesh<3>> tm, Real density) -> math::RealSparseMatrix {
     AX_THROW_IF_NULL(tm);
     LaplaceMatrixCompute<3> mmc(*tm);
     return mmc(density);
   });
 
   m.def("compute_laplace_matrix",
-        [](std::shared_ptr<TriMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
+        [](std::shared_ptr<LinearMesh<3>> tm, math::RealField1 const& density) -> math::RealSparseMatrix {
           AX_THROW_IF_NULL(tm);
           LaplaceMatrixCompute<3> mmc(*tm);
           return mmc(density);

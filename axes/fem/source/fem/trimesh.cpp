@@ -7,10 +7,10 @@
 #endif
 namespace ax::fem {
 
-template <int dim> TriMesh<dim>::TriMesh() {}
+template <int dim> LinearMesh<dim>::LinearMesh() {}
 
 template <int dim>
-void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
+void LinearMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& vertices) {
   elements_ = elements;
   vertices_ = vertices;
 
@@ -29,13 +29,13 @@ void TriMesh<dim>::SetMesh(element_list_t const& elements, vertex_list_t const& 
   ResetAllBoundaries();
 }
 
-template <int dim> void TriMesh<dim>::SetVertices(vertex_list_t const& vertices) {
+template <int dim> void LinearMesh<dim>::SetVertices(vertex_list_t const& vertices) {
   AX_THROW_IF_NE(vertices.cols(), vertices_.cols(), "Invalid size: {} != {}", vertices.cols(),
                  vertices_.cols());
   vertices_ = vertices;
 }
 
-template <int dim> math::RealVectorX TriMesh<dim>::GetVerticesFlattened() const noexcept {
+template <int dim> math::RealVectorX LinearMesh<dim>::GetVerticesFlattened() const noexcept {
   math::RealVectorX vertices_flattened(vertices_.size());
   // for (Index i = 0; i < vertices_.cols(); ++i) {
   //   for (Index j = 0; j < dim; ++j) {
@@ -47,26 +47,26 @@ template <int dim> math::RealVectorX TriMesh<dim>::GetVerticesFlattened() const 
   return vertices_flattened;
 }
 
-template <int dim> void TriMesh<dim>::ResetBoundary(Index i, Index dof) {
+template <int dim> void LinearMesh<dim>::ResetBoundary(Index i, Index dof) {
   AX_DCHECK(0 <= i && i < vertices_.cols(), "Index out of range.");
   AX_DCHECK(0 <= dof && dof < n_dof_per_vertex_, "Dof out of range.");
   dirichlet_boundary_mask_(dof, i) = 1;
   boundary_values_(dof, i) = 0;
 }
 
-template <int dim> void TriMesh<dim>::MarkDirichletBoundary(Index i, Index dof, const Real& value) {
+template <int dim> void LinearMesh<dim>::MarkDirichletBoundary(Index i, Index dof, const Real& value) {
   AX_THROW_IF_TRUE(i < 0 || i >= vertices_.cols(), "Index out of range.");
   AX_THROW_IF_TRUE(dof < 0 || dof >= n_dof_per_vertex_, "Dof out of range.");
   boundary_values_(dof, i) = value;
   dirichlet_boundary_mask_(dof, i) = 0;
 }
 
-template <int dim> void TriMesh<dim>::ResetAllBoundaries() {
+template <int dim> void LinearMesh<dim>::ResetAllBoundaries() {
   boundary_values_.setZero(n_dof_per_vertex_, vertices_.cols());
   dirichlet_boundary_mask_.setOnes(n_dof_per_vertex_, vertices_.cols());
 }
 
-template <int dim> void TriMesh<dim>::FilterMatrixFull(math::SparseCOO const& input,
+template <int dim> void LinearMesh<dim>::FilterMatrixFull(math::SparseCOO const& input,
                                                        math::SparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
@@ -90,7 +90,7 @@ template <int dim> void TriMesh<dim>::FilterMatrixFull(math::SparseCOO const& in
   }
 }
 
-template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::SparseCOO const& input,
+template <int dim> void LinearMesh<dim>::FilterMatrixDof(Index d, math::SparseCOO const& input,
                                                       math::SparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
@@ -108,7 +108,7 @@ template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::SparseCOO c
   }
 }
 
-template <int dim> void TriMesh<dim>::FilterVector(math::RealVectorX& inout, bool set_zero) const {
+template <int dim> void LinearMesh<dim>::FilterVector(math::RealVectorX& inout, bool set_zero) const {
   if (inout.size() != dirichlet_boundary_mask_.cols() * n_dof_per_vertex_) {
     throw std::invalid_argument("Invalid shape.");
   }
@@ -118,12 +118,12 @@ template <int dim> void TriMesh<dim>::FilterVector(math::RealVectorX& inout, boo
   }
 }
 
-template <int dim> void TriMesh<dim>::SetNumDofPerVertex(Index n_dof_per_vertex) noexcept {
+template <int dim> void LinearMesh<dim>::SetNumDofPerVertex(Index n_dof_per_vertex) noexcept {
   n_dof_per_vertex_ = n_dof_per_vertex;
   ResetAllBoundaries();
 }
 
-template <int dim> void TriMesh<dim>::FilterField(math::RealField<dim>& inout, bool set_zero) const {
+template <int dim> void LinearMesh<dim>::FilterField(math::RealField<dim>& inout, bool set_zero) const {
   if (math::shape_of(inout) != math::shape_of(dirichlet_boundary_mask_)) {
     AX_ERROR("Invalid Shape: {}x{} != {}x{}", inout.rows(), inout.cols(),
              dirichlet_boundary_mask_.rows(), dirichlet_boundary_mask_.cols());
@@ -135,7 +135,7 @@ template <int dim> void TriMesh<dim>::FilterField(math::RealField<dim>& inout, b
   }
 }
 
-template <int dim> void TriMesh<dim>::FilterMatrixFull(math::RealSparseMatrix& mat) const {
+template <int dim> void LinearMesh<dim>::FilterMatrixFull(math::RealSparseMatrix& mat) const {
   for (Index i = 0; i < mat.outerSize(); ++i) {
     for (typename math::RealSparseMatrix::InnerIterator it(mat, i); it; ++it) {
       Index row_id = it.row() / n_dof_per_vertex_;
@@ -151,7 +151,7 @@ template <int dim> void TriMesh<dim>::FilterMatrixFull(math::RealSparseMatrix& m
   mat.prune(0, 0);
 }
 
-template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::RealSparseMatrix& mat) const {
+template <int dim> void LinearMesh<dim>::FilterMatrixDof(Index d, math::RealSparseMatrix& mat) const {
   // math::sp_coeff_list coo;
   // for (Index i = 0; i < mat.outerSize(); ++i) {
   //   for (typename math::RealSparseMatrix::InnerIterator it(mat, i); it; ++it) {
@@ -173,7 +173,7 @@ template <int dim> void TriMesh<dim>::FilterMatrixDof(Index d, math::RealSparseM
   mat.prune(0, 0);
 }
 
-template <int dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
+template <int dim> geo::SurfaceMesh LinearMesh<dim>::ExtractSurface() const {
   AX_CHECK(dim == 3, "Only 3D P1Mesh is supported");
   geo::SurfaceMesh surface;
   auto const& elem = this->elements_;
@@ -192,7 +192,7 @@ template <int dim> geo::SurfaceMesh TriMesh<dim>::ExtractSurface() const {
   return surface;
 }
 
-template <int dim> void TriMesh<dim>::ApplyPermutation(std::vector<Index> const& perm,
+template <int dim> void LinearMesh<dim>::ApplyPermutation(std::vector<Index> const& perm,
                                                        std::vector<Index> const& inverse_perm) {
   element_list_t elements_new(elements_.rows(), elements_.cols());
   vertex_list_t vertices_new(vertices_.rows(), vertices_.cols());
@@ -209,7 +209,7 @@ template <int dim> void TriMesh<dim>::ApplyPermutation(std::vector<Index> const&
   SetMesh(elements_new, vertices_new);
 }
 
-template class TriMesh<2>;
-template class TriMesh<3>;
+template class LinearMesh<2>;
+template class LinearMesh<3>;
 
 }  // namespace ax::fem

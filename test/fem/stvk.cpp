@@ -13,7 +13,7 @@ using namespace ax::math;
 
 TEST_CASE("stress") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj"));
-  auto mesh = std::make_shared<fem::TriMesh<2>>();
+  auto mesh = std::make_shared<fem::LinearMesh<2>>();
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto elastic = fem::ElasticityCompute_CPU<2, elasticity::StVK>(mesh);
   math::RealVector2 lame = {1.0, 1.0};
@@ -30,7 +30,7 @@ TEST_CASE("stress") {
 
 TEST_CASE("Hessian") {
   auto [vert, triangle] = geo::read_obj(utils::get_asset("/mesh/obj/square_naive.obj"));
-  auto mesh = std::make_shared<fem::TriMesh<2>>();
+  auto mesh = std::make_shared<fem::LinearMesh<2>>();
   mesh->SetMesh(triangle, vert.topRows<2>());
   auto stress = fem::ElasticityCompute_CPU<2, elasticity::StVK>(mesh);
   math::RealVector2 lame = {1.0, 1.0};

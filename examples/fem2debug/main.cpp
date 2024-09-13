@@ -38,7 +38,7 @@ void update_entity() {
   msh.colors_ = math::ones<4>(V.cols()) * 0.5;
   msh.is_flat_ = false;
   msh;
-  auto mesh = std::make_shared<fem::TriMesh<2>>();
+  auto mesh = std::make_shared<fem::LinearMesh<2>>();
   mesh->SetMesh(F, V.topRows<2>());
   fem::ElasticityCompute_CPU<2, fem::elasticity::NeoHookeanBW> elast(mesh);
   add_or_replace_component<gl::Lines>(out, gl::Lines::Create(msh));

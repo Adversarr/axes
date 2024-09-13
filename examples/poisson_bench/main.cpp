@@ -17,11 +17,11 @@
 #include "ax/utils/time.hpp"
 using namespace ax;
 
-void run_datagen(const fem::TriMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
+void run_datagen(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
                  math::SparseSolverBase* solver, math::RealMatrixX& rhs,
                  math::RealMatrixX& ground_truth, Index nprobs, Index ndatagen);
 
-void run_basis_test(const fem::TriMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
+void run_basis_test(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
                     math::SparseSolverBase* solver, Index test_basis_cnt);
 
 int main(int argc, char* argv[]) {
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
                                                              utils::get_asset_dir(), mesh_name))
                             .transpose();
   // make mesh
-  fem::TriMesh<3> mesh;
+  fem::LinearMesh<3> mesh;
   mesh.SetNumDofPerVertex(1);
   mesh.SetMesh(e, v);
   AX_INFO("Mesh loaded: {}, #Vert={}, #Elem={}", mesh_name, v.cols(), e.cols());
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
-void run_datagen(const fem::TriMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
+void run_datagen(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
                  math::SparseSolverBase* solver, math::RealMatrixX& rhs,
                  math::RealMatrixX& ground_truth, Index nprobs, Index ndatagen) {
   // generate data.
@@ -220,7 +220,7 @@ void run_datagen(const fem::TriMesh<3>& mesh, const math::RealSparseMatrix& sys_
   AX_INFO("Data generation finished.");
 }
 
-void run_basis_test(const fem::TriMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix, 
+void run_basis_test(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix, 
   math::SparseSolverBase* solver, Index test_basis_cnt) {
   math::RealMatrixX basis = math::read_npy_v10_real("basis.npy");  // (128, ndof), if it is very well tuned, performance is really good.
 

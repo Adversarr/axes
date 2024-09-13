@@ -11,7 +11,6 @@ axes_add_example(arap_parm "axes_gl")
 axes_add_example(optim "axes_optim")
 axes_add_example(poisson2d "axes_graph;axes_fem")
 axes_add_example(poisson3d "axes_fem")
-axes_add_example(lattice_poisson2d "axes_gl;axes_fdfv")
 axes_add_example(cubic_solver "axes_core")
 axes_add_example(graph "axes_graph")
 axes_add_example(strides_cpu "axes_core")
@@ -43,7 +42,6 @@ if(AX_ENABLE_CUDA)
 endif()
 
 find_package(benchmark CONFIG QUIET)
-
 
 if(benchmark_FOUND)
   axes_add_example(optimizer_benchmark "benchmark::benchmark;axes_optim")

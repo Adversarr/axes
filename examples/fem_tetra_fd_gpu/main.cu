@@ -16,7 +16,7 @@ using namespace ax;
 
 constexpr Index DIM = 3;
 
-std::shared_ptr<fem::TriMesh<DIM>> mesh;
+std::shared_ptr<fem::LinearMesh<DIM>> mesh;
 auto kE = fem::ElasticityUpdateLevel::Energy;
 int main(int argc, char** argv) {
   initialize(argc, argv);
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   // Apply Random Rotation:
   // math::RealMatrix3 R = Eigen::AngleAxis(math::pi<> / 4, math::RealVector3::UnitX()).toRotationMatrix();
   // original_vertices = R * original_vertices;
-  mesh = std::make_unique<fem::TriMesh<DIM>>();
+  mesh = std::make_unique<fem::LinearMesh<DIM>>();
   mesh->SetNumDofPerVertex(1);
   mesh->SetMesh(indices, original_vertices);
   // randomly perturb the vertices.

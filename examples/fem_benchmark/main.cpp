@@ -76,7 +76,7 @@ static bool running = false;
 float dt = 1e-2;
 math::RealVectorX fps;
 
-void handle_armadillo_drags(fem::TriMesh<3>& mesh, Real T) {
+void handle_armadillo_drags(fem::LinearMesh<3>& mesh, Real T) {
   using namespace ax::math;
   static std::vector<Index> dirichlet_handles;
   static std::vector<Real> y_vals;
@@ -103,7 +103,7 @@ void handle_armadillo_drags(fem::TriMesh<3>& mesh, Real T) {
   }
 }
 
-void handle_armadillo_extreme(fem::TriMesh<3>& mesh, Real T) {
+void handle_armadillo_extreme(fem::LinearMesh<3>& mesh, Real T) {
   using namespace ax::math;
   static std::vector<Index> l_dirichlet_handles;
   static std::vector<Index> r_dirichlet_handles;
@@ -323,7 +323,7 @@ int main(int argc, char** argv) {
   // input_mesh = cube;
 
   if (auto opt = po::get_parse_result()["optim"].as<std::string>(); opt == "liu") {
-    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::TriMesh<3>>());
+    ts = std::make_unique<fem::Timestepper_QuasiNewton<3>>(std::make_shared<fem::LinearMesh<3>>());
     auto strategy = po::get_parse_result()["lbfgs"].as<std::string>();
     auto* p_ts = reinterpret_cast<fem::Timestepper_QuasiNewton<3>*>(ts.get());
     if (strategy == "naive") {
@@ -340,10 +340,10 @@ int main(int argc, char** argv) {
     }
   } else if (opt == "newton") {
     std::cout << "Newton" << std::endl;
-    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::TriMesh<3>>());
+    ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::LinearMesh<3>>());
     ts->SetOptions({{"optimizer_opt", utils::Options{{"verbose", true}}}});
   } else if (opt == "ncg") {
-    ts = std::make_unique<fem::Timestepper_NonlinearCg<3>>(std::make_shared<fem::TriMesh<3>>());
+    ts = std::make_unique<fem::Timestepper_NonlinearCg<3>>(std::make_shared<fem::LinearMesh<3>>());
     auto* ncg = dynamic_cast<fem::Timestepper_NonlinearCg<3>*>(ts.get());
   } else {
     AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton', got {}", opt);

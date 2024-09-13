@@ -66,7 +66,7 @@ public:
    * @param hessian 
    * @return math::sp_coeff_list 
    */
-  math::SparseCOO HessianToVertices(std::vector<elasticity::HessianTensor<dim>> const& hessian) const;
+  math::RealSparseCOO HessianToVertices(std::vector<elasticity::HessianTensor<dim>> const& hessian) const;
 
   /**
    * @brief Transfer the stress from the elements to the vertices.

@@ -11,7 +11,7 @@ using namespace ax;
 Index n = 2;
 
 math::RealSparseMatrix random_sparse_matrix() {
-  math::SparseCOO A_sparse;
+  math::RealSparseCOO A_sparse;
   A_sparse.reserve(n * 10);
   for (Index i = 0; i < n; ++i) {
     for (Index j = 0; j < 9; ++j) {

@@ -175,10 +175,10 @@ template <int dim> typename LinearMesh<dim>::vertex_list_t dg_tsv_p1(
 }
 
 template <int dim>
-math::SparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
+math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
                               std::vector<elasticity::HessianTensor<dim>> const& hessian,
                               DeformGradCache<dim> const& cache) {
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   size_t total = static_cast<size_t>(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   size_t nE = static_cast<size_t>(mesh.GetNumElements());
   coo.reserve(total);
@@ -280,7 +280,7 @@ template <int dim> typename LinearMesh<dim>::vertex_list_t Deformation<dim>::Str
   return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
 }
 
-template <int dim> math::SparseCOO Deformation<dim>::HessianToVertices(
+template <int dim> math::RealSparseCOO Deformation<dim>::HessianToVertices(
     std::vector<elasticity::HessianTensor<dim>> const& hessian) const {
   return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
 }

@@ -85,7 +85,7 @@ public:
     }
 
     // SECT: Make a P1 element:
-    SparseCOO coefficients;
+    RealSparseCOO coefficients;
     for (auto elem : each(faces)) {
       Index Index00 = elem[0];
       Index Index01 = elem[1];
@@ -105,7 +105,7 @@ public:
     }
 
     // SECT: Set Dirichlet BC to 1
-    SparseCOO coef_no_dirichlet;
+    RealSparseCOO coef_no_dirichlet;
     for (auto trip : coefficients) {
       if (!is_diriclet(trip.row(), *n) && !is_diriclet(trip.col(), *n)) {
         coef_no_dirichlet.push_back(trip);
@@ -115,7 +115,7 @@ public:
       for (Index j = 0; j < *n; ++j) {
         Index Index00 = i * *n + j;
         if (is_diriclet(Index00, *n)) {
-          coef_no_dirichlet.push_back(SparseEntry(Index00, Index00, 1));
+          coef_no_dirichlet.push_back(RealSparseEntry(Index00, Index00, 1));
         }
       }
     }

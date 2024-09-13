@@ -96,7 +96,7 @@ Variable SparseLeastSquareProblem::Optimal(Variable const& x0) {
 }
 
 static auto prepare_laplace(Index n) {
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   for (Index i = 0; i < n; ++i) {
     coo.push_back({i, i, 2});
     if (i > 0) {

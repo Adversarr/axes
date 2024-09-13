@@ -135,7 +135,7 @@ math::RealSparseMatrix RealBlockMatrix::ToSparseMatrix() const {
         "Unable to transfer Device matrix to host directly, consider transfer the data first.");
   }
 
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   coo.reserve(NumNonZeroBlocks() * BlockSize() * BlockSize());
 
   auto row_ptrs = block_row_ptrs_->ConstView();

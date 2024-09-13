@@ -5,7 +5,7 @@
 namespace ax::fem {
 
 template <int dim> math::RealSparseMatrix LaplaceMatrixCompute<dim>::operator()(Real W) {
-  math::SparseCOO l_coef;
+  math::RealSparseCOO l_coef;
   auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   l_coef.reserve(total);
   Index nE = mesh_.GetNumElements();
@@ -51,7 +51,7 @@ template <int dim> math::RealSparseMatrix LaplaceMatrixCompute<dim>::operator()(
 }
 
 template <int dim> math::RealSparseMatrix LaplaceMatrixCompute<dim>::operator()(math::RealField1 const& W) {
-  math::SparseCOO l_coef;
+  math::RealSparseCOO l_coef;
   auto const total = static_cast<size_t>(mesh_.GetNumElements() * (dim + 1) * (dim + 1));
   l_coef.reserve(total);
   Index nE = mesh_.GetNumElements();

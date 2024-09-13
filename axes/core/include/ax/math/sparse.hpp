@@ -18,12 +18,12 @@ using RealSparseMatrix = Eigen::SparseMatrix<Real, Eigen::ColMajor, Index>;
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.
  */
-using SparseEntry = Eigen::Triplet<Real, Index>;
+using RealSparseEntry = Eigen::Triplet<Real, Index>;
 
 /**
  * @brief Alias for a list of sparse coefficients.
  */
-using SparseCOO = std::vector<SparseEntry>;
+using RealSparseCOO = std::vector<RealSparseEntry>;
 
 /**
  * @brief Creates a sparse matrix with the specified number of rows and columns, using the given
@@ -34,14 +34,14 @@ using SparseCOO = std::vector<SparseEntry>;
  * @param coeff_list The list of coefficients to populate the sparse matrix.
  * @return The created sparse matrix.
  */
-RealSparseMatrix make_sparse_matrix(Index rows, Index cols, SparseCOO const& coeff_list);
+RealSparseMatrix make_sparse_matrix(Index rows, Index cols, RealSparseCOO const& coeff_list);
 RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<Index> const& row,
                           std::vector<Index> const& col, std::vector<Real> const& val);
 
 template <int dim> RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
   Index const rows = A.rows() * dim;
   Index const cols = A.cols() * dim;
-  SparseCOO coeff_list;
+  RealSparseCOO coeff_list;
   coeff_list.reserve(static_cast<size_t>(A.nonZeros()) * dim);
   for (Index k = 0; k < A.outerSize(); ++k) {
     for (RealSparseMatrix::InnerIterator it(A, k); it; ++it) {

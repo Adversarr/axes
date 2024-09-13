@@ -66,8 +66,8 @@ template <int dim> void LinearMesh<dim>::ResetAllBoundaries() {
   dirichlet_boundary_mask_.setOnes(n_dof_per_vertex_, vertices_.cols());
 }
 
-template <int dim> void LinearMesh<dim>::FilterMatrixFull(math::SparseCOO const& input,
-                                                       math::SparseCOO& out) const {
+template <int dim> void LinearMesh<dim>::FilterMatrixFull(math::RealSparseCOO const& input,
+                                                       math::RealSparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     Index row_id = coeff.row() / n_dof_per_vertex_;
@@ -84,14 +84,14 @@ template <int dim> void LinearMesh<dim>::FilterMatrixFull(math::SparseCOO const&
   for (Index i = 0; i < vertices_.cols(); ++i) {
     for (Index j = 0; j < n_dof_per_vertex_; ++j) {
       if (IsDirichletBoundary(i, j)) {
-        out.push_back(math::SparseEntry(i * dim + j, i * dim + j, 1));
+        out.push_back(math::RealSparseEntry(i * dim + j, i * dim + j, 1));
       }
     }
   }
 }
 
-template <int dim> void LinearMesh<dim>::FilterMatrixDof(Index d, math::SparseCOO const& input,
-                                                      math::SparseCOO& out) const {
+template <int dim> void LinearMesh<dim>::FilterMatrixDof(Index d, math::RealSparseCOO const& input,
+                                                      math::RealSparseCOO& out) const {
   out.reserve(input.size());
   for (auto& coeff : input) {
     if (IsDirichletBoundary(coeff.row(), d) || IsDirichletBoundary(coeff.row(), d)) {
@@ -103,7 +103,7 @@ template <int dim> void LinearMesh<dim>::FilterMatrixDof(Index d, math::SparseCO
   // Add the Dirichlet boundary conditions.
   for (Index i = 0; i < vertices_.cols(); ++i) {
     if (IsDirichletBoundary(i, d)) {
-      out.push_back(math::SparseEntry(i, i, 1));
+      out.push_back(math::RealSparseEntry(i, i, 1));
     }
   }
 }

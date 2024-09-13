@@ -16,6 +16,7 @@ axes_add_example(graph "axes_graph")
 axes_add_example(strides_cpu "axes_core")
 axes_add_example(parallel "axes_core")
 axes_add_example(block_precond_tests "axes_core;axes_fem")
+axes_add_example(csr_compress_tests "axes_core;axes_fem")
 
 # admm
 axes_add_example(cadmm "axes_gl;axes_xpbd")

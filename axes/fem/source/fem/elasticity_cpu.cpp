@@ -207,10 +207,10 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
 }
 
 template <int dim>
-math::SparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
+math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
                           std::vector<elasticity::HessianTensor<dim>> const& hessian,
                           elasticity::DeformGradCache<dim> const& cache) {
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(
       mesh.GetNumElements());
@@ -405,7 +405,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherStressToVertices() 
 
 template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices() {
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   auto& result = this->hessian_on_vertices_;
   auto const& mesh = *(this->mesh_);
   auto const& cache = this->rinv_;
@@ -542,9 +542,9 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
               return prec(n_elem * dim, a, b);
             });
   // 2.2 make a demo, and let eigen fill in the entries:
-  SparseCOO coo;
+  RealSparseCOO coo;
   for (const auto& entry : entries) {
-    coo.push_back(SparseEntry(entry.global_i_, entry.global_j_, 1));
+    coo.push_back(RealSparseEntry(entry.global_i_, entry.global_j_, 1));
   }
   this->hessian_on_vertices_ = make_sparse_matrix(dim * n_vert, dim * n_vert, coo);
   this->hessian_on_vertices_.makeCompressed();

@@ -23,7 +23,7 @@ static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E,
 }
 
 template <int dim> math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Real density) {
-  math::SparseCOO result;
+  math::RealSparseCOO result;
   for (auto const& ijk : mesh_) {
     std::array<math::RealVector<dim>, dim + 1> vert;
     for (Index i = 0; i <= dim; ++i) {
@@ -42,7 +42,7 @@ template <int dim> math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Rea
 
 template <int dim>
 math::RealSparseMatrix MassMatrixCompute<dim>::operator()(math::RealField1 const& density) {
-  math::SparseCOO result;
+  math::RealSparseCOO result;
   for (Index i = 0; i < mesh_.GetElements().cols(); ++i) {
     const auto& ijk = mesh_.GetElement(i);
     std::array<math::RealVector<dim>, dim + 1> vert;

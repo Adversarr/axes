@@ -189,13 +189,13 @@ public:
    */
   AX_FORCE_INLINE auto end() noexcept;
 
-  void FilterMatrixFull(math::SparseCOO const& input, math::SparseCOO& out) const;
+  void FilterMatrixFull(math::RealSparseCOO const& input, math::RealSparseCOO& out) const;
 
   void FilterMatrixFull(math::RealSparseMatrix& mat) const;
 
   void FilterMatrixDof(Index dof, math::RealSparseMatrix& mat) const;
 
-  void FilterMatrixDof(Index dif, math::SparseCOO const& input, math::SparseCOO& out) const;
+  void FilterMatrixDof(Index dif, math::RealSparseCOO const& input, math::RealSparseCOO& out) const;
 
   void FilterVector(math::RealVectorX& inout, bool set_zero = false) const;
 

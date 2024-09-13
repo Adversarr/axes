@@ -78,7 +78,7 @@ ParameterizationSolver::ParameterizationSolver(SurfaceMesh const& mesh) {
     Index n_triangle = problem_.input_mesh_.indices_.cols(),
           n_vertex = problem_.input_mesh_.vertices_.cols();
     // Step1: Establish the Global Linear System:
-    math::SparseCOO coeff_list;
+    math::RealSparseCOO coeff_list;
     coeff_list.reserve(n_vertex * 2 + n_triangle * 24);
     for (Index t : utils::range(problem_.input_mesh_.indices_.cols())) {
       for (Index i : utils::range(3)) {

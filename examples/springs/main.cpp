@@ -216,7 +216,7 @@ math::RealMatrix<6, 6> local_hessian_4th(math::RealVector3 const& xa, math::Real
 
 math::RealSparseMatrix global_hessian_4th(MassSpring const& sys, math::RealField3 const& x) {
   // Potential term
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   auto springs_accessor = math::make_accessor(sys.springs_);
   for (auto [i, ij] : math::enumerate(springs_accessor)) {
     auto [a, b] = math::unpack(ij.eval());
@@ -290,7 +290,7 @@ math::RealMatrix<6, 6> local_hessian_quad(math::RealVector3 const& xa, math::Rea
 
 
 math::RealSparseMatrix global_hessian_quad(MassSpring const& sys, math::RealField3 const& x) {
-  math::SparseCOO coo;
+  math::RealSparseCOO coo;
   // Potential term
   auto springs_accessor = math::make_accessor(sys.springs_);
   for (auto [i, ij] : math::enumerate(springs_accessor)) {

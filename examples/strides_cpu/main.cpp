@@ -37,13 +37,13 @@ void print_stl_vector() {
 }
 
 RealSparseMatrix laplacian_1d(Index n) {
-  SparseCOO coo;
+  RealSparseCOO coo;
   for (Index i : utils::range(n)) {
-    coo.push_back(SparseEntry{i, i, 4});
+    coo.push_back(RealSparseEntry{i, i, 4});
   }
   for (auto i : utils::range(n - 1)) {
-    coo.push_back(SparseEntry{i, i + 1, -1});
-    coo.push_back(SparseEntry{i + 1, i, -1});
+    coo.push_back(RealSparseEntry{i, i + 1, -1});
+    coo.push_back(RealSparseEntry{i + 1, i, -1});
   }
   return make_sparse_matrix(n, n, coo);
 }

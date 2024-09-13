@@ -530,7 +530,7 @@ RealSparseMatrix read_sparse_matrix(std::string path) {
   if (n_success != 3) {
     throw make_runtime_error("The file is not a valid MatrixMarket file.");
   }
-  SparseCOO triplets;
+  RealSparseCOO triplets;
   triplets.reserve(static_cast<size_t>(nonzeros));
   for (int i = 0; i < nonzeros; ++i) {
     if (!in.getline(line, 1024)) {

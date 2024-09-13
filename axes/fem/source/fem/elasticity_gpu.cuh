@@ -51,7 +51,7 @@ struct HessianGatherInfo {
   Index local_di, local_dj;  // local index (dimension) in the element
 };
 
-struct SparseCOO {
+struct RealSparseCOO {
   Index row;
   Index col;
   Real val;
@@ -74,7 +74,7 @@ struct ElasticityCompute_GPU<dim, ElasticModelTemplate>::Impl {
   thrust::device_vector<math::RealMatrix<dim, dim>> stress_on_elements_;
   thrust::device_vector<math::RealVector<dim>> stress_on_vertices_;
   thrust::device_vector<math::RealMatrix<dim * dim, dim * dim>> hessian_on_elements_;
-  thrust::device_vector<SparseCOO> hessian_on_vertices_;
+  thrust::device_vector<RealSparseCOO> hessian_on_vertices_;
   thrust::device_vector<Real> hessian_on_vertices2_;
   thrust::device_vector<Real> energy_on_vertices_;
   thrust::device_vector<Real> energy_on_elements_;
@@ -303,7 +303,7 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   thrust::fill(impl_->hessian_on_vertices2_.begin(), impl_->hessian_on_vertices2_.end(), 0);
 
   // moreover, we need to setup the template sparse matrix!
-  std::vector<math::SparseEntry> coeffs;
+  std::vector<math::RealSparseEntry> coeffs;
   for (auto const& info : hgi) {
     coeffs.push_back({info.i, info.j, 1});
   }
@@ -635,7 +635,7 @@ __device__ Index coo_locate_hessian(Index elem_id, Index i, Index j, Index di, I
 }
 
 template <int dim>
-__global__ void gather_hessian(SparseCOO* coo, math::IndexVector<dim + 1> const* elements,
+__global__ void gather_hessian(RealSparseCOO* coo, math::IndexVector<dim + 1> const* elements,
                                math::RealMatrix<dim, dim> const* rinv,
                                math::RealMatrix<dim * dim, dim * dim> const* hessian_on_elements,
                                Index n_elem) {
@@ -728,7 +728,7 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnElements() {
 
 template <int dim>
 __global__ void gather_hessian2(Real* dst, HessianGatherInfo* hessian_gather_info,
-                                Index* hessian_gather_entries, SparseCOO* hessian_on_vertices,
+                                Index* hessian_gather_entries, RealSparseCOO* hessian_on_vertices,
                                 Index max_entries) {
   Index i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i >= max_entries)
@@ -744,7 +744,7 @@ __global__ void gather_hessian2(Real* dst, HessianGatherInfo* hessian_gather_inf
     Index local_dj = hgi.local_dj;
     Index coo = coo_locate_hessian<dim>(element_id, local_i, local_j, local_di, local_dj);
 
-    SparseCOO& coo_entry = hessian_on_vertices[coo];
+    RealSparseCOO& coo_entry = hessian_on_vertices[coo];
     Index row_coo = coo_entry.row, col_coo = coo_entry.col;
 
     // NOTE: check
@@ -776,7 +776,7 @@ ElasticityCompute_GPU<dim, ElasticModelTemplate>::GetHessianOnVertices() {
   Real* value = cpu.valuePtr();
   thrust::copy(impl_->hessian_on_vertices2_.begin(), impl_->hessian_on_vertices2_.end(), value);
   // // NOTE: check the correctness
-  // thrust::host_vector<SparseCOO> coo = gpu;
+  // thrust::host_vector<RealSparseCOO> coo = gpu;
   // math::sp_coeff_list c;
   // c.reserve(coo.size());
   // for (auto I : coo) {

@@ -9,8 +9,6 @@ public:
   virtual ~BlockSolver_ConjugateGradient() = default;
 
   BlockedLinsysSolveStatus Solve(ConstRealBufferView b, RealBufferView x) const override;
-  void AnalyzePattern() override;
-  void Factorize() override;
 
   BlockSolverKind GetKind() const override { return BlockSolverKind::ConjugateGradient; }
   size_t max_iter_{1000};

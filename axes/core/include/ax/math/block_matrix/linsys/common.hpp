@@ -42,14 +42,13 @@ struct BlockedLinsysSolveStatus {
   bool converged_{false};
   size_t iter_{0};
   Real l2_err_{0};
-  Real linf_err_{0};
 
-  static BlockedLinsysSolveStatus Converged(size_t iter, Real l2_err, Real linf_err) {
-    return {true, iter, l2_err, linf_err};
+  static BlockedLinsysSolveStatus Converged(size_t iter, Real l2_err) {
+    return {true, iter, l2_err};
   }
 
-  static BlockedLinsysSolveStatus NotConverged(size_t iter, Real l2_err, Real linf_err) {
-    return {false, iter, l2_err, linf_err};
+  static BlockedLinsysSolveStatus NotConverged(size_t iter, Real l2_err) {
+    return {false, iter, l2_err};
   }
 };
 

@@ -69,9 +69,9 @@ __global__ void block_jacobi_precond_eval_kernel(RealBufferView dst,
     return;
   }
 
-  Real *dst_ptr = dst.Offset(0, 0, i);
+  Real *dst_ptr = dst.Offset(0, i);
   const Real *inv_diag_ptr = inv_diag.Offset(0, 0, i);
-  const Real *rhs_ptr = rhs.Offset(0, 0, i);
+  const Real *rhs_ptr = rhs.Offset(0, i);
 
   if (bs == 2) {
     details::do_matmul<2>(dst_ptr, inv_diag_ptr, rhs_ptr);
@@ -79,8 +79,6 @@ __global__ void block_jacobi_precond_eval_kernel(RealBufferView dst,
     details::do_matmul<3>(dst_ptr, inv_diag_ptr, rhs_ptr);
   } else if (bs == 4) {
     details::do_matmul<4>(dst_ptr, inv_diag_ptr, rhs_ptr);
-  } else {
-    assert(false && "Invalid Input!");
   }
 }
 
@@ -89,9 +87,8 @@ void block_jacobi_precond_eval_gpu(
     ConstRealBufferView rhs,      // a view of [bs, rows, 0]
     ConstRealBufferView inv_diag, // a view of [bs, bs, rows]
     void *mat_desc_type_erased) {
-  const size_t rows = rhs.Shape().X();
-  const size_t bs = rhs.Shape().Y();
-
+  const size_t rows = rhs.Shape().Y();
+  const size_t bs = rhs.Shape().X();
   const size_t block_size = 256;
   const size_t grid_size = (rows + block_size - 1) / block_size;
   block_jacobi_precond_eval_kernel<<<grid_size, block_size>>>(

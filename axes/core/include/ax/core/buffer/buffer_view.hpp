@@ -4,14 +4,15 @@
 namespace ax {
 namespace details {
 template <typename T>
-AX_HOST_DEVICE AX_FORCE_INLINE T* buffer_at(T* data, Dim3 const& shape, Dim3 const& strides,
-                                            size_t x, size_t y, size_t z) {
+AX_HOST_DEVICE AX_FORCE_INLINE T* buffer_at(T* data, BufferDim const& shape,
+                                            BufferDim const& strides, size_t x, size_t y,
+                                            size_t z) {
   assert((shape.X() == 0 || x < shape.X()) && (shape.Y() == 0 || y < shape.Y())
          && (shape.Z() == 0 || z < shape.Z()));
   AX_UNUSED(shape);
   using CharT = std::conditional_t<std::is_const_v<T>, const char, char>;
   CharT* base = reinterpret_cast<CharT*>(data);
-  return reinterpret_cast<T*>(base + details::dot_prod(strides, Dim3{x, y, z}));
+  return reinterpret_cast<T*>(base + details::dot_prod(strides, BufferDim{x, y, z}));
 }
 
 template <typename T>
@@ -22,10 +23,11 @@ struct BufferViewIterator {
   using reference = value_type&;
   using pointer = value_type*;
 
-  BufferViewIterator(T* data, Dim3 const& shape, Dim3 const& strides)
+  BufferViewIterator(T* data, BufferDim const& shape, BufferDim const& strides)
       : data_(data), shape_(shape), strides_(strides) {}
 
-  BufferViewIterator(T* data, Dim3 const& shape, Dim3 const& strides, Dim3 const& current)
+  BufferViewIterator(T* data, BufferDim const& shape, BufferDim const& strides,
+                     BufferDim const& current)
       : data_(data), current_(current), shape_(shape), strides_(strides) {}
 
   AX_FORCE_INLINE T& operator*() noexcept {
@@ -65,9 +67,9 @@ struct BufferViewIterator {
   }
 
   T* data_{nullptr};
-  Dim3 current_;
-  Dim3 shape_;
-  Dim3 strides_;
+  BufferDim current_;
+  BufferDim shape_;
+  BufferDim strides_;
 };
 
 }  // namespace details
@@ -89,17 +91,18 @@ public:
   using ValueType = std::remove_const_t<T>;
   using ConstValueType = std::add_const_t<ValueType>;
 
-  AX_HOST_DEVICE BufferView(T* data, Dim3 const& shape, Dim3 const& strides, BufferDevice device)
+  AX_HOST_DEVICE BufferView(T* data, BufferDim const& shape, BufferDim const& strides,
+                            BufferDevice device)
       : data_(data), device_(device), shape_(shape), strides_(strides) {}
 
-  AX_HOST_DEVICE BufferView(T* data, Dim3 const& shape, BufferDevice device)
+  AX_HOST_DEVICE BufferView(T* data, BufferDim const& shape, BufferDevice device)
       : data_(data),
         device_(device),
         shape_(shape),
         strides_(details::compute_continuous_buffer_stride<T>(shape)) {}
 
   AX_HOST_DEVICE BufferView(T* data, size_t x, size_t y = 0, size_t z = 0)
-      : BufferView(data, Dim3{x, y, z}) {}
+      : BufferView(data, BufferDim{x, y, z}) {}
 
   AX_HOST_DEVICE /* NOLINT */ operator BufferView<ConstValueType>() const {
     return {data_, shape_, strides_, device_};
@@ -111,32 +114,12 @@ public:
   AX_HOST_DEVICE BufferView& operator=(BufferView&& other) noexcept = default;
 
   /////////////////// buffer accessing ///////////////////
-  AX_HOST_DEVICE AX_FORCE_INLINE T& operator()(size_t x) {
-    assert(data_ != nullptr);
-    return *details::buffer_at<T>(data_, shape_, strides_, x, 0, 0);
-  }
-
-  AX_HOST_DEVICE AX_FORCE_INLINE T const& operator()(size_t x) const {
-    assert(data_ != nullptr);
-    return *details::buffer_at<const T>(data_, shape_, strides_, x, 0, 0);
-  }
-
-  AX_HOST_DEVICE AX_FORCE_INLINE T& operator()(size_t x, size_t y) {
-    assert(data_ != nullptr);
-    return *details::buffer_at<T>(data_, shape_, strides_, x, y, 0);
-  }
-
-  AX_HOST_DEVICE AX_FORCE_INLINE T const& operator()(size_t x, size_t y) const {
-    assert(data_ != nullptr);
-    return *details::buffer_at<const T>(data_, shape_, strides_, x, y, 0);
-  }
-
-  AX_HOST_DEVICE AX_FORCE_INLINE T& operator()(size_t x, size_t y, size_t z) {
+  AX_HOST_DEVICE AX_FORCE_INLINE T& operator()(size_t x, size_t y = 0, size_t z = 0) {
     assert(data_ != nullptr);
     return *details::buffer_at<T>(data_, shape_, strides_, x, y, z);
   }
 
-  AX_HOST_DEVICE AX_FORCE_INLINE T const& operator()(size_t x, size_t y, size_t z) const {
+  AX_HOST_DEVICE AX_FORCE_INLINE T const& operator()(size_t x, size_t y = 0, size_t z = 0) const {
     assert(data_ != nullptr);
     return *details::buffer_at<const T>(data_, shape_, strides_, x, y, z);
   }
@@ -153,12 +136,12 @@ public:
   }
 
   /////////////////// subview ///////////////////
-  AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(Dim3 const& shape);   // NOTE: not implemented
-  AX_HOST_DEVICE AX_CONSTEXPR BufferView Reshaped(Dim3 const& shape);  // NOTE: not implemented
+  AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(BufferDim const& shape);   // NOTE: not implemented
+  AX_HOST_DEVICE AX_CONSTEXPR BufferView Reshaped(BufferDim const& shape);  // NOTE: not implemented
 
-  AX_HOST_DEVICE AX_CONSTEXPR Dim3 const& Shape() const { return shape_; }
+  AX_HOST_DEVICE AX_CONSTEXPR BufferDim const& Shape() const { return shape_; }
 
-  AX_HOST_DEVICE AX_CONSTEXPR Dim3 const& Stride() const { return strides_; }
+  AX_HOST_DEVICE AX_CONSTEXPR BufferDim const& Stride() const { return strides_; }
 
   AX_HOST_DEVICE AX_CONSTEXPR T* Data() { return data_; }
 
@@ -171,9 +154,9 @@ public:
   }
 
   AX_CONSTEXPR auto end() /* NOLINT */ {
-    const Dim3 last = details::is_1d(shape_)   ? Dim3{shape_.X(), 0, 0}
-                      : details::is_2d(shape_) ? Dim3{0, shape_.Y(), 0}
-                                               : Dim3{0, 0, shape_.Z()};
+    const BufferDim last = details::is_1d(shape_)   ? BufferDim{shape_.X(), 0, 0}
+                           : details::is_2d(shape_) ? BufferDim{0, shape_.Y(), 0}
+                                                    : BufferDim{0, 0, shape_.Z()};
     return details::BufferViewIterator<T>(data_, shape_, strides_, last);
   }
 
@@ -182,9 +165,9 @@ public:
   }
 
   AX_CONSTEXPR auto end() const /* NOLINT */ {
-    const Dim3 last = details::is_1d(shape_)   ? Dim3{shape_.X(), 0, 0}
-                      : details::is_2d(shape_) ? Dim3{0, shape_.Y(), 0}
-                                               : Dim3{0, 0, shape_.Z()};
+    const BufferDim last = details::is_1d(shape_)   ? BufferDim{shape_.X(), 0, 0}
+                           : details::is_2d(shape_) ? BufferDim{0, shape_.Y(), 0}
+                                                    : BufferDim{0, 0, shape_.Z()};
     return details::BufferViewIterator<const T>(data_, shape_, strides_, last);
   }
 
@@ -192,54 +175,68 @@ public:
     return strides_ == details::compute_continuous_buffer_stride<T>(shape_);
   }
 
+  AX_HOST_DEVICE AX_CONSTEXPR bool IsContinuous(size_t from_dim) const noexcept {
+    if (from_dim == 0) {
+      return IsContinuous();
+    } else if (from_dim == 1) {
+      return strides_.Y() == shape_.X() * strides_.X()
+             && (strides_.Z() == 0 || strides_.Z() == shape_.Y() * strides_.Y());
+    } else if (from_dim == 2) {
+      return strides_.Z() == 0 || strides_.Z() == shape_.Y() * strides_.Y();
+    } else {
+      assert(false && "Invalid dimension. (expect < 3)");
+      return false;
+    }
+  }
+
 protected:
   T* data_{nullptr};
   BufferDevice device_;
-  Dim3 shape_;
-  Dim3 strides_;
+  BufferDim shape_;
+  BufferDim strides_;
 };
 
 template <typename T>
-BufferView<T> view_from_raw_buffer(T* data, Dim3 const& shape, Dim3 const& strides,
+BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape, BufferDim const& strides,
                                    BufferDevice device = BufferDevice::Host) {
   return BufferView<T>(data, shape, strides, device);
 }
 
 template <typename T>
-BufferView<T> view_from_raw_buffer(T* data, Dim3 const& shape,
+BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape,
                                    BufferDevice device = BufferDevice::Host) {
   return BufferView<T>(data, shape, device);
 }
 
 template <typename T, typename Alloc>
 BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer) {
-  return BufferView<T>(buffer.data(), Dim3{buffer.size()}, BufferDevice::Host);
+  return BufferView<T>(buffer.data(), BufferDim{buffer.size()}, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
-BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, Dim3 const& shape) {
+BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, BufferDim const& shape) {
   return BufferView<T>(buffer.data(), shape, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
-BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, Dim3 const& shape,
-                               Dim3 const& strides) {
+BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, BufferDim const& shape,
+                               BufferDim const& strides) {
   return BufferView<T>(buffer.data(), shape, strides, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
 BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer) {
-  return BufferView<T>(buffer.data(), Dim3{buffer.size()}, BufferDevice::Host);
+  return BufferView<T>(buffer.data(), BufferDim{buffer.size()}, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
-BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, Dim3 const& shape) {
+BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, BufferDim const& shape) {
   return BufferView<T>(buffer.data(), shape, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
-BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, Dim3 const& shape,
-                                     Dim3 const& strides) {
+BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, BufferDim const& shape,
+                                     BufferDim const& strides) {
   return BufferView<T>(buffer.data(), shape, strides, BufferDevice::Host);
 }
 
@@ -249,5 +246,10 @@ using IndexBufferView = BufferView<Index>;
 using ConstIndexBufferView = BufferView<const Index>;
 using SizeBufferView = BufferView<size_t>;
 using ConstSizeBufferView = BufferView<const size_t>;
+
+template <typename Front, typename... Args>
+bool is_same_device(BufferView<Front> const& front, BufferView<Args> const&... views) {
+  return ((front.Device() == views.Device()) && ...);
+}
 
 }  // namespace ax

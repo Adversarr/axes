@@ -13,6 +13,8 @@ public:
   void Factorize() override;
 
   BlockPreconditionerKind GetKind() const override { return BlockPreconditionerKind::Jacobi; }
+
+  BufferPtr<Real> inv_diag_;
 };
 
 }  // namespace ax::math

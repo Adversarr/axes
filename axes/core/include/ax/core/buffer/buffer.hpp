@@ -7,8 +7,8 @@ namespace ax {
 namespace details {
 
 template <typename T>
-AX_HOST_DEVICE AX_FORCE_INLINE Dim3 compute_continuous_buffer_stride(Dim3 const& shape) {
-  Dim3 strides{0, 0, 0};
+AX_HOST_DEVICE AX_FORCE_INLINE BufferDim compute_continuous_buffer_stride(BufferDim const& shape) {
+  BufferDim strides{0, 0, 0};
   strides.sizes_[0] = sizeof(T);
   strides.sizes_[1] = shape.Y() > 0 ? shape.X() * strides.X() : 0;
   strides.sizes_[2] = shape.Z() > 0 ? shape.Y() * strides.Y() : 0;
@@ -38,13 +38,13 @@ public:
 
   // Constructor, we allow you to create a buffer from a naive memory pointer, but it is your duty
   // to check the correctness of the memory.
-  Buffer(T* data, Dim3 const& shape, BufferDevice device) noexcept
+  Buffer(T* data, BufferDim const& shape, BufferDevice device) noexcept
       : data_(data), device_(device), shape_(shape) {
     // The continuous memory buffer, without any padding or pitch.
     strides_ = details::compute_continuous_buffer_stride<T>(shape);
   }
 
-  Buffer(T* data, Dim3 const& shape, Dim3 const& strides, BufferDevice device)
+  Buffer(T* data, BufferDim const& shape, BufferDim const& strides, BufferDevice device)
       : data_(data), device_(device), shape_(shape), strides_(strides) {
     AX_CHECK(strides_.X() >= sizeof(T),
              "Invalid strides.x, must larger than sizeof(T) for continuous memory.");
@@ -88,10 +88,10 @@ public:
   const T* Data() const noexcept { return data_; }
 
   // Get the shape of the buffer.
-  Dim3 const& Shape() const noexcept { return shape_; }
+  BufferDim const& Shape() const noexcept { return shape_; }
 
   // Get the strides of the buffer.
-  Dim3 const& Stride() const noexcept { return strides_; }
+  BufferDim const& Stride() const noexcept { return strides_; }
 
   // Reserved for simplicity, but it is user's duty to guarantee you are not using a pitched ptr.
   T& operator[](size_t x) { return data_[x]; }
@@ -99,28 +99,17 @@ public:
   T const& operator[](size_t x) const { return data_[x]; }
 
   // Clone this buffer, with same size, device, and data.
-  virtual PtrType Clone(const Dim3& new_shape = {}) const = 0;  // NOLINT: google-default-arguments
+  virtual PtrType Clone(const BufferDim& new_shape = {}) const // NOLINT: google-default-arguments
+      = 0;  // NOLINT: google-default-arguments
 
   /////////////////// buffer size changing and direct settings ///////////////////
   // Resize, will check if the memory is enough, otherwise will throw an std::runtime_error.
   // valid both for 1D and 2D buffer.
   // WARN: Resizing a buffer will not keep the original data.
-  void Resize(size_t x, size_t y = 1, size_t z = 1) { Resize(Dim3{x, y, z}); }
+  void Resize(size_t x, size_t y = 1, size_t z = 1) { Resize(BufferDim{x, y, z}); }
 
-  virtual void Resize(Dim3 const& shape) = 0;
+  virtual void Resize(BufferDim const& shape) = 0;
   virtual void SetBytes(int value) = 0;
-
-  // NOTE: should move out of this class.
-  // /////////////////// direct memory access ///////////////////
-  // // Copy into another buffer, will assert the this size is smaller or equal to the target
-  // buffer. virtual void CopyTo(Buffer<T>& other) const = 0;
-  // // memset the buffer with value, typically zero
-
-  // Assigning, just Resize then CopyFrom.
-  void Assign(const T* data, size_t size, BufferDevice data_device) {
-    Resize(size);
-    CopyFrom(data, size, data_device);
-  }
 
   // Get a view of the buffer, for GPU buffer, a shared ptr is not possible.
   BufferView<T> View() noexcept { return {data_, shape_, strides_, device_}; }
@@ -132,6 +121,21 @@ public:
 
   bool IsContinuous() const noexcept {
     return strides_ == details::compute_continuous_buffer_stride<T>(shape_);
+  }
+
+  // check the buffer is continuous from the given dimension.
+  // 0 => equal to IsContinuous()
+  AX_CONSTEXPR bool IsContinuous(size_t from_dim) const noexcept {
+    if (from_dim == 0) {
+      return IsContinuous();
+    } else if (from_dim == 1) {
+      return strides_.Y() == shape_.X() * strides_.X() && strides_.Z() == shape_.Y() * strides_.Y();
+    } else if (from_dim == 2) {
+      return strides_.Z() == shape_.Y() * strides_.Y();
+    } else {
+      assert(false && "Invalid dimension. (expect < 3)");
+      return false;
+    }
   }
 
 protected:
@@ -154,8 +158,8 @@ protected:
   //    PhysicalAddr = x + y * sx + z * sy
   // The stride value is always not used, but we preserve it to compute the actual memory cost:
   //    memory usage = sz * sizeof(T).
-  Dim3 shape_{1, 1, 1};    // shape for each dimension.
-  Dim3 strides_{0, 0, 0};  // strides for each dimension in bytes!
+  BufferDim shape_{1, 1, 1};    // shape for each dimension.
+  BufferDim strides_{0, 0, 0};  // strides for each dimension in bytes!
 };
 
 template <typename T>

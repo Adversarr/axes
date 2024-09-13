@@ -48,6 +48,8 @@ void BlockPreconditioner_BlockJacobi::Factorize() {
   } else {
 #ifdef AX_HAS_CUDA
     details::block_jacobi_precond_precompute_gpu(inv_diag_->View(), problem_->A_, nullptr);
+#else
+    throw make_runtime_error("BlockPreconditioner_BlockJacobi::Factorize: CUDA is not enabled.");
 #endif
   }
 }
@@ -56,12 +58,18 @@ void BlockPreconditioner_BlockJacobi::Solve(ConstRealBufferView b, RealBufferVie
   auto device = problem_->A_.GetDevice();
   AX_THROW_IF_NULLPTR(inv_diag_, "inv_diag_ is null. compute inv_diag_ first.");
   size_t bs = problem_->A_.BlockSize();
+  size_t rows = problem_->A_.BlockedRows();
+  AX_THROW_IF_FALSE(
+      b.Shape().X() == bs && b.Shape().Y() == rows && x.Shape().X() == bs && x.Shape().Y() == rows,
+      "b and x must have the same shape as the block size and rows of the problem.");
 
   if (device == BufferDevice::Host) {
     details::block_jacobi_precond_eval_cpu(x, b, inv_diag_->View(), nullptr);
   } else {
 #ifdef AX_HAS_CUDA
     details::block_jacobi_precond_eval_gpu(x, b, inv_diag_->View(), nullptr);
+#else
+    throw make_runtime_error("BlockPreconditioner_BlockJacobi::Solve: CUDA is not enabled.");
 #endif
   }
 }

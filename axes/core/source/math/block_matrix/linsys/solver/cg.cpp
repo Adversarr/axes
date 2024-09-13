@@ -2,22 +2,10 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_default.hpp"
-#include "ax/math/block_matrix/linalg.hpp"
 #include "ax/math/block_matrix/linsys/preconditioner.hpp"
+#include "ax/math/buffer_blas.hpp"
 
 namespace ax::math {
-
-void BlockSolver_ConjugateGradient::AnalyzePattern() {
-  if (preconditioner_) {
-    preconditioner_->AnalyzePattern();
-  }
-}
-
-void BlockSolver_ConjugateGradient::Factorize() {
-  if (preconditioner_) {
-    preconditioner_->Factorize();
-  }
-}
 
 BlockedLinsysSolveStatus BlockSolver_ConjugateGradient::Solve(ConstRealBufferView b,
                                                               RealBufferView x) const {
@@ -36,16 +24,16 @@ BlockedLinsysSolveStatus BlockSolver_ConjugateGradient::Solve(ConstRealBufferVie
   const auto& mata = problem_->A_;
 
   // r <- b-Ax
-  block_blas::copy(r, b);
+  buffer_blas::copy(r, b);
   mata.RightMultiplyTo(x, r, -1, 1);
 
   if (preconditioner_) {
     preconditioner_->Solve(r, d);  // d <- M^-1 r
   } else {
-    block_blas::copy(p, d);  // p <- y.
+    buffer_blas::copy(d, r);  // d <- r
   }
 
-  Real delta_new = block_blas::dot(r, d);  // delta_new <- r.T d
+  Real delta_new = buffer_blas::dot(r, d);  // delta_new <- r.T d
 
   size_t iter = 0;
   BlockedLinsysSolveStatus status;
@@ -54,41 +42,37 @@ BlockedLinsysSolveStatus BlockSolver_ConjugateGradient::Solve(ConstRealBufferVie
     mata.RightMultiplyTo(d, q);
 
     // alpha <- delta_new / d^T q
-    Real d_dot_q = block_blas::dot(d, q);
+    Real d_dot_q = buffer_blas::dot(d, q);
     Real alpha = delta_new / d_dot_q;
 
     // x <- x + alpha d
-    block_blas::axpy(alpha, d, x);
+    buffer_blas::axpy(alpha, d, x);
 
     // r <- r - alpha q
-    block_blas::axpy(-alpha, q, r);
+    buffer_blas::axpy(-alpha, q, r);
 
     // s = M^{-1} r, but q is not used any more in this iteration
     // we reuse q buffer.
     if (preconditioner_) {
       preconditioner_->Solve(r, q);
     } else {
-      block_blas::copy(q, r);  // s <- r
+      buffer_blas::copy(q, r);  // s <- r
     }
 
     // delta_old <- delta_new
     Real delta_old = delta_new;
-    delta_new = block_blas::dot(r, q);  // delta_new <- r.T s
+    delta_new = buffer_blas::dot(r, q);  // delta_new <- r.T s
     Real beta = delta_new / delta_old;
-    block_blas::scal(beta, d);  // d <- beta d
-    block_blas::axpy(1, q, d);  // d <- s + beta d
+    buffer_blas::scal(beta, d);  // d' <- beta d
+    buffer_blas::axpy(1, q, d);  // d  <- s + beta d
 
     // check convergence
-    status.l2_err_ = block_blas::norm(r);
+    status.l2_err_ = buffer_blas::norm(r);
     if (status.l2_err_ <= problem_->l2_tol_) {
       status.converged_ = true;
       break;
     }
-    status.linf_err_ = block_blas::amax(r);
-    if (status.linf_err_ <= problem_->linf_tol_) {
-      status.converged_ = true;
-      break;
-    }
+    AX_INFO("CG iter: {}, l2_err: {}", iter, status.l2_err_);
   }
 
   status.iter_ = iter;

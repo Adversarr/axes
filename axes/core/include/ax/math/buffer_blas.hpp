@@ -12,7 +12,7 @@
 // Notice that, the stride of buffers are used to determine the BLAS parameter
 // Most op are valid only when stride.y and stride.z are default. and stride.x are used to determine
 // the INCX, or INCY parameter of BLAS operations.
-namespace ax::math::block_blas {
+namespace ax::math::buffer_blas {
 
 // the operation type for BLAS operations, we do not have complex numbers,
 // so only transpose is supported.

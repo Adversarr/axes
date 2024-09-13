@@ -1,5 +1,4 @@
 #pragma once
-#include "ax/core/common.hpp"
 #include "ax/core/dim.hpp"
 #include "ax/utils/enum_refl.hpp"
 
@@ -26,6 +25,17 @@ struct formatter<ax::BufferDevice> : formatter<std::string_view> {
   template <typename FormatContext>
   auto format(ax::BufferDevice c, FormatContext& ctx) const {
     return formatter<std::string_view>::format(ax::utils::reflect_name(c).value_or("???"), ctx);
+  }
+};
+
+template <size_t N>
+struct formatter<ax::Dim<N>> : formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(ax::Dim<N> c, FormatContext& ctx) const {
+    for (size_t i = 0; i < N; ++i) {
+      fmt::format_to(ctx.out(), "{}", c.sizes_[i]);
+    }
+    return ctx.out();
   }
 };
 

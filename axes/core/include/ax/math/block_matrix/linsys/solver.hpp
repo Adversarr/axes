@@ -20,7 +20,6 @@ public:
 
   static std::unique_ptr<BlockSolverBase> Create(BlockSolverKind kind);
 
-protected:
   std::shared_ptr<BlockedLinsysProblem> problem_;
   std::unique_ptr<BlockPreconditionerBase> preconditioner_;
 };

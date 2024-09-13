@@ -14,11 +14,17 @@ void BlockSolverBase::SetProblem(std::unique_ptr<BlockedLinsysProblem> problem) 
 }
 
 void BlockSolverBase::AnalyzePattern() {
-  preconditioner_->AnalyzePattern();
+  if (preconditioner_) {
+    preconditioner_->SetProblem(problem_);
+    preconditioner_->AnalyzePattern();
+  }
 }
 
 void BlockSolverBase::Factorize() {
-  preconditioner_->Factorize();
+  if (preconditioner_) {
+    preconditioner_->SetProblem(problem_);
+    preconditioner_->Factorize();
+  }
 }
 
 void BlockSolverBase::Compute() {

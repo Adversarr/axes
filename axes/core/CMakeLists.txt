@@ -10,6 +10,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Taskflow REQUIRED)
 find_package(cxxopts REQUIRED)
+find_package(Microsoft.GSL REQUIRED)
 set(BLA_VENDOR "OpenBLAS")
 find_package(BLAS QUIET)
 if(AX_ENABLE_OPENMP)
@@ -61,6 +62,7 @@ target_link_libraries(axes_core
     spdlog::spdlog_header_only
     fmt::fmt-header-only
     Taskflow::Taskflow
+    Microsoft.GSL::GSL
 )
 
 # optional: SuiteSparse

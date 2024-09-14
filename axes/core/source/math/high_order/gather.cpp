@@ -83,8 +83,10 @@ void GatherAddOp::SetData(ConstRealBufferView weights, ConstSizeBufferView row_e
 
 void GatherAddOp::Apply(ConstRealBufferView src, RealBufferView dst, Real alpha, Real beta) const {
   const size_t gather_dim = is_1d(src.Shape()) ? 0 : is_2d(src.Shape()) ? 1 : 2;
-  AX_THROW_IF_NE(src.Shape().sizes_[gather_dim], n_input_, "Input shape is not correct.");
-  AX_THROW_IF_NE(dst.Shape().sizes_[gather_dim], n_output_, "Output shape is not correct.");
+  AX_THROW_IF_NE(src.Shape().sizes_[gather_dim], n_input_, "Input shape is not correct. expect {} got {}",
+                  n_input_, src.Shape().sizes_[gather_dim]);
+  AX_THROW_IF_NE(dst.Shape().sizes_[gather_dim], n_output_, "Output shape is not correct. expect {} got {}",
+                  n_output_, dst.Shape().sizes_[gather_dim]);
   AX_THROW_IF(src.Device() != device_ || dst.Device() != device_, "Device mismatch.");
 
   if (device_ == BufferDevice::Device) {

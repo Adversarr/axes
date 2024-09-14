@@ -39,9 +39,9 @@ struct BufferViewIterator {
   }
 
   BufferViewIterator& operator++() {
-    if (current_.X() + 1 < shape_.X()) {
+    if (shape_.Y() == 0 || current_.X() + 1 < shape_.X()) {
       ++current_.X();
-    } else if (current_.Y() + 1 < shape_.Y()) {
+    } else if (shape_.Z() == 0 || current_.Y() + 1 < shape_.Y()) {
       current_.X() = 0;
       ++current_.Y();
     } else {

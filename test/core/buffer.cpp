@@ -118,8 +118,9 @@ TEST_CASE("Map to Eigen") {
       x = static_cast<Real>(v++);
     });
 
-    auto map = view_as_matrix_full<math::RealMatrixX, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
-        buffer_ptr->View());
+    auto map
+        = view_as_matrix_full<math::RealMatrixX, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
+            buffer_ptr->View());
     CHECK(map.rows() == 2);
     CHECK(map.cols() == 3);
     for (int j = 0; j < 3; ++j) {
@@ -276,7 +277,6 @@ TEST_CASE("buffer copy") {
   }
 }
 
-
 TEST_CASE("ViewAsEigenMap") {
   SUBCASE("1d") {
     auto buf = HostBuffer<Real>::Create({2, 3});
@@ -307,4 +307,55 @@ TEST_CASE("ViewAsEigenMap") {
   }
 }
 
-// TEST_CASE();
+TEST_CASE("Iterator") {
+  SUBCASE("eigen matrix scalar") {
+    math::RealMatrixX mat(3, 4);  // 3x4 Matrix
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        mat(i, j) = i + j;
+      }
+    }
+
+    auto view = view_from_matrix(mat);
+    auto it = view.begin(), end = view.end();
+    for (int j = 0; j < 4; ++j) {
+      for (int i = 0; i < 3; ++i) {
+        CHECK(*it == i + j);
+        ++it;
+      }
+    }
+  }
+
+  SUBCASE("buffer raw") {
+    auto buf = HostBuffer<Real>::Create({2, 3, 4});
+    for_each(buf->View(), [v = 0](Real& x) mutable {
+      x = static_cast<Real>(v++);
+    });
+
+    auto it = buf->View().begin();
+    auto end = buf->View().end();
+    for (int i = 0; it != end; ++it, ++i) {
+      CHECK(*it == i);
+    }
+  }
+
+  SUBCASE("eigen matrix") {
+    math::RealMatrixX mat(3, 4);  // 3x4 Matrix
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        mat(i, j) = i + j;
+      }
+    }
+
+    auto view = view_from_matrix(mat);
+    auto adap = view_as_matrix_1d<Real, 3>(view);
+
+    for (size_t i = 0; i < 4; ++i) {
+      auto it = adap(i).begin();
+      auto end = adap(i).end();
+      for (int j = 0; it != end; ++it, ++j) {
+        CHECK(*it == i + j);
+      }
+    }
+  }
+}

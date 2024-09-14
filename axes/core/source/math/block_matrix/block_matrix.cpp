@@ -215,7 +215,7 @@ void RealBlockMatrix::EnsureMatDesc() const {
 #ifdef AX_HAS_CUDA
   if (GetDevice() == BufferDevice::Device) {
     if (!mat_desc_) {
-      mat_desc_ = details::create_mat_desc_default();
+      mat_desc_ = details::create_bsr_mat_desc_default();
     }
   }
 #endif

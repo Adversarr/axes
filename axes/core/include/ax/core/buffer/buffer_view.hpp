@@ -7,8 +7,9 @@ template <typename T>
 AX_HOST_DEVICE AX_FORCE_INLINE T* buffer_at(T* data, BufferDim const& shape,
                                             BufferDim const& strides, size_t x, size_t y,
                                             size_t z) {
-  assert((shape.X() == 0 || x < shape.X()) && (shape.Y() == 0 || y < shape.Y())
-         && (shape.Z() == 0 || z < shape.Z()));
+  assert(shape.X() == 0 || x < shape.X());
+  assert(shape.Y() == 0 || y < shape.Y());
+  assert(shape.Z() == 0 || z < shape.Z());
   AX_UNUSED(shape);
   using CharT = std::conditional_t<std::is_const_v<T>, const char, char>;
   CharT* base = reinterpret_cast<CharT*>(data);

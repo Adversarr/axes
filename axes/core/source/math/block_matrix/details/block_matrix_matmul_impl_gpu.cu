@@ -1,6 +1,6 @@
 #include "ax/core/excepts.hpp"
-#include "ax/math/block_matrix/details/cusparse_context.cuh"
 #include "ax/math/block_matrix/details/matmul_impl.hpp"
+#include "ax/math/details/cusparse_context.cuh"
 #include <cusparse.h>
 
 namespace ax::math::details {
@@ -29,7 +29,7 @@ void block_matrix_matmul_gpu(size_t rows, size_t cols,
   }
 }
 
-std::shared_ptr<void> create_mat_desc_default() {
+std::shared_ptr<void> create_bsr_mat_desc_default() {
   cusparseMatDescr_t descr;
   cusparseCreateMatDescr(&descr);
   cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);

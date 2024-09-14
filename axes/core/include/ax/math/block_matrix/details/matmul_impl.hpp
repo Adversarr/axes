@@ -21,6 +21,6 @@ void block_matrix_matmul_gpu(
   BufferView<const Real> rhs,
   BufferView<Real> dst, Real alpha, Real beta, void* descr_type_erased);
 
-std::shared_ptr<void> create_mat_desc_default();
+std::shared_ptr<void> create_bsr_mat_desc_default();
 
 }

@@ -27,4 +27,12 @@ BufferPtr<T> create_buffer(BufferDevice device, BufferDim shape) {
   }
 }
 
+template <typename T>
+BufferPtr<T> ensure_buffer(BufferPtr<T> p, BufferDevice device, BufferDim shape) {
+  if (p && p->Device() == device && p->Shape() == shape) {
+    return p;
+  }
+  return create_buffer<T>(device, shape);
+}
+
 }  // namespace ax

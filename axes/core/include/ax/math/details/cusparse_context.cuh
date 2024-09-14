@@ -6,17 +6,13 @@ namespace ax::math::details {
 
 struct CuSparseHandle {
   cusparseContext *handle_{nullptr};
-  CuSparseHandle() {
-    auto status = cusparseCreate(&handle_);
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      throw std::runtime_error("Failed to create cuSPARSE handle.");
-    }
-  }
+  CuSparseHandle();
+  ~CuSparseHandle();
 
-  ~CuSparseHandle() {
-    if (handle_) {
-      cusparseDestroy(handle_);
-    }
+  CuSparseHandle(CuSparseHandle const &) = delete;
+  CuSparseHandle(CuSparseHandle &&other) {
+    handle_ = other.handle_;
+    other.handle_ = nullptr;
   }
 };
 

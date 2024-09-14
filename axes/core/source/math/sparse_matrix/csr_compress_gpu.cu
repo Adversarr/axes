@@ -1,5 +1,5 @@
 #include "ax/core/excepts.hpp"
-#include "ax/math/block_matrix/details/cusparse_context.cuh"
+#include "ax/math/details/cusparse_context.cuh"
 #include "csr_compress_impl.hpp"
 #include <cusparse.h>
 

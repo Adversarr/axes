@@ -91,7 +91,7 @@ GatherInfo LocalToGlobalMap::FirstOrder(ConstSizeBufferView elements) const {
   return {.to_ = to, .from_ = from};
 }
 
-static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n_vert) {
+static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t /* n_vert */) {
   auto n_vert_per_element = elements.Shape().X();
   auto n_elements = elements.Shape().Y();
 

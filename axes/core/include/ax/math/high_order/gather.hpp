@@ -6,8 +6,7 @@ namespace ax::math {
 class GatherAddOp {
 public:
   GatherAddOp() = default;
-  GatherAddOp(const GatherAddOp&) = default;
-  GatherAddOp(GatherAddOp&&) = default;
+  AX_DECLARE_CONSTRUCTOR(GatherAddOp, default, default);
 
   GatherAddOp(size_t n_in, size_t n_out, size_t n_gather, BufferDevice device = BufferDevice::Host)
       : device_(device), n_input_(n_in), n_output_(n_out), n_gather_(n_gather) {}

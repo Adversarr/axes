@@ -231,6 +231,8 @@ BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, Buffer
   return BufferView<T>(buffer.data(), shape, BufferDevice::Host);
 }
 
+template <typename T>
+using ConstBufferView = BufferView<const T>;
 using RealBufferView = BufferView<Real>;
 using ConstRealBufferView = BufferView<const Real>;
 using IndexBufferView = BufferView<Index>;

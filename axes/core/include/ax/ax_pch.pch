@@ -14,8 +14,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "core/logging.hpp"
+// #include "core/logging.hpp" // NOTE: should not include here to avoid SPDLOG_MACRO not work
 #include "math/common.hpp"
-
 #include "utils/common.hpp"
 #include "utils/enum_refl.hpp"

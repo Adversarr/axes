@@ -58,8 +58,14 @@ public:
   BufferView<const int> BlockRowPtrsView() const;
   BufferView<const int> BlockColIndicesView() const;
   BufferView<const Real> BlockValuesView() const;
+  BufferView<Real> BlockValuesView();
+
+  BufferPtr<int> BlockRowPtrs() const;
+  BufferPtr<int> BlockColIndices() const;
+  BufferPtr<Real> BlockValues() const;
+
 private:
-  void EnsureMatDesc() const;
+  void EnsureMatDesc();
 
   // Compress in Block CSR.
   BufferPtr<int> block_row_ptrs_;     // 1D buffer. size == rows + 1
@@ -72,7 +78,7 @@ private:
   size_t block_size_{0};
 
   BufferDevice device_;
-  mutable std::shared_ptr<void> mat_desc_;
+  std::shared_ptr<void> mat_desc_;
 };
 
 // NOTE: We use the RealBufferView to represent a view of a block vector.

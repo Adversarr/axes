@@ -87,12 +87,13 @@ void RealBlockMatrix::SetData(BufferView<const int> block_row_ptrs,
   block_values_ = new_block_values;
   block_row_ptrs_ = new_block_row_ptrs;
   block_col_indices_ = new_block_col_indices;
+
+  EnsureMatDesc();
 }
 
 void RealBlockMatrix::RightMultiplyTo(BufferView<const Real> rhs, BufferView<Real> dst, Real alpha,
                                       Real beta) const {
   const auto device = GetDevice();
-  EnsureMatDesc();
   if (rhs.Device() != device || dst.Device() != device) {
     throw make_runtime_error("Device mismatch. rhs={}, dst={}, block_matrix={}", rhs.Device(),
                              dst.Device(), device);
@@ -165,6 +166,10 @@ BufferView<const Real> RealBlockMatrix::BlockValuesView() const {
   return block_values_->View();
 }
 
+BufferView<Real> RealBlockMatrix::BlockValuesView() {
+  return block_values_->View();
+}
+
 BufferView<const int> RealBlockMatrix::BlockColIndicesView() const {
   return block_col_indices_->View();
 }
@@ -199,6 +204,7 @@ void RealBlockMatrix::SetData(BufferPtr<int> block_row_ptrs, BufferPtr<int> bloc
   block_row_ptrs_ = std::move(block_row_ptrs);
   block_col_indices_ = std::move(block_col_indices);
   block_values_ = std::move(block_values);
+  EnsureMatDesc();
 }
 
 void RealBlockMatrix::Set(const RealBlockMatrix& other) {
@@ -211,7 +217,7 @@ void RealBlockMatrix::Set(const RealBlockMatrix& other) {
           other.block_values_->View());
 }
 
-void RealBlockMatrix::EnsureMatDesc() const {
+void RealBlockMatrix::EnsureMatDesc() {
 #ifdef AX_HAS_CUDA
   if (GetDevice() == BufferDevice::Device) {
     if (!mat_desc_) {
@@ -221,4 +227,15 @@ void RealBlockMatrix::EnsureMatDesc() const {
 #endif
 }
 
+BufferPtr<int> RealBlockMatrix::BlockRowPtrs() const {
+  return block_row_ptrs_;
+}
+
+BufferPtr<int> RealBlockMatrix::BlockColIndices() const {
+  return block_col_indices_;
+}
+
+BufferPtr<Real> RealBlockMatrix::BlockValues() const {
+  return block_values_;
+}
 }  // namespace ax::math

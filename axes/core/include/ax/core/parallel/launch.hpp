@@ -41,15 +41,6 @@ AX_CONSTEXPR Dim<Nb> from_linear_index(const Dim<Nb>& dim, size_t linear_id) {
   }
 }
 
-template <size_t Nb>
-AX_CONSTEXPR size_t product(const Dim<Nb>& dim) {
-  size_t result = dim.sizes_[0];
-  for (size_t i = 1; i < Nb; ++i) {
-    result *= dim.sizes_[i];
-  }
-  return result;
-}
-
 template <typename Fn, size_t Ng, size_t Nb>
 AX_FORCE_INLINE auto invoke_fn(Fn&& fn, const Dim<Ng>& grid_id, const Dim<Nb>& block_id,
                                const ExecParam<Ng, Nb>& param) {
@@ -62,7 +53,7 @@ AX_FORCE_INLINE auto invoke_fn(Fn&& fn, const Dim<Ng>& grid_id, const Dim<Nb>& b
   } else if constexpr (std::is_invocable_v<Fn, size_t>) {
     const size_t block_linear_id = linear_index(param.block_size_, block_id);
     const size_t grid_linear_id = linear_index(param.grid_size_, grid_id);
-    const size_t block_size = product(param.block_size_);
+    const size_t block_size = prod(param.block_size_);
     return fn(block_linear_id + grid_linear_id * block_size);
   } else {
     static_assert(!std::is_same_v<Fn, Fn>, "Unsupported function signature.");
@@ -90,7 +81,7 @@ AX_FORCE_INLINE auto invoke_fn_buffer(Fn&& f, std::tuple<BufferView<Ts>...>& tup
 
 template <typename Flow, typename Fn, size_t Ng, size_t Nb>
 AX_FORCE_INLINE tf::Task for_each_index_(Flow& flow, const ExecParam<Ng, Nb>& param, Fn fn) {
-  size_t grid_size_total = product(param.grid_size_);
+  size_t grid_size_total = prod(param.grid_size_);
   return flow.template for_each_index<size_t, size_t, size_t>(
       0, grid_size_total, 1, [fn, param](size_t grid_linear_id) {
         auto grid_id = details::from_linear_index(param.grid_size_, grid_linear_id);
@@ -285,7 +276,7 @@ public:
     } else if (ax::details::is_3d(b.Shape())) {
       return ForEach3D(b, fn);
     } else {
-      throw make_invalid_argument("Unsupported dimension.");
+      throw std::invalid_argument("Unsupported dimension.");
     }
   }
 
@@ -379,7 +370,7 @@ public:
     } else if (ax::details::is_3d(std::get<0>(buf).Shape())) {
       return TransformReduce3D(buf, inout, transform_fn, reduce_fn, zero);
     } else {
-      throw make_invalid_argument("Unsupported dimension.");
+      throw std::invalid_argument("Unsupported dimension.");
     }
   }
 

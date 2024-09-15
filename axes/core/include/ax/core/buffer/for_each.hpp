@@ -1,7 +1,7 @@
 #pragma once
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/core/excepts.hpp"
 #include "ax/utils/god.hpp"
-
 namespace ax {
 
 namespace details {

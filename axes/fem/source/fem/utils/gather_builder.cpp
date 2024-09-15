@@ -1,10 +1,10 @@
-#pragma once
+#include "ax/fem/utils/gather_builder.hpp"
+
 #include <gsl/assert>
 
 #include "ax/core/buffer/create_default.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/logging.hpp"
-#include "ax/fem/utils/gather_builder.hpp"
 
 namespace ax::fem {
 
@@ -16,7 +16,7 @@ struct NodeElementPair {
 
 // TODO: This method is too complicate. we just consider the host version.
 
-static size_t do_compute(ConstSizeBufferView elements, BufferView<NodeElementPair> coo_idx) {
+static void do_compute(ConstSizeBufferView elements, BufferView<NodeElementPair> coo_idx) {
   size_t n_nodes_per_element = elements.Shape().X();
   size_t n_elements = elements.Shape().Y();
   for_each_indexed(Dim2(n_nodes_per_element, n_elements), [&](size_t local, size_t elem) {
@@ -32,7 +32,7 @@ static size_t do_compute(ConstSizeBufferView elements, BufferView<NodeElementPai
             });
 
   std::set<std::pair<size_t, size_t>> unique_blocks;
-  for_each_indexed(Dim(n_elements), [&](size_t elem) {
+  for (size_t elem = 0; elem < n_elements; elem++) {
     for (size_t i = 0; i < n_nodes_per_element; i++) {
       for (size_t j = 0; j < n_nodes_per_element; j++) {
         size_t node_i = elements(i, elem);
@@ -40,7 +40,7 @@ static size_t do_compute(ConstSizeBufferView elements, BufferView<NodeElementPai
         unique_blocks.insert({node_i, node_j});
       }
     }
-  });
+  };
 }
 
 static void do_first_order_host_no_expand(BufferView<const NodeElementPair> coo_idx,
@@ -69,8 +69,12 @@ static void do_first_order_host_no_expand(BufferView<const NodeElementPair> coo_
   to(n_nodes) = n_nodes_per_element * n_elements;
 }
 
-GatherInfo LocalToGlobalMap::FirstOrderForward(ConstSizeBufferView elements) const {
-  auto device = BufferDevice::Host;  // TODO: Device code.
+GatherInfo LocalToGlobalMap::FirstOrder(ConstSizeBufferView elements) const {
+  if (elements.Device() == BufferDevice::Device) {
+    throw std::runtime_error("Not implemented");
+  }
+
+  const auto device = BufferDevice::Host;
   auto coo_idx = create_buffer<NodeElementPair>(device, {n_nodes_per_element_ * n_elements_});
 
   do_compute(elements, coo_idx->View());
@@ -86,8 +90,8 @@ GatherInfo LocalToGlobalMap::FirstOrderForward(ConstSizeBufferView elements) con
   return {.to_ = to, .from_ = from};
 }
 
-static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n_vertices) {
-  auto n_nodes_per_element = elements.Shape().X();
+static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n_vert) {
+  auto n_vert_per_element = elements.Shape().X();
   auto n_elements = elements.Shape().Y();
 
   // first, get the bsr nnz.
@@ -99,8 +103,8 @@ static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n
   std::vector<BlockedHessianEntry> entries;
   size_t block_cnt = 0;
   for (size_t elem = 0; elem < n_elements; elem++) {
-    for (size_t j = 0; j < n_nodes_per_element; j++) {
-      for (size_t i = 0; i < n_nodes_per_element; i++) {
+    for (size_t j = 0; j < n_vert_per_element; j++) {
+      for (size_t i = 0; i < n_vert_per_element; i++) {
         entries.push_back({elements(i, elem), elements(j, elem), block_cnt++});
       }
     }
@@ -128,7 +132,8 @@ static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n
   for (size_t i = 0; i < entries.size(); i++) {
     to(current) = i;
     for (; i < entries.size(); ++i) {
-      if (entries[i].row_ != entries[current].row_ || entries[i].col_ != entries[current].col_) {
+      if (entries[i].row_ != entries[to(current)].row_
+          || entries[i].col_ != entries[to(current)].col_) {
         --i;  // step back to the last element.
         break;
       }
@@ -139,12 +144,12 @@ static GatherInfo compute_bsr_gather_host(ConstSizeBufferView elements, size_t n
   }
 
   AX_CHECK(nnz == current, "(InternalError) nnz != current");
-  to(n_vertices) = entries.size();
+  to(nnz) = entries.size();
 
   return {.to_ = to_buf, .from_ = from_buf};
 }
 
-static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t n_vertices,
+static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t /* n_vertices */,
                                           size_t n_dof) {
   auto n_nodes_per_element = elements.Shape().X();
   auto n_elements = elements.Shape().Y();
@@ -163,8 +168,8 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t n
     for (size_t j = 0; j < n_nodes_per_element; j++) {
       for (size_t i = 0; i < n_nodes_per_element; i++) {  // col-major
         // for each dof.
-        for (size_t l = 0; l < n_nodes_per_element; l++) {
-          for (size_t k = 0; k < n_nodes_per_element; k++) {  // col-major
+        for (size_t l = 0; l < n_dof; l++) {
+          for (size_t k = 0; k < n_dof; k++) {  // col-major
             size_t row = n_dof * elements(i, elem) + k;
             size_t col = n_dof * elements(j, elem) + l;
             entries.push_back({row, col, block_cnt++});
@@ -187,7 +192,7 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t n
     nnz = unique_blocks.size();
   }
 
-  auto from_buf = create_buffer<size_t>(BufferDevice::Host, {nnz});
+  auto from_buf = create_buffer<size_t>(BufferDevice::Host, {entries.size()});
   auto to_buf = create_buffer<size_t>(BufferDevice::Host, {nnz + 1});
   auto [from, to] = make_view(from_buf, to_buf);
 
@@ -196,7 +201,8 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t n
   for (size_t i = 0; i < entries.size(); i++) {
     to(current) = i;
     for (; i < entries.size(); ++i) {
-      if (entries[i].row_ != entries[current].row_ || entries[i].col_ != entries[current].col_) {
+      if (entries[i].row_ != entries[to(current)].row_
+          || entries[i].col_ != entries[to(current)].col_) {
         --i;  // step back to the last element.
         break;
       }
@@ -208,11 +214,11 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t n
 
   AX_CHECK(nnz == current, "(InternalError) nnz != current");
 
-  to(n_vertices) = entries.size();
+  to(nnz) = entries.size();
   return {.to_ = to_buf, .from_ = from_buf};
 }
 
-GatherInfo LocalToGlobalMap::SecondOrderBackward(ConstSizeBufferView elements, bool use_csr) const {
+GatherInfo LocalToGlobalMap::SecondOrder(ConstSizeBufferView elements, bool use_csr) const {
   if (elements.Device() == BufferDevice::Device) {
     throw std::runtime_error("Not implemented");
   }

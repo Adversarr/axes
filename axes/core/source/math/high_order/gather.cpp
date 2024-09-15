@@ -36,8 +36,8 @@ static void do_host(ConstRealBufferView src, RealBufferView dst, ConstRealBuffer
 
   auto job_3d = [&row_entries, &col_indices, &weights, &src, &dst, beta, alpha](
                     size_t si, size_t sj, size_t row) {
-    const size_t row_begin = row_entries(sj);
-    const size_t row_end = row_entries(sj + 1);
+    const size_t row_begin = row_entries(row);
+    const size_t row_end = row_entries(row + 1);
     Real sum_sub = 0;
     for (size_t i = row_begin; i < row_end; ++i) {
       const size_t col = col_indices(i);

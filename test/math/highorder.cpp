@@ -1,5 +1,6 @@
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
+#include "ax/core/buffer/for_each.hpp"
 #include "ax/math/high_order/gather.hpp"
 #include "ax/core/buffer/create_default.hpp"
 #include <doctest/doctest.h>
@@ -25,27 +26,66 @@ TEST_CASE("gather host") {
   math::GatherAddOp gather(n_input, n_output, n_gather, BufferDevice::Host);
   gather.SetData(w, r, c);
 
-  math::RealMatrixX src(3, n_input);
-  src.setRandom();
-  math::RealMatrixX dst(3, n_output);
-  dst.setRandom();
-  math::RealMatrixX gt(3, n_output);
-  gt.setZero();
-  for (size_t i = 0; i < n_output; ++i) {
-    const size_t row_begin = r(i);
-    const size_t row_end = r(i + 1);
-    for (size_t j = row_begin; j < row_end; ++j) {
-      const size_t col = c(j);
-      gt.col(i) += 0.3 * w(j) * src.col(col);
+  SUBCASE("2d") {
+    math::RealMatrixX src(3, n_input);
+    src.setRandom();
+    math::RealMatrixX dst(3, n_output);
+    dst.setRandom();
+    math::RealMatrixX gt(3, n_output);
+    gt.setZero();
+    for (size_t i = 0; i < n_output; ++i) {
+      const size_t row_begin = r(i);
+      const size_t row_end = r(i + 1);
+      for (size_t j = row_begin; j < row_end; ++j) {
+        const size_t col = c(j);
+        gt.col(i) += 0.3 * w(j) * src.col(col);
+      }
+      gt.col(i) += 0.7 * dst.col(i);
     }
-    gt.col(i) += 0.7 * dst.col(i);
+
+    gather.Apply(view_from_matrix(src), view_from_matrix(dst), 0.3, 0.7);
+
+    for (size_t i = 0; i < n_output; ++i) {
+      for (size_t j = 0; j < 3; ++j) {
+        CHECK(dst(j, i) == doctest::Approx(gt(j, i)));
+      }
+    }
   }
 
-  gather.Apply(view_from_matrix(src), view_from_matrix(dst), 0.3, 0.7);
+  SUBCASE("3d") {
+    auto src = create_buffer<Real>(ax::BufferDevice::Host, {2, 3, n_input});
+    auto dst = create_buffer<Real>(ax::BufferDevice::Host, {2, 3, n_output});
+    auto gt = create_buffer<Real>(ax::BufferDevice::Host, {2, 3, n_output});
+    for_each(src->View(), [](Real& x) { x = rand() % 100 / 100.0; });
+    for_each(dst->View(), [](Real& x) { x = rand() % 100 / 100.0; });
+    for_each(gt->View(), [](Real& x) { x = 0; });
 
-  for (size_t i = 0; i < n_output; ++i) {
-    for (size_t j = 0; j < 3; ++j) {
-      CHECK(dst(j, i) == doctest::Approx(gt(j, i)));
+    for (size_t i = 0; i < n_output; ++i) {
+      const size_t row_begin = r(i);
+      const size_t row_end = r(i + 1);
+      for (size_t j = row_begin; j < row_end; ++j) {
+        const size_t col = c(j);
+        for (size_t k = 0; k < 3; ++k) {
+          for (size_t l = 0; l < 2; ++l) {
+            gt->View()(l, k, i) += 0.3 * w(j) * src->View()(l, k, col);
+          }
+        }
+      }
+      for (size_t k = 0; k < 3; ++k) {
+        for (size_t l = 0; l < 2; ++l) {
+          gt->View()(l, k, i) += 0.7 * dst->View()(l, k, i);
+        }
+      }
+    }
+
+    gather.Apply(src->ConstView(), dst->View(), 0.3, 0.7);
+
+    for (size_t i = 0; i < n_output; ++i) {
+      for (size_t j = 0; j < 3; ++j) {
+        for (size_t k = 0; k < 2; ++k) {
+          CHECK(dst->View()(k, j, i) == doctest::Approx(gt->View()(k, j, i)));
+        }
+      }
     }
   }
 }

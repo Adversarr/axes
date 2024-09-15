@@ -39,7 +39,7 @@ public:
         n_dofs_(n_dofs) {}
 
   // compute the gather map for the first order elements
-  GatherInfo FirstOrderForward(ConstSizeBufferView elements) const;
+  GatherInfo FirstOrder(ConstSizeBufferView elements) const;
 
   // compute the Hessian gather map.
   // The BSR version matrix:
@@ -49,7 +49,7 @@ public:
   // The Per Element Hessian are stored in the following order:
   //    [nDof, nDof, nE * (nNodePerElem * nNodePerElem)]
   // in each (nNPE * nNPE) is ColMajor.
-  GatherInfo SecondOrderBackward(ConstSizeBufferView elements, bool use_bsr = true) const;
+  GatherInfo SecondOrder(ConstSizeBufferView elements, bool use_csr = true) const;
 
 private:
   size_t n_elements_{0};           ///< Number of elements/constraints.

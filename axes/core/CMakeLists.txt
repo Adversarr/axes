@@ -108,5 +108,5 @@ endif()
 
 # PCH
 if(AX_ENABLE_PCH)
-  target_precompile_headers(axes_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/ax/ax_pch.hpp)
+  target_precompile_headers(axes_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/ax/ax_pch.pch)
 endif()

@@ -1,5 +1,7 @@
 #include "./jacobi_impl.hpp"
 #include "ax/core/buffer/for_each.hpp"
+#include "ax/core/excepts.hpp"
+#include "ax/core/logging.hpp"
 
 namespace ax::math::details {
 

@@ -1,4 +1,6 @@
+#pragma once
 #include "common.hpp"
+#include "ax/utils/opt.hpp"
 
 namespace ax::math {
 

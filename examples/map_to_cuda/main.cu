@@ -31,7 +31,6 @@ int main(int argc, char** argv) {
   thrust::device_vector<float> device = host;
   cudaDeviceSynchronize();
   ax::clean_up();
-  openvdb::math::Vec3d v3d;
   constexpr size_t size = 90;
 
   float* buffer = thrust::raw_pointer_cast(device.data());

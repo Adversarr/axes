@@ -1,6 +1,7 @@
 #include "ax/core/buffer/for_each.hpp"
+#include "ax/core/excepts.hpp"
 #include "block_jacobi_impl.hpp"
-
+#include "ax/core/logging.hpp"
 namespace ax::math::details {
 
 void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMatrix& mat,

@@ -1,6 +1,7 @@
 #include "ax/fem/utils/gather_builder.hpp"
 
 #include <gsl/assert>
+#include <set>
 
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/for_each.hpp"

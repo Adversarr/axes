@@ -2,7 +2,7 @@
 
 #include <gsl/assert>
 
-#include "ax/core/buffer/create_default.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/logging.hpp"
 

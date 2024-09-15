@@ -3,7 +3,7 @@
 #  include "./gather_gpu.cuh"
 #endif
 #include "ax/core/buffer/copy.hpp"
-#include "ax/core/buffer/create_default.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/for_each.hpp"
 
 namespace ax::math {

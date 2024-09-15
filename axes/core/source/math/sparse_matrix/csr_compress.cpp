@@ -1,7 +1,7 @@
 #include "ax/math/sparse_matrix/csr_compress.hpp"
 
 #include "ax/core/buffer/copy.hpp"
-#include "ax/core/buffer/create_default.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
 #include "csr_compress_impl.hpp"
 
 namespace ax::math {

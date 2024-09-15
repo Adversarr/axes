@@ -2,7 +2,7 @@
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/math/high_order/gather.hpp"
-#include "ax/core/buffer/create_default.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
 #include <doctest/doctest.h>
 using namespace ax;
 TEST_CASE("gather host") {

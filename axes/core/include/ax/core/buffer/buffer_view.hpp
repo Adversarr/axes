@@ -137,7 +137,6 @@ public:
   }
 
   /////////////////// subview ///////////////////
-  AX_HOST_DEVICE AX_CONSTEXPR BufferView SubView(BufferDim const& shape);   // NOTE: not implemented
   AX_HOST_DEVICE AX_CONSTEXPR BufferView Reshaped(BufferDim const& shape);  // NOTE: not implemented
 
   AX_HOST_DEVICE AX_CONSTEXPR BufferDim const& Shape() const { return shape_; }
@@ -180,7 +179,7 @@ public:
     if (from_dim == 0) {
       return IsContinuous();
     } else if (from_dim == 1) {
-      return strides_.Y() == shape_.X() * strides_.X()
+      return (strides_.Y() == 0 || strides_.Y() == shape_.X() * strides_.X())
              && (strides_.Z() == 0 || strides_.Z() == shape_.Y() * strides_.Y());
     } else if (from_dim == 2) {
       return strides_.Z() == 0 || strides_.Z() == shape_.Y() * strides_.Y();
@@ -198,31 +197,28 @@ protected:
 };
 
 template <typename T>
-BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape, BufferDim const& strides,
-                                   BufferDevice device = BufferDevice::Host) {
+AX_CONSTEXPR AX_HOST_DEVICE BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape,
+                                                               BufferDim const& strides,
+                                                               BufferDevice device
+                                                               = BufferDevice::Host) {
   return BufferView<T>(data, shape, strides, device);
 }
 
 template <typename T>
-BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape,
-                                   BufferDevice device = BufferDevice::Host) {
+AX_CONSTEXPR AX_HOST_DEVICE BufferView<T> view_from_raw_buffer(T* data, BufferDim const& shape,
+                                                               BufferDevice device
+                                                               = BufferDevice::Host) {
   return BufferView<T>(data, shape, device);
 }
 
 template <typename T, typename Alloc>
-BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer) {
+AX_CONSTEXPR AX_HOST_DEVICE BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer) {
   return BufferView<T>(buffer.data(), BufferDim{buffer.size()}, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
 BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, BufferDim const& shape) {
   return BufferView<T>(buffer.data(), shape, BufferDevice::Host);
-}
-
-template <typename T, typename Alloc>
-BufferView<T> view_from_buffer(std::vector<T, Alloc>& buffer, BufferDim const& shape,
-                               BufferDim const& strides) {
-  return BufferView<T>(buffer.data(), shape, strides, BufferDevice::Host);
 }
 
 template <typename T, typename Alloc>
@@ -235,12 +231,6 @@ BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, Buffer
   return BufferView<T>(buffer.data(), shape, BufferDevice::Host);
 }
 
-template <typename T, typename Alloc>
-BufferView<const T> view_from_buffer(const std::vector<T, Alloc>& buffer, BufferDim const& shape,
-                                     BufferDim const& strides) {
-  return BufferView<T>(buffer.data(), shape, strides, BufferDevice::Host);
-}
-
 using RealBufferView = BufferView<Real>;
 using ConstRealBufferView = BufferView<const Real>;
 using IndexBufferView = BufferView<Index>;
@@ -249,8 +239,27 @@ using SizeBufferView = BufferView<size_t>;
 using ConstSizeBufferView = BufferView<const size_t>;
 
 template <typename Front, typename... Args>
-bool is_same_device(BufferView<Front> const& front, BufferView<Args> const&... views) {
+AX_CONSTEXPR AX_FORCE_INLINE bool is_same_device(BufferView<Front> const& front,
+                                                 BufferView<Args> const&... views) {
   return ((front.Device() == views.Device()) && ...);
+}
+
+template <typename T>
+AX_CONSTEXPR AX_HOST_DEVICE AX_FORCE_INLINE BufferView<T> flatten(BufferView<T> view) {
+  assert(!view.IsContinuous(1) && "The buffer is not continuous in y,z dimension.");
+  return view_from_raw_buffer(view.Data(), prod(view.Shape()), {view.Stride().X(), 0, 0},
+                              view.Device());
+}
+
+template <typename T>
+AX_CONSTEXPR AX_HOST_DEVICE AX_FORCE_INLINE
+BufferView<T> BufferView<T>::Reshaped(BufferDim const& shape) {
+  assert(IsContinuous(1) && "The buffer is not continuous in y,z dimension.");
+  assert(prod(shape) == prod(Shape()) && "The new shape is not compatible with the old shape.");
+
+  return view_from_raw_buffer(
+      Data(), shape, {strides_.X(), shape.X() * strides_.X(), shape.X() * shape.Y() * strides_.X()},
+      Device());
 }
 
 }  // namespace ax

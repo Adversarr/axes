@@ -1,7 +1,7 @@
 #include "ax/math/block_matrix/linsys/preconditioner/jacobi.hpp"
 
 #include "./jacobi_impl.hpp"
-#include "ax/core/buffer/create_default.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
 
 namespace ax::math {
 

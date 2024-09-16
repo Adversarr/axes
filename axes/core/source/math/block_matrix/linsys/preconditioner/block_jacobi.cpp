@@ -44,10 +44,10 @@ void BlockPreconditioner_BlockJacobi::Factorize() {
 
   // Precompute the inverse of the diagonal blocks of A, and store them in inv_diag_.
   if (device == BufferDevice::Host) {
-    details::block_jacobi_precond_precompute_cpu(inv_diag_->View(), problem_->A_, nullptr);
+    details::block_jacobi_precond_precompute_cpu(inv_diag_->View(), problem_->A_);
   } else {
 #ifdef AX_HAS_CUDA
-    details::block_jacobi_precond_precompute_gpu(inv_diag_->View(), problem_->A_, nullptr);
+    details::block_jacobi_precond_precompute_gpu(inv_diag_->View(), problem_->A_);
 #else
     throw make_runtime_error("BlockPreconditioner_BlockJacobi::Factorize: CUDA is not enabled.");
 #endif
@@ -64,10 +64,10 @@ void BlockPreconditioner_BlockJacobi::Solve(ConstRealBufferView b, RealBufferVie
       "b and x must have the same shape as the block size and rows of the problem.");
 
   if (device == BufferDevice::Host) {
-    details::block_jacobi_precond_eval_cpu(x, b, inv_diag_->View(), nullptr);
+    details::block_jacobi_precond_eval_cpu(x, b, inv_diag_->View());
   } else {
 #ifdef AX_HAS_CUDA
-    details::block_jacobi_precond_eval_gpu(x, b, inv_diag_->View(), nullptr);
+    details::block_jacobi_precond_eval_gpu(x, b, inv_diag_->View());
 #else
     throw make_runtime_error("BlockPreconditioner_BlockJacobi::Solve: CUDA is not enabled.");
 #endif

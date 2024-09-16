@@ -7,11 +7,6 @@
 
 namespace ax::fem {
 
-TermBase::TermBase(std::shared_ptr<State> state) : state_(std::move(state)) {
-  is_gradient_up_to_date_ = false;
-  is_hessian_up_to_date_ = false;
-}
-
 ConstRealBufferView TermBase::GetGradient() const {
   return gradient_->ConstView();
 }

@@ -6,7 +6,7 @@
 namespace ax::math::details {
 
 struct Descr {
-  cusparseSpMatDescr_t descr_{nullptr};
+  cusparseSpMatDescr_t sp_descr_{nullptr};
   cusparseDnVecDescr_t rhs_descr_{nullptr};
   cusparseDnVecDescr_t lhs_descr_{nullptr};
   cusparseDnVecDescr_t rhs_dst_descr_{nullptr};
@@ -18,7 +18,7 @@ struct Descr {
   Descr(size_t rows, size_t cols, size_t nnz, int *row_ptrs, int *col_indices,
         Real *values) {
     auto status =
-        cusparseCreateCsr(&descr_, rows, cols, nnz, row_ptrs, col_indices,
+        cusparseCreateCsr(&sp_descr_, rows, cols, nnz, row_ptrs, col_indices,
                           values, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                           CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
 
@@ -53,7 +53,7 @@ struct Descr {
   }
 
   ~Descr() {
-    cusparseDestroySpMat(descr_);
+    cusparseDestroySpMat(sp_descr_);
     cusparseDestroyDnVec(rhs_descr_);
     cusparseDestroyDnVec(lhs_descr_);
 
@@ -98,7 +98,7 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y, Real alp
   auto handle = get_cusparse_handle();
   size_t required_buffer_size = 0;
   status = cusparseSpMV_bufferSize(
-      handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, descr->descr_,
+      handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, descr->sp_descr_,
       descr->rhs_descr_, &beta, descr->lhs_descr_, CUDA_R_64F,
       CUSPARSE_SPMV_ALG_DEFAULT, &required_buffer_size);
   if (status != CUSPARSE_STATUS_SUCCESS) {
@@ -120,7 +120,7 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y, Real alp
   }
 
   status = cusparseSpMV_preprocess(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                   &alpha, descr->descr_, descr->rhs_descr_,
+                                   &alpha, descr->sp_descr_, descr->rhs_descr_,
                                    &beta, descr->rhs_dst_descr_, CUDA_R_64F,
                                    CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
   if (status != CUSPARSE_STATUS_SUCCESS) {
@@ -130,7 +130,7 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y, Real alp
   }
 
   status = cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
-                        descr->descr_, descr->rhs_descr_, &beta,
+                        descr->sp_descr_, descr->rhs_descr_, &beta,
                         descr->rhs_dst_descr_, CUDA_R_64F,
                         CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
   if (status != CUSPARSE_STATUS_SUCCESS) {

@@ -44,8 +44,7 @@ __global__ void block_jacobi_precond_precompute_kernel(
 }
 
 void block_jacobi_precond_precompute_gpu(BufferView<Real> dst,
-                                         const RealBlockMatrix &mat,
-                                         void *mat_desc_type_erased) {
+                                         const RealBlockMatrix &mat) {
   const size_t rows = mat.BlockedRows();
   const size_t bs = mat.BlockSize();
   if (bs > AX_INVERSE_BLOCK_MAXSIZE) {
@@ -85,8 +84,8 @@ __global__ void block_jacobi_precond_eval_kernel(RealBufferView dst,
 void block_jacobi_precond_eval_gpu(
     BufferView<Real> dst,         // a view of [bs, rows, 0]
     ConstRealBufferView rhs,      // a view of [bs, rows, 0]
-    ConstRealBufferView inv_diag, // a view of [bs, bs, rows]
-    void *mat_desc_type_erased) {
+    ConstRealBufferView inv_diag  // a view of [bs, bs, rows]
+) {
   const size_t rows = rhs.Shape().Y();
   const size_t bs = rhs.Shape().X();
   const size_t block_size = 256;

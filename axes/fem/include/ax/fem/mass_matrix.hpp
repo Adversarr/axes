@@ -9,9 +9,11 @@ namespace ax::fem {
  *
  * @tparam dim
  */
-template <int dim> class MassMatrixCompute {
+template <int dim>
+class MassMatrixCompute {
 public:
   explicit MassMatrixCompute(LinearMesh<dim> const& mesh) : mesh_(mesh) {}
+
   /**
    * @brief Compute the mass matrix.
    *

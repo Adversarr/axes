@@ -1,18 +1,20 @@
 #pragma once
-#include <map>     // std::map
 #include <memory>  // std::unique_ptr
 
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/fem/mesh.hpp"
 #include "ax/fem/state.hpp"
 #include "ax/math/block_matrix/block_matrix.hpp"
 #include "ax/math/high_order/gather.hpp"
+#include "ax/utils/opt.hpp"
 
 namespace ax::fem {
 
-class TermBase {
+class TermBase : public utils::Tunable {
 public:
   // NOTE: It is derive's responsibility to initialize the buffers.
-  explicit TermBase(std::shared_ptr<State> state);
+  explicit TermBase(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
+      : state_(state), mesh_(mesh), is_gradient_up_to_date_(false), is_hessian_up_to_date_(false) {};
 
   virtual ~TermBase() = default;
 
@@ -32,6 +34,7 @@ public:
 
 protected:
   std::shared_ptr<State> state_;
+  std::shared_ptr<Mesh> mesh_;
   BufferPtr<Real> gradient_;           ///< gradient of the term
   math::RealBlockMatrix bsr_hessian_;  ///< Hessian matrix in block sparse row format
   bool is_gradient_up_to_date_;        ///< dirty bit.
@@ -70,6 +73,7 @@ public:
 
 private:
   std::shared_ptr<State> state_;
+  std::shared_ptr<Mesh> mesh_;
   std::vector<TermInfo> terms_;
   BufferPtr<Real> gradient_;
   math::RealBlockMatrix bsr_hessian_;

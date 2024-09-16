@@ -117,15 +117,13 @@ void RealBlockMatrix::RightMultiplyTo(BufferView<const Real> rhs, BufferView<Rea
       throw make_runtime_error("Buffer should be continuous for GPU matmul.");
     }
     details::block_matrix_matmul_gpu(rows_, cols_, block_values_->View(), block_row_ptrs_->View(),
-                                     block_col_indices_->View(), rhs, dst, alpha, beta,
-                                     mat_desc_.get());
+                                     block_col_indices_->View(), rhs, dst, alpha, beta, mat_desc_);
 #else
     throw make_runtime_error("CUDA is not enabled.");
 #endif
   } else {
     details::block_matrix_matmul_cpu(rows_, cols_, block_values_->View(), block_row_ptrs_->View(),
-                                     block_col_indices_->View(), rhs, dst, alpha, beta,
-                                     mat_desc_.get());
+                                     block_col_indices_->View(), rhs, dst, alpha, beta, mat_desc_);
   }
 }
 
@@ -221,7 +219,8 @@ void RealBlockMatrix::EnsureMatDesc() {
 #ifdef AX_HAS_CUDA
   if (GetDevice() == BufferDevice::Device) {
     if (!mat_desc_) {
-      mat_desc_ = details::create_bsr_mat_desc_default();
+      mat_desc_ = details::create_bsr_mat_desc(block_row_ptrs_->View(), block_col_indices_->View(),
+                                               block_values_->View(), rows_, cols_);
     }
   }
 #endif

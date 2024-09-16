@@ -20,7 +20,7 @@ void block_matrix_matmul_cpu(size_t rows, size_t /* cols */, BufferView<const Re
                              BufferView<const int> block_row_ptrs,
                              BufferView<const int> block_col_indices, BufferView<const Real> rhs,
                              BufferView<Real> dst, Real alpha, Real beta,
-                             void* /* descr_type_erased */) {
+                             std::shared_ptr<void> /* descr_type_erased */) {
   // For each row block, do parallel.
   // Alg: out[i] = sum_j block_values[i, j] * rhs[j]
   for_each_indexed(Dim{rows}, [&](size_t row) {

@@ -2,7 +2,7 @@
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/init.hpp"
-#include "ax/math/sparse_matrix/csr_compress.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
 #include "ax/utils/time.hpp"
 
 using namespace ax;
@@ -31,7 +31,7 @@ static void test_spmv_cpu() {
     }
   }
   size_t rows = prob_n * prob_n;
-  math::RealSparseMatrixCompressed csr(rows, rows, BufferDevice::Host);
+  math::RealCSRMatrix csr(rows, rows, BufferDevice::Host);
   csr.SetFromTriplets(coo);
 
   // Allocate vectors
@@ -78,7 +78,7 @@ static void test_spmv_gpu() {
     }
   }
   size_t rows = prob_n * prob_n;
-  math::RealSparseMatrixCompressed csr(rows, rows, BufferDevice::Device);
+  math::RealCSRMatrix csr(rows, rows, BufferDevice::Device);
   csr.SetFromTriplets(coo);
 
   // Allocate vectors

@@ -14,29 +14,28 @@ class TermBase : public utils::Tunable {
 public:
   // NOTE: It is derive's responsibility to initialize the buffers.
   explicit TermBase(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
-      : state_(state), mesh_(mesh), is_gradient_up_to_date_(false), is_hessian_up_to_date_(false) {};
+      : state_(state), mesh_(mesh), is_gradient_up_to_date_(false), is_hessian_up_to_date_(false) {
+        };
 
   virtual ~TermBase() = default;
 
-  virtual Real Energy() const = 0;
-
-  void MarkDirty();
-
+  virtual void MarkDirty();
+  virtual void UpdateEnergy() = 0;
   virtual void UpdateGradient() = 0;
-
   virtual void UpdateHessian() = 0;
 
+  Real GetEnergy() const;
   ConstRealBufferView GetGradient() const;
-
   const math::RealBlockMatrix& GetHessian() const;
-
   ConstSizeBufferView GetConstraints() const;
 
 protected:
   std::shared_ptr<State> state_;
   std::shared_ptr<Mesh> mesh_;
+  Real energy_;                        ///< energy of the term
   BufferPtr<Real> gradient_;           ///< gradient of the term
-  math::RealBlockMatrix bsr_hessian_;  ///< Hessian matrix in block sparse row format
+  math::RealBlockMatrix hessian_;  ///< Hessian matrix in block sparse row format
+  bool is_energy_up_to_date_;          ///< dirty bit.
   bool is_gradient_up_to_date_;        ///< dirty bit.
   bool is_hessian_up_to_date_;         ///< dirty bit.
   BufferPtr<size_t> constraints_;      ///< constraints of the term

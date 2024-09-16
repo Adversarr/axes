@@ -12,7 +12,7 @@ ConstRealBufferView TermBase::GetGradient() const {
 }
 
 const math::RealBlockMatrix& TermBase::GetHessian() const {
-  return bsr_hessian_;
+  return hessian_;
 }
 
 ConstSizeBufferView TermBase::GetConstraints() const {
@@ -20,6 +20,7 @@ ConstSizeBufferView TermBase::GetConstraints() const {
 }
 
 void TermBase::MarkDirty() {
+  is_energy_up_to_date_ = false;
   is_gradient_up_to_date_ = false;
   is_hessian_up_to_date_ = false;
 }
@@ -112,4 +113,5 @@ void Problem::InitializeHessianFillIn() {
   AX_ERROR("Not implemented.");
 }
 
-}  // namespace ax::fem
+Real TermBase::GetEnergy() const { return energy_; }
+} // namespace ax::fem

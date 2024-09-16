@@ -1,4 +1,4 @@
-#include "ax/math/sparse_matrix/csr_compress.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
@@ -6,7 +6,7 @@
 
 namespace ax::math {
 
-RealSparseMatrixCompressed::RealSparseMatrixCompressed(const RealSparseMatrix& mat,
+RealCSRMatrix::RealCSRMatrix(const RealSparseMatrix& mat,
                                                        BufferDevice device) {
   rows_ = static_cast<size_t>(mat.rows());
   cols_ = static_cast<size_t>(mat.cols());
@@ -19,7 +19,7 @@ RealSparseMatrixCompressed::RealSparseMatrixCompressed(const RealSparseMatrix& m
   SetFromTriplets(coo);
 }
 
-void RealSparseMatrixCompressed::RightMultiplyTo(ConstRealBufferView x, RealBufferView y,
+void RealCSRMatrix::RightMultiplyTo(ConstRealBufferView x, RealBufferView y,
                                                  Real alpha, Real beta) const {
   auto device = device_;
   if (!is_same_device(x, y) || x.Device() != device) {
@@ -40,7 +40,7 @@ void RealSparseMatrixCompressed::RightMultiplyTo(ConstRealBufferView x, RealBuff
   }
 }
 
-void RealSparseMatrixCompressed::SetData(BufferView<const int> row_ptrs,
+void RealCSRMatrix::SetData(BufferView<const int> row_ptrs,
                                          BufferView<const int> col_indices,
                                          BufferView<const Real> values) {
   if (!is_1d(row_ptrs.Shape()) || !is_1d(col_indices.Shape()) || !is_1d(values.Shape())) {
@@ -86,7 +86,7 @@ void RealSparseMatrixCompressed::SetData(BufferView<const int> row_ptrs,
   }
 }
 
-void RealSparseMatrixCompressed::SetFromTriplets(const RealSparseCOO& coo) {
+void RealCSRMatrix::SetFromTriplets(const RealSparseCOO& coo) {
   // Input coo is always on host.
   // sort it.
   RealSparseCOO sorted_coo = coo;

@@ -1,6 +1,7 @@
 #pragma once
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/math/sparse.hpp"
+#include "ax/math/sparse_matrix/sparse_matrix.hpp"
 
 namespace ax::math {
 
@@ -9,17 +10,17 @@ namespace ax::math {
  *        It use compressed row storage (CRS) format.
  *
  */
-class RealSparseMatrixCompressed {
+class RealCSRMatrix : public RealCompressedMatrixBase {
 public:
-  RealSparseMatrixCompressed() = default;
+  RealCSRMatrix() = default;
 
-  RealSparseMatrixCompressed(size_t rows, size_t cols, BufferDevice device)
+  RealCSRMatrix(size_t rows, size_t cols, BufferDevice device)
       : rows_(rows), cols_(cols), device_(device) {}
 
-  RealSparseMatrixCompressed(const RealSparseMatrixCompressed&) = default;
-  RealSparseMatrixCompressed(RealSparseMatrixCompressed&& other) noexcept = default;
+  RealCSRMatrix(const RealCSRMatrix&) = default;
+  RealCSRMatrix(RealCSRMatrix&& other) noexcept = default;
 
-  explicit RealSparseMatrixCompressed(const RealSparseMatrix& mat, BufferDevice device);
+  explicit RealCSRMatrix(const RealSparseMatrix& mat, BufferDevice device);
 
   void /*NOLINT: google-default-argument*/ RightMultiplyTo(ConstRealBufferView x, RealBufferView y,
                                                            Real alpha = 1, Real beta = 0) const;
@@ -39,7 +40,13 @@ public:
 
   // After construction of the matrix, you can call this function to enable the optimized
   // computation.
-  void Finish() const;
+  void Finish() override;
+
+  BufferPtr<int> GetRowPtr() const { return row_ptrs_; }
+
+  BufferPtr<int> GetColIndices() const { return col_indices_; }
+
+  BufferPtr<Real> GetValues() const { return values_; }
 
 private:
   BufferPtr<int> row_ptrs_;

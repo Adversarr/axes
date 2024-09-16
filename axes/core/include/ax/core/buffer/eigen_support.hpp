@@ -122,8 +122,10 @@ void check_is_valid_scalar_map(const BufferView<BufT>& bufv, StrideType stride) 
 template <typename Scalar, int Rows, int Cols>
 class ViewAsEigenMapAdaptor1D {
 public:
-  using MapT = math::Map<math::Matrix<Scalar, Rows, Cols>>;
-  using ConstMapT = math::Map<const math::Matrix<Scalar, Rows, Cols>>;
+  using ScalarWithoutConst = std::remove_const_t<Scalar>;
+  using MapTWithoutConst = math::Map<math::Matrix<ScalarWithoutConst, Rows, Cols>>;
+  using ConstMapT = math::Map<const math::Matrix<ScalarWithoutConst, Rows, Cols>>;
+  using MapT = std::conditional_t<std::is_const_v<Scalar>, ConstMapT, MapTWithoutConst>;
   AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMapAdaptor1D()
       = default;  // because BufferView is default constructible.
   AX_HOST_DEVICE AX_CONSTEXPR ViewAsEigenMapAdaptor1D(ViewAsEigenMapAdaptor1D const&) = default;

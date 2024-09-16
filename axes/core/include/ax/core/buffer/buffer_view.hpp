@@ -237,6 +237,8 @@ using RealBufferView = BufferView<Real>;
 using ConstRealBufferView = BufferView<const Real>;
 using IndexBufferView = BufferView<Index>;
 using ConstIndexBufferView = BufferView<const Index>;
+using IntBufferView = BufferView<int>;
+using ConstIntBufferView = BufferView<const int>;
 using SizeBufferView = BufferView<size_t>;
 using ConstSizeBufferView = BufferView<const size_t>;
 

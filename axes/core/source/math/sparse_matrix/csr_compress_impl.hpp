@@ -1,5 +1,5 @@
 #pragma once
-#include "ax/math/sparse_matrix/csr_compress.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
 
 namespace ax::math::details {
 

@@ -34,6 +34,8 @@ MassTerm::MassTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
   // Initialize the temp buffer, used for store the immediate result
   diff_ = state->GetVariables()->Clone();
   diff_->SetBytes(0);
+
+  SetDensity(1.0); // Default density is 1.0.
 }
 
 void MassTerm::MarkDirty() {

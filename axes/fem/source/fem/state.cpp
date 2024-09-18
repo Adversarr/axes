@@ -11,6 +11,7 @@ State::State() = default;
 State::State(size_t n_dof_per_vertex, size_t n_vert, BufferDevice device) {
   n_dof_per_vertex_ = n_dof_per_vertex;
   n_vert_ = n_vert;
+  device_ = device;
 
   variables_ = create_buffer<Real>(device, {n_dof_per_vertex, n_vert});
   condition_ = create_buffer<VariableCondition>(device, {n_dof_per_vertex, n_vert});

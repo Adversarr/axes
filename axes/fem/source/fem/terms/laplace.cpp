@@ -28,6 +28,9 @@ LaplaceTerm::LaplaceTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mes
   // Initialize the temp buffer, used for store the immediate result
   diff_ = state->GetVariables()->Clone();
   diff_->SetBytes(0);
+
+  // Default density is 1.0.
+  SetDiffusivity(1.0);
 }
 
 void LaplaceTerm::MarkDirty() {

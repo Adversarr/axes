@@ -21,7 +21,10 @@ void ElasticityBatchedCompute::UpdateDeformationGradient(ConstRealBufferView f) 
   AX_THROW_IF(f.Shape() != Dim3(dim_, dim_, n_cubature_points_),
               "f shape is not compatible with deform_grad_.");
   copy(deform_grad_->View(), f);
+  UpdateDeformationGradient();
+}
 
+void ElasticityBatchedCompute::UpdateDeformationGradient() {
   if (auto it = requires_svd.find(kind_); it != requires_svd.end() && it->second) {
     if (device_ == BufferDevice::Host) {
       details::do_update_svd_host(deform_grad_->ConstView(), svd_u_->View(), svd_v_->View(),

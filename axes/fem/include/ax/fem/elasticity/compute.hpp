@@ -9,11 +9,13 @@ AX_DEFINE_ENUM_CLASS(ElasticityKind, Linear, IsotropicARAP, StVK, NeoHookean, St
 class ElasticityBatchedCompute {
 public:
   ElasticityBatchedCompute() = default;
+  AX_DECLARE_CONSTRUCTOR(ElasticityBatchedCompute, default, default);
 
   ElasticityBatchedCompute(size_t n_cubature_points, size_t dim,
                            BufferDevice device = BufferDevice::Host);
 
   void UpdateDeformationGradient(ConstRealBufferView f);
+  void UpdateDeformationGradient();
 
   void UpdateEnergyDensity();
   void UpdateGradient();

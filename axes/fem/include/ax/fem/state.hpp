@@ -23,11 +23,14 @@ public:
 
   size_t GetNumDOFPerVertex() const;
   size_t GetNumVertices() const;
+  BufferDevice Device() const;
+
 
   // Set the data of the state and the condition of each variable.
   void SetData(ConstRealBufferView variables, ConstBufferView<VariableCondition> condition);
 
 private:
+  BufferDevice device_;
   BufferPtr<Real> variables_;               ///< variables at each vertex, is (ndof, nvert)
   BufferPtr<VariableCondition> condition_;  ///< condition of each variable, is (ndof, nvert)
   size_t n_dof_per_vertex_ = 0;             ///< number of degrees of freedom per vertex

@@ -1,4 +1,4 @@
-#include "ax/math/block_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 #include <doctest/doctest.h>
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
@@ -51,7 +51,7 @@ TEST_CASE("block mm") {
     rhs(i % 2, i / 2) = ground_truth(i);
   }
   ground_truth = sparse * ground_truth;
-  block_matrix.RightMultiplyTo(rhs_view, dst_view);
+  block_matrix.Multiply(rhs_view, dst_view, 1., 0.);
 
   for (size_t i = 0; i < 2; ++i) {
     for (size_t j = 0; j < 2; ++j) {

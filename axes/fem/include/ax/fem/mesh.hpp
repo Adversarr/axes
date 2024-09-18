@@ -29,6 +29,8 @@ public:
   size_t GetNumDOFPerVertex() const;
   size_t GetNumVerticesPerElement() const;
 
+  BufferDevice Device() const noexcept { return device_; }
+
 private:
   BufferPtr<Real> vertices_;       ///< coordinates of the vertices
   BufferPtr<size_t> elements_;     ///< describes the topology of the mesh

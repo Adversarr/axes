@@ -3,7 +3,7 @@
 #include "ax/core/buffer/device_buffer.cuh"
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/init.hpp"
-#include "ax/math/block_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 
 using namespace ax;
 
@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
   copy(row_ptr_device->View(), row_ptrs_view);
   copy(col_indices_device->View(), col_indices_view);
   block_matrix.SetData(row_ptr_device, col_indices_device, val);
+  block_matrix.Finish();
 
   // Check block matrix
   auto sparse = block_matrix_host.ToSparseMatrix();
@@ -51,7 +52,7 @@ int main(int argc, char **argv) {
   auto dst_device = DeviceBuffer<Real>::Create({2, 2});
   auto rhs_device = DeviceBuffer<Real>::Create({2, 3});
   copy(rhs_device->View(), rhs_view);
-  block_matrix.RightMultiplyTo(rhs_device->View(), dst_device->View());
+  block_matrix.Multiply(rhs_device->View(), dst_device->View());
 
   math::RealField2 dst_host(2, 2);
   copy(view_from_matrix(dst_host), dst_device->View());

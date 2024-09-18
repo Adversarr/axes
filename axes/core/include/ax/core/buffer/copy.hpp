@@ -21,11 +21,11 @@ cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind
     if constexpr (std::is_same_v<From, To>) {
       // check same shape
       if_unlikely (from.Shape() != to.Shape()) {
-        throw std::runtime_error(
+        AX_THROW_RUNTIME_ERROR(
             "Non-continuous CUDA copy between different shape is not invalid.");
       }
       if_unlikely (is_1d(from.Shape())) {
-        throw std::runtime_error("Non-continuous CUDA copy between 1D buffer is not supported.");
+        AX_THROW_RUNTIME_ERROR("Non-continuous CUDA copy between 1D buffer is not supported.");
       }
 
       const auto [x, y, z] = *(from.Shape());
@@ -36,7 +36,7 @@ cudaError cu_copy(BufferView<const From> from, BufferView<To> to, cudaMemcpyKind
       s = cudaMemcpy2D(to.Data(), to.Stride().Y(), from.Data(), from.Stride().Y(), width,
                        height, kind);
     } else {
-      throw std::runtime_error("CUDA copy between different types is not supported.");
+      AX_THROW_RUNTIME_ERROR("CUDA copy between different types is not supported.");
     }
   }
   return s;
@@ -53,7 +53,7 @@ void host_copy(BufferView<const From> from, BufferView<To> to) {
     if constexpr (std::is_same_v<From, To>) {
       // Not continuous, we need from and to is same shape and type.
       if (from.Shape() != to.Shape()) {
-        throw std::runtime_error(
+        AX_THROW_RUNTIME_ERROR(
             "Non-continuous Host copy between different shape is not supported.");
       }
 
@@ -69,7 +69,7 @@ void host_copy(BufferView<const From> from, BufferView<To> to) {
         }
       }
     } else {
-      throw std::runtime_error("Host copy between different types is not supported.");
+      AX_THROW_RUNTIME_ERROR("Host copy between different types is not supported.");
     }
   }
 }
@@ -89,7 +89,7 @@ void copy_dispatch(BufferView<const From> from, BufferView<To> to) {
       err = cu_copy(from, to, cudaMemcpyDeviceToHost);
     }
     if (err != cudaSuccess) {
-      throw make_runtime_error("CUDA copy failed: {}", cudaGetErrorString(err));
+      AX_THROW_RUNTIME_ERROR("CUDA copy failed: {}", cudaGetErrorString(err));
     }
 #else
     AX_CHECK(false, "CUDA is not enabled.");
@@ -114,10 +114,10 @@ void copy(BufferView<To> to, BufferView<From> from) {
   // check copiable.
   if (from.Device() == BufferDevice::Device || to.Device() == BufferDevice::Device) {
     if (!from.IsContinuous()) {
-      throw std::runtime_error("Copy between device buffer must be continuous.");
+      AX_THROW_RUNTIME_ERROR("Copy between device buffer must be continuous.");
     }
     if (!to.IsContinuous()) {
-      throw std::runtime_error("Copy between device buffer must be continuous.");
+      AX_THROW_RUNTIME_ERROR("Copy between device buffer must be continuous.");
     }
   }
 #else
@@ -127,7 +127,7 @@ void copy(BufferView<To> to, BufferView<From> from) {
   const size_t total_src_byte = prod(from.Shape()) * sizeof(From);
   const size_t total_dst_byte = prod(to.Shape()) * sizeof(To);
   if_unlikely (total_src_byte > total_dst_byte) {
-    throw make_runtime_error("Buffer size not enough for copy. {} > {}", total_src_byte,
+    AX_THROW_RUNTIME_ERROR("Buffer size not enough for copy. {} > {}", total_src_byte,
                              total_dst_byte);
   }
 

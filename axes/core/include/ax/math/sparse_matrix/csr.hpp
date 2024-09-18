@@ -14,26 +14,25 @@ class RealCSRMatrix : public RealCompressedMatrixBase {
 public:
   RealCSRMatrix() = default;
 
-  RealCSRMatrix(size_t rows, size_t cols, BufferDevice device)
-      : rows_(rows), cols_(cols), device_(device) {}
+  RealCSRMatrix(size_t rows, size_t cols, BufferDevice device);
 
   RealCSRMatrix(const RealCSRMatrix&) = default;
   RealCSRMatrix(RealCSRMatrix&& other) noexcept = default;
 
   explicit RealCSRMatrix(const RealSparseMatrix& mat, BufferDevice device);
 
-  void /*NOLINT: google-default-argument*/ RightMultiplyTo(ConstRealBufferView x, RealBufferView y,
-                                                           Real alpha = 1, Real beta = 0) const;
+  void Multiply(ConstRealBufferView x, RealBufferView y, Real alpha, Real beta) const override;
+
+  // computes y = alpha * A^T * x + beta * y
+  void TransposeMultiply(ConstRealBufferView x, RealBufferView y, Real alpha,
+                         Real beta) const override;
 
   // Set the data of the matrix.
-  void SetData(BufferView<const int> row_ptrs, BufferView<const int> col_indices,
-               BufferView<const Real> values);
+  void SetData(ConstIntBufferView row_ptrs, ConstIntBufferView col_indices,
+               ConstRealBufferView values);
 
   // Setup the internal data from the triplets.
   void SetFromTriplets(const RealSparseCOO& coo);
-
-  // Prune the matrix by removing the elements with absolute value less than eps.
-  void Prune(Real eps = math::epsilon<Real>);
 
   // Convert to Eigen SparseMatrix
   RealSparseMatrix ToSparseMatrix() const;
@@ -42,21 +41,8 @@ public:
   // computation.
   void Finish() override;
 
-  BufferPtr<int> GetRowPtr() const { return row_ptrs_; }
-
-  BufferPtr<int> GetColIndices() const { return col_indices_; }
-
-  BufferPtr<Real> GetValues() const { return values_; }
-
 private:
-  BufferPtr<int> row_ptrs_;
-  BufferPtr<int> col_indices_;
-  BufferPtr<Real> values_;
-
-  size_t rows_{0};
-  size_t cols_{0};
-  BufferDevice device_;
-  mutable std::shared_ptr<void> mat_descr_;
+  std::shared_ptr<void> mat_descr_;
 };
 
 }  // namespace ax::math

@@ -3,7 +3,7 @@
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/init.hpp"
 #include "ax/fem/utils/gather_builder.hpp"
-#include "ax/math/block_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 #include "ax/math/high_order/gather.hpp"
 
 using namespace ax;

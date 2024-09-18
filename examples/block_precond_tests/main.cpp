@@ -2,14 +2,16 @@
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/init.hpp"
-#include "ax/math/block_matrix/linsys/preconditioner/block_jacobi.hpp"
-#include "ax/math/block_matrix/linsys/preconditioner/jacobi.hpp"
-#include "ax/math/block_matrix/linsys/solver/cg.hpp"
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
+#include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 
 using namespace ax;
 
-math::RealBlockMatrix create_block_matrix(BufferDevice device = BufferDevice::Host) {
+std::shared_ptr<math::RealBlockMatrix> create_block_matrix(BufferDevice device
+                                                           = BufferDevice::Host) {
   // Allocate the buffer
   // auto value = HostBuffer<Real>::Create({2, 2, 4}); // 2x2 block, 4 blocks
   // auto row_ptr = HostBuffer<int>::Create({5}); // 4 rows +1 for the end
@@ -32,15 +34,15 @@ math::RealBlockMatrix create_block_matrix(BufferDevice device = BufferDevice::Ho
     col(bid) = static_cast<int>(bid);
   }
 
-  math::RealBlockMatrix mat(4, 4, 2, device);
-  mat.SetData(row, col, val);
+  auto mat = std::make_shared<math::RealBlockMatrix>(4, 4, 2, device);
+  mat->SetData(row, col, val);
+  mat->Finish();
   return mat;
 }
 
 static void test_block_jacobi() {
-  math::BlockPreconditioner_BlockJacobi jac;
-  auto prob = std::make_shared<math::BlockedLinsysProblem>(create_block_matrix());
-  jac.SetProblem(prob);
+  math::GeneralSparsePreconditioner_BlockJacobi jac;
+  jac.SetProblem(create_block_matrix());
   jac.AnalyzePattern();
   jac.Factorize();
 
@@ -87,10 +89,8 @@ static void test_block_jacobi() {
 }
 
 static void test_block_jacobi_gpu() {
-  math::BlockPreconditioner_BlockJacobi jac;
-  auto prob
-      = std::make_shared<math::BlockedLinsysProblem>(create_block_matrix(BufferDevice::Device));
-  jac.SetProblem(prob);
+  math::GeneralSparsePreconditioner_BlockJacobi jac;
+  jac.SetProblem(create_block_matrix(BufferDevice::Device));
   jac.AnalyzePattern();
   jac.Factorize();
 
@@ -148,7 +148,7 @@ static void test_block_jacobi_gpu() {
  * 0 0 I I
  * diagonal blocks are larger.
  */
-static math::RealBlockMatrix create_block_matrix2(BufferDevice device) {
+static std::shared_ptr<math::RealBlockMatrix> create_block_matrix2(BufferDevice device) {
   // Tri-diagonal matrix
   size_t rows = 4;
   size_t nblocks = rows + 2 * (rows - 1);  // 1diag, 2 offdiag.
@@ -184,13 +184,14 @@ static math::RealBlockMatrix create_block_matrix2(BufferDevice device) {
   AX_CHECK(bid == nblocks, "bid: {}, nblocks: {}", bid, nblocks);
   row(rows) = bid;
 
-  math::RealBlockMatrix mat(rows, rows, bs, device);
-  mat.SetData(row, col, val);
+  auto mat = std::make_shared<math::RealBlockMatrix>(rows, rows, bs, device);
+  mat->SetData(row, col, val);
+  mat->Finish();
   return mat;
 }
 
 static void test_cg() {
-  math::BlockSolver_ConjugateGradient cg;
+  math::GeneralSparseSolver_ConjugateGradient cg;
   cg.SetProblem(create_block_matrix2(BufferDevice::Host));
   cg.Compute();
 
@@ -198,7 +199,7 @@ static void test_cg() {
   math::RealField2 x_mat(2, 4);
   b_mat << 1, 2, 3, 4, 5, 6, 7, 8;
   x_mat.setZero();
-  auto spm_classical = cg.problem_->A_.ToSparseMatrix();
+  auto spm_classical = create_block_matrix2(ax::BufferDevice::Host)->ToSparseMatrix();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
   cg_host.SetProblem(spm_classical).Compute();
@@ -207,7 +208,7 @@ static void test_cg() {
 
   math::RealField2 temp(2, 4);
   // Check that the solution is correct
-  cg.problem_->A_.RightMultiplyTo(view_from_matrix(gt), view_from_matrix(temp));
+  cg.mat_->Multiply(view_from_matrix(gt), view_from_matrix(temp), 1., 0.);
   math::RealField2 resdual = b_mat - temp;
   AX_CHECK(resdual.norm() < 1e-9, "CG solution is wrong, residual norm: {}", resdual.norm());
 
@@ -223,7 +224,7 @@ static void test_cg() {
 }
 
 static void test_cg_gpu() {
-  math::BlockSolver_ConjugateGradient cg;
+  math::GeneralSparseSolver_ConjugateGradient cg;
   cg.SetProblem(create_block_matrix2(BufferDevice::Device));
   cg.Compute();
 
@@ -233,7 +234,7 @@ static void test_cg_gpu() {
   x_mat.setZero();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
-  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host).ToSparseMatrix()).Compute();
+  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host)->ToSparseMatrix()).Compute();
   math::RealVectorX b_flat = b_mat.reshaped();
   math::RealField2 gt = cg_host.Solve(b_flat, {}).solution_.reshaped(2, 4);
 
@@ -255,8 +256,8 @@ static void test_cg_gpu() {
 }
 
 static void test_cg_jacobi() {
-  math::BlockSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::BlockPreconditioner_BlockJacobi>();
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
   cg.SetProblem(create_block_matrix2(BufferDevice::Host));
   cg.Compute();
 
@@ -264,7 +265,7 @@ static void test_cg_jacobi() {
   math::RealField2 x_mat(2, 4);
   b_mat << 1, 2, 3, 4, 5, 6, 7, 8;
   x_mat.setZero();
-  auto spm_classical = cg.problem_->A_.ToSparseMatrix();
+  auto spm_classical = create_block_matrix2(BufferDevice::Host)->ToSparseMatrix();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
   cg_host.SetProblem(spm_classical).Compute();
@@ -273,7 +274,7 @@ static void test_cg_jacobi() {
 
   math::RealField2 temp(2, 4);
   // Check that the solution is correct
-  cg.problem_->A_.RightMultiplyTo(view_from_matrix(gt), view_from_matrix(temp));
+  cg.mat_->Multiply(view_from_matrix(gt), view_from_matrix(temp), 1., 0.);
   math::RealField2 resdual = b_mat - temp;
   AX_CHECK(resdual.norm() < 1e-9, "CG solution is wrong, residual norm: {}", resdual.norm());
 
@@ -289,8 +290,8 @@ static void test_cg_jacobi() {
 }
 
 static void test_cg_gpu_jacobi() {
-  math::BlockSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::BlockPreconditioner_BlockJacobi>();
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
   cg.SetProblem(create_block_matrix2(BufferDevice::Device));
   cg.Compute();
 
@@ -300,7 +301,7 @@ static void test_cg_gpu_jacobi() {
   x_mat.setZero();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
-  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host).ToSparseMatrix()).Compute();
+  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host)->ToSparseMatrix()).Compute();
   math::RealVectorX b_flat = b_mat.reshaped();
   math::RealField2 gt = cg_host.Solve(b_flat, {}).solution_.reshaped(2, 4);
 
@@ -322,10 +323,9 @@ static void test_cg_gpu_jacobi() {
   }
 }
 
-
 static void test_cg_jacobi_diag() {
-  math::BlockSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::BlockPreconditioner_Jacobi>();
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_Jacobi>();
   cg.SetProblem(create_block_matrix2(BufferDevice::Host));
   cg.Compute();
 
@@ -333,7 +333,7 @@ static void test_cg_jacobi_diag() {
   math::RealField2 x_mat(2, 4);
   b_mat << 1, 2, 3, 4, 5, 6, 7, 8;
   x_mat.setZero();
-  auto spm_classical = cg.problem_->A_.ToSparseMatrix();
+  auto spm_classical = create_block_matrix2(BufferDevice::Host)->ToSparseMatrix();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
   cg_host.SetProblem(spm_classical).Compute();
@@ -342,7 +342,7 @@ static void test_cg_jacobi_diag() {
 
   math::RealField2 temp(2, 4);
   // Check that the solution is correct
-  cg.problem_->A_.RightMultiplyTo(view_from_matrix(gt), view_from_matrix(temp));
+  cg.mat_->Multiply(view_from_matrix(gt), view_from_matrix(temp), 1, 0);
   math::RealField2 resdual = b_mat - temp;
   AX_CHECK(resdual.norm() < 1e-9, "CG solution is wrong, residual norm: {}", resdual.norm());
 
@@ -358,8 +358,8 @@ static void test_cg_jacobi_diag() {
 }
 
 static void test_cg_gpu_jacobi_diag() {
-  math::BlockSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::BlockPreconditioner_Jacobi>();
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_Jacobi>();
   cg.SetProblem(create_block_matrix2(BufferDevice::Device));
   cg.Compute();
 
@@ -369,7 +369,7 @@ static void test_cg_gpu_jacobi_diag() {
   x_mat.setZero();
   // Launch Host CG
   math::SparseSolver_ConjugateGradient cg_host;
-  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host).ToSparseMatrix()).Compute();
+  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host)->ToSparseMatrix()).Compute();
   math::RealVectorX b_flat = b_mat.reshaped();
   math::RealField2 gt = cg_host.Solve(b_flat, {}).solution_.reshaped(2, 4);
 

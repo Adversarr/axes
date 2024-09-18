@@ -7,6 +7,7 @@
 #include "ax/fem/elements/p1.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/sparse_matrix/csr.hpp"
+#include "details/mass_impl.hpp"
 
 namespace ax::fem {
 
@@ -55,13 +56,14 @@ void MassTerm::UpdateEnergy() {
   math::buffer_blas::axpy(-1.0, rhs, diff);  // diff = u - rhs
 
   // grad <- M(u-rhs)
-  hessian_.RightMultiplyTo(diff, grad, 1.0, 0.0);
+  hessian_.Multiply(diff, grad, 1.0, 0.0);
 
   // compute energy.
   energy_ = 0.5 * math::buffer_blas::dot(diff, grad);
   is_diff_up_to_date_ = true;
   is_energy_up_to_date_ = true;
   is_gradient_up_to_date_ = true;
+  is_hessian_up_to_date_ = true;
 }
 
 void MassTerm::UpdateGradient() {
@@ -74,54 +76,18 @@ void MassTerm::UpdateHessian() {
   // Nothing to do.
 }
 
-math::RealSparseCOO compute_fill_in_2d(ConstRealBufferView position, ConstSizeBufferView elements,
-                                       ConstRealBufferView density) {
-  math::RealSparseCOO coo;
-  auto elem = view_as_matrix_1d<const size_t, 3>(elements);
-  auto pos = view_as_matrix_1d<const Real, 2>(position);
-  size_t n_elem = elements.Shape().Y();
-  for (size_t i = 0; i < n_elem; ++i) {
-    auto v0 = pos(elem(i)(0));
-    auto v1 = pos(elem(i)(1));
-    auto v2 = pos(elem(i)(2));
-    elements::P1Element2D p1({v0, v1, v2});
-    for (Index k = 0; k < 3; ++k) {
-      for (Index l = 0; l < 3; ++l) {
-        auto vk = elem(i)(k), vl = elem(i)(l);
-        Real val = p1.Integrate_F_F(k, l) * density(i);
-        if (val != 0) {
-          coo.push_back(math::RealSparseEntry(static_cast<Index>(vk), static_cast<Index>(vl), val));
-        }
-      }
-    }
-  }
-  return coo;
+void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
+  AX_THROW_IF(
+      !is_1d(uniform_density.Shape()) || uniform_density.Shape().X() != mesh_->GetNumElements(),
+      "MassTerm: Density must be a 1D buffer with the same number of elements as the mesh.");
+  // Create the mass matrix.
+  hessian_ = details::compute_mass_matrix_host(*mesh_, uniform_density,
+                                               state_->GetVariables()->Shape().X());
 }
 
-void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
-  auto [dim, nv, _] = *gradient_->Shape();
-  auto device = state_->GetVariables()->Device();
-
-  if (dim != 2 && dim != 3) {
-    throw make_runtime_error("MassTerm: Only support 2D and 3D. got {}", dim);
-  }
-
-  BufferPtr<Real> host_position = create_buffer<Real>(BufferDevice::Host, {nv, dim});
-  copy(host_position->View(), mesh_->GetVertices()->ConstView());
-  math::RealSparseCOO coo;
-
-  if (dim == 2) {
-    coo = compute_fill_in_2d(host_position->ConstView(), mesh_->GetElements()->ConstView(),
-                             uniform_density);
-  } else {
-    // TODO.
-  }
-  math::RealCSRMatrix csr(nv, nv, BufferDevice::Host);
-  csr.SetFromTriplets(coo);
-
-  auto v = csr.GetValues();
-  BufferPtr<Real> bsr_val = create_buffer<Real>(device, {dim, dim, v->Shape().X()});
-  // TODO. not implemented.
+void MassTerm::SetDensity(Real uniform_density) {
+  std::vector<Real> density(mesh_->GetNumElements(), uniform_density);
+  SetDensity(view_from_buffer(density));
 }
 
 }  // namespace ax::fem

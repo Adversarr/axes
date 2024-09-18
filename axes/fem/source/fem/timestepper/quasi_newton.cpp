@@ -160,7 +160,7 @@ void Timestepper_QuasiNewton<dim>::Initialize() {
   TimeStepperBase<dim>::Initialize();
   if (!solver_) {
     AX_WARN("Use default sparse solver: Cholmod.");
-    solver_ = math::SparseSolverBase::Create(math::SparseSolverKind::Cholmod);
+    solver_ = math::SparseSolverBase::Create(math::HostSparseSolverKind::Cholmod);
   }
 }
 
@@ -384,7 +384,7 @@ void Timestepper_QuasiNewton<dim>::SolveTimestep() {
 template <int dim>
 void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
   utils::extract_enum(option, "lbfgs_strategy", strategy_);
-  utils::extract_and_create<math::SparseSolverBase, math::SparseSolverKind>(option, "sparse_solver",
+  utils::extract_and_create<math::SparseSolverBase, math::HostSparseSolverKind>(option, "sparse_solver",
                                                                             solver_);
   extract_tunable(option, "sparse_solver_opt", solver_.get());
   /* SECT: Lbfgs Options */

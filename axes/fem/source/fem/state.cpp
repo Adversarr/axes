@@ -30,11 +30,11 @@ BufferPtr<Real> State::GetVariables() const {
 void State::SetData(ConstRealBufferView variables, ConstBufferView<VariableCondition> condition) {
   auto device = variables_->Device();
   if (variables.Shape() != variables_->Shape() || condition.Shape() != condition_->Shape()) {
-    throw make_runtime_error("Shape mismatch.");
+    AX_THROW_RUNTIME_ERROR("Shape mismatch.");
   }
 
   if (variables.Device() != device || condition.Device() != device) {
-    throw make_runtime_error("Device mismatch.");
+    AX_THROW_RUNTIME_ERROR("Device mismatch.");
   }
 
   copy(variables_->View(), variables);

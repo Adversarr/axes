@@ -250,7 +250,7 @@ AX_CONSTEXPR AX_FORCE_INLINE bool is_same_device(BufferView<Front> const& front,
 
 template <typename T>
 AX_CONSTEXPR AX_HOST_DEVICE AX_FORCE_INLINE BufferView<T> flatten(BufferView<T> view) {
-  assert(!view.IsContinuous(1) && "The buffer is not continuous in y,z dimension.");
+  assert(view.IsContinuous(1) && "The buffer is not continuous in y,z dimension.");
   return view_from_raw_buffer(view.Data(), prod(view.Shape()), {view.Stride().X(), 0, 0},
                               view.Device());
 }
@@ -261,9 +261,11 @@ BufferView<T> BufferView<T>::Reshaped(BufferDim const& shape) {
   assert(IsContinuous(1) && "The buffer is not continuous in y,z dimension.");
   assert(prod(shape) == prod(Shape()) && "The new shape is not compatible with the old shape.");
 
-  return view_from_raw_buffer(
-      Data(), shape, {strides_.X(), shape.X() * strides_.X(), shape.X() * shape.Y() * strides_.X()},
-      Device());
+  return view_from_raw_buffer(Data(), shape,
+                              {strides_.X(),
+                               shape.Y() == 0 ? 0 : shape.X() * strides_.X(),
+                               shape.Z() == 0 ? 0 : shape.X() * shape.Y() * strides_.X()},
+                              Device());
 }
 
 }  // namespace ax

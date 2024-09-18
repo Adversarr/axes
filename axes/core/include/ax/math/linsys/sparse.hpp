@@ -7,7 +7,7 @@
 
 namespace ax::math {
 
-AX_DEFINE_ENUM_CLASS(SparseSolverKind,
+AX_DEFINE_ENUM_CLASS(HostSparseSolverKind,
                      // Eigen solvers
                      LDLT, LLT, LU, QR, ConjugateGradient, LeastSquaresConjugateGradient, BiCGSTAB,
 
@@ -19,8 +19,8 @@ public:
   SparseSolverBase();
   ~SparseSolverBase() override = default;
 
-  static std::unique_ptr<SparseSolverBase> Create(SparseSolverKind kind);
-  virtual SparseSolverKind GetKind() const = 0;
+  static std::unique_ptr<SparseSolverBase> Create(HostSparseSolverKind kind);
+  virtual HostSparseSolverKind GetKind() const = 0;
 
   /************************* SECT: Setup the solver *************************/
   /**

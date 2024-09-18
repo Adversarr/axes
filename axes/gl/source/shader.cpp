@@ -23,7 +23,7 @@ Shader Shader::CompileSource(const char* source, ShaderType type) {
     glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &log_length);
     std::vector<GLchar> info_log(static_cast<size_t>(log_length));
     glGetShaderInfoLog(shader_id, log_length, nullptr, info_log.data());
-    throw make_runtime_error("Failed to compile shader: {}", info_log.data());
+    AX_THROW_RUNTIME_ERROR("Failed to compile shader: {}", info_log.data());
   }
 
   return Shader(shader_id, type);

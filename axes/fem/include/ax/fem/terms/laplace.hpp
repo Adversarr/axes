@@ -20,9 +20,18 @@ public:
   void SetDiffusivity(ConstRealBufferView diffusivity);
   void SetDiffusivity(Real uniform_diffusivity);
 
-  Real Energy() const override;
+  void MarkDirty() override;
+  void UpdateEnergy() override;
   void UpdateGradient() override;
   void UpdateHessian() override;
+
+  void SetRhs(ConstRealBufferView rhs);
+
+private:
+  // The RHS vector without Mass multiplied.
+  BufferPtr<Real> rhs_;
+  BufferPtr<Real> diff_; ///< stores (u - rhs)
+  bool is_diff_up_to_date_{false};
 };
 
 }  // namespace ax::fem

@@ -62,7 +62,7 @@ static boost::json::object convert_dict_to_json(py::dict const &dict) {
     if (val) {
       obj[key] = *val;
     } else {
-      throw std::runtime_error("Unsupported type in dict: " + key);
+      AX_THROW_RUNTIME_ERROR("Unsupported type in dict: " + key);
     }
   }
   return obj;
@@ -354,7 +354,7 @@ void bind_core_math(py::module &m) {
   m.def("make_sparse_solver", [](std::string solver_name) -> std::unique_ptr<math::SparseSolverBase> {
     auto solver_kind = utils::reflect_enum<math::SparseSolverKind>(solver_name);
     if (!solver_kind) {
-      throw std::runtime_error("Invalid solver name: " + solver_name);
+      AX_THROW_RUNTIME_ERROR("Invalid solver name: " + solver_name);
     }
     return math::SparseSolverBase::Create(*solver_kind);
   });

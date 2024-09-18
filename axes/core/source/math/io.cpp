@@ -50,7 +50,7 @@ shape=() means there is 1 element) by dtype.itemsize.
 void write_npy_v10(std::ostream& out, const Real* p, size_t write_length, size_t f, size_t i,
                    size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
-    throw std::runtime_error("The write length is not correct.");
+    AX_THROW_RUNTIME_ERROR("The write length is not correct.");
   }
   out.write(numpy_magic_code, 6);
   uint8_t major = 1;
@@ -82,14 +82,14 @@ void write_npy_v10(std::ostream& out, const Real* p, size_t write_length, size_t
   out.write(reinterpret_cast<const char*>(p), static_cast<long>(write_length * sizeof(Real)));
 
   if (!out.good()) {
-    throw std::runtime_error("Failed to write to the ostream properly.");
+    AX_THROW_RUNTIME_ERROR("Failed to write to the ostream properly.");
   }
 }
 
 static void write_npy_v10(std::ostream& out, const Index* p, size_t write_length, size_t f, size_t i,
                           size_t j) {
   if (std::max<size_t>(f, 1) * std::max<size_t>(i, 1) * j != write_length) {
-    throw std::runtime_error("The write length is not correct.");
+    AX_THROW_RUNTIME_ERROR("The write length is not correct.");
   }
   out.write(numpy_magic_code, 6);
   uint8_t major = 1;
@@ -122,7 +122,7 @@ static void write_npy_v10(std::ostream& out, const Index* p, size_t write_length
             static_cast<std::streamsize>(write_length * sizeof(Index)));
 
   if (!out.good()) {
-    throw std::runtime_error("Failed to write to the ostream properly.");
+    AX_THROW_RUNTIME_ERROR("Failed to write to the ostream properly.");
   }
 }
 
@@ -130,7 +130,7 @@ void write_npy_v10(std::string path, const Vector<Real, Eigen::Dynamic>& vec) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // return void{voidCode::kInvalidArgument, "Failed to open the file."};
-    throw std::runtime_error("Failed to open the file.");
+    AX_THROW_RUNTIME_ERROR("Failed to open the file.");
   }
 
   write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0,
@@ -141,7 +141,7 @@ void write_npy_v10(std::string path, const Vector<Index, Eigen::Dynamic>& vec) {
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // return void{voidCode::kInvalidArgument, "Failed to open the file."};
-    throw std::runtime_error("Failed to open the file: " + path);
+    AX_THROW_RUNTIME_ERROR("Failed to open the file: {}", path);
   }
 
   write_npy_v10(out, vec.data(), static_cast<size_t>(vec.size()), 0, 0,
@@ -152,7 +152,7 @@ void write_npy_v10(std::string path, const Matrix<Real, dynamic, dynamic>& mat) 
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // void{voidCode::kInvalidArgument, "Failed to open the file."};
-    throw std::runtime_error("Failed to open the file.");
+    AX_THROW_RUNTIME_ERROR("Failed to open the file.");
   }
 
   std::vector<Real> data;
@@ -171,7 +171,7 @@ void write_npy_v10(std::string path, const Matrix<Index, dynamic, dynamic>& mat)
   std::ofstream out(path, std::ios::binary);
   if (!out.is_open()) {
     // return void{voidCode::kInvalidArgument, "Failed to open the file."};
-    throw std::runtime_error("Failed to open the file: " + path);
+    AX_THROW_RUNTIME_ERROR("Failed to open the file: {}", path);
   }
 
   std::vector<Index> data;
@@ -192,7 +192,7 @@ struct Header {
   std::vector<Index> shape_;
   void Parse(const std::string& header) {
     if (header.empty()) {
-      throw std::runtime_error("The header is empty.");
+      AX_THROW_RUNTIME_ERROR("The header is empty.");
     }
 
     std::stringstream ss(header);
@@ -208,7 +208,7 @@ struct Header {
       return status;
     };
     if (!consume_until('{')) {
-      throw std::runtime_error("The header is not a valid dictionary.");
+      AX_THROW_RUNTIME_ERROR("The header is not a valid dictionary.");
     }
 
     while ((ss >> c)) {
@@ -227,11 +227,11 @@ struct Header {
       }
 
       if (!consume_until(':')) {
-        throw std::runtime_error("The header is not a valid dictionary.");
+        AX_THROW_RUNTIME_ERROR("The header is not a valid dictionary.");
       }
       if (key == "descr") {
         if (!consume_until('\'')) {
-          throw std::runtime_error("The descr key is not a string.");
+          AX_THROW_RUNTIME_ERROR("The descr key is not a string.");
         }
         while (ss >> c) {
           if (c == '\'') {
@@ -247,7 +247,7 @@ struct Header {
           }
         }
         if (c != 'T' && c != 'F') {
-          throw std::runtime_error("The fortran_order key is not a boolean.");
+          AX_THROW_RUNTIME_ERROR("The fortran_order key is not a boolean.");
         }
         fortran_order_ = c == 'T';
       } else if (key == "shape") {
@@ -306,7 +306,7 @@ math::RealMatrixX read_npy_v10_real(std::string path) {
   char magic[6];
   in.read(magic, 6);
   if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
-    throw make_runtime_error("The file is not a valid NPY file. (magic code mismatch)");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid NPY file. (magic code mismatch)");
   }
 
   uint8_t major, minor;
@@ -320,24 +320,24 @@ math::RealMatrixX read_npy_v10_real(std::string path) {
   header.resize(header_len + 1, 0);
   in.read(header.data(), header_len);
   if (!in.good()) {
-    throw make_runtime_error("The file is not a valid NPY file. (Failed to read the header)");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid NPY file. (Failed to read the header)");
   }
   // Read the data
   Header header_obj;
   header_obj.Parse(header);
   if (header_obj.shape_.size() > 2) {
-    throw make_runtime_error("dim > 2 is not supported");
+    AX_THROW_RUNTIME_ERROR("dim > 2 is not supported");
   }
   Index rows = header_obj.shape_[0];
   Index cols = header_obj.shape_.size() > 1 ? header_obj.shape_[1] : 1;
   math::RealMatrixX mat(rows, cols);
 
   if (header_obj.descr_[0] != '<') {
-    throw make_runtime_error("The data type is not little endianed.");
+    AX_THROW_RUNTIME_ERROR("The data type is not little endianed.");
   }
 
   if (header_obj.descr_[1] != 'f') {
-    throw make_runtime_error("The data type is not float.");
+    AX_THROW_RUNTIME_ERROR("The data type is not float.");
   }
 
   if (header_obj.descr_[2] == '4') {
@@ -372,14 +372,14 @@ math::RealMatrixX read_npy_v10_real(std::string path) {
         for (Index i = 0; i < cols; ++i) {
           double val;
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
-            throw make_runtime_error("Invalid npy file.");
+            AX_THROW_RUNTIME_ERROR("Invalid npy file.");
           }
           mat(j, i) = static_cast<Real>(val);
         }
       }
     }
   } else {
-    throw make_runtime_error("The data type is not float32 or float64.");
+    AX_THROW_RUNTIME_ERROR("The data type is not float32 or float64.");
   }
   return mat;
 }
@@ -394,7 +394,7 @@ math::IndexMatrixX read_npy_v10_Index(std::string path) {
   char magic[6];
   in.read(magic, 6);
   if (std::memcmp(magic, numpy_magic_code, 6) != 0) {
-    throw make_runtime_error("The file is not a valid NPY file. (magic code mismatch)");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid NPY file. (magic code mismatch)");
   }
 
   uint8_t major, minor;
@@ -408,24 +408,24 @@ math::IndexMatrixX read_npy_v10_Index(std::string path) {
   header.resize(header_len + 1, 0);
   in.read(header.data(), header_len);
   if (!in.good()) {
-    throw make_runtime_error("The file is not a valid NPY file. (Failed to read the header)");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid NPY file. (Failed to read the header)");
   }
   // Read the data
   Header header_obj;
   header_obj.Parse(header);
   if (header_obj.shape_.size() > 2) {
-    throw make_runtime_error("dim > 2 is not supported");
+    AX_THROW_RUNTIME_ERROR("dim > 2 is not supported");
   }
   Index rows = header_obj.shape_[0];
   Index cols = header_obj.shape_.size() > 1 ? header_obj.shape_[1] : 1;
   math::IndexMatrixX mat(rows, cols);
 
   if (header_obj.descr_[0] != '<') {
-    throw make_runtime_error("The data type is not little endianed.");
+    AX_THROW_RUNTIME_ERROR("The data type is not little endianed.");
   }
 
   if (header_obj.descr_[1] != 'i') {
-    throw make_runtime_error("The data type is not long or int.");
+    AX_THROW_RUNTIME_ERROR("The data type is not long or int.");
   }
 
   if (header_obj.descr_[2] == '4') {
@@ -460,14 +460,14 @@ math::IndexMatrixX read_npy_v10_Index(std::string path) {
         for (Index i = 0; i < cols; ++i) {
           int64_t val;
           if (!in.read(reinterpret_cast<char*>(&val), 8)) {
-            throw make_runtime_error("Invalid npy file.");
+            AX_THROW_RUNTIME_ERROR("Invalid npy file.");
           }
           mat(j, i) = static_cast<Index>(val);
         }
       }
     }
   } else {
-    throw make_runtime_error("The data type is not long or int");
+    AX_THROW_RUNTIME_ERROR("The data type is not long or int");
   }
   return mat;
 }
@@ -475,7 +475,7 @@ math::IndexMatrixX read_npy_v10_Index(std::string path) {
 void write_sparse_matrix(std::string path, const RealSparseMatrix& mat) {
   std::ofstream out(path);
   if (!out.is_open()) {
-    throw std::runtime_error("Failed to open the file. " + path);
+    AX_THROW_RUNTIME_ERROR("Failed to open the file: {}", path);
   }
 
   out << R"(%%MatrixMarket matrix coordinate real general
@@ -516,7 +516,7 @@ RealSparseMatrix read_sparse_matrix(std::string path) {
   char line[1024];
   in.getline(line, 1024);
   if (std::strncmp(line, "%%MatrixMarket matrix coordinate real general", 46) != 0) {
-    throw make_runtime_error("The file is not a valid MatrixMarket file.");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid MatrixMarket file.");
   }
 
   while (in.getline(line, 1024)) {
@@ -528,19 +528,19 @@ RealSparseMatrix read_sparse_matrix(std::string path) {
   int rows, cols, nonzeros;
   Index n_success = std::sscanf(line, "%d %d %d", &rows, &cols, &nonzeros);
   if (n_success != 3) {
-    throw make_runtime_error("The file is not a valid MatrixMarket file.");
+    AX_THROW_RUNTIME_ERROR("The file is not a valid MatrixMarket file.");
   }
   RealSparseCOO triplets;
   triplets.reserve(static_cast<size_t>(nonzeros));
   for (int i = 0; i < nonzeros; ++i) {
     if (!in.getline(line, 1024)) {
-      throw make_runtime_error("The file is not a valid MatrixMarket file.");
+      AX_THROW_RUNTIME_ERROR("The file is not a valid MatrixMarket file.");
     }
     int r, c;
     Real val;
     n_success = std::sscanf(line, "%d %d %lf", &r, &c, &val);
     if (n_success != 3) {
-      throw make_runtime_error("Line {} is not a valid triplet: {}", i, line);
+      AX_THROW_RUNTIME_ERROR("Line {} is not a valid triplet: {}", i, line);
     }
     triplets.push_back({r - 1, c - 1, val});
   }

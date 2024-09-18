@@ -95,7 +95,7 @@ void GatherAddOp::Apply(ConstRealBufferView src, RealBufferView dst, Real alpha,
     gather_device(src, dst, weights_->ConstView(), row_entries_->ConstView(),
                   col_indices_->ConstView(), alpha, beta, n_output_, gather_dim);
 #else
-    throw std::runtime_error("CUDA is not enabled.");
+    AX_THROW_RUNTIME_ERROR("CUDA is not enabled.");
 #endif
   } else {
     // do host work.

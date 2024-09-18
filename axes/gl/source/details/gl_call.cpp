@@ -39,7 +39,7 @@ void clear_error() {
 void fetch_error(const char* expr, const char* file, int line) {
   GLenum error_code = glGetError();
   if (error_code != GL_NO_ERROR) {
-    throw make_runtime_error("OpenGL error: {}, \nOccur at {}:{}\ncommand={}", to_string(error_code), file,
+    AX_THROW_RUNTIME_ERROR("OpenGL error: {}, \nOccur at {}:{}\ncommand={}", to_string(error_code), file,
                              line, expr);
   }
 }

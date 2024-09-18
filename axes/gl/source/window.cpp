@@ -112,7 +112,7 @@ Window::Window() {
     glfwTerminate();
     const char* desc;
     int code = glfwGetError(&desc);
-    throw make_runtime_error("Failed to create GLFW window: code={}, desc={}", code, desc);
+    AX_THROW_RUNTIME_ERROR("Failed to create GLFW window: code={}, desc={}", code, desc);
   }
 
   glfwMakeContextCurrent(impl_->window_);

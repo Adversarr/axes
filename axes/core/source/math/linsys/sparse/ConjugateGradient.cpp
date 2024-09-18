@@ -141,7 +141,7 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
       preconditioner_ = PreconditionerBase::Create(pk);
       AX_THROW_IF_NULLPTR(preconditioner_, "Failed to create preconditioner: {}", name);
     } else {
-      throw make_runtime_error("Expect value under 'preconditioner' to be a string.");
+      AX_THROW_RUNTIME_ERROR("Expect value under 'preconditioner' to be a string.");
     }
   }
 
@@ -161,7 +161,7 @@ utils::Options SparseSolver_ConjugateGradient::GetOptions() const {
   if (preconditioner_) {
     auto name = utils::reflect_name(preconditioner_->GetKind());
     if (!name) {
-      throw make_runtime_error("Invalid preconditioner kind: {}",
+      AX_THROW_RUNTIME_ERROR("Invalid preconditioner kind: {}",
                                static_cast<Index>(preconditioner_->GetKind()));
     }
     opt.insert_or_assign("preconditioner", name.value());

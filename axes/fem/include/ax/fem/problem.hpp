@@ -4,7 +4,7 @@
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/fem/mesh.hpp"
 #include "ax/fem/state.hpp"
-#include "ax/math/block_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 #include "ax/math/high_order/gather.hpp"
 #include "ax/utils/opt.hpp"
 

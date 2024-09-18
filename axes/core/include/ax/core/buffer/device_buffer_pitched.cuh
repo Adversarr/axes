@@ -54,7 +54,7 @@ public:
       }
 
       if (error != cudaSuccess) {
-        throw make_runtime_error("Failed to copy device buffer: {}",
+        AX_THROW_RUNTIME_ERROR("Failed to copy device buffer: {}",
                                  cudaGetErrorName(error));
       }
       return new_buffer;
@@ -70,7 +70,7 @@ public:
   void SetBytes(int value) override {
     auto error = cudaMemset(Base::data_, value, Base::PhysicalSize());
     if (error != cudaSuccess) {
-      throw make_runtime_error("Failed to copy device buffer: {}",
+      AX_THROW_RUNTIME_ERROR("Failed to copy device buffer: {}",
                                cudaGetErrorName(error));
     }
   }
@@ -104,7 +104,7 @@ protected:
     void *data;
     auto result = cudaMalloc(&data, size * sizeof(T));
     if (result != cudaSuccess) {
-      throw make_runtime_error("Failed to create device buffer: {}",
+      AX_THROW_RUNTIME_ERROR("Failed to create device buffer: {}",
                                cudaGetErrorName(result));
     }
     Base::data_ = static_cast<T *>(data);
@@ -115,7 +115,7 @@ protected:
     void *data;
     auto result = cudaMallocPitch(&data, &pitch_x, x * sizeof(T), y);
     if (result != cudaSuccess) {
-      throw make_runtime_error("Failed to create device buffer: {}",
+      AX_THROW_RUNTIME_ERROR("Failed to create device buffer: {}",
                                cudaGetErrorName(result));
     }
     Base::data_ = static_cast<T *>(data);

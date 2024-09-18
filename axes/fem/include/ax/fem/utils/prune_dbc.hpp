@@ -1,6 +1,6 @@
 #pragma once
 #include "ax/fem/state.hpp"
-#include "ax/math/block_matrix/block_matrix.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 
 namespace ax::fem {
 

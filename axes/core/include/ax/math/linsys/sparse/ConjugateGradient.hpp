@@ -15,7 +15,7 @@ public:
 
   utils::Options GetOptions() const final;
 
-  SparseSolverKind GetKind() const final { return SparseSolverKind::ConjugateGradient; }
+  HostSparseSolverKind GetKind() const final { return HostSparseSolverKind::ConjugateGradient; }
 
 private:
   Eigen::ConjugateGradient<RealSparseMatrix, Eigen::Lower | Eigen::Upper,

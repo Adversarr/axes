@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
   // make solver.
   std::string solver_name = po::get_parse_result()["solver"].as<std::string>();
-  auto kind = utils::reflect_enum<math::SparseSolverKind>(solver_name);
+  auto kind = utils::reflect_enum<math::GeneralSparseSolverKind>(solver_name);
   if (!kind) {
     AX_ERROR("Invalid solver name: {}", solver_name);
     return EXIT_FAILURE;

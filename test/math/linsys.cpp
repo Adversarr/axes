@@ -91,9 +91,9 @@ TEST_CASE("Sparse LU") {
   A.makeCompressed();
   RealMatrixX x = RealVectorX::Ones(2);
   RealMatrixX b = A * x;
-  for (auto kind : {SparseSolverKind::LU, SparseSolverKind::QR,
-                    SparseSolverKind::ConjugateGradient, SparseSolverKind::LDLT,
-                    SparseSolverKind::Cholmod}) {
+  for (auto kind :
+       {HostSparseSolverKind::LU, HostSparseSolverKind::QR, HostSparseSolverKind::ConjugateGradient,
+        HostSparseSolverKind::LDLT, HostSparseSolverKind::Cholmod}) {
     auto solver = SparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     solver->SetProblem(A).Compute();

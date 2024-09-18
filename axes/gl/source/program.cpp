@@ -29,7 +29,7 @@ Program::Program(Program&& prog)
 
 void Program::Link() {
   if (id_) {
-    throw std::runtime_error("Program already linked");
+    AX_THROW_RUNTIME_ERROR("Program already linked");
   }
   id_ = glCreateProgram();
   for (auto& shader : shaders_) {
@@ -41,7 +41,7 @@ void Program::Link() {
   if (!success) {
     char info_log[512];
     glGetProgramInfoLog(id_, 512, nullptr, info_log);
-    throw make_runtime_error("Program link error: {}", info_log);
+    AX_THROW_RUNTIME_ERROR("Program link error: {}", info_log);
   }
   for (auto& shader : shaders_) {
     glDetachShader(id_, shader.GetId());
@@ -50,7 +50,7 @@ void Program::Link() {
 
 void Program::Use() {
   if (id_ == 0) {
-    throw std::runtime_error("Program not linked");
+    AX_THROW_RUNTIME_ERROR("Program not linked");
   }
   AXGL_CALL(glUseProgram(id_));
 }

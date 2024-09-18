@@ -22,7 +22,7 @@ void PruneDirichletBc::Prune(RealBufferView grad) {
 
   auto device = bc->Device();
   if (grad.Device() != device) {
-    throw std::runtime_error("input is not on the same device as the boundary condition");
+    AX_THROW_RUNTIME_ERROR("input is not on the same device as the boundary condition");
   }
 
   if (device == BufferDevice::Host) {
@@ -31,7 +31,7 @@ void PruneDirichletBc::Prune(RealBufferView grad) {
 #ifdef AX_HAS_CUDA
     do_prune_gpu(grad, bc->ConstView());
 #else
-    throw std::runtime_error("CUDA is not enabled");
+    AX_THROW_RUNTIME_ERROR("CUDA is not enabled");
 #endif
   }
 }

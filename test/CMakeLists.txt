@@ -1,5 +1,5 @@
 find_package(doctest CONFIG REQUIRED)
-
+include(CTest)
 function(axes_add_test TARGET_NAME LIBRARIES)
   set(_target ${TARGET_NAME}_test)
   aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/${TARGET_NAME} TEST_SOURCE)

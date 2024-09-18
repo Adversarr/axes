@@ -72,7 +72,7 @@ static void do_first_order_host_no_expand(BufferView<const NodeElementPair> coo_
 
 GatherInfo LocalToGlobalMap::FirstOrder(ConstSizeBufferView elements) const {
   if (elements.Device() == BufferDevice::Device) {
-    throw std::runtime_error("Not implemented");
+    AX_THROW_RUNTIME_ERROR("Not implemented");
   }
 
   const auto device = BufferDevice::Host;
@@ -221,7 +221,7 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t /
 
 GatherInfo LocalToGlobalMap::SecondOrder(ConstSizeBufferView elements, bool use_csr) const {
   if (elements.Device() == BufferDevice::Device) {
-    throw std::runtime_error("Not implemented");
+    AX_THROW_RUNTIME_ERROR("Not implemented");
   }
 
   if (use_csr) {

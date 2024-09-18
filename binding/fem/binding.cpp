@@ -195,7 +195,7 @@ void bind_experiment(py::module& m) {
         auto * qn = dynamic_cast<Timestepper_QuasiNewton<3>*>(tsb.get());
         return qn->GetLaplacianAsApproximation();
       } catch (std::exception& e) {
-        throw std::runtime_error("Not a QuasiNewton timestepper!");
+        AX_THROW_RUNTIME_ERROR("Not a QuasiNewton timestepper!");
       }
   });
 }

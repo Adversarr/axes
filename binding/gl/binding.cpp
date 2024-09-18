@@ -26,14 +26,14 @@ static void ui_callback() {
 static void tick_logic() {
   auto& c = get_resource<Context>();
   if (auto status = c.TickLogic(); !status.ok()) {
-    throw std::runtime_error(status.ToString());
+    AX_THROW_RUNTIME_ERROR(status.ToString());
   }
 }
 
 static void tick_render() {
   auto& c = get_resource<Context>();
   if (auto status = c.TickRender(); !status.ok()) {
-    throw std::runtime_error(status.ToString());
+    AX_THROW_RUNTIME_ERROR(status.ToString());
   }
 }
 

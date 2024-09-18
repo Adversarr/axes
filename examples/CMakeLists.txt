@@ -29,6 +29,7 @@ axes_add_example(fem2debug "axes_gl;axes_fem")
 axes_add_example(fem3debug "axes_gl;axes_fem")
 axes_add_example(fem_benchmark "axes_gl;axes_fem")
 axes_add_example(fem_tetra_fd "axes_fem")
+axes_add_example(fem_tetra_fd2 "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
 
 axes_add_example(poisson_bench "axes_fem;axes_gl")

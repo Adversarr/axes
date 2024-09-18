@@ -13,7 +13,7 @@ class SparseSolver_Cholmod final : public SparseSolverBase {
 public:
   SparseSolver_Cholmod();
   ~SparseSolver_Cholmod() override;
-  SparseSolverKind GetKind() const override;
+  HostSparseSolverKind GetKind() const override;
 
   void AnalyzePattern() override;
   void Factorize() override;

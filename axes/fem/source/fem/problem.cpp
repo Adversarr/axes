@@ -47,7 +47,7 @@ Problem::TermInfo& Problem::GetTerm(std::string const& name) {
       return term;
     }
   }
-  throw std::runtime_error("Term not found.");
+  AX_THROW_RUNTIME_ERROR("Term not found.");
 }
 
 bool Problem::HasTerm(std::string const& name) const {
@@ -97,13 +97,13 @@ void Problem::UpdateHessian() {
     term.term_->UpdateHessian();
   }
 
-  bsr_hessian_.BlockValues()->SetBytes(0);
+  bsr_hessian_.Values()->SetBytes(0);
   for (auto& term : terms_) {
     AX_TRACE("Gathering Hessian for term: {}", term.name_);
     const auto& hess = term.term_->GetHessian();
     // TODO: Implement the gather operation.
     // term.gather_op_.Apply(hess.BlockValuesView(), bsr_hessian_.BlockValuesView(), 1.0, 1.0);
-    math::buffer_blas::axpy(term.scale_, hess.BlockValuesView(), bsr_hessian_.BlockValuesView());
+    math::buffer_blas::axpy(term.scale_, hess.Values()->View(), bsr_hessian_.Values()->View());
   }
 
   AX_TRACE("Hessian updated");

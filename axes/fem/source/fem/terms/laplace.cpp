@@ -75,7 +75,6 @@ void LaplaceTerm::SetDiffusivity(ConstRealBufferView uniform_diffusivity) {
       !is_1d(uniform_diffusivity.Shape())
           || uniform_diffusivity.Shape().X() != mesh_->GetNumElements(),
       "LaplaceTerm: Diffusivity must be a 1D buffer with the same number of elements as the mesh.");
-  // Create the mass matrix.
   hessian_ = details::compute_laplace_matrix_host(*mesh_, uniform_diffusivity,
                                                   state_->GetVariables()->Shape().X());
 }

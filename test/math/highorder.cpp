@@ -90,7 +90,7 @@ TEST_CASE("gather host") {
   }
 }
 
-
+#ifdef AX_HAS_CUDA
 TEST_CASE("gather device") {
   size_t n_input = 8, n_output = 4, n_gather = 12;
   auto weights = create_buffer<Real>(BufferDevice::Host, {n_gather});
@@ -142,3 +142,4 @@ TEST_CASE("gather device") {
     }
   }
 }
+#endif

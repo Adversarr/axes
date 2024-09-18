@@ -1,4 +1,4 @@
-#include "ax/fem/terms/mass.hpp"
+#include "ax/fem/terms/laplace.hpp"
 
 #include <doctest/doctest.h>
 
@@ -19,11 +19,11 @@ static std::shared_ptr<Mesh> create_cube() {
   return result;
 }
 
-TEST_CASE("Mass 3D") {
+TEST_CASE("Laplace 3D") {
   auto state = std::make_shared<State>(1, 4, BufferDevice::Host);
   auto mesh = create_cube();
-  MassTerm term(state, mesh);
-  term.SetDensity(1);
+  LaplaceTerm term(state, mesh);
+  term.SetDiffusivity(1);
 
   auto computed = term.GetHessian().ToSparseMatrix();
   computed.makeCompressed();
@@ -39,16 +39,19 @@ TEST_CASE("Mass 3D") {
     }
 
     fem::elements::P1Element<3> p1(vert);
-    math::RealMatrix4 element_mass;
+    math::RealMatrix4 local;
+    local.setZero();
     for (size_t i = 0; i < 4; ++i) {
       for (size_t j = 0; j < 4; ++j) {
-        element_mass(i, j) = p1.Integrate_F_F(i, j);
+        for (size_t k = 0; k < 3; ++k) {
+          local(i, j) += p1.Integrate_PF_PF(i, j, k, k);
+        }
       }
     }
 
     for (size_t i = 0; i < 4; ++i) {
       for (size_t j = 0; j < 4; ++j) {
-        coo.push_back(math::RealSparseEntry(e(i, elem), e(j, elem), element_mass(i, j)));
+        coo.push_back(math::RealSparseEntry(e(i, elem), e(j, elem), local(i, j)));
       }
     }
   }

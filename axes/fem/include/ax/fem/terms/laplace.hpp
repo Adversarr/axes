@@ -10,6 +10,7 @@ namespace ax::fem {
  * Variational form of the Laplace term:
  *   Integrate_Omega a * grad(u) * grad(v) dx = Integrate_Omega f * v dx
  * where a is the diffusivity, and f is the source term.
+ * For now, we just consider the isotropic diffusivity.
  *
  */
 class LaplaceTerm : public TermBase {

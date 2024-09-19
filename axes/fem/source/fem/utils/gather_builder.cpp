@@ -3,6 +3,7 @@
 #include <gsl/assert>
 #include <set>
 
+#include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/logging.hpp"
@@ -220,16 +221,15 @@ static GatherInfo compute_csr_gather_host(ConstSizeBufferView elements, size_t /
 }
 
 GatherInfo LocalToGlobalMap::SecondOrder(ConstSizeBufferView elements, bool use_csr) const {
-  if (elements.Device() == BufferDevice::Device) {
-    AX_THROW_RUNTIME_ERROR("Not implemented");
-  }
-
+  BufferPtr<size_t> elem_host = create_buffer<size_t>(BufferDevice::Host, elements.Shape());
+  copy(elem_host->View(), elements);
+  ConstSizeBufferView actual = elem_host->View();
   if (use_csr) {
     // The CSR version:
-    return compute_csr_gather_host(elements, n_nodes_, n_dofs_);
+    return compute_csr_gather_host(actual, n_nodes_, n_dofs_);
   } else {
     // The BSR version:
-    return compute_bsr_gather_host(elements, n_nodes_);
+    return compute_bsr_gather_host(actual, n_nodes_);
   }
 }
 

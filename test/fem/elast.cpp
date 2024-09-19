@@ -2,6 +2,7 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
+#include "ax/core/init.hpp"
 #include "ax/fem/elasticity/linear.hpp"
 #include "ax/fem/elasticity_cpu.hpp"
 #include "ax/fem/terms/elasticity.hpp"
@@ -120,6 +121,7 @@ TEST_CASE("Elasticity") {
 
 #ifdef AX_HAS_CUDA
 TEST_CASE("Elast GPU") {
+  initialize();
   auto state = std::make_shared<State>(3, 8, BufferDevice::Device);
   auto mesh = create_cube(BufferDevice::Device);
   ElasticityTerm term(state, mesh);
@@ -127,10 +129,8 @@ TEST_CASE("Elast GPU") {
   math::RealField2 u_lame(2, 5);
   u_lame.colwise() = elasticity::compute_lame(1e7, 0.3);
   copy(lame, view_from_matrix(u_lame));
-
   state->GetVariables()->SetBytes(0);
 
-  state->GetVariables()->SetBytes(0);
   SUBCASE("Zero") {
     term.UpdateGradient();
     term.UpdateEnergy();
@@ -138,5 +138,103 @@ TEST_CASE("Elast GPU") {
     auto e = term.GetEnergy();
     CHECK(doctest::Approx(e) == 0);
   }
+
+  auto linear_mesh = std::make_shared<fem::LinearMesh<3>>();
+  auto tet_cube = geo::tet_cube(1, 2, 2, 2);
+  linear_mesh->SetMesh(tet_cube.indices_, tet_cube.vertices_);
+  linear_mesh->SetNumDofPerVertex(3);
+  ElasticityCompute_CPU<3, elasticity::Linear> gt(linear_mesh);
+  gt.SetLame(u_lame);
+  gt.RecomputeRestPose();
+
+  SUBCASE("Disturb") {
+    math::RealField3 u(3, 8);
+    u.setZero();
+    u(0, 0) += 0.1;
+    u(1, 0) += -0.1;
+    u(2, 4) += 0.1;
+    u(1, 2) += -0.1;
+    copy(state->GetVariables()->View(), view_from_matrix(u));
+
+    math::RealField3 pose(3, 8);
+    pose.setZero();
+    auto cv = linear_mesh->GetVertices();
+    for (size_t i = 0; i < 8; ++i) {
+      for (size_t j = 0; j < 3; ++j) {
+        pose(j, i) = u(j, i) + cv(j, i);
+      }
+    }
+
+    gt.Update(pose, ElasticityUpdateLevel::Hessian);
+
+    gt.UpdateHessian(false);
+    gt.UpdateStress();
+    gt.UpdateEnergy();
+    gt.GatherHessianToVertices();
+    gt.GatherStressToVertices();
+    gt.GatherEnergyToVertices();
+
+    term.UpdateHessian();
+    term.UpdateGradient();
+    term.UpdateEnergy();
+
+    // check the deformation gradient.
+    auto f_gt = gt.GetDeformationGradient();
+    auto f_device = term.compute_.DeformGrad()->View();
+    std::vector<Real> f_buf(3 * 3 * 5);
+    auto f = view_from_buffer(f_buf, {3, 3, 5});
+    copy(f, f_device);
+
+    for (size_t elem = 0; elem < 5; ++elem) {
+      for (size_t i = 0; i < 3; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+          CHECK(doctest::Approx(f(i, j, elem)) == f_gt[elem](i, j));
+        }
+      }
+    }
+
+    // check energy
+    auto [e_d, r_d] = make_view(term.compute_.EnergyDensity(), term.rest_volume_);
+
+    math::RealVectorX e(5), r(5);
+    copy(view_from_matrix(e), e_d);
+    copy(view_from_matrix(r), r_d);
+
+    auto gt_energy = gt.GetEnergyOnElements();
+    for (size_t i = 0; i < 5; ++i) {
+      auto energy = e(i) * r(i);
+      CHECK(doctest::Approx(energy) == gt_energy(i));
+    }
+
+    // check gradient
+    auto gt_grad = gt.GetStressOnVertices();
+    auto grad_device = term.GetGradient();
+    math::RealField3 grad(3, 8);
+    copy(view_from_matrix(grad), grad_device);
+    for (size_t i = 0; i < 8; ++i) {
+      for (size_t j = 0; j < 3; ++j) {
+        CHECK(doctest::Approx(grad(j, i)) == gt_grad(j, i));
+      }
+    }
+
+    // check hessian
+    auto gt_hess = gt.GetHessianOnVertices();
+    const auto& hess_device = term.GetHessian();
+    auto hess_host = math::RealBlockMatrix(8, 8, 3, BufferDevice::Host);
+
+    hess_host.SetData(hess_device.RowPtrs()->ConstView(), hess_device.ColIndices()->ConstView(),
+                      hess_device.Values()->ConstView());
+
+    auto hess = hess_host.ToSparseMatrix();
+    math::for_each_entry(gt_hess, [&](size_t i, size_t j, Real v) {
+      CHECK(doctest::Approx(hess.coeff(i, j)) == v);
+    });
+
+    math::for_each_entry(hess, [&](size_t i, size_t j, Real v) {
+      CHECK(doctest::Approx(gt_hess.coeff(i, j)) == v);
+    });
+  }
+
+  clean_up();
 }
 #endif

@@ -16,7 +16,9 @@ using size2 = std::pair<size_t, size_t>;
 
 static std::vector<size3> determine_fillin(std::shared_ptr<Mesh> mesh) {
   std::vector<size3> fillin;
-  auto [v, e] = make_view(mesh->GetVertices(), mesh->GetElements());
+  auto elem_host = create_buffer<size_t>(BufferDevice::Host, mesh->GetElements()->Shape());
+  copy(elem_host->View(), mesh->GetElements()->ConstView());
+  auto [v, e] = make_view(mesh->GetVertices(), elem_host);
 
   auto [dim, nV, _1] = *v.Shape();
   auto [nVPE, nE, _2] = *e.Shape();
@@ -88,9 +90,12 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
   size_t n_gather_grad_in = n_elem * n_vert_per_elem;
   gather_gradient_ = math::GatherAddOp(n_gather_grad_in, n_vert, n_gather_grad_in, device);
 
+  auto elem_host = create_buffer<size_t>(BufferDevice::Host, mesh->GetElements()->Shape());
+  copy(elem_host->View(), mesh->GetElements()->ConstView());
+
   {  // Setup gather gradient
     std::vector<size2> fillins;
-    auto e = mesh->GetElements()->ConstView();
+    auto e = elem_host->View();
     for (size_t elem = 0; elem < n_elem; ++elem) {
       for (size_t i = 0; i < n_vert_per_elem; ++i) {
         auto v = e(i, elem);

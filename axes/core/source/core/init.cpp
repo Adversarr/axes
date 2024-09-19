@@ -94,7 +94,13 @@ void initialize() {
   /****************************** Vdb ******************************/
   openvdb::initialize();
 
-  std::string log_level = po::get_parse_result()["log_level"].as<std::string>();
+  std::string log_level = []() -> std::string {
+    if (po::get_parse_result().count("log_level") > 0) {
+      return po::get_parse_result()["log_level"].as<std::string>();
+    } else {
+      return "info";
+    }
+  }();
   if (log_level.front() == 'i') {
     spdlog::default_logger()->set_level(spdlog::level::info);
   } else if (log_level.front() == 'd') {
@@ -114,8 +120,15 @@ void initialize() {
     abort();
   }
 
-  if (const int num_threads = po::get_parse_result()["num_eigen_threads"].as<int>();
-      num_threads != 1) {
+  const int num_threads = []() -> int {
+    if (po::get_parse_result().count("num_eigen_threads") > 0) {
+      return po::get_parse_result()["num_eigen_threads"].as<int>();
+    } else {
+      return 0;
+    }
+  }();
+
+  if (num_threads != 1) {
     math::init_parallel(num_threads);
     AX_INFO("Initialized Eigen with {} threads", Eigen::nbThreads());
   }

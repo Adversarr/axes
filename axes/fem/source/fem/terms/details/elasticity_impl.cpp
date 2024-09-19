@@ -6,6 +6,85 @@
 
 namespace ax::fem {
 
+static AX_FORCE_INLINE  math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
+  const Real m = DmInv(0, 0);
+  const Real n = DmInv(0, 1);
+  const Real o = DmInv(0, 2);
+  const Real p = DmInv(1, 0);
+  const Real q = DmInv(1, 1);
+  const Real r = DmInv(1, 2);
+  const Real s = DmInv(2, 0);
+  const Real t = DmInv(2, 1);
+  const Real u = DmInv(2, 2);
+  const Real t1 = -m - p - s;
+  const Real t2 = -n - q - t;
+  const Real t3 = -o - r - u;
+  math::RealMatrix<9, 12> pf_px;
+  pf_px.setZero();
+  pf_px(0, 0) = t1;
+  pf_px(0, 3) = m;
+  pf_px(0, 6) = p;
+  pf_px(0, 9) = s;
+  pf_px(1, 1) = t1;
+  pf_px(1, 4) = m;
+  pf_px(1, 7) = p;
+  pf_px(1, 10) = s;
+  pf_px(2, 2) = t1;
+  pf_px(2, 5) = m;
+  pf_px(2, 8) = p;
+  pf_px(2, 11) = s;
+  pf_px(3, 0) = t2;
+  pf_px(3, 3) = n;
+  pf_px(3, 6) = q;
+  pf_px(3, 9) = t;
+  pf_px(4, 1) = t2;
+  pf_px(4, 4) = n;
+  pf_px(4, 7) = q;
+  pf_px(4, 10) = t;
+  pf_px(5, 2) = t2;
+  pf_px(5, 5) = n;
+  pf_px(5, 8) = q;
+  pf_px(5, 11) = t;
+  pf_px(6, 0) = t3;
+  pf_px(6, 3) = o;
+  pf_px(6, 6) = r;
+  pf_px(6, 9) = u;
+  pf_px(7, 1) = t3;
+  pf_px(7, 4) = o;
+  pf_px(7, 7) = r;
+  pf_px(7, 10) = u;
+  pf_px(8, 2) = t3;
+  pf_px(8, 5) = o;
+  pf_px(8, 8) = r;
+  pf_px(8, 11) = u;
+  return pf_px;
+}
+
+// Auto generated code.
+static AX_FORCE_INLINE  math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
+  const Real m = DmInv(0, 0);
+  const Real n = DmInv(0, 1);
+  const Real p = DmInv(1, 0);
+  const Real q = DmInv(1, 1);
+  const Real t1 = -m - p;
+  const Real t2 = -n - q;
+  math::RealMatrix<4, 6> pf_px;
+  pf_px.setZero();
+  pf_px(0, 0) = t1;
+  pf_px(0, 2) = m;
+  pf_px(0, 4) = p;
+  pf_px(1, 1) = t1;
+  pf_px(1, 3) = m;
+  pf_px(1, 5) = p;
+  pf_px(2, 0) = t2;
+  pf_px(2, 2) = n;
+  pf_px(2, 4) = q;
+  pf_px(3, 1) = t2;
+  pf_px(3, 3) = n;
+  pf_px(3, 5) = q;
+  return pf_px;
+}
+
 void compute_static_data_cpu(const Mesh& mesh, ConstRealBufferView rest_pose,
                              RealBufferView rest_volume, RealBufferView dminv,
                              RealBufferView pfpx) {

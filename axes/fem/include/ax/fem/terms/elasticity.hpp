@@ -17,7 +17,7 @@ public:
   void UpdateHessian() override;
   // TODO: options.
 
-private:
+// private:
   ElasticityKind kind_{ElasticityKind::Linear};
 
   // Static

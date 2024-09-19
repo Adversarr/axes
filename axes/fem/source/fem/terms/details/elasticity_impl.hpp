@@ -5,7 +5,7 @@
 
 namespace ax::fem {
 
-AX_HOST_DEVICE AX_FORCE_INLINE static math::RealMatrix<9, 12> ComputePFPx(
+AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<9, 12> ComputePFPx(
     const math::RealMatrix3& DmInv) {
   const Real m = DmInv(0, 0);
   const Real n = DmInv(0, 1);
@@ -88,17 +88,24 @@ AX_HOST_DEVICE AX_FORCE_INLINE math::RealMatrix<4, 6> ComputePFPx(const math::Re
 void compute_static_data_cpu(const Mesh& mesh, ConstRealBufferView rest_pose,
                              RealBufferView rest_volume, RealBufferView dminv, RealBufferView pfpx);
 
-void compute_deformation_gradient_cpu(
-    const Mesh& mesh, ConstRealBufferView dminv, ConstRealBufferView u,
-    RealBufferView deformation_gradient);
-
+void compute_deformation_gradient_cpu(const Mesh& mesh, ConstRealBufferView dminv,
+                                      ConstRealBufferView u, RealBufferView deformation_gradient);
 void compute_cubature_gradient_cpu(const Mesh& mesh, ConstRealBufferView grad,
-                                   RealBufferView elem_grad);
+                                   ConstRealBufferView dminv, RealBufferView elem_grad);
 
 void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
-                                  RealBufferView elem_hess);
+                                  ConstRealBufferView pfpx, RealBufferView elem_hess);
 
 void compute_static_data_gpu(const Mesh& mesh, ConstRealBufferView rest_pose,
                              RealBufferView rest_volume, RealBufferView dminv, RealBufferView pfpx);
+
+void compute_deformation_gradient_gpu(const Mesh& mesh, ConstRealBufferView dminv,
+                                      ConstRealBufferView u, RealBufferView deformation_gradient);
+
+void compute_cubature_gradient_gpu(const Mesh& mesh, ConstRealBufferView grad,
+                                   ConstRealBufferView dminv, RealBufferView elem_grad);
+
+void compute_cubature_hessian_gpu(const Mesh& mesh, ConstRealBufferView hessian,
+                                  ConstRealBufferView pfpx, RealBufferView elem_hess);
 
 }  // namespace ax::fem

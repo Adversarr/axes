@@ -50,4 +50,5 @@ size_t State::GetNumVertices() const {
   return n_vert_;
 }
 
-}  // namespace ax::fem
+BufferDevice State::Device() const { return device_; }
+} // namespace ax::fem

@@ -43,7 +43,7 @@ ElasticityBatchedCompute::ElasticityBatchedCompute(size_t n_cubature_points, siz
   energy_density_ = create_buffer<Real>(device_, {n_cubature_points});
   deform_grad_ = create_buffer<Real>(device_, {dim, dim, n_cubature_points});
   pk1_ = create_buffer<Real>(device_, {dim, dim, n_cubature_points});
-  local_hessian_ = create_buffer<Real>(device_, {dim, dim, dim * dim * n_cubature_points});
+  local_hessian_ = create_buffer<Real>(device_, {dim * dim, dim * dim, n_cubature_points});
 
   svd_u_ = create_buffer<Real>(device_, {dim, dim, n_cubature_points});
   svd_v_ = create_buffer<Real>(device_, {dim, dim, n_cubature_points});

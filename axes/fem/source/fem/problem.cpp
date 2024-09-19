@@ -114,5 +114,4 @@ void Problem::InitializeHessianFillIn() {
 }
 
 Real TermBase::GetEnergy() const { return energy_; }
-void TermBase::Recompute() {}
 } // namespace ax::fem

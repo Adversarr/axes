@@ -76,17 +76,9 @@ static void compute_hessian(ConstRealBufferView deform_grad,  // deformation gra
     energy_density(i) = model.Energy(dg, svd_result);
     auto mapped = math::Map<math::RealMatrix<dim, dim>>(pk1.Offset(0, 0, i));
     mapped = model.Stress(dg, svd_result);
-    auto local = model.Hessian(dg, svd_result);
 
-    for (size_t v = 0; v < dim; ++v) {
-      for (size_t u = 0; u < dim; ++u) {                   // cache friendly
-        size_t linear_id = i * (dim * dim) + u + v * dim;  // (u, v) = (Row, Col)
-        // [dim, dim] matrix. The Hessian is (dim * dim, dim * dim), but we need the blockwise.
-        math::Map<math::RealMatrix<dim, dim>> hessian(local_hessian.Offset(0, 0, linear_id));
-        hessian = local.template block<dim, dim>(static_cast<Index>(u * dim),
-                                                 static_cast<Index>(v * dim));
-      }
-    }
+    math::Map<math::RealMatrix<dim * dim, dim * dim>>(local_hessian.Offset(0, 0, i))
+        = model.Hessian(dg, svd_result);
   });
 }
 

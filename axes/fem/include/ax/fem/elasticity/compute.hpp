@@ -63,7 +63,7 @@ private:
   BufferPtr<Real> deform_grad_;     // (dim, dim, nC). Deformation gradient of each element.
   BufferPtr<Real> pk1_;             // (dim, dim, nC). First-Piola Kirchhoff stress on each element
                                     // also the (partial Energy/partial F)
-  BufferPtr<Real> local_hessian_;   // (nVpe*dim, nVpe*dim, nC). Local Hessian of each element.
+  BufferPtr<Real> local_hessian_;   // (dim*dim, dim*dim, nC). Local Hessian of each element.
 
   BufferPtr<Real> svd_u_;  // (dim, dim, nC). SVD U.
   BufferPtr<Real> svd_v_;  // (dim, dim, nC). SVD V.

@@ -25,7 +25,6 @@ public:
   size_t GetNumVertices() const;
   BufferDevice Device() const;
 
-
   // Set the data of the state and the condition of each variable.
   void SetData(ConstRealBufferView variables, ConstBufferView<VariableCondition> condition);
 

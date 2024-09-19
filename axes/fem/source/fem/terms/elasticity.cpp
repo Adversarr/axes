@@ -4,6 +4,7 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
+#include "ax/fem/utils/gather_builder.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "details/elasticity_impl.hpp"
 
@@ -18,7 +19,7 @@ static std::vector<size3> determine_fillin(std::shared_ptr<Mesh> mesh) {
 
   auto [dim, nV, _] = *v.Shape();
   auto [nVPE, nE, _] = *e.Shape();
-
+  fillin.reserve(nE * nVPE * nVPE);
   size_t cnt = 0;
   for (size_t elem = 0; elem < nE; ++elem) {
     for (size_t j = 0; j < nVPE; ++j) {
@@ -67,10 +68,9 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
   auto [r, rv, dm, p] = make_view(rest_, rest_volume_, dminv_, pfpx_);
 
   if (device == BufferDevice::Device) {
-    compute_static_data_cpu(*mesh, r, rv, dm, p);
+    compute_static_data_gpu(*mesh, r, rv, dm, p);
   } else {
-    throw std::runtime_error("Not implemented.");
-    // compute_static_data_gpu(*mesh, r, rv, dm, p);
+    compute_static_data_cpu(*mesh, r, rv, dm, p);
   }
 
   // compute_
@@ -118,7 +118,6 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
 
   // gather_hessian_
   auto fillins = determine_fillin(mesh);
-  AX_DCHECK(n_gather_grad_in == fillins.size(), "Mismatch in fillin size.");
   std::set<size2> fillin_set;
   for (const auto& f : fillins) {
     fillin_set.insert(size2{std::get<0>(f), std::get<1>(f)});
@@ -126,6 +125,7 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
 
   size_t n_fillin = fillin_set.size();
   size_t n_gather_hess_in = n_elem * n_vert_per_elem * n_vert_per_elem;
+  AX_DCHECK(n_gather_hess_in == fillins.size(), "Mismatch in fillin size.");
   elem_hess_ = create_buffer<Real>(device, {n_dof, n_dof, n_gather_hess_in});
   gather_hessian_ = math::GatherAddOp(n_gather_hess_in, n_fillin, n_gather_hess_in, device);
 
@@ -133,6 +133,8 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
     std::vector<size_t> row_entries(n_fillin + 1, 0);
     std::vector<size_t> col_indices(n_gather_hess_in);
     std::vector<Real> weights(n_gather_hess_in, 0);
+    LocalToGlobalMap map(n_elem, n_vert, n_vert_per_elem, n_dof);
+    auto result = map.SecondOrder(mesh->GetElements()->ConstView(), false);
 
     size_t cnt = 0;
     for (size_t i = 0; i < n_gather_hess_in; ++i) {
@@ -157,6 +159,17 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
     for (size_t i = 1; i < row_entries.size(); ++i) {
       row_entries[i] += row_entries[i - 1];
     }
+    AX_DCHECK(row_entries.back() == n_gather_hess_in, "Mismatch in row_entries.");
+
+    // compare local-to-global and this
+    AX_CHECK(result.to_->Shape().X() == row_entries.size(), "Mismatch in row_entries.");
+    AX_CHECK(result.from_->Shape().X() == col_indices.size(), "Mismatch in col_indices.");
+    for (size_t i = 0; i < row_entries.size(); ++i) {
+      AX_CHECK(result.to_->View()(i) == row_entries[i], "Mismatch in row_entries.");
+    }
+    for (size_t i = 0; i < col_indices.size(); ++i) {
+      AX_CHECK(result.from_->View()(i) == col_indices[i], "Mismatch in col_indices.");
+    }
 
     gather_hessian_.SetData(view_from_buffer(weights), view_from_buffer(row_entries),
                             view_from_buffer(col_indices));
@@ -168,7 +181,7 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
 
   {  // hessian
     std::vector<int> row_entries(n_vert + 1, 0);
-    std::vector<int> col_indices(fillin_set.size());
+    std::vector<int> col_indices(n_fillin);
     std::vector<Real> values(n_fillin * n_dof * n_dof, 0);
 
     size_t cnt = 0;
@@ -182,6 +195,8 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
     for (size_t i = 1; i < row_entries.size(); ++i) {
       row_entries[i] += row_entries[i - 1];
     }
+    AX_DCHECK(cnt == n_fillin, "Mismatch in cnt.");
+    AX_DCHECK(row_entries.back() == n_fillin, "Mismatch in row_entries.");
 
     hessian_.SetData(view_from_buffer(row_entries), view_from_buffer(col_indices),
                      view_from_buffer(values, {n_dof, n_dof, n_fillin}));
@@ -201,7 +216,11 @@ void ElasticityTerm::UpdateEnergy() {
   auto u = state_->GetVariables()->ConstView();
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
-  compute_deformation_gradient_cpu(*mesh_, dminv, u, f);  // TODO: device
+  if (device == BufferDevice::Device) {
+    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+  } else {
+    compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
+  }
   compute_.UpdateDeformationGradient();
   compute_.UpdateEnergyDensity();
 
@@ -219,14 +238,25 @@ void ElasticityTerm::UpdateGradient() {
   auto u = state_->GetVariables()->ConstView();
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
-  compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
+  if (device == BufferDevice::Device) {
+    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+  } else {
+    compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
+  }
   compute_.UpdateDeformationGradient();
   compute_.UpdateGradient();
   compute_.UpdateEnergyDensity();
 
   auto [grad, r, elem_grad] = make_view(compute_.Pk1(), rest_volume_, elem_grad_);
-  compute_cubature_gradient_cpu(*mesh_, grad, elem_grad);  // TODO: device
-  gather_gradient_.Apply(elem_grad, gradient_->View(), 1, 0);
+  if (device == BufferDevice::Device) {
+    compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad);
+  } else {
+    compute_cubature_gradient_cpu(*mesh_, grad, dminv, elem_grad);
+  }
+  size_t n_elem = mesh_->GetNumElements(), n_vert_per_elem = mesh_->GetNumVerticesPerElement();
+  size_t n_dof = mesh_->GetNumDOFPerVertex();
+  gather_gradient_.Apply(elem_grad.Reshaped({n_dof, n_vert_per_elem * n_elem}), gradient_->View(),
+                         1, 0);
   auto e = compute_.EnergyDensity()->ConstView();
   energy_ = math::buffer_blas::dot(e, r);
 
@@ -243,7 +273,11 @@ void ElasticityTerm::UpdateHessian() {
   auto u = state_->GetVariables()->ConstView();
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
-  compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
+  if (device == BufferDevice::Device) {
+    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+  } else {
+    compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
+  }
   compute_.UpdateDeformationGradient();
   compute_.UpdateHessian();
   compute_.UpdateGradient();
@@ -253,12 +287,19 @@ void ElasticityTerm::UpdateHessian() {
   auto [grad, elem_grad] = make_view(compute_.Pk1(), elem_grad_);
   auto e = compute_.EnergyDensity()->ConstView();
   // Integrates
-  compute_cubature_hessian_cpu(*mesh_, hess, elem_hess);   // TODO: device
-  compute_cubature_gradient_cpu(*mesh_, grad, elem_grad);  // TODO: device
-
+  if (device == BufferDevice::Device) {
+    compute_cubature_hessian_gpu(*mesh_, hess, pfpx_->View(), elem_hess);  // TODO: device
+    compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad);         // TODO: device
+  } else {
+    compute_cubature_hessian_cpu(*mesh_, hess, pfpx_->View(), elem_hess);  // TODO: device
+    compute_cubature_gradient_cpu(*mesh_, grad, dminv, elem_grad);         // TODO: device
+  }
   // Gather from cubatures.
+  size_t n_elem = mesh_->GetNumElements(), n_vert_per_elem = mesh_->GetNumVerticesPerElement();
+  size_t n_dof = mesh_->GetNumDOFPerVertex();
   gather_hessian_.Apply(elem_hess, hessian_.Values()->View(), 1, 0);
-  gather_gradient_.Apply(elem_grad, gradient_->View(), 1, 0);
+  gather_gradient_.Apply(elem_grad.Reshaped({n_dof, n_vert_per_elem * n_elem}), gradient_->View(),
+                         1, 0);
   energy_ = math::buffer_blas::dot(e, r);
 
   is_hessian_up_to_date_ = true;

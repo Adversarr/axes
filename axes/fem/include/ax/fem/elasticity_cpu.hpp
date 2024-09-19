@@ -35,6 +35,8 @@ public:
   void Update(math::RealField<dim> const& pose, ElasticityUpdateLevel update_type) final;
   void RecomputeRestPose() final;
 
+  elasticity::DeformGradBuffer<dim> const& GetDeformationGradient() const { return deformation_gradient_; }
+
 protected:
   std::vector<math::decomp::SvdResult<dim, Real>> svd_results_;
   elasticity::DeformGradBuffer<dim> deformation_gradient_;

@@ -248,6 +248,12 @@ AX_CONSTEXPR AX_FORCE_INLINE bool is_same_device(BufferView<Front> const& front,
   return ((front.Device() == views.Device()) && ...);
 }
 
+template <typename... Args>
+AX_CONSTEXPR AX_FORCE_INLINE bool is_same_device(BufferDevice device,
+                                                 BufferView<Args> const&... views) {
+  return ((device == views.Device()) && ...);
+}
+
 template <typename T>
 AX_CONSTEXPR AX_HOST_DEVICE AX_FORCE_INLINE BufferView<T> flatten(BufferView<T> view) {
   assert(view.IsContinuous(1) && "The buffer is not continuous in y,z dimension.");

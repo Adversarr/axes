@@ -83,3 +83,9 @@ inline void throw_exception(const char* file, int line, const char* func, const 
   AX_THROW_IF((ptr) == nullptr, #ptr " is nullptr: " __VA_ARGS__)
 #define AX_THROW_IF_NOT_NULLPTR(ptr, ...) \
   AX_THROW_IF((ptr) != nullptr, #ptr " is not nullptr: " __VA_ARGS__)
+
+#define AX_NOT_IMPLEMENTED()                   \
+  do {                                         \
+    AX_THROW_RUNTIME_ERROR("Not implemented"); \
+    AX_UNREACHABLE();                          \
+  } while (false)

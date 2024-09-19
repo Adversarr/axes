@@ -365,7 +365,7 @@ Real amax(ConstRealBufferView x) {
     do_amax_host(x, result);
   } else {
     // do_amax_device(x, result);
-    throw make_invalid_argument("amax: not implemented for device buffer.");
+    AX_NOT_IMPLEMENTED();
   }
   return result;
 }

@@ -5,19 +5,16 @@
 namespace ax::math {
 
 Real RealCompressedMatrixBase::InnerProduct(ConstRealBufferView x, ConstRealBufferView y) const {
-  AX_THROW_RUNTIME_ERROR("Not implemented yet.");
-  AX_UNREACHABLE();
+  AX_NOT_IMPLEMENTED();
 }
 
-void RealCompressedMatrixBase::TransposeMultiply(ConstRealBufferView x, RealBufferView y, Real alpha,
-                                                 Real beta) const {
+void RealCompressedMatrixBase::TransposeMultiply(ConstRealBufferView x, RealBufferView y,
+                                                 Real alpha, Real beta) const {
   if (is_symm_) {
     Multiply(x, y, alpha, beta);
     return;
   }
-
-  AX_THROW_RUNTIME_ERROR("Not implemented yet.");
-  AX_UNREACHABLE();
+  AX_NOT_IMPLEMENTED();
 }
 
 void RealCompressedMatrixBase::Finish() {

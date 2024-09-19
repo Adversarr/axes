@@ -73,7 +73,7 @@ static void do_first_order_host_no_expand(BufferView<const NodeElementPair> coo_
 
 GatherInfo LocalToGlobalMap::FirstOrder(ConstSizeBufferView elements) const {
   if (elements.Device() == BufferDevice::Device) {
-    AX_THROW_RUNTIME_ERROR("Not implemented");
+    AX_NOT_IMPLEMENTED();
   }
 
   const auto device = BufferDevice::Host;

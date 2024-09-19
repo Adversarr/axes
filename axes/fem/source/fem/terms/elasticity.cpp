@@ -139,8 +139,6 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
     std::vector<size_t> row_entries(n_fillin + 1, 0);
     std::vector<size_t> col_indices(n_gather_hess_in);
     std::vector<Real> weights(n_gather_hess_in, 0);
-    LocalToGlobalMap map(n_elem, n_vert, n_vert_per_elem, n_dof);
-    auto result = map.SecondOrder(mesh->GetElements()->ConstView(), false);
 
     size_t cnt = 0;
     for (size_t i = 0; i < n_gather_hess_in; ++i) {
@@ -166,16 +164,6 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
       row_entries[i] += row_entries[i - 1];
     }
     AX_DCHECK(row_entries.back() == n_gather_hess_in, "Mismatch in row_entries.");
-
-    // compare local-to-global and this
-    AX_CHECK(result.to_->Shape().X() == row_entries.size(), "Mismatch in row_entries.");
-    AX_CHECK(result.from_->Shape().X() == col_indices.size(), "Mismatch in col_indices.");
-    for (size_t i = 0; i < row_entries.size(); ++i) {
-      AX_CHECK(result.to_->View()(i) == row_entries[i], "Mismatch in row_entries.");
-    }
-    for (size_t i = 0; i < col_indices.size(); ++i) {
-      AX_CHECK(result.from_->View()(i) == col_indices[i], "Mismatch in col_indices.");
-    }
 
     gather_hessian_.SetData(view_from_buffer(weights), view_from_buffer(row_entries),
                             view_from_buffer(col_indices));

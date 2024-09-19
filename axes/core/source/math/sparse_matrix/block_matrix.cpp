@@ -168,7 +168,7 @@ void RealBlockMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y,
     return;
   }
   // TODO: Implement this.
-  AX_THROW_RUNTIME_ERROR("Not implemented.");
+  AX_NOT_IMPLEMENTED();
 }
 
 void RealBlockMatrix::SetData(BufferPtr<int> block_row_ptrs, BufferPtr<int> block_col_indices,

@@ -40,7 +40,7 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
 
 void RealCSRMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y, Real alpha,
                                       Real beta) const {
-  AX_THROW_RUNTIME_ERROR("Not implemented yet.");
+  AX_NOT_IMPLEMENTED();
 }
 
 void RealCSRMatrix::SetData(ConstIntBufferView row_ptrs, ConstIntBufferView col_indices,

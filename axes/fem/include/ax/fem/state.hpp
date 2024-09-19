@@ -8,7 +8,7 @@ namespace ax::fem {
 AX_DEFINE_ENUM_CLASS(VariableCondition,
                      None,       ///< No condition, free variable
                      Dirichlet,  ///< Dirichlet boundary condition
-                     Neumann     ///< Neumann boundary condition
+                     Neumann     ///< Neumann boundary condition, not supported.
 );
 
 class State {

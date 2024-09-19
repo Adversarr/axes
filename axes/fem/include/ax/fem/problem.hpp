@@ -57,6 +57,9 @@ public:
   bool HasTerm(std::string const& name) const;
   bool RemoveTerm(std::string const& name);
 
+  // Update each term's Energy, and gather into the global energy.
+  void UpdateEnergy();
+
   // Update each term's Gradient, and gather into the global gradient.
   void UpdateGradient();
 
@@ -70,10 +73,19 @@ public:
 
   const math::RealBlockMatrix& GetHessian() const { return bsr_hessian_; }
 
+  Real GetEnergy() const { return energy_; }
+
+  void MarkDirty();
+
+  std::shared_ptr<State> GetState() { return state_; }
+
+  std::shared_ptr<Mesh> GetMesh() { return mesh_; }
+
 private:
   std::shared_ptr<State> state_;
   std::shared_ptr<Mesh> mesh_;
   std::vector<TermInfo> terms_;
+  Real energy_;
   BufferPtr<Real> gradient_;
   math::RealBlockMatrix bsr_hessian_;
 };

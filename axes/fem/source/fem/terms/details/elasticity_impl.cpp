@@ -146,7 +146,7 @@ void compute_static_data_cpu(const Mesh& mesh, ConstRealBufferView rest_pose,
   } else if (n_dof_per_vert == 3) {
     par_for_each_indexed(Dim1{n_elem}, job3d);
   } else {
-    AX_THROW_RUNTIME_ERROR("Not implemented.");
+    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -202,7 +202,7 @@ void compute_deformation_gradient_cpu(const Mesh& mesh, ConstRealBufferView dmin
   } else if (n_dof_per_vert == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
   } else {
-    AX_THROW_RUNTIME_ERROR("Not implemented.");
+    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -244,7 +244,7 @@ void compute_cubature_gradient_cpu(const Mesh& mesh, ConstRealBufferView grad,
   } else if (n_dof == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
   } else {
-    AX_THROW_RUNTIME_ERROR("Not implemented.");
+    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -295,7 +295,7 @@ void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
   } else if (n_dof == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
   } else {
-    AX_THROW_RUNTIME_ERROR("Not implemented.");
+    AX_NOT_IMPLEMENTED();
   }
 }
 

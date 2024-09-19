@@ -31,7 +31,7 @@ LinsysSolveResult SparseSolver_LeastSquaresConjugateGradient::Solve(RealMatrixX 
     impl.l2_err_ = solver_.error();
     return impl;
   } else {
-    AX_CHECK(false, "This branch have not been implemented yet");
+    AX_NOT_IMPLEMENTED();
   }
 
   AX_UNREACHABLE();

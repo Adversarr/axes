@@ -48,6 +48,7 @@ Problem::TermInfo& Problem::GetTerm(std::string const& name) {
     }
   }
   AX_THROW_RUNTIME_ERROR("Term not found.");
+  AX_UNREACHABLE();
 }
 
 bool Problem::HasTerm(std::string const& name) const {
@@ -110,8 +111,27 @@ void Problem::UpdateHessian() {
 }
 
 void Problem::InitializeHessianFillIn() {
-  AX_ERROR("Not implemented.");
+  // TODO: Implement the correct operation, here we assumed that the gather operation is the same
+  // and we just need to initialize the fill-in to the front one.
+
+  if (terms_.empty()) {
+    AX_WARN("No terms in the problem. not initializing Hessian fill-in at all.");
+    return;
+  }
+
+  auto& term = terms_.front().term_;
+  term->UpdateHessian();
+  auto const& hess = term->GetHessian();
+  bsr_hessian_.SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
+                       hess.Values()->ConstView());
+  bsr_hessian_.Finish();
+  bsr_hessian_.Values()->SetBytes(0);
+
+  AX_INFO("RowPtrs: {} NNZ: {} total fillin: {}", bsr_hessian_.RowPtrs()->Shape().X() - 1,
+          bsr_hessian_.ColIndices()->Shape().X(), prod(bsr_hessian_.Values()->Shape()));
 }
 
-Real TermBase::GetEnergy() const { return energy_; }
-} // namespace ax::fem
+Real TermBase::GetEnergy() const {
+  return energy_;
+}
+}  // namespace ax::fem

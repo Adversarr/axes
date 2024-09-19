@@ -2,6 +2,7 @@
 
 #include "./jacobi_impl.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
+#include "ax/utils/cuda_helper.hpp"
 
 namespace ax::math {
 
@@ -19,11 +20,7 @@ void GeneralSparsePreconditioner_Jacobi::Factorize() {
   auto blocked = std::dynamic_pointer_cast<RealBlockMatrix>(mat_);
   if (blocked) {
     if (device == BufferDevice::Device) {
-#ifdef AX_HAS_CUDA
-      details::jacobi_precond_precompute_blocked_gpu(inv_diag_->View(), *blocked);
-#else
-      AX_THROW_RUNTIME_ERROR("SparsePreconditioner_Jacobi::Factorize: CUDA is not enabled.");
-#endif
+      AX_CUDA_CALL(details::jacobi_precond_precompute_blocked_gpu(inv_diag_->View(), *blocked));
     } else {
       details::jacobi_precond_precompute_blocked_cpu(inv_diag_->View(), *blocked);
     }
@@ -48,11 +45,7 @@ void GeneralSparsePreconditioner_Jacobi::Solve(ConstRealBufferView b, RealBuffer
       x.Shape(), b.Shape());
 
   if (inv_diag.Device() == BufferDevice::Device) {
-#ifdef AX_HAS_CUDA
-    details::jacobi_precond_solve_gpu(x, b, inv_diag);
-#else
-    AX_THROW_RUNTIME_ERROR("SparsePreconditioner_Jacobi::Solve: CUDA is not enabled.");
-#endif
+    AX_CUDA_CALL(details::jacobi_precond_solve_gpu(x, b, inv_diag));
   } else {
     details::jacobi_precond_solve_cpu(x, b, inv_diag);
   }

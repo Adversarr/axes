@@ -4,6 +4,7 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
+#include "ax/utils/cuda_helper.hpp"
 #include "elast_impl.hpp"
 
 namespace ax::fem {
@@ -30,8 +31,8 @@ void ElasticityBatchedCompute::UpdateDeformationGradient() {
       details::do_update_svd_host(deform_grad_->ConstView(), svd_u_->View(), svd_v_->View(),
                                   svd_s_->View());
     } else {
-      details::do_update_svd_gpu(deform_grad_->ConstView(), svd_u_->View(), svd_v_->View(),
-                                 svd_s_->View());
+      AX_CUDA_CALL(details::do_update_svd_gpu(deform_grad_->ConstView(), svd_u_->View(),
+                                              svd_v_->View(), svd_s_->View()));
     }
   }
 }
@@ -56,9 +57,9 @@ void ElasticityBatchedCompute::UpdateEnergyDensity() {
                                            svd_u_->ConstView(), svd_v_->ConstView(),
                                            svd_s_->ConstView(), energy_density_->View(), kind_);
   } else {
-    details::do_update_energy_density_gpu(deform_grad_->ConstView(), lame_->ConstView(),
-                                          svd_u_->ConstView(), svd_v_->ConstView(),
-                                          svd_s_->ConstView(), energy_density_->View(), kind_);
+    AX_CUDA_CALL(details::do_update_energy_density_gpu(
+        deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
+        svd_s_->ConstView(), energy_density_->View(), kind_));
   }
   is_energy_up_to_date_ = true;
 }
@@ -69,9 +70,9 @@ void ElasticityBatchedCompute::UpdateGradient() {
                                      svd_u_->ConstView(), svd_v_->ConstView(), svd_s_->ConstView(),
                                      energy_density_->View(), pk1_->View(), kind_);
   } else {
-    details::do_update_gradient_gpu(deform_grad_->ConstView(), lame_->ConstView(),
-                                    svd_u_->ConstView(), svd_v_->ConstView(), svd_s_->ConstView(),
-                                    energy_density_->View(), pk1_->View(), kind_);
+    AX_CUDA_CALL(details::do_update_gradient_gpu(
+        deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
+        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), kind_));
   }
   is_energy_up_to_date_ = true;
   is_gradient_up_to_date_ = true;
@@ -83,9 +84,9 @@ void ElasticityBatchedCompute::UpdateHessian() {
         deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
         svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_);
   } else {
-    details::do_update_hessian_gpu(
+    AX_CUDA_CALL(details::do_update_hessian_gpu(
         deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
-        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_);
+        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_));
   }
   is_energy_up_to_date_ = true;
   is_gradient_up_to_date_ = true;

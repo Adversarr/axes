@@ -1,6 +1,7 @@
 #include "ax/fem/utils/prune_dbc.hpp"
 
 #include "ax/core/buffer/for_each.hpp"
+#include "ax/utils/cuda_helper.hpp"
 #ifdef AX_HAS_CUDA
 #  include "prune_dbc_gpu.hpp"
 #endif
@@ -28,11 +29,7 @@ void PruneDirichletBc::Prune(RealBufferView grad) {
   if (device == BufferDevice::Host) {
     do_prune_host(grad, bc->ConstView());
   } else {
-#ifdef AX_HAS_CUDA
-    do_prune_gpu(grad, bc->ConstView());
-#else
-    AX_THROW_RUNTIME_ERROR("CUDA is not enabled");
-#endif
+    AX_CUDA_CALL(do_prune_gpu(grad, bc->ConstView()));
   }
 }
 

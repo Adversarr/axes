@@ -6,6 +6,7 @@
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/fem/utils/gather_builder.hpp"
 #include "ax/math/buffer_blas.hpp"
+#include "ax/utils/cuda_helper.hpp"
 #include "details/elasticity_impl.hpp"
 
 namespace ax::fem {
@@ -17,8 +18,8 @@ static std::vector<size3> determine_fillin(std::shared_ptr<Mesh> mesh) {
   std::vector<size3> fillin;
   auto [v, e] = make_view(mesh->GetVertices(), mesh->GetElements());
 
-  auto [dim, nV, _] = *v.Shape();
-  auto [nVPE, nE, _] = *e.Shape();
+  auto [dim, nV, _1] = *v.Shape();
+  auto [nVPE, nE, _2] = *e.Shape();
   fillin.reserve(nE * nVPE * nVPE);
   size_t cnt = 0;
   for (size_t elem = 0; elem < nE; ++elem) {
@@ -68,7 +69,7 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
   auto [r, rv, dm, p] = make_view(rest_, rest_volume_, dminv_, pfpx_);
 
   if (device == BufferDevice::Device) {
-    compute_static_data_gpu(*mesh, r, rv, dm, p);
+    AX_CUDA_CALL(compute_static_data_gpu(*mesh, r, rv, dm, p));
   } else {
     compute_static_data_cpu(*mesh, r, rv, dm, p);
   }
@@ -217,7 +218,7 @@ void ElasticityTerm::UpdateEnergy() {
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
   if (device == BufferDevice::Device) {
-    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+    AX_CUDA_CALL(compute_deformation_gradient_gpu(*mesh_, dminv, u, f));
   } else {
     compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
   }
@@ -239,7 +240,7 @@ void ElasticityTerm::UpdateGradient() {
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
   if (device == BufferDevice::Device) {
-    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+    AX_CUDA_CALL(compute_deformation_gradient_gpu(*mesh_, dminv, u, f));
   } else {
     compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
   }
@@ -249,7 +250,7 @@ void ElasticityTerm::UpdateGradient() {
 
   auto [grad, r, elem_grad] = make_view(compute_.Pk1(), rest_volume_, elem_grad_);
   if (device == BufferDevice::Device) {
-    compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad);
+    AX_CUDA_CALL(compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad));
   } else {
     compute_cubature_gradient_cpu(*mesh_, grad, dminv, elem_grad);
   }
@@ -274,7 +275,7 @@ void ElasticityTerm::UpdateHessian() {
   auto f = compute_.DeformGrad()->View();
   auto dminv = dminv_->ConstView();
   if (device == BufferDevice::Device) {
-    compute_deformation_gradient_gpu(*mesh_, dminv, u, f);
+    AX_CUDA_CALL(compute_deformation_gradient_gpu(*mesh_, dminv, u, f));
   } else {
     compute_deformation_gradient_cpu(*mesh_, dminv, u, f);
   }
@@ -288,11 +289,11 @@ void ElasticityTerm::UpdateHessian() {
   auto e = compute_.EnergyDensity()->ConstView();
   // Integrates
   if (device == BufferDevice::Device) {
-    compute_cubature_hessian_gpu(*mesh_, hess, pfpx_->View(), elem_hess);  // TODO: device
-    compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad);         // TODO: device
+    AX_CUDA_CALL(compute_cubature_hessian_gpu(*mesh_, hess, pfpx_->View(), elem_hess));
+    AX_CUDA_CALL(compute_cubature_gradient_gpu(*mesh_, grad, dminv, elem_grad));
   } else {
-    compute_cubature_hessian_cpu(*mesh_, hess, pfpx_->View(), elem_hess);  // TODO: device
-    compute_cubature_gradient_cpu(*mesh_, grad, dminv, elem_grad);         // TODO: device
+    compute_cubature_hessian_cpu(*mesh_, hess, pfpx_->View(), elem_hess);
+    compute_cubature_gradient_cpu(*mesh_, grad, dminv, elem_grad);
   }
   // Gather from cubatures.
   size_t n_elem = mesh_->GetNumElements(), n_vert_per_elem = mesh_->GetNumVerticesPerElement();

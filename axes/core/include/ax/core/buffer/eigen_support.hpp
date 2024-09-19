@@ -145,7 +145,6 @@ public:
 
   AX_HOST_DEVICE AX_CONSTEXPR BufferView<Scalar> GetBufferView() const { return bufv_; }
 
-  // TODO: must be private, because we do not check the input here.
   AX_HOST_DEVICE AX_CONSTEXPR explicit ViewAsEigenMapAdaptor1D(BufferView<Scalar> bufv)
       : bufv_(bufv) {}
 
@@ -177,7 +176,6 @@ public:
 
   AX_HOST_DEVICE AX_CONSTEXPR BufferView<Scalar> GetBufferView() const { return bufv_; }
 
-  // TODO: must be private, because we do not check the input here.
   AX_HOST_DEVICE AX_CONSTEXPR explicit ViewAsEigenMapAdaptor2D(BufferView<Scalar> bufv)
       : bufv_(bufv) {}
 

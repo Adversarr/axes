@@ -63,9 +63,9 @@ void compute_static_data_cpu(const Mesh& mesh, ConstRealBufferView rest_pose,
 
   size_t n_dof_per_vert = mesh.GetNumDOFPerVertex();
   if (n_dof_per_vert == 2) {
-    for_each_indexed(Dim1{n_elem}, job2d);
+    par_for_each_indexed(Dim1{n_elem}, job2d);
   } else if (n_dof_per_vert == 3) {
-    for_each_indexed(Dim1{n_elem}, job3d);
+    par_for_each_indexed(Dim1{n_elem}, job3d);
   } else {
     AX_THROW_RUNTIME_ERROR("Not implemented.");
   }
@@ -119,9 +119,9 @@ void compute_deformation_gradient_cpu(const Mesh& mesh, ConstRealBufferView dmin
 
   size_t n_dof_per_vert = mesh.GetNumDOFPerVertex();
   if (n_dof_per_vert == 2) {
-    for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
+    par_for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
   } else if (n_dof_per_vert == 3) {
-    for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
+    par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
   } else {
     AX_THROW_RUNTIME_ERROR("Not implemented.");
   }
@@ -212,9 +212,9 @@ void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
   };
 
   if (n_dof == 2) {
-    for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
+    par_for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
   } else if (n_dof == 3) {
-    for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
+    par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
   } else {
     AX_THROW_RUNTIME_ERROR("Not implemented.");
   }

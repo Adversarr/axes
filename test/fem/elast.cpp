@@ -118,7 +118,7 @@ TEST_CASE("Elasticity") {
   }
 }
 
-
+#ifdef AX_HAS_CUDA
 TEST_CASE("Elast GPU") {
   auto state = std::make_shared<State>(3, 8, BufferDevice::Device);
   auto mesh = create_cube(BufferDevice::Device);
@@ -139,3 +139,4 @@ TEST_CASE("Elast GPU") {
     CHECK(doctest::Approx(e) == 0);
   }
 }
+#endif

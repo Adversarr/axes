@@ -89,7 +89,8 @@ void copy_dispatch(BufferView<const From> from, BufferView<To> to) {
       err = cu_copy(from, to, cudaMemcpyDeviceToHost);
     }
     if (err != cudaSuccess) {
-      AX_THROW_RUNTIME_ERROR("CUDA copy failed: {}", cudaGetErrorString(err));
+      AX_THROW_RUNTIME_ERROR("CUDA copy failed {}: {}", cudaGetErrorName(err),
+                             cudaGetErrorString(err));
     }
 #else
     AX_CHECK(false, "CUDA is not enabled.");

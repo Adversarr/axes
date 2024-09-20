@@ -12,7 +12,7 @@ public:
   void AnalyzePattern() override;
   void Factorize() override;
 
-  BlockPreconditionerKind GetKind() const override { return BlockPreconditionerKind::BlockJacobi; }
+  GeneralPreconditionerKind GetKind() const override { return GeneralPreconditionerKind::BlockJacobi; }
 
   BufferPtr<Real> inv_diag_;  // [bs, bs, rows]
 };

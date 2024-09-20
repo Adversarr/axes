@@ -8,7 +8,7 @@ namespace ax::fem {
 
 class ElasticityTerm : public TermBase {
 public:
-  ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh);
+  ElasticityTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh);
 
   void UpdateEnergy() override;
 
@@ -24,7 +24,7 @@ public:
   BufferPtr<Real> rest_;         // (dim, nE). Rest position of each element.
   BufferPtr<Real> rest_volume_;  // (nE, ). Rest volume of each element.
   BufferPtr<Real> dminv_;        // (dim, dim, nE). See "Dynamic Deformables", map x->F
-  BufferPtr<Real> pfpx_;         // (dim * dim, dim * (dim + 1), nE). derivative of Deformation Gradient wrt x.
+  BufferPtr<Real> pfpx_;         // (dim * dim, dim * (dim + 1), nE). derivative of DeformGrad wrt x.
 
   ElasticityBatchedCompute compute_;  // Compute the energy, gradient, and hessian.
 

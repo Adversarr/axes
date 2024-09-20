@@ -43,6 +43,8 @@ public:
 
   void Finish() override;
 
+  std::unique_ptr<RealCSRMatrix> ToCSR(BufferDevice device) const override;
+
 private:
   std::shared_ptr<void> mat_desc_;
 };

@@ -19,7 +19,7 @@ namespace ax::fem {
  */
 class MassTerm : public TermBase {
 public:
-  MassTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh);
+  MassTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh);
 
   void SetDensity(ConstRealBufferView density);
   void SetDensity(Real uniform_density);

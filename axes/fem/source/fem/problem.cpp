@@ -30,7 +30,7 @@ Problem::Problem(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
   auto [ndof, nvert, _] = *var->Shape();
   auto device = state_->GetVariables()->Device();
   gradient_ = create_buffer<Real>(device, state_->GetVariables()->Shape());
-  bsr_hessian_ = std::make_shared<math::RealBlockMatrix>(nvert, nvert, ndof, device);
+  hessian_ = std::make_shared<math::RealBlockMatrix>(nvert, nvert, ndof, device);
   gradient_->SetBytes(0);
 }
 
@@ -94,8 +94,8 @@ void Problem::UpdateHessian() {
     term.term_->UpdateHessian();
   }
 
-  bsr_hessian_->Values()->SetBytes(0);
-  auto values_view = bsr_hessian_->Values()->View();
+  hessian_->Values()->SetBytes(0);
+  auto values_view = hessian_->Values()->View();
   for (auto& term : terms_) {
     const auto& hess = term.term_->GetHessian();
     // TODO: Implement the gather operation.
@@ -117,13 +117,14 @@ void Problem::InitializeHessianFillIn() {
   auto& term = terms_.front().term_;
   term->UpdateHessian();
   auto const& hess = term->GetHessian();
-  bsr_hessian_->SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
-                        hess.Values()->ConstView());
-  bsr_hessian_->Finish();
-  bsr_hessian_->Values()->SetBytes(0);
+  hessian_->SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
+                    hess.Values()->ConstView());
+  hessian_->MarkAsSymmetric();
+  hessian_->Finish();
+  hessian_->Values()->SetBytes(0);
 
-  AX_INFO("RowPtrs: {} NNZ: {} total fillin: {}", bsr_hessian_->RowPtrs()->Shape().X() - 1,
-          bsr_hessian_->ColIndices()->Shape().X(), prod(bsr_hessian_->Values()->Shape()));
+  AX_INFO("RowPtrs: {} NNZ: {} total fillin: {}", hessian_->RowPtrs()->Shape().X() - 1,
+          hessian_->ColIndices()->Shape().X(), prod(hessian_->Values()->Shape()));
 }
 
 Real TermBase::GetEnergy() const {
@@ -131,7 +132,7 @@ Real TermBase::GetEnergy() const {
 }
 
 void Problem::MarkDirty() {
-  for(auto& term : terms_) {
+  for (auto& term : terms_) {
     term.term_->MarkDirty();
   }
 }

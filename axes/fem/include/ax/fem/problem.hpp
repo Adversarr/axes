@@ -2,10 +2,11 @@
 #include <memory>  // std::unique_ptr
 
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/core/gsl.hpp"
 #include "ax/fem/mesh.hpp"
 #include "ax/fem/state.hpp"
-#include "ax/math/sparse_matrix/block_matrix.hpp"
 #include "ax/math/high_order/gather.hpp"
+#include "ax/math/sparse_matrix/block_matrix.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::fem {
@@ -13,9 +14,8 @@ namespace ax::fem {
 class TermBase : public utils::Tunable {
 public:
   // NOTE: It is derive's responsibility to initialize the buffers.
-  explicit TermBase(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
-      : state_(state), mesh_(mesh), is_gradient_up_to_date_(false), is_hessian_up_to_date_(false) {
-        };
+  explicit TermBase(shared_not_null<State> state, shared_not_null<Mesh> mesh)
+      : state_(state), mesh_(mesh) {};
 
   virtual ~TermBase() = default;
 
@@ -32,13 +32,13 @@ public:
 protected:
   std::shared_ptr<State> state_;
   std::shared_ptr<Mesh> mesh_;
-  Real energy_;                        ///< energy of the term
-  BufferPtr<Real> gradient_;           ///< gradient of the term
-  math::RealBlockMatrix hessian_;  ///< Hessian matrix in block sparse row format
-  bool is_energy_up_to_date_;          ///< dirty bit.
-  bool is_gradient_up_to_date_;        ///< dirty bit.
-  bool is_hessian_up_to_date_;         ///< dirty bit.
-  BufferPtr<size_t> constraints_;      ///< constraints of the term
+  Real energy_;                         ///< energy of the term
+  BufferPtr<Real> gradient_;            ///< gradient of the term
+  math::RealBlockMatrix hessian_;       ///< Hessian matrix in block sparse row format
+  bool is_energy_up_to_date_{false};    ///< dirty bit.
+  bool is_gradient_up_to_date_{false};  ///< dirty bit.
+  bool is_hessian_up_to_date_{false};   ///< dirty bit.
+  BufferPtr<size_t> constraints_;       ///< constraints of the term
 };
 
 class Problem {
@@ -70,10 +70,12 @@ public:
   void InitializeHessianFillIn();
 
   ConstRealBufferView GetGradient() const { return gradient_->ConstView(); }
+
   RealBufferView GetGradient() { return gradient_->View(); }
 
-  std::shared_ptr<const math::RealBlockMatrix> GetHessian() const { return bsr_hessian_; }
-  std::shared_ptr<math::RealBlockMatrix> GetHessian() { return bsr_hessian_; }
+  std::shared_ptr<const math::RealBlockMatrix> GetHessian() const { return hessian_; }
+
+  std::shared_ptr<math::RealBlockMatrix> GetHessian() { return hessian_; }
 
   Real GetEnergy() const { return energy_; }
 
@@ -89,7 +91,7 @@ private:
   std::vector<TermInfo> terms_;
   Real energy_;
   BufferPtr<Real> gradient_;
-  std::shared_ptr<math::RealBlockMatrix> bsr_hessian_;
+  std::shared_ptr<math::RealBlockMatrix> hessian_;
 };
 
 }  // namespace ax::fem

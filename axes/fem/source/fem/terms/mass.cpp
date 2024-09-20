@@ -13,7 +13,7 @@
 
 namespace ax::fem {
 
-MassTerm::MassTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
+MassTerm::MassTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh)
     : TermBase(state, mesh) {
   auto device = state_->GetVariables()->Device();
 
@@ -87,6 +87,7 @@ void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
   // Create the mass matrix.
   hessian_ = details::compute_mass_matrix_host(*mesh_, uniform_density,
                                                state_->GetVariables()->Shape().X());
+  hessian_.MarkAsSymmetric();
 }
 
 void MassTerm::SetDensity(Real uniform_density) {

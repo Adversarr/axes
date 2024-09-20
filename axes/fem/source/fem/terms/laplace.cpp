@@ -6,7 +6,7 @@
 
 namespace ax::fem {
 
-LaplaceTerm::LaplaceTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
+LaplaceTerm::LaplaceTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh)
     : TermBase(state, mesh) {
   auto device = state_->GetVariables()->Device();
 
@@ -81,6 +81,7 @@ void LaplaceTerm::SetDiffusivity(ConstRealBufferView uniform_diffusivity) {
                                                    state_->GetVariables()->Shape().X());
   hessian_.SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
                    hess.Values()->ConstView());
+  hessian_.MarkAsSymmetric();
   hessian_.Finish();
 }
 

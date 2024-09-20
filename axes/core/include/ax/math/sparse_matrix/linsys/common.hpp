@@ -9,10 +9,11 @@ AX_DEFINE_ENUM_CLASS(GeneralSparseSolverKind,
                      Downcast,           // Downcast to the normal solver.
 );
 
-AX_DEFINE_ENUM_CLASS(BlockPreconditionerKind,
+AX_DEFINE_ENUM_CLASS(GeneralPreconditionerKind,
                      Jacobi,       // Jacobi preconditioner.
                      BlockJacobi,  // Block Jacobi preconditioner.
                      Identity,     // Identity preconditioner.
+                     FSAI0,        // FSAI0 preconditioner.
 )
 
 class GeneralSparsePreconditionerBase;

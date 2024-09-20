@@ -41,7 +41,7 @@ static std::vector<size3> determine_fillin(std::shared_ptr<Mesh> mesh) {
   return fillin;
 }
 
-ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
+ElasticityTerm::ElasticityTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh)
     : TermBase(state, mesh) {
   auto device = state_->Device();
 
@@ -194,6 +194,8 @@ ElasticityTerm::ElasticityTerm(std::shared_ptr<State> state, std::shared_ptr<Mes
 
     hessian_.SetData(view_from_buffer(row_entries), view_from_buffer(col_indices),
                      view_from_buffer(values, {n_dof, n_dof, n_fillin}));
+    hessian_.MarkAsSymmetric();
+    hessian_.Finish();
   }
 
   is_energy_up_to_date_ = false;

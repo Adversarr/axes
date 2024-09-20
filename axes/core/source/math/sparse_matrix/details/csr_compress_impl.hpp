@@ -15,4 +15,12 @@ void compute_csr_spmv_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, R
                           BufferView<const int> row_ptrs, BufferView<const int> col_indices,
                           BufferView<const Real> values);
 
+void compute_csr_spmv_transpose_gpu(BufferView<const Real> x, BufferView<Real> y, Real alpha,
+                                    Real beta, std::shared_ptr<void> desc);
+
+void compute_csr_spmv_transpose_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, Real beta,
+                                    BufferView<const int> row_ptrs,
+                                    BufferView<const int> col_indices,
+                                    BufferView<const Real> values, size_t cols);
+
 }  // namespace ax::math::details

@@ -22,12 +22,12 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
   auto device = device_;
   if (!is_same_device(x, y) || x.Device() != device) {
     AX_THROW_RUNTIME_ERROR("Device mismatch. x={}, y={}, matrix={}", x.Device(), y.Device(),
-                             device);
+                           device);
   }
 
   if (x.Shape() != y.Shape()) {
     AX_THROW_RUNTIME_ERROR("The shape of x and y should be the same. x={}, y={}", x.Shape(),
-                             y.Shape());
+                           y.Shape());
   }
 
   if (device == BufferDevice::Host) {
@@ -40,7 +40,28 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
 
 void RealCSRMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y, Real alpha,
                                       Real beta) const {
-  AX_NOT_IMPLEMENTED();
+  if (is_symm_) {
+    Multiply(x, y, alpha, beta);  // much faster.
+    return;
+  }
+
+  auto device = device_;
+  if (!is_same_device(device, x, y)) {
+    AX_THROW_RUNTIME_ERROR("Device mismatch. x={}, y={}, matrix={}", x.Device(), y.Device(),
+                           device);
+  }
+
+  if (x.Shape().X() != Rows() || y.Shape().X() != Cols()) {
+    AX_THROW_RUNTIME_ERROR("Invalid shape. x={}, y={}, matrix={}x{}", x.Shape(), y.Shape(), rows_,
+                           cols_);
+  }
+
+  if (device == BufferDevice::Host) {
+    details::compute_csr_spmv_transpose_cpu(x, y, alpha, beta, row_ptrs_->View(),
+                                            col_indices_->View(), values_->View(), cols_);
+  } else {
+    details::compute_csr_spmv_transpose_gpu(x, y, alpha, beta, mat_descr_);
+  }
 }
 
 void RealCSRMatrix::SetData(ConstIntBufferView row_ptrs, ConstIntBufferView col_indices,
@@ -125,6 +146,25 @@ void RealCSRMatrix::SetFromTriplets(const RealSparseCOO& coo) {
   SetData(r, c, v);
 }
 
+RealSparseMatrix RealCSRMatrix::ToSparseMatrix() const {
+  Index rows = static_cast<Index>(rows_);
+  Index cols = static_cast<Index>(cols_);
+  math::RealSparseCOO coo;
+  auto rowv = row_ptrs_->ConstView();
+  auto colv = col_indices_->ConstView();
+  auto valv = values_->ConstView();
+  for (size_t i = 0; i < rows_; ++i) {
+    int row_start = rowv(i);
+    int row_end = rowv(i + 1);
+    for (int j = row_start; j < row_end; ++j) {
+      int col = colv(static_cast<size_t>(j));
+      Real val = valv(static_cast<size_t>(j));
+      coo.emplace_back(math::RealSparseEntry(static_cast<Index>(i), col, val));
+    }
+  }
+  return make_sparse_matrix(rows, cols, coo);
+}
+
 RealCSRMatrix::RealCSRMatrix(size_t rows, size_t cols, BufferDevice device) {
   rows_ = rows;
   cols_ = cols;
@@ -139,6 +179,12 @@ void RealCSRMatrix::Finish() {
                                                        values_->View(), rows_, cols_);
   }
 #endif
+}
+
+std::unique_ptr<RealCSRMatrix> RealCSRMatrix::ToCSR(BufferDevice device) const {
+  auto new_csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device);
+  new_csr->SetData(row_ptrs_->View(), col_indices_->View(), values_->View());
+  return new_csr;
 }
 
 }  // namespace ax::math

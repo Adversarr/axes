@@ -15,8 +15,8 @@ struct Descr {
   Real *buffer_{nullptr};
   size_t buffer_size_{0};
 
-  Descr(size_t rows, size_t cols, size_t nnz, int *row_ptrs,
-        int *col_indices, Real *values) {
+  Descr(size_t rows, size_t cols, size_t nnz, int *row_ptrs, int *col_indices,
+        Real *values) {
     auto status =
         cusparseCreateCsr(&sp_descr_, rows, cols, nnz, row_ptrs, col_indices,
                           values, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
@@ -24,36 +24,36 @@ struct Descr {
 
     if (status != CUSPARSE_STATUS_SUCCESS) {
       AX_THROW_RUNTIME_ERROR("Failed to create CSR matrix descriptor {}: {}",
-                               cusparseGetErrorName(status),
-                               cusparseGetErrorString(status));
+                             cusparseGetErrorName(status),
+                             cusparseGetErrorString(status));
     }
 
     status = cusparseCreateDnVec(&rhs_descr_, cols, nullptr, CUDA_R_64F);
     if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR(
-          "Failed to create dense vector descriptor {}: {}",
-          cusparseGetErrorName(status), cusparseGetErrorString(status));
+      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
+                             cusparseGetErrorName(status),
+                             cusparseGetErrorString(status));
     }
 
     status = cusparseCreateDnVec(&lhs_descr_, rows, nullptr, CUDA_R_64F);
     if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR(
-          "Failed to create dense vector descriptor {}: {}",
-          cusparseGetErrorName(status), cusparseGetErrorString(status));
+      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
+                             cusparseGetErrorName(status),
+                             cusparseGetErrorString(status));
     }
 
-    status = cusparseCreateDnVec(&rhs_dst_descr_, cols, nullptr, CUDA_R_64F);
+    status = cusparseCreateDnVec(&rhs_dst_descr_, rows, nullptr, CUDA_R_64F);
     if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR(
-          "Failed to create dense vector descriptor {}: {}",
-          cusparseGetErrorName(status), cusparseGetErrorString(status));
+      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
+                             cusparseGetErrorName(status),
+                             cusparseGetErrorString(status));
     }
 
-    status = cusparseCreateDnVec(&lhs_dst_descr_, rows, nullptr, CUDA_R_64F);
+    status = cusparseCreateDnVec(&lhs_dst_descr_, cols, nullptr, CUDA_R_64F);
     if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR(
-          "Failed to create dense vector descriptor {}: {}",
-          cusparseGetErrorName(status), cusparseGetErrorString(status));
+      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
+                             cusparseGetErrorName(status),
+                             cusparseGetErrorString(status));
     }
   }
 
@@ -90,27 +90,27 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y,
       cusparseDnVecSetValues(descr->rhs_descr_, const_cast<Real *>(x.Data()));
   if (status != CUSPARSE_STATUS_SUCCESS) {
     AX_THROW_RUNTIME_ERROR("Failed to set rhs dense vector values {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
   }
 
   status = cusparseDnVecSetValues(descr->rhs_dst_descr_, y.Data());
   if (status != CUSPARSE_STATUS_SUCCESS) {
     AX_THROW_RUNTIME_ERROR("Failed to set dst dense vector values {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
   }
 
   auto handle = get_cusparse_handle();
   size_t required_buffer_size = 0;
   status = cusparseSpMV_bufferSize(
       handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, descr->sp_descr_,
-      descr->rhs_descr_, &beta, descr->lhs_descr_, CUDA_R_64F,
+      descr->rhs_descr_, &beta, descr->rhs_dst_descr_, CUDA_R_64F,
       CUSPARSE_SPMV_ALG_DEFAULT, &required_buffer_size);
   if (status != CUSPARSE_STATUS_SUCCESS) {
     AX_THROW_RUNTIME_ERROR("Failed to get buffer size {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
   }
 
   if (descr->buffer_ != nullptr) {
@@ -131,8 +131,8 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y,
                                    CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
   if (status != CUSPARSE_STATUS_SUCCESS) {
     AX_THROW_RUNTIME_ERROR("Failed to preprocess SPMV {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
   }
 
   status = cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha,
@@ -141,8 +141,76 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y,
                         CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
   if (status != CUSPARSE_STATUS_SUCCESS) {
     AX_THROW_RUNTIME_ERROR("Failed to compute SPMV {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
+  }
+}
+
+void compute_csr_spmv_transpose_gpu(BufferView<const Real> x,
+                                    BufferView<Real> y, Real alpha, Real beta,
+                                    std::shared_ptr<void> desc) {
+  auto descr = std::static_pointer_cast<Descr>(desc);
+  if (!is_1d(x.Shape())) {
+    AX_THROW_RUNTIME_ERROR("Input vector must be 1D for now.");
+  }
+
+  auto status =
+      cusparseDnVecSetValues(descr->lhs_descr_, const_cast<Real *>(x.Data()));
+  if (status != CUSPARSE_STATUS_SUCCESS) {
+    AX_THROW_RUNTIME_ERROR("Failed to set lhs dense vector values {}: {}",
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
+  }
+
+  status = cusparseDnVecSetValues(descr->lhs_dst_descr_, y.Data());
+  if (status != CUSPARSE_STATUS_SUCCESS) {
+    AX_THROW_RUNTIME_ERROR("Failed to set dst dense vector values {}: {}",
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
+  }
+
+  auto handle = get_cusparse_handle();
+  size_t required_buffer_size = 0;
+  status = cusparseSpMV_bufferSize(
+      handle, CUSPARSE_OPERATION_TRANSPOSE, &alpha, descr->sp_descr_,
+      descr->lhs_descr_, &beta, descr->lhs_dst_descr_, CUDA_R_64F,
+      CUSPARSE_SPMV_ALG_DEFAULT, &required_buffer_size);
+  if (status != CUSPARSE_STATUS_SUCCESS) {
+    AX_THROW_RUNTIME_ERROR("Failed to get buffer size {}: {}",
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
+  }
+
+  if (descr->buffer_ != nullptr) {
+    if (descr->buffer_size_ < required_buffer_size) {
+      cudaFree(descr->buffer_);
+      descr->buffer_ = nullptr;
+    }
+  }
+
+  if (descr->buffer_ == nullptr) {
+    cudaMalloc(&descr->buffer_, required_buffer_size);
+    descr->buffer_size_ = required_buffer_size;
+  }
+
+  status = cusparseSpMV_preprocess(handle, CUSPARSE_OPERATION_TRANSPOSE, &alpha,
+                                   descr->sp_descr_, descr->lhs_descr_, &beta,
+                                   descr->lhs_dst_descr_, CUDA_R_64F,
+                                   CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
+  if (status != CUSPARSE_STATUS_SUCCESS) {
+    AX_THROW_RUNTIME_ERROR("Failed to preprocess SPMV {}: {}",
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
+  }
+
+  status = cusparseSpMV(handle, CUSPARSE_OPERATION_TRANSPOSE, &alpha,
+                        descr->sp_descr_, descr->lhs_descr_, &beta,
+                        descr->lhs_dst_descr_, CUDA_R_64F,
+                        CUSPARSE_SPMV_ALG_DEFAULT, descr->buffer_);
+  if (status != CUSPARSE_STATUS_SUCCESS) {
+    AX_THROW_RUNTIME_ERROR("Failed to compute SPMV {}: {}",
+                           cusparseGetErrorName(status),
+                           cusparseGetErrorString(status));
   }
 }
 

@@ -1,4 +1,5 @@
 #include "./csr_compress_impl.hpp"
+#include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/buffer/for_each.hpp"
 
 namespace ax::math::details {
@@ -28,6 +29,24 @@ void compute_csr_spmv_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, R
   } else {
     for_each_indexed(Dim(rows, cols), job);
   }
+}
+
+void compute_csr_spmv_transpose_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, Real beta,
+                                    BufferView<const int> row_ptrs,
+                                    BufferView<const int> col_indices,
+                                    BufferView<const Real> values, size_t cols) {
+  const size_t rows = row_ptrs.Shape().X() - 1;
+  const size_t nnz = values.Shape().Z();
+  // Not parallelizable.
+
+  Eigen::Map<const Eigen::SparseMatrix<Real, Eigen::RowMajor, int>> mat(
+      static_cast<Index>(rows), static_cast<Index>(cols), static_cast<Index>(nnz), row_ptrs.Data(),
+      col_indices.Data(), values.Data());
+
+  auto xmap = view_as_matrix_full<const RealMatrixX>(x);
+  auto ymap = view_as_matrix_full<RealMatrixX>(y);
+
+  ymap.noalias() = alpha * mat.transpose() * xmap + beta * ymap;
 }
 
 }  // namespace ax::math::details

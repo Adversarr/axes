@@ -1,7 +1,6 @@
 #pragma once
 #include "ax/fem/mesh.hpp"
 #include "ax/fem/problem.hpp"
-
 namespace ax::fem {
 
 /**
@@ -15,7 +14,7 @@ namespace ax::fem {
  */
 class LaplaceTerm : public TermBase {
 public:
-  LaplaceTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh);
+  LaplaceTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh);
 
   // Set the diffusivity for each element.
   void SetDiffusivity(ConstRealBufferView diffusivity);

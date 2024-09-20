@@ -13,11 +13,11 @@ public:
   virtual void AnalyzePattern() = 0;
   virtual void Factorize() = 0;
 
-  virtual BlockPreconditionerKind GetKind() const = 0;
+  virtual GeneralPreconditionerKind GetKind() const = 0;
 
   void SetProblem(RealSparseMatrixPtr mat);
 
-  static std::unique_ptr<GeneralSparsePreconditionerBase> Create(BlockPreconditionerKind kind);
+  static std::unique_ptr<GeneralSparsePreconditionerBase> Create(GeneralPreconditionerKind kind);
 
 protected:
   RealSparseMatrixPtr mat_;

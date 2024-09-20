@@ -4,6 +4,9 @@
 
 namespace ax::math {
 
+// The most important.
+class RealCSRMatrix;
+
 class RealCompressedMatrixBase {
 public:
   RealCompressedMatrixBase() = default;
@@ -48,7 +51,9 @@ public:
 
   size_t BlockedCols() const { return cols_; }
 
-  void MarkAsSymmetric(bool is_symm) { is_symm_ = is_symm; }
+  void MarkAsSymmetric(bool is_symm = true) { is_symm_ = is_symm; }
+
+  virtual std::unique_ptr<RealCSRMatrix> ToCSR(BufferDevice) const = 0;
 
 protected:
   BufferPtr<int> row_ptrs_;     // row_ptrs if CSR, col_ptrs if CSC

@@ -5,6 +5,7 @@
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
 #ifdef AX_HAS_CUDA
 #  include "ax/core/buffer/device_buffer.cuh"
 #endif
@@ -296,6 +297,16 @@ void RealBlockMatrix::Finish() {
     }
   }
 #endif
+}
+
+std::unique_ptr<RealCSRMatrix> RealBlockMatrix::ToCSR(BufferDevice device) const {
+  auto csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device);
+  if (block_size_ == 1) {
+    csr->SetData(row_ptrs_->ConstView(), col_indices_->ConstView(), flatten(values_->ConstView()));
+  } else {
+    AX_NOT_IMPLEMENTED();
+  }
+  return csr;
 }
 
 }  // namespace ax::math

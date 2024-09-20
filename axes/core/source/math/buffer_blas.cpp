@@ -11,6 +11,9 @@
 #  include <cublas_v2.h>
 #endif
 
+#include "ax/utils/cuda_helper.hpp"
+#include "details/buffer_blas_impl.hpp"
+
 namespace ax::math::buffer_blas {
 #ifdef AX_HAS_CUDA
 namespace details {
@@ -373,6 +376,70 @@ Real amax(ConstRealBufferView x) {
     AX_NOT_IMPLEMENTED();
   }
   return result;
+}
+
+// LEVEL 2
+
+
+// extras
+static void do_emul_host(ConstRealBufferView x, RealBufferView y) {
+  if (prod(x.Shape()) < 1 << 20) {
+    for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+      y *= x;
+    });
+  } else {
+    par_for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+      y *= x;
+    });
+  }
+}
+
+void emul(ConstRealBufferView x, RealBufferView y) {
+  if (x.Shape() != y.Shape()) {
+    AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
+  }
+
+  if (! is_same_device(x, y)) {
+    AX_THROW_RUNTIME_ERROR("device mismatch: x={}, y={}", x.Device(), y.Device());
+  }
+
+  auto d = x.Device();
+
+  if (d == BufferDevice::Host) {
+    do_emul_host(x, y);
+  } else {
+    AX_CUDA_CALL(do_emul_gpu(x, y));
+  }
+}
+
+static void do_ediv_host(ConstRealBufferView x, RealBufferView y) {
+  if (prod(x.Shape()) < 1 << 20) {
+    for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+      y /= x;
+    });
+  } else {
+    par_for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+      y /= x;
+    });
+  }
+}
+
+void ediv(ConstRealBufferView x, RealBufferView y) {
+  if (x.Shape() != y.Shape()) {
+    AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
+  }
+
+  if (! is_same_device(x, y)) {
+    AX_THROW_RUNTIME_ERROR("device mismatch: x={}, y={}", x.Device(), y.Device());
+  }
+
+  auto d = x.Device();
+
+  if (d == BufferDevice::Host) {
+    do_ediv_host(x, y);
+  } else {
+    AX_CUDA_CALL(do_ediv_gpu(x, y));
+  }
 }
 
 }  // namespace ax::math::buffer_blas

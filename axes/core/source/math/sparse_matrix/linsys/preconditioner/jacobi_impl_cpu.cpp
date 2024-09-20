@@ -2,6 +2,7 @@
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/core/logging.hpp"
+#include "ax/math/buffer_blas.hpp"
 
 namespace ax::math::details {
 
@@ -62,17 +63,21 @@ void jacobi_precond_solve_cpu(RealBufferView dst, ConstRealBufferView rhs,
 
   std::memset(dst.Data(), 0, sizeof(Real) * prod(dst.Shape()));
 
-  auto job = [bs, &dst, &inv_diag, &rhs](size_t row) {
-    for (size_t i = 0; i < bs; ++i) {
-      dst(i, row) = rhs(i, row) * inv_diag(i, row);
-    }
-  };
+  // auto job = [bs, &dst, &inv_diag, &rhs](size_t row) {
+  //   for (size_t i = 0; i < bs; ++i) {
+  //     dst(i, row) = rhs(i, row) * inv_diag(i, row);
+  //   }
+  // };
+  //
+  // if (rows > 1 << 20) {
+  //   par_for_each_indexed(Dim{rows}, job);
+  // } else {
+  //   for_each_indexed(Dim{rows}, job);
+  // }
 
-  if (rows > 4096) {
-    par_for_each_indexed(Dim{rows}, job);
-  } else {
-    for_each_indexed(Dim{rows}, job);
-  }
+  // Foreach batch.
+  buffer_blas::copy(dst, rhs);
+  buffer_blas::emul(inv_diag, dst);
 }
 
 }  // namespace ax::math::details

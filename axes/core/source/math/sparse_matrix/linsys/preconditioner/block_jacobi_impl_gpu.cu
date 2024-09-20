@@ -29,10 +29,13 @@ __global__ void block_jacobi_precond_precompute_kernel(
           inv_diag(li, lj, i) = value(li, lj, bid);
         }
       }
+      break;
     }
   }
   Real *inv_diag_ptr = inv_diag.Offset(0, 0, i);
-  if (bs == 2) {
+  if (bs == 1) {
+    *inv_diag_ptr = 1.0 / *inv_diag_ptr;
+  } else if (bs == 2) {
     details::do_inplace_inverse<2>(inv_diag_ptr);
   } else if (bs == 3) {
     details::do_inplace_inverse<3>(inv_diag_ptr);
@@ -52,8 +55,8 @@ void block_jacobi_precond_precompute_gpu(BufferView<Real> dst,
                              AX_INVERSE_BLOCK_MAXSIZE);
   }
 
-  const size_t block_size = 256;
-  const size_t grid_size = (rows + block_size - 1) / block_size;
+  const ui32 block_size = 256;
+  const ui32 grid_size = static_cast<ui32>(rows + block_size - 1) / block_size;
 
   auto bv = mat.Values()->ConstView();
   auto br = mat.RowPtrs()->View();
@@ -74,8 +77,9 @@ __global__ void block_jacobi_precond_eval_kernel(RealBufferView dst,
   Real *dst_ptr = dst.Offset(0, i);
   const Real *inv_diag_ptr = inv_diag.Offset(0, 0, i);
   const Real *rhs_ptr = rhs.Offset(0, i);
-
-  if (bs == 2) {
+  if (bs == 1) {
+    *dst_ptr = *rhs_ptr * *inv_diag_ptr;
+  } else if (bs == 2) {
     details::do_matmul<2>(dst_ptr, inv_diag_ptr, rhs_ptr);
   } else if (bs == 3) {
     details::do_matmul<3>(dst_ptr, inv_diag_ptr, rhs_ptr);

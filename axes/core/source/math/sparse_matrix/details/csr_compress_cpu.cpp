@@ -23,7 +23,7 @@ void compute_csr_spmv_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, R
   };
 
   size_t cols = x.Shape().Y() == 0 ? 1 : x.Shape().Y();
-  if (rows > 4096) {
+  if (nnz > 1 << 16) {
     par_for_each_indexed(Dim(rows, cols), job);
   } else {
     for_each_indexed(Dim(rows, cols), job);

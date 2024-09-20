@@ -41,8 +41,11 @@ ValueType par_transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g, ValueType
   auto z = front.Shape().Z() == 0 ? 1 : front.Shape().Z();
   ValueType result = init;
   size_t total = x * y * z;
-  std::vector<ValueType> results(omp_get_max_threads(), init);
-#  pragma omp parallel for schedule(static)
+  std::vector<ValueType> results(omp_get_num_threads(), init);
+#ifdef AX_HAS_OPENMP
+  size_t threads = omp_get_num_threads();
+#pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
+#endif
   for (size_t i = 0; i < total; ++i) {
     size_t k = i / (x * y);
     size_t j = (i - k * x * y) / x;

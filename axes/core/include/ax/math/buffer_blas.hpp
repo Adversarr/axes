@@ -50,4 +50,13 @@ void gemm(ConstRealBufferView mat_a, ConstRealBufferView mat_b, RealBufferView m
           Real alpha = 1.0, Real beta = 0.0, BlasOperation op_a = BlasOperation::None,
           BlasOperation op_b = BlasOperation::None);
 
+///// EXTRA X /////
+
+// computes y *= x
+void emul(ConstRealBufferView x, RealBufferView y);
+
+// computes y /= x
+void ediv(ConstRealBufferView x, RealBufferView y);
+
+
 }  // namespace ax::math

@@ -23,7 +23,7 @@ void block_matrix_matmul_cpu(size_t rows, size_t /* cols */, BufferView<const Re
                              std::shared_ptr<void> /* descr_type_erased */) {
   // For each row block, do parallel.
   // Alg: out[i] = sum_j block_values[i, j] * rhs[j]
-  for_each_indexed(Dim{rows}, [&](size_t row) {
+  auto job = [&](size_t row) {
     size_t block_curr = static_cast<size_t>(block_row_ptrs(row));
     size_t block_next = static_cast<size_t>(block_row_ptrs(row + 1));
     size_t block_size = block_values.Shape().X();
@@ -40,7 +40,12 @@ void block_matrix_matmul_cpu(size_t rows, size_t /* cols */, BufferView<const Re
       const Real* in_rhs = rhs.Offset(0, col);
       do_mv(in_block, in_rhs, out_dst, block_size, alpha);
     }
-  });
+  };
+  if (rows > 4096) {
+    par_for_each_indexed(Dim{rows}, job);
+  } else {
+    for_each_indexed(Dim{rows}, job);
+  }
 }
 
 }  // namespace ax::math::details

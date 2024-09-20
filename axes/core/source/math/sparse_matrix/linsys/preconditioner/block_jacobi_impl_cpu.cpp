@@ -1,7 +1,9 @@
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/excepts.hpp"
-#include "block_jacobi_impl.hpp"
+#include "ax/core/gsl.hpp"
 #include "ax/core/logging.hpp"
+#include "block_jacobi_impl.hpp"
+
 namespace ax::math::details {
 
 void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMatrix& mat) {
@@ -49,12 +51,16 @@ void block_jacobi_precond_precompute_cpu(BufferView<Real> dst, const RealBlockMa
     }
 
     Real* ptr = dst.Offset(0, 0, row);
-    if (bs == 2) {
+    if (bs == 1) {
+      *ptr = 1.0 / *ptr;
+    } else if (bs == 2) {
       details::do_inplace_inverse<2>(ptr);
     } else if (bs == 3) {
       details::do_inplace_inverse<3>(ptr);
     } else if (bs == 4) {
       details::do_inplace_inverse<4>(ptr);
+    } else {
+      AX_EXPECTS(false && "Invalid Input!!!");  // should not reach here
     }
   };
   if (mat.Rows() > 4096) {
@@ -81,10 +87,20 @@ void block_jacobi_precond_eval_cpu(BufferView<Real> dst,          // a view of [
   std::memset(dst.Data(), 0, sizeof(Real) * prod(dst.Shape()));
 
   auto job = [bs = static_cast<Index>(bs), &dst, &inv_diag, &rhs](size_t row) {
-    Eigen::Map<math::RealMatrixX> dst_block(dst.Offset(0, row, 0), bs, 1);
-    Eigen::Map<const math::RealMatrixX> inv_diag_block(inv_diag.Offset(0, 0, row), bs, bs);
-    Eigen::Map<const math::RealMatrixX> rhs_block(rhs.Offset(0, row, 0), bs, 1);
-    dst_block = inv_diag_block * rhs_block;
+    Real* dst_block = dst.Offset(0, row, 0);
+    const Real* inv_diag_block = inv_diag.Offset(0, 0, row);
+    const Real* rhs_block = rhs.Offset(0, row, 0);
+    if (bs == 1) {
+      *dst_block = *inv_diag_block * *rhs_block;
+    } else if (bs == 2) {
+      details::do_matmul<2>(dst_block, inv_diag_block, rhs_block);
+    } else if (bs == 3) {
+      details::do_matmul<3>(dst_block, inv_diag_block, rhs_block);
+    } else if (bs == 4) {
+      details::do_matmul<4>(dst_block, inv_diag_block, rhs_block);
+    } else {
+      AX_EXPECTS(false && "Invalid Input!!!");  // should not reach here
+    }
   };
 
   if (rows > 4096) {

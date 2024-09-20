@@ -9,6 +9,7 @@
 #include "ax/geometry/primitives.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/io.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/utils/formatting.hpp"
@@ -120,7 +121,7 @@ int main(int argc, char** argv) {
   pruner.Prune(*bsr);
   pruner.Prune(grad);
   math::GeneralSparseSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_Jacobi>();
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
   cg.SetProblem(bsr);
   cg.Compute();
 

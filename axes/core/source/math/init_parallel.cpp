@@ -8,7 +8,7 @@
 namespace ax::math {
 
 void init_parallel(int num_threads) {
-#ifdef AX_HAS_OPENMP
+#if defined AX_HAS_OPENMP
   Eigen::initParallel();
   Eigen::setNbThreads(num_threads > 0 ? num_threads
                                       : static_cast<int>(std::thread::hardware_concurrency()));

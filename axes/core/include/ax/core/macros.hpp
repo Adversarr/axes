@@ -205,6 +205,7 @@
 #  define AX_DEVICE __device__
 #  define AX_HOST __host__
 #  define AX_HOST_DEVICE __host__ __device__
+#  define AX_IS_CUDACC
 #else
 #  define AX_GLOBAL
 #  define AX_DEVICE

@@ -2,7 +2,7 @@
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/utils/god.hpp"
 
-#ifdef AX_HAS_OPENMP
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
 #  include <omp.h>
 #endif
 
@@ -34,7 +34,7 @@ template <typename TransformFn, typename ReduceFn, typename ValueType, typename 
           typename... Ts>
 ValueType par_transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g, ValueType init,
                                         BufferView<Front> front, BufferView<Ts>... ts) {
-#ifdef AX_HAS_OPENMP
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
   AX_THROW_IF_FALSE(utils::god::all_equal(ts.Shape()...), "All buffers must have the same shape.");
   auto x = front.Shape().X();
   auto y = front.Shape().Y() == 0 ? 1 : front.Shape().Y();
@@ -42,8 +42,8 @@ ValueType par_transform_reduce_dispatch(TransformFn&& f, ReduceFn&& g, ValueType
   ValueType result = init;
   size_t total = x * y * z;
   std::vector<ValueType> results(omp_get_num_threads(), init);
-#ifdef AX_HAS_OPENMP
-  size_t threads = omp_get_num_threads();
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+  size_t threads = static_cast<size_t>(omp_get_num_threads());
 #pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
 #endif
   for (size_t i = 0; i < total; ++i) {

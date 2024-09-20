@@ -195,8 +195,8 @@ void Timestepper_QuasiNewton<dim>::BeginSimulation(Real dt) {
   UpdateSolverLaplace();
 
   // Now it is N, DIMENSION each column is a basis.
-  basis_ = math::read_npy_v10_real("/home/adversarr/Repo/axes/basis.npy");
-  AX_CHECK(basis_.rows() == DIMENSION, "The basis should be {}.", DIMENSION);
+  // basis_ = math::read_npy_v10_real("/home/adversarr/Repo/axes/basis.npy");
+  // AX_CHECK(basis_.rows() == DIMENSION, "The basis should be {}.", DIMENSION);
   // for (auto i: utils::range(basis_.cols())) {
   //   basis_.col(i).setZero();
   //   basis_(i, i) = 1.;

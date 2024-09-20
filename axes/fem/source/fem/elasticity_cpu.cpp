@@ -61,8 +61,12 @@ struct HessianEntryInfo {
 };
 
 // Since we are using ColMajor sparse matrix:
-static bool prec(Index dofs, HessianEntryInfo const& a, HessianEntryInfo const& b) {
-  return a.global_j_ < b.global_j_ || (a.global_j_ == b.global_j_ && a.global_i_ < b.global_i_);
+inline static bool prec(Index /* dofs */, HessianEntryInfo const& a, HessianEntryInfo const& b) {
+  if constexpr (math::default_sparse_storage == Eigen::ColMajor) {
+    return a.global_j_ < b.global_j_ || (a.global_j_ == b.global_j_ && a.global_i_ < b.global_i_);
+  } else {
+    return a.global_i_ < b.global_i_ || (a.global_i_ == b.global_i_ && a.global_j_ < b.global_j_);
+  }
 }
 
 template <int dim, template <int> class ElasticModelTemplate>

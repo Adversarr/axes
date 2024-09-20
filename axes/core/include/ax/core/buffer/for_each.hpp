@@ -3,8 +3,8 @@
 #include "ax/core/excepts.hpp"
 #include "ax/utils/god.hpp"
 
-#ifdef AX_HAS_OPENMP
-#include <omp.h>
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+#  include <omp.h>
 #endif
 
 namespace ax {
@@ -20,7 +20,7 @@ void for_each(Fn&& f, BufferView<Front> tsf, BufferView<Ts>... ts) {
   auto z = tsf.Shape().Z() == 0 ? 1 : tsf.Shape().Z();
   for (size_t k = 0; k < z; ++k) {
     for (size_t j = 0; j < y; ++j) {
-#ifdef AX_HAS_OPENMP
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
 #  pragma omp simd
 #endif
       for (size_t i = 0; i < x; ++i) {
@@ -38,9 +38,10 @@ void par_for_each(Fn&& f, BufferView<Front> tsf, BufferView<Ts>... ts) {
   auto y = tsf.Shape().Y() == 0 ? 1 : tsf.Shape().Y();
   auto z = tsf.Shape().Z() == 0 ? 1 : tsf.Shape().Z();
   size_t total = x * y * z;
-#ifdef AX_HAS_OPENMP
-  size_t threads = omp_get_num_threads();
-#pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+  size_t threads = static_cast<size_t>(omp_get_num_threads());
+#  pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) \
+      num_threads(threads)
 #endif
   for (size_t i = 0; i < total; ++i) {
     size_t k = i / (x * y);
@@ -80,9 +81,10 @@ AX_HOST_DEVICE AX_CONSTEXPR void for_each_indexed(const Dim<3>& d, Fn&& f) {
 template <typename Fn>
 void par_for_each_indexed(const Dim<1>& d, Fn&& f) {
   size_t total = d.X();
-#ifdef AX_HAS_OPENMP
-  size_t threads = omp_get_num_threads();
-#pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+  size_t threads = static_cast<size_t>(omp_get_num_threads());
+#  pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) \
+      num_threads(threads)
 #endif
   for (size_t i = 0; i < total; ++i) {
     f(i);
@@ -92,9 +94,10 @@ void par_for_each_indexed(const Dim<1>& d, Fn&& f) {
 template <typename Fn>
 void par_for_each_indexed(const Dim<2>& d, Fn&& f) {
   size_t total = d.X() * d.Y();
-#ifdef AX_HAS_OPENMP
-  size_t threads = omp_get_num_threads();
-#pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+  size_t threads = static_cast<size_t>(omp_get_num_threads());
+#  pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) \
+      num_threads(threads)
 #endif
   for (size_t i = 0; i < total; ++i) {
     size_t j = i / d.X();
@@ -106,9 +109,10 @@ void par_for_each_indexed(const Dim<2>& d, Fn&& f) {
 template <typename Fn>
 void par_for_each_indexed(const Dim<3>& d, Fn&& f) {
   size_t total = d.X() * d.Y() * d.Z();
-#ifdef AX_HAS_OPENMP
-  size_t threads = omp_get_num_threads();
-#pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) num_threads(threads)
+#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
+  size_t threads = static_cast<size_t>(omp_get_num_threads());
+#  pragma omp parallel for schedule(dynamic, (total + threads * 4 - 1) / (threads * 4)) \
+      num_threads(threads)
 #endif
   for (size_t i = 0; i < total; ++i) {
     size_t k = i / (d.X() * d.Y());

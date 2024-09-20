@@ -22,3 +22,14 @@
     AX_THROW_RUNTIME_ERROR("CUDA is not enabled, try to call [" #expr "]")
 
 #endif
+
+namespace ax::utils {
+
+template <typename Integer>
+Integer up_div(Integer a, Integer b) {
+  static_assert(std::is_integral_v<Integer>, "Integer must be an integral type.");
+  static_assert(std::is_unsigned_v<Integer>, "Integer must be an unsigned type.");
+  return (a + b - 1) / b;
+}
+
+}  // namespace ax::utils

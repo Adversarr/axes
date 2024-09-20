@@ -1,5 +1,15 @@
 #pragma once
 
+#ifdef AX_SPARSE_CSC_DEFAULT
+#  define AX_SPARSE_MAJOR ColMajor
+#else
+#  ifndef AX_SPARSE_CSR_DEFAULT
+#    define AX_SPARSE_CSR_DEFAULT
+#  endif
+
+#  define AX_SPARSE_MAJOR RowMajor
+#endif
+
 #include <Eigen/SparseCore>
 
 #include "ax/math/common.hpp"  // IWYU pragma: export
@@ -7,13 +17,15 @@
 
 namespace ax::math {
 
+constexpr Eigen::StorageOptions default_sparse_storage = Eigen::AX_SPARSE_MAJOR;
+
 template <typename Scalar>
-using SparseMatrix = Eigen::SparseMatrix<Scalar, Eigen::ColMajor, Index>;
+using SparseMatrix = Eigen::SparseMatrix<Scalar, default_sparse_storage, Index>;
 
 /**
  * @brief Alias for a sparse matrix with real values, column-major storage, and index type Index.
  */
-using RealSparseMatrix = Eigen::SparseMatrix<Real, Eigen::ColMajor, Index>;
+using RealSparseMatrix = Eigen::SparseMatrix<Real, default_sparse_storage, Index>;
 
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.
@@ -36,9 +48,10 @@ using RealSparseCOO = std::vector<RealSparseEntry>;
  */
 RealSparseMatrix make_sparse_matrix(Index rows, Index cols, RealSparseCOO const& coeff_list);
 RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<Index> const& row,
-                          std::vector<Index> const& col, std::vector<Real> const& val);
+                                    std::vector<Index> const& col, std::vector<Real> const& val);
 
-template <int dim> RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
+template <int dim>
+RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
   Index const rows = A.rows() * dim;
   Index const cols = A.cols() * dim;
   RealSparseCOO coeff_list;
@@ -54,7 +67,7 @@ template <int dim> RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
 }
 
 template <typename Fn>
-AX_FORCE_INLINE void for_each_entry(RealSparseMatrix & A, Fn&& fn) {
+AX_FORCE_INLINE void for_each_entry(RealSparseMatrix& A, Fn&& fn) {
   for (Index k = 0; k < A.outerSize(); ++k) {
     for (RealSparseMatrix::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
@@ -62,7 +75,8 @@ AX_FORCE_INLINE void for_each_entry(RealSparseMatrix & A, Fn&& fn) {
   }
 }
 
-template <typename Fn> AX_FORCE_INLINE void for_each_entry(const RealSparseMatrix& A, Fn&& fn) {
+template <typename Fn>
+AX_FORCE_INLINE void for_each_entry(const RealSparseMatrix& A, Fn&& fn) {
   for (Index k = 0; k < A.outerSize(); ++k) {
     for (RealSparseMatrix::InnerIterator it(A, k); it; ++it) {
       fn(it.row(), it.col(), it.valueRef());
@@ -94,11 +108,15 @@ AX_FORCE_INLINE Real norm(RealSparseMatrix const& A, math::l2_t) {
 
 /****************************** inner product ******************************/
 template <typename DerivedLeft, typename DerivedRight,
-          typename = std::enable_if_t<DerivedLeft::IsVectorAtCompileTime && DerivedRight::IsVectorAtCompileTime>>
-AX_FORCE_INLINE Real inner(Eigen::MatrixBase<DerivedLeft> const& left, const RealSparseMatrix& bilinear,
+          typename = std::enable_if_t<DerivedLeft::IsVectorAtCompileTime
+                                      && DerivedRight::IsVectorAtCompileTime>>
+AX_FORCE_INLINE Real inner(Eigen::MatrixBase<DerivedLeft> const& left,
+                           const RealSparseMatrix& bilinear,
                            Eigen::MatrixBase<DerivedRight> const& right) {
   Real total = static_cast<Real>(0.0);
-  for_each_entry(bilinear, [&](Index row, Index col, Real value) { total += left[row] * right[col] * value; });
+  for_each_entry(bilinear, [&](Index row, Index col, Real value) {
+    total += left[row] * right[col] * value;
+  });
   return total;
 }
 

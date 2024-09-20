@@ -79,7 +79,7 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
 
     // check convergence
     err = buffer_blas::norm(r);
-    AX_INFO("CG iter: {}, l2_err: {:12.6e}", iter, status.l2_err_);
+    AX_INFO("CG iter: {}, l2_err: {:12.6e}", iter, err);
     if (err <= tolerance_) {
       converged = true;
       break;

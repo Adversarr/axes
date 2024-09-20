@@ -243,6 +243,11 @@ void do_dot_device(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 // computes dot product <x, y>
 Real dot(ConstRealBufferView x, ConstRealBufferView y) {
   AX_CHECK(is_same_device(x, y), "dot: x and y should be on the same device.");
+  if (x.Shape() != y.Shape()) {
+    AX_THROW_INVALID_ARGUMENT("dot: x and y must have the same shape. got {} and {}", x.Shape(),
+                              y.Shape());
+  }
+
   Real result = 0;
   if (!(x.IsContinuous(1) && y.IsContinuous(1))) {
     throw make_invalid_argument("dot: x and y must be continuous for y,z");

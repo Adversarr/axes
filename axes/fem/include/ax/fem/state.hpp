@@ -13,9 +13,8 @@ AX_DEFINE_ENUM_CLASS(VariableCondition,
 
 class State {
 public:
-  State();
   State(size_t n_dof_per_vertex, size_t n_vert, BufferDevice device);
-  AX_DECLARE_CONSTRUCTOR(State, default, default);
+  AX_DECLARE_CONSTRUCTOR(State, delete, delete);
 
   BufferPtr<Real> GetVariables() const;
 

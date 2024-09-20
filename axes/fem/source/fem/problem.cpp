@@ -1,4 +1,3 @@
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "ax/fem/problem.hpp"
 
 #include "ax/core/buffer/create_buffer.hpp"
@@ -25,20 +24,21 @@ void TermBase::MarkDirty() {
   is_hessian_up_to_date_ = false;
 }
 
-Problem::Problem(std::shared_ptr<State> state) : state_(std::move(state)) {
+Problem::Problem(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
+    : state_(std::move(state)), mesh_(std::move(mesh)) {
   auto var = state_->GetVariables();
   auto [ndof, nvert, _] = *var->Shape();
   auto device = state_->GetVariables()->Device();
   gradient_ = create_buffer<Real>(device, state_->GetVariables()->Shape());
-  bsr_hessian_ = math::RealBlockMatrix(nvert, nvert, ndof, device);
+  bsr_hessian_ = std::make_shared<math::RealBlockMatrix>(nvert, nvert, ndof, device);
   gradient_->SetBytes(0);
 }
 
-void Problem::AddTerm(std::string const& name, std::unique_ptr<TermBase> term) {
+Problem::TermInfo& Problem::AddTerm(std::string const& name, std::unique_ptr<TermBase> term) {
   TermInfo info;
   info.term_ = std::move(term);
   info.name_ = name;
-  terms_.push_back(std::move(info));
+  return terms_.emplace_back(std::move(info));
 }
 
 Problem::TermInfo& Problem::GetTerm(std::string const& name) {
@@ -77,37 +77,33 @@ bool Problem::RemoveTerm(std::string const& name) {
 
 void Problem::UpdateGradient() {
   for (auto& term : terms_) {
-    AX_TRACE("Updating gradient for term: {}", term.name_);
     term.term_->UpdateGradient();
   }
 
   gradient_->SetBytes(0);
   auto g_view = gradient_->View();
   for (auto& term : terms_) {
-    AX_TRACE("Gathering gradient for term: {}", term.name_);
     auto grad = term.term_->GetGradient();
     math::buffer_blas::axpy(term.scale_, grad, g_view);
+    AX_INFO("{} => norm of gradient: {}", term.name_, math::buffer_blas::norm(grad));
   }
-
-  AX_TRACE("Gradient updated");
 }
 
 void Problem::UpdateHessian() {
   for (auto& term : terms_) {
-    AX_TRACE("Updating Hessian for term: {}", term.name_);
     term.term_->UpdateHessian();
   }
 
-  bsr_hessian_.Values()->SetBytes(0);
+  bsr_hessian_->Values()->SetBytes(0);
+  auto values_view = bsr_hessian_->Values()->View();
   for (auto& term : terms_) {
-    AX_TRACE("Gathering Hessian for term: {}", term.name_);
     const auto& hess = term.term_->GetHessian();
     // TODO: Implement the gather operation.
     // term.gather_op_.Apply(hess.BlockValuesView(), bsr_hessian_.BlockValuesView(), 1.0, 1.0);
-    math::buffer_blas::axpy(term.scale_, hess.Values()->View(), bsr_hessian_.Values()->View());
-  }
+    math::buffer_blas::axpy(term.scale_, hess.Values()->View(), values_view);
 
-  AX_TRACE("Hessian updated");
+    AX_INFO("norm of hessian: {}", math::buffer_blas::norm(hess.Values()->ConstView()));
+  }
 }
 
 void Problem::InitializeHessianFillIn() {
@@ -115,23 +111,29 @@ void Problem::InitializeHessianFillIn() {
   // and we just need to initialize the fill-in to the front one.
 
   if (terms_.empty()) {
-    AX_WARN("No terms in the problem. not initializing Hessian fill-in at all.");
-    return;
+    AX_THROW_RUNTIME_ERROR("No terms in the problem. not initializing Hessian fill-in at all.");
   }
 
   auto& term = terms_.front().term_;
   term->UpdateHessian();
   auto const& hess = term->GetHessian();
-  bsr_hessian_.SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
-                       hess.Values()->ConstView());
-  bsr_hessian_.Finish();
-  bsr_hessian_.Values()->SetBytes(0);
+  bsr_hessian_->SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
+                        hess.Values()->ConstView());
+  bsr_hessian_->Finish();
+  bsr_hessian_->Values()->SetBytes(0);
 
-  AX_INFO("RowPtrs: {} NNZ: {} total fillin: {}", bsr_hessian_.RowPtrs()->Shape().X() - 1,
-          bsr_hessian_.ColIndices()->Shape().X(), prod(bsr_hessian_.Values()->Shape()));
+  AX_INFO("RowPtrs: {} NNZ: {} total fillin: {}", bsr_hessian_->RowPtrs()->Shape().X() - 1,
+          bsr_hessian_->ColIndices()->Shape().X(), prod(bsr_hessian_->Values()->Shape()));
 }
 
 Real TermBase::GetEnergy() const {
   return energy_;
 }
+
+void Problem::MarkDirty() {
+  for(auto& term : terms_) {
+    term.term_->MarkDirty();
+  }
+}
+
 }  // namespace ax::fem

@@ -32,9 +32,11 @@ template <size_t N>
 struct formatter<ax::Dim<N>> : formatter<std::string_view> {
   template <typename FormatContext>
   auto format(ax::Dim<N> c, FormatContext& ctx) const {
-    for (size_t i = 0; i < N; ++i) {
-      fmt::format_to(ctx.out(), "{}", c.sizes_[i]);
+    fmt::format_to(ctx.out(), "(");
+    for (size_t i = 0; i < N - 1; ++i) {
+      fmt::format_to(ctx.out(), "{}, ", c.sizes_[i]);
     }
+    fmt::format_to(ctx.out(), "{})", c.sizes_[N - 1]);
     return ctx.out();
   }
 };

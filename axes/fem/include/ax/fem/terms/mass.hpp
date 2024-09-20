@@ -33,7 +33,7 @@ public:
 
 private:
   // The RHS vector without Mass multiplied.
-  BufferPtr<Real> rhs_;
+  BufferPtr<Real> rhs_;  ///< for dynamics, the external **ACCELERATION**
   BufferPtr<Real> diff_; ///< stores (u - rhs)
   bool is_diff_up_to_date_{false};
 };

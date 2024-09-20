@@ -40,7 +40,7 @@ __global__ static void do_prune_hessian(RealBufferView block_val,
       for (size_t k = 0; k < bs; ++k) {
         if (bc(k, idx) == VariableCondition::Dirichlet ||
             bc(l, col) == VariableCondition::Dirichlet) {
-          block_val(k, l, bid) = 0;
+          block_val(k, l, bid) = (k == l && idx == col) ? 1 : 0;
         }
       }
     }

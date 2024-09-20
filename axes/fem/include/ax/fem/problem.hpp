@@ -50,9 +50,9 @@ public:
     Real scale_{1.0};
   };
 
-  explicit Problem(std::shared_ptr<State> state);
+  explicit Problem(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh);
 
-  void AddTerm(std::string const& name, std::unique_ptr<TermBase> term);
+  TermInfo& AddTerm(std::string const& name, std::unique_ptr<TermBase> term);
   TermInfo& GetTerm(std::string const& name);
   bool HasTerm(std::string const& name) const;
   bool RemoveTerm(std::string const& name);
@@ -70,8 +70,10 @@ public:
   void InitializeHessianFillIn();
 
   ConstRealBufferView GetGradient() const { return gradient_->ConstView(); }
+  RealBufferView GetGradient() { return gradient_->View(); }
 
-  const math::RealBlockMatrix& GetHessian() const { return bsr_hessian_; }
+  std::shared_ptr<const math::RealBlockMatrix> GetHessian() const { return bsr_hessian_; }
+  std::shared_ptr<math::RealBlockMatrix> GetHessian() { return bsr_hessian_; }
 
   Real GetEnergy() const { return energy_; }
 
@@ -87,7 +89,7 @@ private:
   std::vector<TermInfo> terms_;
   Real energy_;
   BufferPtr<Real> gradient_;
-  math::RealBlockMatrix bsr_hessian_;
+  std::shared_ptr<math::RealBlockMatrix> bsr_hessian_;
 };
 
 }  // namespace ax::fem

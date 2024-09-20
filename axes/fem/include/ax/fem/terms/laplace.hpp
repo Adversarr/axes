@@ -29,7 +29,6 @@ public:
   void SetRhs(ConstRealBufferView rhs);
 
 private:
-  // The RHS vector without Mass multiplied.
   BufferPtr<Real> rhs_;
   BufferPtr<Real> diff_; ///< stores (u - rhs)
   bool is_diff_up_to_date_{false};

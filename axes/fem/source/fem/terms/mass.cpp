@@ -9,6 +9,8 @@
 #include "ax/math/sparse_matrix/csr.hpp"
 #include "details/mass_impl.hpp"
 
+#include <gsl/pointers>
+
 namespace ax::fem {
 
 MassTerm::MassTerm(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)

@@ -14,12 +14,12 @@ AX_DEFINE_ENUM_CLASS(HostSparseSolverKind,
                      // Cholmod
                      Cholmod);
 
-class SparseSolverBase : public utils::Tunable {
+class HostSparseSolverBase : public utils::Tunable {
 public:
-  SparseSolverBase();
-  ~SparseSolverBase() override = default;
+  HostSparseSolverBase();
+  ~HostSparseSolverBase() override = default;
 
-  static std::unique_ptr<SparseSolverBase> Create(HostSparseSolverKind kind);
+  static std::unique_ptr<HostSparseSolverBase> Create(HostSparseSolverKind kind);
   virtual HostSparseSolverKind GetKind() const = 0;
 
   /************************* SECT: Setup the solver *************************/
@@ -36,9 +36,9 @@ public:
    * @param problem
    * @return
    */
-  SparseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
-  SparseSolverBase& SetProblem(RealSparseMatrix const& A);
-  SparseSolverBase& SetProblem(RealSparseMatrix&& A);
+  HostSparseSolverBase& SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem);
+  HostSparseSolverBase& SetProblem(RealSparseMatrix const& A);
+  HostSparseSolverBase& SetProblem(RealSparseMatrix&& A);
 
   /**
    * @brief Get the Problem object

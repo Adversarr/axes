@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-Real RealCompressedMatrixBase::InnerProduct(ConstRealBufferView x, ConstRealBufferView y) const {
+Real RealCompressedMatrixBase::InnerProduct(ConstRealBufferView /* x */, ConstRealBufferView /* y */) const {
   AX_NOT_IMPLEMENTED();
 }
 

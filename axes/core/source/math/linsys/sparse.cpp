@@ -11,7 +11,7 @@
 
 namespace ax::math {
 
-std::unique_ptr<SparseSolverBase> SparseSolverBase::Create(HostSparseSolverKind kind) {
+std::unique_ptr<HostSparseSolverBase> HostSparseSolverBase::Create(HostSparseSolverKind kind) {
   switch (kind) {
     case HostSparseSolverKind::LDLT:
       return std::make_unique<SparseSolver_LDLT>();
@@ -36,29 +36,29 @@ std::unique_ptr<SparseSolverBase> SparseSolverBase::Create(HostSparseSolverKind 
   }
 }
 
-SparseSolverBase::SparseSolverBase() = default;
+HostSparseSolverBase::HostSparseSolverBase() = default;
 
-SparseSolverBase& SparseSolverBase::SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem) {
+HostSparseSolverBase& HostSparseSolverBase::SetProblem(std::shared_ptr<LinsysProblem_Sparse> problem) {
   cached_problem_.swap(problem);
   return *this;
 }
 
-void SparseSolverBase::Compute() {
+void HostSparseSolverBase::Compute() {
   AX_THROW_IF_NULLPTR(cached_problem_, "SparseSolverBase: problem is not set");
   AnalyzePattern();
   Factorize();
 }
 
-SparseSolverBase& SparseSolverBase::SetProblem(RealSparseMatrix const& A) {
+HostSparseSolverBase& HostSparseSolverBase::SetProblem(RealSparseMatrix const& A) {
   return SetProblem(make_sparse_problem(A));
 }
-SparseSolverBase& SparseSolverBase::SetProblem(RealSparseMatrix&& A) {
+HostSparseSolverBase& HostSparseSolverBase::SetProblem(RealSparseMatrix&& A) {
   return SetProblem(make_sparse_problem(std::move(A)));
 }
-std::shared_ptr<LinsysProblem_Sparse> const& SparseSolverBase::GetProblem() const {
+std::shared_ptr<LinsysProblem_Sparse> const& HostSparseSolverBase::GetProblem() const {
   return cached_problem_;
 }
-void SparseSolverBase::SetPreconditioner(std::unique_ptr<PreconditionerBase> preconditioner) {
+void HostSparseSolverBase::SetPreconditioner(std::unique_ptr<PreconditionerBase> preconditioner) {
   preconditioner_ = std::move(preconditioner);
 }
 }  // namespace ax::math

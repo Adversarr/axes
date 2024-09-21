@@ -19,18 +19,20 @@ namespace ax::math {
 
 constexpr Eigen::StorageOptions default_sparse_storage = Eigen::AX_SPARSE_MAJOR;
 
+using SparseIndex = int32_t;
+
 template <typename Scalar>
-using SparseMatrix = Eigen::SparseMatrix<Scalar, default_sparse_storage, Index>;
+using SparseMatrix = Eigen::SparseMatrix<Scalar, default_sparse_storage, SparseIndex>;
 
 /**
  * @brief Alias for a sparse matrix with real values, column-major storage, and index type Index.
  */
-using RealSparseMatrix = Eigen::SparseMatrix<Real, default_sparse_storage, Index>;
+using RealSparseMatrix = Eigen::SparseMatrix<Real, default_sparse_storage, SparseIndex>;
 
 /**
  * @brief Alias for a triplet of real value, representing a coefficient in a sparse matrix.
  */
-using RealSparseEntry = Eigen::Triplet<Real, Index>;
+using RealSparseEntry = Eigen::Triplet<Real, SparseIndex>;
 
 /**
  * @brief Alias for a list of sparse coefficients.
@@ -47,8 +49,9 @@ using RealSparseCOO = std::vector<RealSparseEntry>;
  * @return The created sparse matrix.
  */
 RealSparseMatrix make_sparse_matrix(Index rows, Index cols, RealSparseCOO const& coeff_list);
-RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<Index> const& row,
-                                    std::vector<Index> const& col, std::vector<Real> const& val);
+RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<SparseIndex> const& row,
+                                    std::vector<SparseIndex> const& col,
+                                    std::vector<Real> const& val);
 
 template <int dim>
 RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
@@ -59,7 +62,8 @@ RealSparseMatrix kronecker_identity(RealSparseMatrix A) {
   for (Index k = 0; k < A.outerSize(); ++k) {
     for (RealSparseMatrix::InnerIterator it(A, k); it; ++it) {
       for (Index i = 0; i < dim; ++i) {
-        coeff_list.push_back({it.row() * dim + i, it.col() * dim + i, it.value()});
+        coeff_list.push_back({static_cast<SparseIndex>(it.row() * dim + i),
+                              static_cast<SparseIndex>(it.col() * dim + i), it.value()});
       }
     }
   }

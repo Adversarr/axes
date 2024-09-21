@@ -37,8 +37,8 @@ void compute_csr_spmv_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, R
 
   auto xmap = view_as_matrix_full<const RealMatrixX>(x);
   auto ymap = view_as_matrix_full<RealMatrixX>(y);
-
-  ymap.noalias() = alpha * mat * xmap + beta * ymap;
+  ymap *= beta;
+  ymap.noalias() += alpha * mat * xmap;
 }
 
 void compute_csr_spmv_transpose_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, Real beta,
@@ -55,8 +55,8 @@ void compute_csr_spmv_transpose_cpu(ConstRealBufferView x, RealBufferView y, Rea
 
   auto xmap = view_as_matrix_full<const RealMatrixX>(x);
   auto ymap = view_as_matrix_full<RealMatrixX>(y);
-
-  ymap.noalias() = alpha * mat.transpose() * xmap + beta * ymap;
+  ymap *= beta;
+  ymap.noalias() += alpha * mat.transpose() * xmap;
 }
 
 }  // namespace ax::math::details

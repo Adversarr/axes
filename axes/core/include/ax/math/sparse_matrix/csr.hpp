@@ -14,6 +14,9 @@ class RealCSRMatrix : public RealCompressedMatrixBase {
 public:
   RealCSRMatrix() = default;
 
+  // construct from Eigen matrix.
+  RealCSRMatrix(math::RealSparseMatrix mat, BufferDevice device);
+
   RealCSRMatrix(size_t rows, size_t cols, BufferDevice device);
 
   RealCSRMatrix(const RealCSRMatrix&) = default;

@@ -43,14 +43,14 @@ class ParameterizationSolver {
 public:
   explicit ParameterizationSolver(SurfaceMesh const& mesh);
   void SetLocalSolver(std::unique_ptr<LocalSolverBase> solver);
-  void SetGlobalSolver(std::unique_ptr<ax::math::SparseSolverBase> solver);
+  void SetGlobalSolver(std::unique_ptr<ax::math::HostSparseSolverBase> solver);
   void Solve(ax::Index max_iter = 1000);
   
   SurfaceMesh Optimal();
 
 private:
   std::unique_ptr<LocalSolverBase> local_solver_;
-  std::unique_ptr<ax::math::SparseSolverBase> global_solver_;
+  std::unique_ptr<ax::math::HostSparseSolverBase> global_solver_;
   ParameterizationProblem problem_;
   ax::math::LinsysProblem_Sparse global_problem_;
   ax::Real shift_ = 1.0;

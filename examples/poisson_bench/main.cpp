@@ -18,11 +18,11 @@
 using namespace ax;
 
 void run_datagen(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
-                 math::SparseSolverBase* solver, math::RealMatrixX& rhs,
+                 math::HostSparseSolverBase* solver, math::RealMatrixX& rhs,
                  math::RealMatrixX& ground_truth, Index nprobs, Index ndatagen);
 
 void run_basis_test(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
-                    math::SparseSolverBase* solver, Index test_basis_cnt);
+                    math::HostSparseSolverBase* solver, Index test_basis_cnt);
 
 int main(int argc, char* argv[]) {
   ax::po::add_option({
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     AX_ERROR("Invalid solver name: {}", solver_name);
     return EXIT_FAILURE;
   }
-  auto solver = math::SparseSolverBase::Create(*kind);
+  auto solver = math::HostSparseSolverBase::Create(*kind);
   if (!solver) {
     AX_ERROR("Failed to create solver: {}", solver_name);
     return EXIT_FAILURE;
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 }
 
 void run_datagen(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix,
-                 math::SparseSolverBase* solver, math::RealMatrixX& rhs,
+                 math::HostSparseSolverBase* solver, math::RealMatrixX& rhs,
                  math::RealMatrixX& ground_truth, Index nprobs, Index ndatagen) {
   // generate data.
   // write the basic information, i.e. the mesh.
@@ -221,7 +221,7 @@ void run_datagen(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& s
 }
 
 void run_basis_test(const fem::LinearMesh<3>& mesh, const math::RealSparseMatrix& sys_matrix, 
-  math::SparseSolverBase* solver, Index test_basis_cnt) {
+  math::HostSparseSolverBase* solver, Index test_basis_cnt) {
   math::RealMatrixX basis = math::read_npy_v10_real("basis.npy");  // (128, ndof), if it is very well tuned, performance is really good.
 
   for (auto _ : utils::range(test_basis_cnt)) {

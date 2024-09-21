@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-class SparseSolver_BiCGSTAB : public SparseSolverBase {
+class SparseSolver_BiCGSTAB : public HostSparseSolverBase {
 public:
   void AnalyzePattern() final;
 

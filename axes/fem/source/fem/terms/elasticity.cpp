@@ -190,7 +190,7 @@ ElasticityTerm::ElasticityTerm(shared_not_null<State> state, shared_not_null<Mes
       row_entries[i] += row_entries[i - 1];
     }
     AX_DCHECK(cnt == n_fillin, "Mismatch in cnt.");
-    AX_DCHECK(row_entries.back() == n_fillin, "Mismatch in row_entries.");
+    AX_DCHECK((size_t) row_entries.back() == n_fillin, "Mismatch in row_entries.");
 
     hessian_.SetData(view_from_buffer(row_entries), view_from_buffer(col_indices),
                      view_from_buffer(values, {n_dof, n_dof, n_fillin}));

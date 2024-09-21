@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-class SparseSolver_LU : public SparseSolverBase {
+class SparseSolver_LU : public HostSparseSolverBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
@@ -14,6 +14,6 @@ public:
   HostSparseSolverKind GetKind() const final { return HostSparseSolverKind::LU; }
 
 private:
-  Eigen::SparseLU<RealSparseMatrix, Eigen::COLAMDOrdering<Index>> solver_;
+  Eigen::SparseLU<RealSparseMatrix, Eigen::COLAMDOrdering<SparseIndex>> solver_;
 };
 }  // namespace ax::math

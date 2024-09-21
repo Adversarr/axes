@@ -7,14 +7,16 @@
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
-#include "ax/math/utils/formatting.hpp"
 #include "ax/math/traits.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/utils/ndrange.hpp"
 
 namespace ax::fem {
 using namespace elasticity;
 using namespace math;
-template <int dim> static bool check_cache(DeformGradCache<dim> const& cache) {
+
+template <int dim>
+static bool check_cache(DeformGradCache<dim> const& cache) {
   bool has_error = false;
   for (const auto& R_inv : cache) {
     Real detR = R_inv.determinant();
@@ -108,7 +110,8 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
   return PFPx;
 }
 
-template <int dim> static DeformGradCache<dim> dg_rpcache_p1(
+template <int dim>
+static DeformGradCache<dim> dg_rpcache_p1(
     LinearMesh<dim> const& mesh, typename LinearMesh<dim>::vertex_list_t const& rest_pose) {
   DeformGradCache<dim> cache;
   Index n_elem = mesh.GetNumElements();
@@ -131,7 +134,7 @@ template <int dim> static DeformGradCache<dim> dg_rpcache_p1(
 
 template <int dim>
 static DeformGradBuffer<dim> dg_p1(LinearMesh<dim> const& mesh, RealField<dim> const& pose,
-                                          DeformGradCache<dim> const& Dm_inv) {
+                                   DeformGradCache<dim> const& Dm_inv) {
   Index n_elem = mesh.GetNumElements();
   DeformGradBuffer<dim> dg(static_cast<size_t>(n_elem));
   static tbb::affinity_partitioner ap;
@@ -154,7 +157,8 @@ static DeformGradBuffer<dim> dg_p1(LinearMesh<dim> const& mesh, RealField<dim> c
   return dg;
 }
 
-template <int dim> typename LinearMesh<dim>::vertex_list_t dg_tsv_p1(
+template <int dim>
+typename LinearMesh<dim>::vertex_list_t dg_tsv_p1(
     LinearMesh<dim> const& mesh, std::vector<elasticity::StressTensor<dim>> const& stress,
     DeformGradCache<dim> const& cache) {
   typename LinearMesh<dim>::vertex_list_t result;
@@ -188,8 +192,8 @@ math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
                       for (Index i = r.begin(); i < r.end(); ++i) {
                         size_t si = static_cast<size_t>(i);
                         const auto& H_i = hessian[si];
-                        math::RealMatrix<dim, dim> R = cache[si];
-                        math::RealMatrix<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(R);
+                        const math::RealMatrix<dim, dim>& dminv = cache[si];
+                        math::RealMatrix<dim * dim, dim*(dim + 1)> pfpx = ComputePFPx(dminv);
                         per_element_hessian[si] = pfpx.transpose() * H_i * pfpx;
                       }
                     });
@@ -198,13 +202,13 @@ math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
     const auto& ijk = mesh.GetElement(i);
     const auto& H = per_element_hessian[static_cast<size_t>(i)];
     for (auto [I, J, Di, Dj] : utils::ndrange<Index>(dim + 1, dim + 1, dim, dim)) {
-      Index i_Index = ijk[I];
-      Index j_Index = ijk[J];
-      Index H_Index_i = I * dim + Di;
-      Index H_Index_j = J * dim + Dj;
-      Index global_dof_i_Index = i_Index * dim + Di;
-      Index global_dof_j_Index = j_Index * dim + Dj;
-      coo.push_back({global_dof_i_Index, global_dof_j_Index, H(H_Index_i, H_Index_j)});
+      Index i_index = ijk[I];
+      Index j_index = ijk[J];
+      Index h_index_i = I * dim + Di;
+      Index h_index_j = J * dim + Dj;
+      auto global_dof_i_index = static_cast<SparseIndex>(i_index * dim + Di);
+      auto global_dof_j_index = static_cast<SparseIndex>(j_index * dim + Dj);
+      coo.push_back({global_dof_i_index, global_dof_j_index, H(h_index_i, h_index_j)});
     }
   }
   return coo;
@@ -237,11 +241,13 @@ void Deformation<dim>::UpdateRestPose(typename LinearMesh<dim>::vertex_list_t co
   }
 }
 
-template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward() const {
+template <int dim>
+DeformGradBuffer<dim> Deformation<dim>::Forward() const {
   return Forward(mesh_.GetVertices());
 }
 
-template <int dim> DeformGradBuffer<dim> Deformation<dim>::Forward(
+template <int dim>
+DeformGradBuffer<dim> Deformation<dim>::Forward(
     typename LinearMesh<dim>::vertex_list_t const& current) const {
   return dg_p1<dim>(mesh_, current, deformation_gradient_cache_);
 }
@@ -251,7 +257,8 @@ elasticity::DeformGradCache<dim> const& Deformation<dim>::GetRestPoseCache() con
   return deformation_gradient_cache_;
 }
 
-template <int dim> math::RealField1 dg_tev_p1(LinearMesh<dim> const& mesh_, math::RealField1 const& e) {
+template <int dim>
+math::RealField1 dg_tev_p1(LinearMesh<dim> const& mesh_, math::RealField1 const& e) {
   Index n_element = mesh_.GetNumElements();
   math::RealField1 result(1, mesh_.GetNumVertices());
   result.setZero();
@@ -265,22 +272,25 @@ template <int dim> math::RealField1 dg_tev_p1(LinearMesh<dim> const& mesh_, math
   return result;
 }
 
-template <int dim> math::RealField1 Deformation<dim>::EnergyToVertices(math::RealField1 const& e) const {
+template <int dim>
+math::RealField1 Deformation<dim>::EnergyToVertices(math::RealField1 const& e) const {
   Index n_element = mesh_.GetNumElements();
   Index e_size = e.size();
   AX_CHECK(e_size == n_element, "#energy != #element");
   return dg_tev_p1<dim>(mesh_, e);
 }
 
-template <int dim> typename LinearMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
+template <int dim>
+typename LinearMesh<dim>::vertex_list_t Deformation<dim>::StressToVertices(
     std::vector<elasticity::StressTensor<dim>> const& stress) const {
   Index n_element = mesh_.GetNumElements();
-  Index stress_size = static_cast<size_t>(stress.size());
+  Index stress_size = static_cast<Index>(stress.size());
   AX_DCHECK(stress_size == n_element, "#stress != #element");
   return dg_tsv_p1<dim>(mesh_, stress, deformation_gradient_cache_);
 }
 
-template <int dim> math::RealSparseCOO Deformation<dim>::HessianToVertices(
+template <int dim>
+math::RealSparseCOO Deformation<dim>::HessianToVertices(
     std::vector<elasticity::HessianTensor<dim>> const& hessian) const {
   return dg_thv_p1<dim>(mesh_, hessian, deformation_gradient_cache_);
 }

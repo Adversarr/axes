@@ -107,7 +107,7 @@ void ParameterizationSolver::SetLocalSolver(std::unique_ptr<LocalSolverBase> sol
   local_solver_ = std::move(solver);
 }
 
-void ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::SparseSolverBase> solver) {
+void ParameterizationSolver::SetGlobalSolver(std::unique_ptr<math::HostSparseSolverBase> solver) {
   global_solver_ = std::move(solver);
   global_solver_->SetProblem(global_problem_.A_).Compute();
 }

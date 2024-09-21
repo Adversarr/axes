@@ -7,8 +7,8 @@ RealSparseMatrix make_sparse_matrix(Index rows, Index cols, RealSparseCOO const&
   return mat;
 }
 
-RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<Index> const& row,
-                          std::vector<Index> const& col, std::vector<Real> const& val) {
+RealSparseMatrix make_sparse_matrix(Index rows, Index cols, std::vector<SparseIndex> const& row,
+                          std::vector<SparseIndex> const& col, std::vector<Real> const& val) {
   size_t const n = row.size();
   RealSparseCOO coeff_list;
   coeff_list.reserve(n);

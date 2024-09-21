@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-class SparseSolver_LeastSquaresConjugateGradient : public SparseSolverBase {
+class SparseSolver_LeastSquaresConjugateGradient : public HostSparseSolverBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;

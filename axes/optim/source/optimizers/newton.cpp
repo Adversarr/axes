@@ -136,7 +136,7 @@ void Optimizer_Newton::SetOptions(utils::Options const& options) {
   utils::extract_and_create<LinesearchBase, LineSearchKind>(options, "linesearch", linesearch_);
   utils::extract_and_create<DenseSolverBase, DenseSolverKind>(options, "dense_solver",
                                                               dense_solver_);
-  utils::extract_and_create<SparseSolverBase, HostSparseSolverKind>(options, "sparse_solver",
+  utils::extract_and_create<HostSparseSolverBase, HostSparseSolverKind>(options, "sparse_solver",
                                                                 sparse_solver_);
 
   utils::extract_tunable(options, "linesearch_opt", linesearch_.get());

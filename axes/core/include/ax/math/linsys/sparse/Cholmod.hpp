@@ -9,7 +9,7 @@ AX_DEFINE_ENUM_CLASS(CholmodSupernodalKind,
                      Supernodal   // use supernodal LLT, numerical issue may occur
 );
 
-class SparseSolver_Cholmod final : public SparseSolverBase {
+class SparseSolver_Cholmod final : public HostSparseSolverBase {
 public:
   SparseSolver_Cholmod();
   ~SparseSolver_Cholmod() override;

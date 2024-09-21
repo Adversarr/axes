@@ -94,7 +94,7 @@ TEST_CASE("Sparse LU") {
   for (auto kind :
        {HostSparseSolverKind::LU, HostSparseSolverKind::QR, HostSparseSolverKind::ConjugateGradient,
         HostSparseSolverKind::LDLT, HostSparseSolverKind::Cholmod}) {
-    auto solver = SparseSolverBase::Create(kind);
+    auto solver = HostSparseSolverBase::Create(kind);
     CHECK(solver != nullptr);
     solver->SetProblem(A).Compute();
     auto result = solver->Solve(b, {});

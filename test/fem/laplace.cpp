@@ -51,7 +51,8 @@ TEST_CASE("Laplace 3D") {
 
     for (size_t i = 0; i < 4; ++i) {
       for (size_t j = 0; j < 4; ++j) {
-        coo.push_back(math::RealSparseEntry(e(i, elem), e(j, elem), local(i, j)));
+        coo.emplace_back(static_cast<math::SparseIndex>(e(i, elem)),
+                         static_cast<math::SparseIndex>(e(j, elem)), local(i, j));
       }
     }
   }

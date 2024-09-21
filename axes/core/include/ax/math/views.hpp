@@ -87,6 +87,7 @@ struct ShapeCursor {
     // how much should we advance in this dimension?
     const auto current_ind = shape_.Sub2Ind(cursor_);
     const auto max_ind = static_cast<difference_type>(shape_.Size());
+    AX_UNUSED(max_ind);
     const auto required_ind = current_ind + n;
     assert(current_ind >= 0 && current_ind < max_ind);
     cursor_ = shape_.Ind2Sub(required_ind);

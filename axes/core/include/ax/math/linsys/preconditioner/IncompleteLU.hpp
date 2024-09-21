@@ -12,6 +12,6 @@ public:
   PreconditionerKind GetKind() const final { return PreconditionerKind::IncompleteLU; }
 
 private:
-  Eigen::IncompleteLUT<Real, Index> impl_;
+  Eigen::IncompleteLUT<Real, SparseIndex> impl_;
 };
 }  // namespace ax::math

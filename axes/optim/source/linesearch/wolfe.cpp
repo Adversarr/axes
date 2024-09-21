@@ -8,7 +8,8 @@
 
 namespace ax::optim {
 
-static Real fit_quadratic_and_solve(Real f_a, Real df_a, Real f_b, Real a, Real b) {
+[[maybe_unused]] static Real fit_quadratic_and_solve(Real f_a, Real df_a, Real f_b, Real a,
+                                                     Real b) {
   // See Page 58, Numerical Optimization, Nocedal and Wright. Eq. 3.57
   // f(x) = B (x-a)^2 + C (x-a) + D
   // f(a) = D.
@@ -21,7 +22,8 @@ static Real fit_quadratic_and_solve(Real f_a, Real df_a, Real f_b, Real a, Real 
   return a - C / (2 * B);
 }
 
-static Real fit_cubic_and_solve(Real f_a, Real df_a, Real f_b, Real f_c, Real a, Real b, Real c) {
+[[maybe_unused]] static Real fit_cubic_and_solve(Real f_a, Real df_a, Real f_b, Real f_c, Real a,
+                                                 Real b, Real c) {
   // See Page 58, Numerical Optimization, Nocedal and Wright. Eq. 3.58
   // f(x) = A (x-a)^3 + B (x-a)^2 + C (x-a) + D
   Real C = df_a;

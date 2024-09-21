@@ -127,12 +127,16 @@ int main(int argc, char** argv) {
   if (use_fsai) {
     cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
   } else {
-     cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
   }
   cg.SetProblem(bsr);
   cg.Compute();
-
-  cg.Solve(grad, state->GetVariables()->View());
+  {
+    auto start = utils::now();
+    cg.Solve(grad, state->GetVariables()->View());
+    AX_INFO("Solve Time: {}",
+            std::chrono::duration_cast<std::chrono::milliseconds>(utils::now() - start));
+  }
 
   // Check the solution.
   {

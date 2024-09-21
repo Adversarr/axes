@@ -12,7 +12,7 @@ RealCSRMatrix::RealCSRMatrix(const RealSparseMatrix& mat, BufferDevice device) {
   device_ = device;
 
   RealSparseCOO coo;
-  math::for_each_entry(mat, [&](size_t row, size_t col, Real value) {
+  math::for_each_entry(mat, [&](SparseIndex row, SparseIndex col, Real value) {
     coo.emplace_back(row, col, value);
   });
   SetFromTriplets(coo);
@@ -182,7 +182,7 @@ RealSparseMatrix RealCSRMatrix::ToSparseMatrix() const {
     for (int j = row_start; j < row_end; ++j) {
       int col = colv(static_cast<size_t>(j));
       Real val = valv(static_cast<size_t>(j));
-      coo.emplace_back(math::RealSparseEntry(static_cast<Index>(i), col, val));
+      coo.emplace_back(math::RealSparseEntry(static_cast<SparseIndex>(i), col, val));
     }
   }
   return make_sparse_matrix(rows, cols, coo);

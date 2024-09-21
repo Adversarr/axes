@@ -2,7 +2,6 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "../common.hpp"
 #include "../shape.hpp"
 // Not column vector
 template <typename T> struct fmt::formatter<

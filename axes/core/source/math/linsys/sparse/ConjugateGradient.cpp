@@ -150,7 +150,7 @@ void SparseSolver_ConjugateGradient::SetOptions(utils::Options const &opt) {
       preconditioner_->SetOptions(it->value().as_object());
     }
   }
-  SparseSolverBase::SetOptions(opt);
+  HostSparseSolverBase::SetOptions(opt);
 }
 
 utils::Options SparseSolver_ConjugateGradient::GetOptions() const {

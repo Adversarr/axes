@@ -31,8 +31,8 @@ static void fillin_1dof(ConstRealBufferView v, ConstSizeBufferView e, ConstRealB
 
     for (size_t k = 0; k <= dim; ++k) {
       for (size_t l = 0; l <= dim; ++l) {
-        row.push_back(static_cast<int>(e(k, i)));
-        col.push_back(static_cast<int>(e(l, i)));
+        row.push_back(static_cast<math::SparseIndex>(e(k, i)));
+        col.push_back(static_cast<math::SparseIndex>(e(l, i)));
         val.push_back(element_mass(static_cast<Index>(k), static_cast<Index>(l)));
       }
     }

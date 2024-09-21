@@ -7,14 +7,13 @@
 #include "ax/math/utils/formatting.hpp"
 #include "ax/optim/linesearch/backtracking.hpp"
 #include "ax/optim/linesearch/linesearch.hpp"
-#include "ax/utils/time.hpp"
 
 namespace ax::optim {
 Real cosine_sim(Variable const& a, Variable const& b) {
   return math::dot(a, b) / (a.norm() * b.norm());
 }
 
-static Variable approx_solve_default(Variable const& r, Variable const& x, Variable const& sk,
+static Variable approx_solve_default(Variable const& r, Variable const& /* x */, Variable const& sk,
                                      Gradient const& yk) {
   if (sk.size() == 0 || yk.size() == 0) {
     return r;

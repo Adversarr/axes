@@ -210,7 +210,11 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
     pose_cpu[i] = pose.col(i);
   }
   impl_->pose_gpu_ = pose_cpu;
-  compute_rest_pose<dim><<<(n_elem + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks =
+      static_cast<unsigned int>((n_elem + num_threads - 1) / num_threads);
+
+  compute_rest_pose<dim><<<num_blocks, num_threads>>>(
       thrust::raw_pointer_cast(impl_->elements_.data()),
       thrust::raw_pointer_cast(impl_->pose_gpu_.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),
@@ -319,7 +323,8 @@ void ElasticityCompute_GPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   // moreover, we need to setup the template sparse matrix!
   std::vector<math::RealSparseEntry> coeffs;
   for (auto const &info : hgi) {
-    coeffs.push_back({info.i, info.j, 1});
+    coeffs.push_back({static_cast<math::SparseIndex>(info.i),
+                      static_cast<math::SparseIndex>(info.j), 1});
   }
   this->hessian_on_vertices_ =
       math::make_sparse_matrix(n_vert * dim, n_vert * dim, coeffs);
@@ -705,7 +710,11 @@ template <int dim, template <int> class ElasticModelTemplate>
 void ElasticityCompute_GPU<dim,
                            ElasticModelTemplate>::GatherHessianToVertices() {
   auto const ne = this->mesh_->GetNumElements();
-  gather_hessian<dim><<<(ne + GPU_GRAIN - 1) / GPU_GRAIN, GPU_GRAIN>>>(
+  unsigned int num_threads = GPU_GRAIN;
+  unsigned int num_blocks =
+      static_cast<unsigned int>((ne + num_threads - 1) / num_threads);
+
+  gather_hessian<dim><<<num_blocks, num_threads>>>(
       thrust::raw_pointer_cast(impl_->hessian_on_vertices_.data()),
       thrust::raw_pointer_cast(impl_->elements_.data()),
       thrust::raw_pointer_cast(impl_->rinv_gpu_.data()),

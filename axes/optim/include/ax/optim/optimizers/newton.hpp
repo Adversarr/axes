@@ -27,7 +27,7 @@ public:
   /****************************** Getter Setter ******************************/
   std::unique_ptr<LinesearchBase> linesearch_;
   std::unique_ptr<math::DenseSolverBase> dense_solver_;
-  std::unique_ptr<math::SparseSolverBase> sparse_solver_;
+  std::unique_ptr<math::HostSparseSolverBase> sparse_solver_;
 };
 
 }  // namespace ax::optim

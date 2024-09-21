@@ -22,7 +22,8 @@ static math::RealMatrix<dim + 1, dim + 1> p1_e(const elements::P1Element<dim> E,
   return result;
 }
 
-template <int dim> math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Real density) {
+template <int dim>
+math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Real density) {
   math::RealSparseCOO result;
   for (auto const& ijk : mesh_) {
     std::array<math::RealVector<dim>, dim + 1> vert;
@@ -33,7 +34,7 @@ template <int dim> math::RealSparseMatrix MassMatrixCompute<dim>::operator()(Rea
     auto element_mass = p1_e<dim>(E, density);
     for (Index i = 0; i <= dim; ++i) {
       for (Index j = 0; j <= dim; ++j) {
-        result.push_back({ijk[i], ijk[j], element_mass(i, j)});
+        result.push_back({static_cast<int>(ijk[i]), static_cast<int>(ijk[j]), element_mass(i, j)});
       }
     }
   }
@@ -54,7 +55,8 @@ math::RealSparseMatrix MassMatrixCompute<dim>::operator()(math::RealField1 const
     element_mass = p1_e<dim>(E, density(i));
     for (Index i = 0; i <= dim; ++i) {
       for (Index j = 0; j <= dim; ++j) {
-        result.push_back({ijk[i], ijk[j], element_mass(i, j)});
+        result.emplace_back(static_cast<math::SparseIndex>(ijk[i]),
+                            static_cast<math::SparseIndex>(ijk[j]), element_mass(i, j));
       }
     }
   }

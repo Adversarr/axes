@@ -212,8 +212,8 @@ AX_FORCE_INLINE static math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix
 
 template <int dim>
 math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
-                          std::vector<elasticity::HessianTensor<dim>> const& hessian,
-                          elasticity::DeformGradCache<dim> const& cache) {
+                              std::vector<elasticity::HessianTensor<dim>> const& hessian,
+                              elasticity::DeformGradCache<dim> const& cache) {
   math::RealSparseCOO coo;
   coo.reserve(mesh.GetNumElements() * dim * dim * (dim + 1) * (dim + 1));
   std::vector<math::RealMatrix<dim*(dim + 1), dim*(dim + 1)>> per_element_hessian(
@@ -236,8 +236,8 @@ math::RealSparseCOO dg_thv_p1(LinearMesh<dim> const& mesh,
       Index j_Index = ijk[J];
       Index H_Index_i = I * dim + Di;
       Index H_Index_j = J * dim + Dj;
-      Index global_dof_i_Index = i_Index * dim + Di;
-      Index global_dof_j_Index = j_Index * dim + Dj;
+      auto global_dof_i_Index = static_cast<math::SparseIndex>(i_Index * dim + Di);
+      auto global_dof_j_Index = static_cast<math::SparseIndex>(j_Index * dim + Dj);
       coo.push_back({global_dof_i_Index, global_dof_j_Index, H(H_Index_i, H_Index_j)});
     }
   }
@@ -441,7 +441,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::GatherHessianToVertices()
           auto const& entry = this->impl_->hessian_entries_[j];
           Index local_i = entry.local_i_;
           Index local_j = entry.local_j_;
-          Index elem_id = entry.element_id_;
+          auto elem_id = static_cast<size_t>(entry.element_id_);
           *value += per_element_hessian[elem_id](local_i, local_j);
         }
       },
@@ -455,9 +455,9 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<di
                                                               ElasticityUpdateLevel upt) {
   Index const n_elem = this->mesh_->GetNumElements();
   auto& dg_l = this->deformation_gradient_;
-  auto& svd_results_ = this->svd_results_;
+  auto& svd_results = this->svd_results_;
   dg_l.resize(static_cast<size_t>(n_elem));
-  svd_results_.resize(static_cast<size_t>(n_elem));
+  svd_results.resize(static_cast<size_t>(n_elem));
   bool const need_svd
       = (ElasticModel{}.EnergyRequiresSvd() && upt == ElasticityUpdateLevel::Energy)
         || (ElasticModel{}.StressRequiresSvd() && upt == ElasticityUpdateLevel::Stress)
@@ -488,17 +488,17 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::Update(math::RealField<di
       static_cast<Index>(0), n_elem, static_cast<Index>(1),
       [&](Index i) {
         auto const si = static_cast<size_t>(i);
-        math::RealMatrix<dim, dim> Ds;
+        math::RealMatrix<dim, dim> ds;
         math::IndexVector<dim + 1> element = this->mesh_->GetElement(i);
         math::RealVector<dim> local_zero = pose.col(element.x());
-        for (Index I = 1; I <= dim; ++I) {
-          Ds.col(I - 1) = pose.col(element[I]) - local_zero;
+        for (Index i = 1; i <= dim; ++i) {
+          ds.col(i - 1) = pose.col(element[i]) - local_zero;
         }
-        dg_l[si] = Ds * this->rinv_[si];
+        dg_l[si] = ds * this->rinv_[si];
         if (need_svd) {
           AX_FEM_COMPUTE_SVD_ALGORITHM<dim, Real> svd;
-          svd_results_[si] = svd.Solve(dg_l[si]);
-          math::decomp::svd_remove_rotation(svd_results_[si]);
+          svd_results[si] = svd.Solve(dg_l[si]);
+          math::decomp::svd_remove_rotation(svd_results[si]);
         }
       },
       tf::StaticPartitioner(AX_FEM_COMPUTE_ENERGY_GRAIN));
@@ -517,8 +517,8 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
     RealMatrix<dim, dim> rest_local;
     const auto& element = this->mesh_->GetElement(i);
     const auto& local_zero = rest_pose.col(element.x());
-    for (Index I = 1; I <= dim; ++I) {
-      rest_local.col(I - 1) = rest_pose.col(element[I]) - local_zero;
+    for (Index i = 1; i <= dim; ++i) {
+      rest_local.col(i - 1) = rest_pose.col(element[i]) - local_zero;
     }
     this->rinv_[static_cast<size_t>(i)] = rest_local.inverse();
   }
@@ -548,7 +548,7 @@ void ElasticityCompute_CPU<dim, ElasticModelTemplate>::RecomputeRestPose() {
   // 2.2 make a demo, and let eigen fill in the entries:
   RealSparseCOO coo;
   for (const auto& entry : entries) {
-    coo.push_back(RealSparseEntry(entry.global_i_, entry.global_j_, 1));
+    coo.emplace_back(static_cast<int>(entry.global_i_), static_cast<int>(entry.global_j_), 1);
   }
   this->hessian_on_vertices_ = make_sparse_matrix(dim * n_vert, dim * n_vert, coo);
   this->hessian_on_vertices_.makeCompressed();

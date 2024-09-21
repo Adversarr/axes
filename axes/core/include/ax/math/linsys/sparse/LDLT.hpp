@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-class SparseSolver_LDLT : public SparseSolverBase {
+class SparseSolver_LDLT : public HostSparseSolverBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;

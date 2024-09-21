@@ -41,40 +41,40 @@ static AX_CONSTEXPR char const* cholmod_status_to_string(int status) {
 }
 
 struct SparseSolver_Cholmod::Impl {
-  cholmod_common common;
-  cholmod_sparse* A = nullptr;
-  cholmod_factor* factor = nullptr;
+  cholmod_common common_;
+  cholmod_sparse* A_ = nullptr;
+  cholmod_factor* factor_ = nullptr;
 
   Impl() {
-    cholmod_l_start(&common);
-    common.quick_return_if_not_posdef = true;
+    cholmod_start(&common_);
+    common_.quick_return_if_not_posdef = true;
   }
 
   ~Impl() {
-    if (A) {
-      cholmod_l_free_sparse(&A, &common);
+    if (A_) {
+      cholmod_free_sparse(&A_, &common_);
     }
-    if (factor) {
-      cholmod_l_free_factor(&factor, &common);
+    if (factor_) {
+      cholmod_free_factor(&factor_, &common_);
     }
-    if (Ywork) {
-      cholmod_l_free_dense(&Ywork, &common);
+    if (Ywork_) {
+      cholmod_free_dense(&Ywork_, &common_);
     }
-    if (Ework) {
-      cholmod_l_free_dense(&Ework, &common);
+    if (Ework_) {
+      cholmod_free_dense(&Ework_, &common_);
     }
-    cholmod_l_finish(&common);
+    cholmod_finish(&common_);
   }
 
-  cholmod_dense *Ywork = nullptr, *Ework = nullptr;
+  cholmod_dense *Ywork_ = nullptr, *Ework_ = nullptr;
 };
 
 void SparseSolver_Cholmod::AnalyzePattern() {
-  auto& A = cached_problem_->A_;
+  auto& mat_a = cached_problem_->A_;
   impl_ = std::make_unique<Impl>();
-  auto& common = impl_->common;
-  auto& factor = impl_->factor;
-  auto& A_chol = impl_->A;
+  auto& common = impl_->common_;
+  auto& factor = impl_->factor_;
+  auto& mat_a_chol = impl_->A_;
 
   switch (supernodal_kind_) {
     case CholmodSupernodalKind::Auto:
@@ -90,17 +90,17 @@ void SparseSolver_Cholmod::AnalyzePattern() {
       AX_THROW_RUNTIME_ERROR("Unknown CholmodSupernodalKind");
   }
 
-  Index const rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
-  std::vector<Index> rowvec, colvec;
+  Index const rows = mat_a.rows(), cols = mat_a.cols(), nnz = mat_a.nonZeros();
+  std::vector<int> rowvec, colvec;
   std::vector<Real> valvec;
   rowvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   colvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   valvec.reserve(static_cast<size_t>((nnz - rows) / 2 + rows));
   for (Index i = 0; i < cols; ++i) {
-    for (RealSparseMatrix::InnerIterator it(A, i); it; ++it) {
+    for (RealSparseMatrix::InnerIterator it(mat_a, i); it; ++it) {
       if (it.row() <= it.col()) {
-        rowvec.push_back(it.row());
-        colvec.push_back(it.col());
+        rowvec.push_back(static_cast<SparseIndex>(it.row()));
+        colvec.push_back(static_cast<SparseIndex>(it.col()));
         valvec.push_back(it.value());
       }
     }
@@ -114,41 +114,41 @@ void SparseSolver_Cholmod::AnalyzePattern() {
   chol_trips.j = colvec.data();
   chol_trips.x = valvec.data();
   chol_trips.stype = 1;  // symmetric
-  chol_trips.itype = CHOLMOD_LONG;
+  chol_trips.itype = CHOLMOD_INT;
   chol_trips.xtype = CHOLMOD_REAL;
   chol_trips.dtype = CHOLMOD_DOUBLE;
 
   // Transfer to cholmod_sparse
-  A_chol = cholmod_l_triplet_to_sparse(&chol_trips, static_cast<size_t>(nnz), &common);
+  mat_a_chol = cholmod_triplet_to_sparse(&chol_trips, static_cast<size_t>(nnz), &common);
   if (check_) {
-    cholmod_l_check_sparse(A_chol, &common);
+    cholmod_check_sparse(mat_a_chol, &common);
   }
 
   // analyze pattern.
-  factor = cholmod_l_analyze(A_chol, &common);
+  factor = cholmod_analyze(mat_a_chol, &common);
   if (factor == nullptr || common.status != CHOLMOD_OK) {
     AX_THROW_RUNTIME_ERROR("Cholmod::AnalyzePattern: analyze failed");
   }
 
   if (check_) {
-    cholmod_l_check_factor(factor, &common);
+    cholmod_check_factor(factor, &common);
   }
 
   if (verbose_) {
-    cholmod_l_print_sparse(A_chol, "A", &common);
-    cholmod_l_print_factor(factor, "L analyze pattern.", &common);
+    cholmod_print_sparse(mat_a_chol, "A", &common);
+    cholmod_print_factor(factor, "L analyze pattern.", &common);
   }
 }
 
 int SparseSolver_Cholmod::FactorizeOnce() {
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Factorize");
-  AX_THROW_IF_NULL(impl_->A, "AnalyzePattern must be called before Factorize");
-  AX_THROW_IF_NULL(impl_->factor, "AnalyzePattern must be called before Factorize");
+  AX_THROW_IF_NULL(impl_->A_, "AnalyzePattern must be called before Factorize");
+  AX_THROW_IF_NULL(impl_->factor_, "AnalyzePattern must be called before Factorize");
 
-  auto& factor = impl_->factor;
-  auto& A = impl_->A;
-  auto& comm = impl_->common;
-  cholmod_l_factorize(A, factor, &comm);
+  auto& factor = impl_->factor_;
+  auto& mat_a = impl_->A_;
+  auto& comm = impl_->common_;
+  cholmod_factorize(mat_a, factor, &comm);
   return comm.status;
 }
 
@@ -172,7 +172,7 @@ void SparseSolver_Cholmod::Factorize() {
 }
 
 LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const& b, RealMatrixX const&) {
-  AX_THROW_IF_NULL(impl_->factor, "Factorize must be called before Solve");
+  AX_THROW_IF_NULL(impl_->factor_, "Factorize must be called before Solve");
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Solve");
   cholmod_dense b_chol;
   b_chol.nrow = static_cast<size_t>(b.rows());
@@ -182,11 +182,11 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const& b, RealMatrixX 
   b_chol.x = const_cast<Real*>(b.data());
   b_chol.xtype = CHOLMOD_REAL;
   b_chol.dtype = CHOLMOD_DOUBLE;
-  // cholmod_l_solve(CHOLMOD_A, impl_->factor, &b_chol, &impl_->common);
+  // cholmod_solve(CHOLMOD_A, impl_->factor, &b_chol, &impl_->common);
   cholmod_dense* result = nullptr;
-  auto &ywork = impl_->Ywork, &ework = impl_->Ework;
-  cholmod_l_solve2(CHOLMOD_A, impl_->factor, &b_chol, nullptr, &result, nullptr, &ywork, &ework,
-                   &impl_->common);
+  auto &ywork = impl_->Ywork_, &ework = impl_->Ework_;
+  cholmod_solve2(CHOLMOD_A, impl_->factor_, &b_chol, nullptr, &result, nullptr, &ywork, &ework,
+                 &impl_->common_);
 
   if (result == nullptr) {
     AX_THROW_RUNTIME_ERROR("Cholmod::Solve Failed");
@@ -194,7 +194,7 @@ LinsysSolveResult SparseSolver_Cholmod::Solve(RealMatrixX const& b, RealMatrixX 
 
   LinsysSolveResult res(static_cast<Index>(result->nrow), static_cast<Index>(result->ncol));
   memcpy(res.solution_.data(), result->x, result->nrow * result->ncol * sizeof(Real));
-  cholmod_l_free_dense(&result, &impl_->common);
+  cholmod_free_dense(&result, &impl_->common_);
   res.converged_ = true;
   return res;
 }
@@ -210,11 +210,11 @@ void SparseSolver_Cholmod::SetOptions(utils::Options const& opt) {
 
   AX_SYNC_OPT(opt, bool, verbose);
   AX_SYNC_OPT(opt, bool, check);
-  SparseSolverBase::SetOptions(opt);
+  HostSparseSolverBase::SetOptions(opt);
 }
 
 utils::Options SparseSolver_Cholmod::GetOptions() const {
-  utils::Options opt = SparseSolverBase::GetOptions();
+  utils::Options opt = HostSparseSolverBase::GetOptions();
   opt["supernodal_kind"] = utils::reflect_name(supernodal_kind_).value();
   opt["verbose"] = verbose_;
   opt["check"] = check_;
@@ -224,17 +224,17 @@ utils::Options SparseSolver_Cholmod::GetOptions() const {
 math::RealMatrixX SparseSolver_Cholmod::Inverse() const {
   AX_THROW_IF_NULL(impl_, "AnalyzePattern must be called before Inverse");
 
-  size_t n_row = impl_->A->nrow;
-  auto* eye = cholmod_l_eye(n_row, n_row, CHOLMOD_REAL, &impl_->common);
-  cholmod_dense* result = cholmod_l_solve(CHOLMOD_A, impl_->factor, eye, &impl_->common);
+  size_t n_row = impl_->A_->nrow;
+  auto* eye = cholmod_eye(n_row, n_row, CHOLMOD_REAL, &impl_->common_);
+  cholmod_dense* result = cholmod_solve(CHOLMOD_A, impl_->factor_, eye, &impl_->common_);
   if (result == nullptr) {
     AX_THROW_RUNTIME_ERROR("Cholmod::Inverse Failed");
   }
 
   math::RealMatrixX res(n_row, n_row);
   memcpy(res.data(), result->x, n_row * n_row * sizeof(Real));
-  cholmod_l_free_dense(&result, &impl_->common);
-  cholmod_l_free_dense(&eye, &impl_->common);
+  cholmod_free_dense(&result, &impl_->common_);
+  cholmod_free_dense(&eye, &impl_->common_);
   return res;
 }
 

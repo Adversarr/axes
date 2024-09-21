@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-class SparseSolver_ConjugateGradient : public SparseSolverBase {
+class SparseSolver_ConjugateGradient : public HostSparseSolverBase {
 public:
   void AnalyzePattern() override;
   void Factorize() override;
@@ -19,7 +19,7 @@ public:
 
 private:
   Eigen::ConjugateGradient<RealSparseMatrix, Eigen::Lower | Eigen::Upper,
-                           Eigen::IncompleteCholesky<Real, Eigen::Lower, Eigen::AMDOrdering<Index>>>
+                           Eigen::IncompleteCholesky<Real, Eigen::Lower, Eigen::AMDOrdering<SparseIndex>>>
       solver_;
 
   Index max_iter_ = 100;

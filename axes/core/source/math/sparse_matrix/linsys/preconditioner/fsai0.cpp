@@ -75,7 +75,7 @@ void prepare_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
     for (int j = row_start; j < row_end; ++j) {
       int col = col_ind(static_cast<size_t>(j));
       if (col <= static_cast<int>(i)) {
-        coo.emplace_back(i, col, mat_val(static_cast<size_t>(j)));
+        coo.emplace_back(static_cast<int>(i), col, mat_val(static_cast<size_t>(j)));
       }
     }
   }
@@ -98,6 +98,13 @@ void GeneralSparsePreconditioner_FSAI0::Factorize() {
   auto mat_csr = mat_->Transfer(BufferDevice::Host)->ToCSR();
   prepare_fsai_cpu(*mat_csr, *fact_inv_);
   compute_fsai_cpu(*mat_csr, *fact_inv_);
+  math::RealSparseMatrix spm = fact_inv_->ToSparseMatrix();
+
+  spm = spm * spm.transpose();
+  spm.makeCompressed();
+  // fact_inv_->SetData(view_from_raw_buffer(spm.outerIndexPtr(), {spm.outerSize()}),
+  //                    view_from_raw_buffer(spm.innerIndexPtr(), {spm.nonZeros()}),
+  //                    view_from_raw_buffer(spm.valuePtr(), {spm.nonZeros()}));
 
   // transfer the fact_inv_ to the original device.
   if (device == BufferDevice::Device) {

@@ -23,9 +23,9 @@ Lines Grid::Draw() const {
   auto vert = math::make_accessor(lines.vertices_, shape);
   for (auto [ij, val] : math::enumerate(vert)) {
     auto [i, j] = ij;
-    val[0] = x_range_[0] + i * (x_range_[1] - x_range_[0]) / resolution_[0];
+    val[0] = x_range_[0] + static_cast<Real>(i) * ((x_range_[1] - x_range_[0]) / resolution_[0]);
     val[1] = 0;
-    val[2] = z_range_[0] + j * (z_range_[1] - z_range_[0]) / resolution_[1];
+    val[2] = z_range_[0] + static_cast<Real>(j) * ((z_range_[1] - z_range_[0]) / resolution_[1]);
   }
 
   Index cnt = 0;

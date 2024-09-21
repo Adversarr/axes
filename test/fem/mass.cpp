@@ -39,16 +39,17 @@ TEST_CASE("Mass 3D") {
     }
 
     fem::elements::P1Element<3> p1(vert);
-    math::RealMatrix4 element_mass;
+    math::RealMatrix4 local;
     for (size_t i = 0; i < 4; ++i) {
       for (size_t j = 0; j < 4; ++j) {
-        element_mass(i, j) = p1.Integrate_F_F(i, j);
+        local(i, j) = p1.Integrate_F_F(i, j);
       }
     }
 
     for (size_t i = 0; i < 4; ++i) {
       for (size_t j = 0; j < 4; ++j) {
-        coo.push_back(math::RealSparseEntry(e(i, elem), e(j, elem), element_mass(i, j)));
+        coo.emplace_back(static_cast<math::SparseIndex>(e(i, elem)),
+                         static_cast<math::SparseIndex>(e(j, elem)), local(i, j));
       }
     }
   }

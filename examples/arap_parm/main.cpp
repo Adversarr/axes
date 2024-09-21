@@ -38,7 +38,7 @@ void ui_callback(gl::UiRenderEvent& /*event*/) {
   }
 
   if (ImGui::Combo("Linear System Solver", &option_linsys, opt_linsys, IM_ARRAYSIZE(opt_linsys))) {
-    psolver->SetGlobalSolver(math::SparseSolverBase::Create(
+    psolver->SetGlobalSolver(math::HostSparseSolverBase::Create(
         (option_linsys == 0 ? math::GeneralSparseSolverKind::ConjugateGradient
                             : math::GeneralSparseSolverKind::LDLT)));
   }

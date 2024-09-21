@@ -151,8 +151,8 @@ math::RealSparseMatrix RealBlockMatrix::ToSparseMatrix() const {
       size_t col = static_cast<size_t>(col_indices(block_id));
       for (size_t i = 0; i < block_size; ++i) {
         for (size_t j = 0; j < block_size; ++j) {
-          Index r = static_cast<Index>(row * block_size + i);
-          Index c = static_cast<Index>(col * block_size + j);
+          auto r = static_cast<SparseIndex>(row * block_size + i);
+          auto c = static_cast<SparseIndex>(col * block_size + j);
           coo.push_back({r, c, value(i, j, block_id)});
         }
       }

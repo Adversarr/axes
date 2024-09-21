@@ -2,6 +2,7 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
+#include "ax/utils/cuda_helper.hpp"
 #include "details/csr_compress_impl.hpp"
 
 namespace ax::math {
@@ -43,7 +44,7 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
     details::compute_csr_spmv_cpu(x, y, alpha, beta, row_ptrs_->View(), col_indices_->View(),
                                   values_->View(), cols_);
   } else {
-    details::compute_csr_spmv_gpu(x, y, alpha, beta, mat_descr_);
+    AX_CUDA_CALL(details::compute_csr_spmv_gpu(x, y, alpha, beta, mat_descr_));
   }
 }
 
@@ -83,7 +84,7 @@ void RealCSRMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y, R
     details::compute_csr_spmv_transpose_cpu(x, y, alpha, beta, row_ptrs_->View(),
                                             col_indices_->View(), values_->View(), cols_);
   } else {
-    details::compute_csr_spmv_transpose_gpu(x, y, alpha, beta, mat_descr_);
+    AX_CUDA_CALL(details::compute_csr_spmv_transpose_gpu(x, y, alpha, beta, mat_descr_));
   }
 }
 
@@ -196,12 +197,10 @@ RealCSRMatrix::RealCSRMatrix(size_t rows, size_t cols, BufferDevice device) {
 }
 
 void RealCSRMatrix::Finish() {
-#ifdef AX_HAS_CUDA
   if (device_ == BufferDevice::Device) {
-    mat_descr_ = details::create_csr_compress_desc_gpu(row_ptrs_->View(), col_indices_->View(),
-                                                       values_->View(), rows_, cols_);
+    AX_CUDA_CALL(mat_descr_ = details::create_csr_compress_desc_gpu(
+                     row_ptrs_->View(), col_indices_->View(), values_->View(), rows_, cols_));
   }
-#endif
 }
 
 std::unique_ptr<RealCSRMatrix> RealCSRMatrix::ToCSR() const {

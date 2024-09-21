@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/core/excepts.hpp"
 #include "host_buffer.hpp"
 #ifdef AX_HAS_CUDA
 #  include "device_buffer.cuh"
@@ -21,6 +22,8 @@ BufferPtr<T> create_buffer(BufferDevice device, BufferDim shape) {
   if (device == BufferDevice::Device) {
 #ifdef AX_HAS_CUDA
     return details::DefaultDeviceBuffer<T>::Create(shape);
+#else
+    AX_THROW_RUNTIME_ERROR("CUDA is not enabled.");
 #endif
   } else {
     return details::DefaultHostBuffer<T>::Create(shape);

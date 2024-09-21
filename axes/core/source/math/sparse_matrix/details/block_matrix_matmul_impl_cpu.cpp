@@ -8,8 +8,8 @@ static AX_FORCE_INLINE void do_mv(const Real* in_block_value, const Real* in_rhs
                                   size_t block_size, Real alpha) {
   // rhs[j] = sum_k in_block_value[i, k] * in_rhs[k, j], we are using col-major
   // linear_index = i + j * block_size
+#pragma unroll
   for (size_t j = 0; j < block_size; ++j) {
-#pragma omp simd
     for (size_t i = 0; i < block_size; ++i) {
       out_dst[i] += alpha * (in_block_value[i + j * block_size] * in_rhs[j]);
     }
@@ -23,7 +23,8 @@ void block_matrix_matmul_cpu(size_t rows, size_t /* cols */, BufferView<const Re
                              std::shared_ptr<void> /* descr_type_erased */) {
   // For each row block, do parallel.
   // Alg: out[i] = sum_j block_values[i, j] * rhs[j]
-  auto job = [&](size_t row) {
+  size_t nnz = block_col_indices.Shape().X();
+  auto job = [=](size_t row) mutable {
     size_t block_curr = static_cast<size_t>(block_row_ptrs(row));
     size_t block_next = static_cast<size_t>(block_row_ptrs(row + 1));
     size_t block_size = block_values.Shape().X();
@@ -41,7 +42,7 @@ void block_matrix_matmul_cpu(size_t rows, size_t /* cols */, BufferView<const Re
       do_mv(in_block, in_rhs, out_dst, block_size, alpha);
     }
   };
-  if (rows > 4096) {
+  if (nnz > 1 << 15) {
     par_for_each_indexed(Dim{rows}, job);
   } else {
     for_each_indexed(Dim{rows}, job);

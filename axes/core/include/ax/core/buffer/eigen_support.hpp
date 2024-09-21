@@ -54,28 +54,33 @@ void check_is_valid_scalar_map(const BufferView<BufT>& bufv, StrideType stride) 
   constexpr int cols_at_compile_time = static_cast<int>(MatrixType::ColsAtCompileTime);
   const size_t rows = bufv.Shape().X();  // Our buffer is col-majored.
   const size_t cols = bufv.Shape().Y();
+  const size_t total_size = prod(bufv.Shape());  // since 3D is not allowed, this is just the size.
   // Two fairly strange case, you are mapping a buffer to a compile time vector.
   if constexpr (cols_at_compile_time == 1 && rows_at_compile_time != Eigen::Dynamic) {
-    const size_t total_size = rows * (cols == 0 ? 1 : cols);  // the buffer length.
     if (total_size != static_cast<size_t>(rows_at_compile_time)) {
       AX_THROW_RUNTIME_ERROR("Buffer size mismatch with the compile time vector size.");
     }
   } else if constexpr (rows_at_compile_time == 1 && cols_at_compile_time != Eigen::Dynamic) {
-    const size_t total_size = cols * (rows == 0 ? 1 : rows);  // the buffer length.
     if (total_size != static_cast<size_t>(cols_at_compile_time)) {
       AX_THROW_RUNTIME_ERROR("Buffer size mismatch with the compile time vector size.");
     }
-  } else if constexpr (rows_at_compile_time != Eigen::Dynamic) {
-    if (rows != static_cast<size_t>(rows_at_compile_time)) {
-      AX_THROW_RUNTIME_ERROR(
-          "Buffer row size mismatch with the compile time matrix row size. got {} expected {}",
-          rows, rows_at_compile_time);
+  } else {  // not a compile time vector, and if you set the compile-time row/col, we need to check.
+    if constexpr (rows_at_compile_time != Eigen::Dynamic) {
+      // specified row size at compile time and larger than 1.
+      if (rows != static_cast<size_t>(rows_at_compile_time)) {
+        AX_THROW_RUNTIME_ERROR(
+            "Buffer row size mismatch with the compile time matrix row size. got {} expected {}",
+            rows, rows_at_compile_time);
+      }
     }
-  } else if constexpr (cols_at_compile_time != Eigen::Dynamic) {
-    if (cols != static_cast<size_t>(cols_at_compile_time)) {
-      AX_THROW_RUNTIME_ERROR(
-          "Buffer col size mismatch with the compile time matrix col size. got {} expected {}",
-          cols, cols_at_compile_time);
+
+    if constexpr (cols_at_compile_time != Eigen::Dynamic) {
+      // specified col size at compile time and larger than 1.
+      if (cols != static_cast<size_t>(cols_at_compile_time)) {
+        AX_THROW_RUNTIME_ERROR(
+            "Buffer col size mismatch with the compile time matrix col size. got {} expected {}",
+            cols, cols_at_compile_time);
+      }
     }
   }
 
@@ -91,28 +96,31 @@ void check_is_valid_scalar_map(const BufferView<BufT>& bufv, StrideType stride) 
   if constexpr (row_stride_compile_time == 0) {
     // The row is continuous, we need to check the stride of view
     if (view_row_stride_bytes != sizeof(MatrixScalar)) {
-      AX_THROW_RUNTIME_ERROR(
-          "Buffer row stride mismatch.(expected continuous) got {} expected {}",
-          view_row_stride_bytes, sizeof(MatrixScalar));
+      AX_THROW_RUNTIME_ERROR("Buffer row stride mismatch.(expected continuous) got {} expected {}",
+                             view_row_stride_bytes, sizeof(MatrixScalar));
     }
   } else {
     if (view_row_stride_bytes != row_stride * sizeof(MatrixScalar)) {
       AX_THROW_RUNTIME_ERROR("Buffer row stride mismatch. got {} expected {}",
-                               view_row_stride_bytes, row_stride * sizeof(MatrixScalar));
+                             view_row_stride_bytes, row_stride * sizeof(MatrixScalar));
     }
   }
 
-  if constexpr (col_stride_compile_time == 0) {
-    // The col is continuous, we need to check the stride of view
-    if (view_col_stride_bytes != sizeof(MatrixScalar) * rows) {
-      AX_THROW_RUNTIME_ERROR(
-          "Buffer col stride mismatch.(expected continuous) got {} expected {}",
-          view_col_stride_bytes, sizeof(MatrixScalar) * rows);
-    }
-  } else {
-    if (view_col_stride_bytes != col_stride * sizeof(MatrixScalar)) {
-      AX_THROW_RUNTIME_ERROR("Buffer col stride mismatch. got {} expected {}",
+  // If cols == 0, we can only map to a static/dynamic vector. The stride is not important.
+  if (cols > 0) {
+    if constexpr (col_stride_compile_time == 0) {
+      // The col is continuous, we need to check the stride of view
+      // notice that, If the cols is 0, we are mapping to a vector, the stride is not important.
+      if (view_col_stride_bytes != sizeof(MatrixScalar) * rows) {
+        AX_THROW_RUNTIME_ERROR(
+            "Buffer col stride mismatch.(expected continuous) got {} expected {}",
+            view_col_stride_bytes, sizeof(MatrixScalar) * rows);
+      }
+    } else {
+      if (view_col_stride_bytes != col_stride * sizeof(MatrixScalar)) {
+        AX_THROW_RUNTIME_ERROR("Buffer col stride mismatch. got {} expected {}",
                                view_col_stride_bytes, col_stride * sizeof(MatrixScalar));
+      }
     }
   }
 }
@@ -302,8 +310,9 @@ AX_HOST_DEVICE AX_CONSTEXPR auto view_as_matrix_full(BufferView<BufT> bufv,
   StrideType stride = details::determine_stride<BufT, StrideType::OuterStrideAtCompileTime,
                                                 StrideType::InnerStrideAtCompileTime>(bufv);
   details::check_is_valid_scalar_map<BufT, MatrixType, MapOptions, StrideType>(bufv, stride);
-  return MapT(bufv.Data(), static_cast<Index>(bufv.Shape().X()),
-              static_cast<Index>(bufv.Shape().Y()), stride);
+  Index actual_cols = std::max<Index>(static_cast<Index>(bufv.Shape().Y()), 1);
+
+  return MapT(bufv.Data(), static_cast<Index>(bufv.Shape().X()), actual_cols, stride);
 }
 
 /**
@@ -341,14 +350,14 @@ AX_HOST_DEVICE AX_CONSTEXPR auto view_as_matrix_full(BufferView<BufT> bufv,
     if (outer_stride_in_bytes_runtime
         != mapped_rows_at_compile_time_expected * sizeof(ScalarType)) {
       AX_THROW_RUNTIME_ERROR("Buffer outer stride mismatch. got {} expected {}",
-                               outer_stride_in_bytes_runtime,
-                               mapped_rows_at_compile_time_expected * sizeof(ScalarType));
+                             outer_stride_in_bytes_runtime,
+                             mapped_rows_at_compile_time_expected * sizeof(ScalarType));
     }
   } else if constexpr (outer_stride_provided != Eigen::Dynamic) {
     if (outer_stride_in_bytes_runtime != outer_stride_provided * sizeof(ScalarType)) {
       AX_THROW_RUNTIME_ERROR("Buffer outer stride mismatch. got {} expected {}",
-                               outer_stride_in_bytes_runtime,
-                               outer_stride_provided * sizeof(ScalarType));
+                             outer_stride_in_bytes_runtime,
+                             outer_stride_provided * sizeof(ScalarType));
     }
   }
   if constexpr (outer_stride_provided != Eigen::Dynamic) {

@@ -17,7 +17,6 @@ void GeneralSparseSolverBase::AnalyzePattern() {
 
 void GeneralSparseSolverBase::Factorize() {
   if (preconditioner_) {
-    preconditioner_->SetProblem(mat_);
     preconditioner_->Factorize();
   }
 }

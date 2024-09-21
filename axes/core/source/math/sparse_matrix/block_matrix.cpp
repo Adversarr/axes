@@ -299,14 +299,20 @@ void RealBlockMatrix::Finish() {
 #endif
 }
 
-std::unique_ptr<RealCSRMatrix> RealBlockMatrix::ToCSR(BufferDevice device) const {
-  auto csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device);
+std::unique_ptr<RealCSRMatrix> RealBlockMatrix::ToCSR() const {
+  auto csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device_);
   if (block_size_ == 1) {
     csr->SetData(row_ptrs_->ConstView(), col_indices_->ConstView(), flatten(values_->ConstView()));
   } else {
     AX_NOT_IMPLEMENTED();
   }
   return csr;
+}
+
+std::unique_ptr<RealCompressedMatrixBase> RealBlockMatrix::Transfer(BufferDevice device) const {
+  auto new_block = std::make_unique<RealBlockMatrix>(rows_, cols_, block_size_, device);
+  new_block->Set(*this);
+  return new_block;
 }
 
 }  // namespace ax::math

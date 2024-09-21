@@ -30,9 +30,18 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
                            y.Shape());
   }
 
+  if (is_2d(x.Shape())) {
+    x = flatten(x);
+    y = flatten(y);
+  } else if (is_3d(x.Shape())) {
+    auto [bs, br, batch] = *x.Shape();
+    x = x.Reshaped({bs * br, batch});
+    y = y.Reshaped({bs * br, batch});
+  }
+
   if (device == BufferDevice::Host) {
     details::compute_csr_spmv_cpu(x, y, alpha, beta, row_ptrs_->View(), col_indices_->View(),
-                                  values_->View());
+                                  values_->View(), cols_);
   } else {
     details::compute_csr_spmv_gpu(x, y, alpha, beta, mat_descr_);
   }
@@ -49,6 +58,20 @@ void RealCSRMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y, R
   if (!is_same_device(device, x, y)) {
     AX_THROW_RUNTIME_ERROR("Device mismatch. x={}, y={}, matrix={}", x.Device(), y.Device(),
                            device);
+  }
+
+  if (x.Shape() != y.Shape()) {
+    AX_THROW_RUNTIME_ERROR("The shape of x and y should be the same. x={}, y={}", x.Shape(),
+                           y.Shape());
+  }
+
+  if (is_2d(x.Shape())) {
+    x = flatten(x);
+    y = flatten(y);
+  } else if (is_3d(x.Shape())) {
+    auto [bs, br, batch] = *x.Shape();
+    x = x.Reshaped({bs * br, batch});
+    y = y.Reshaped({bs * br, batch});
   }
 
   if (x.Shape().X() != Rows() || y.Shape().X() != Cols()) {
@@ -181,9 +204,15 @@ void RealCSRMatrix::Finish() {
 #endif
 }
 
-std::unique_ptr<RealCSRMatrix> RealCSRMatrix::ToCSR(BufferDevice device) const {
-  auto new_csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device);
+std::unique_ptr<RealCSRMatrix> RealCSRMatrix::ToCSR() const {
+  auto new_csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device_);
   new_csr->SetData(row_ptrs_->View(), col_indices_->View(), values_->View());
+  return new_csr;
+}
+
+std::unique_ptr<RealCompressedMatrixBase> RealCSRMatrix::Transfer(BufferDevice device) const {
+  auto new_csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device);
+  new_csr->SetData(row_ptrs_->ConstView(), col_indices_->ConstView(), values_->ConstView());
   return new_csr;
 }
 

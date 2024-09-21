@@ -13,7 +13,7 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y, Real alp
 
 void compute_csr_spmv_cpu(ConstRealBufferView x, RealBufferView y, Real alpha, Real beta,
                           BufferView<const int> row_ptrs, BufferView<const int> col_indices,
-                          BufferView<const Real> values);
+                          BufferView<const Real> values, size_t cols);
 
 void compute_csr_spmv_transpose_gpu(BufferView<const Real> x, BufferView<Real> y, Real alpha,
                                     Real beta, std::shared_ptr<void> desc);

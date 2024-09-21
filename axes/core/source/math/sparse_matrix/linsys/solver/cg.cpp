@@ -8,6 +8,7 @@
 namespace ax::math {
 
 void GeneralSparseSolver_ConjugateGradient::AnalyzePattern() {
+  GeneralSparseSolverBase::AnalyzePattern();
   if (mat_->BlockedCols() != mat_->BlockedRows()) {
     AX_THROW_RUNTIME_ERROR("SparseSolver_ConjugateGradient: only support square matrix.");
   }
@@ -82,6 +83,10 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
     AX_INFO("CG iter: {}, l2_err: {:12.6e}", iter, err);
     if (err <= tolerance_) {
       converged = true;
+      break;
+    } else if (!math::isfinite(err)) {
+      converged = false;
+      AX_ERROR("CG diverged at iteration {}", iter);
       break;
     }
   }

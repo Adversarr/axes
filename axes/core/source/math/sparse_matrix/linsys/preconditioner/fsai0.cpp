@@ -1,15 +1,13 @@
 #include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
 
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/core/buffer/create_buffer.hpp"
+#include "ax/core/buffer/for_each.hpp"
 #include "ax/core/gsl.hpp"
+#include "ax/math/buffer_blas.hpp"
 #include "ax/math/utils/formatting.hpp"
 
 namespace ax::math {
-
-void GeneralSparsePreconditioner_FSAI0::AnalyzePattern() {
-  // nothing to do.
-  AX_THROW_IF_NULL(mat_, "Matrix is not set.");
-}
 
 void compute_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
   // stores the fact_inv[rptr[i]:rptr[i+1]].
@@ -51,13 +49,17 @@ void compute_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
     // solve the linear system.
     Eigen::Map<RealVectorX> x(value.Offset(static_cast<size_t>(row_start)), row_size);
     x.noalias() = mat.ldlt().solve(b);
+
+    Real x_last = x(row_size - 1);
+    x *= rsqrt(x_last);
   };
 
-  for (size_t i = 0; i < fact_inv.Rows(); ++i) {
-    job_of_row(i);
+  size_t rows = fact_inv.Rows();
+  if (rows > 10240) {
+    par_for_each_indexed(Dim{rows}, job_of_row);
+  } else {
+    for_each_indexed(Dim{rows}, job_of_row);
   }
-
-  // TODO: Solve D.
 }
 
 void prepare_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
@@ -81,36 +83,46 @@ void prepare_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
   fact_inv.SetFromTriplets(coo);
 }
 
-void GeneralSparsePreconditioner_FSAI0::Factorize() {
+void GeneralSparsePreconditioner_FSAI0::AnalyzePattern() {
+  AX_THROW_IF_NULL(mat_, "Matrix is not set.");
   auto device = mat_->Device();
-  auto mat_csr = mat_->ToCSR(device);
-  // TODO: implement the factorization.
-  // topology is the lower triangular
+  size_t rows = mat_->Rows(), cols = mat_->Cols();
+  AX_THROW_IF_NE(rows, cols, "FSAI expect SPD matrix. rows={}, cols={}", rows, cols);
+  fact_inv_ = std::make_unique<math::RealCSRMatrix>(rows, cols, BufferDevice::Host);
+  temp_ = create_buffer<Real>(device, {rows});
+}
 
-  fact_inv_ = std::make_unique<math::RealCSRMatrix>(mat_csr->Rows(), mat_csr->Cols(), device);
+void GeneralSparsePreconditioner_FSAI0::Factorize() {
+  AX_THROW_IF_NULL(fact_inv_, "AnalyzePattern is not called.");
+  auto device = mat_->Device();
+  auto mat_csr = mat_->Transfer(BufferDevice::Host)->ToCSR();
+  prepare_fsai_cpu(*mat_csr, *fact_inv_);
+  compute_fsai_cpu(*mat_csr, *fact_inv_);
 
-  if (device == BufferDevice::Host) {
-    prepare_fsai_cpu(*mat_csr, *fact_inv_);
-    compute_fsai_cpu(*mat_csr, *fact_inv_);
-  } else {
-    AX_NOT_IMPLEMENTED();
+  // transfer the fact_inv_ to the original device.
+  if (device == BufferDevice::Device) {
+    fact_inv_ = std::unique_ptr<RealCSRMatrix>(
+        static_cast<RealCSRMatrix*>(fact_inv_->Transfer(device).release()));
   }
+
+  fact_inv_->Finish();
 }
 
 void GeneralSparsePreconditioner_FSAI0::Solve(ConstRealBufferView b, RealBufferView x) const {
   AX_THROW_IF_NULL(fact_inv_, "Factorize is not called.");
-  AX_THROW_IF_FALSE(b.Shape().X() == x.Shape().X(), "Invalid shape. b={}, x={}", b.Shape(),
-                    x.Shape());
+  AX_THROW_IF_FALSE(b.Shape() == x.Shape(), "Invalid shape. b={}, x={}", b.Shape(), x.Shape());
   AX_THROW_IF_FALSE(b.Device() == x.Device(), "Device mismatch. b={}, x={}", b.Device(),
                     x.Device());
 
-  if (b.Device() == BufferDevice::Host) {
-    // Solve on host.
-    AX_NOT_IMPLEMENTED();
-  } else {
-    // Solve on device.
-    AX_NOT_IMPLEMENTED();
-  }
+  auto temp = temp_->View().Reshaped(b.Shape());
+
+  // Solve on host, the approximation is G G.T
+  const auto& g = *fact_inv_;
+  g.TransposeMultiply(b, temp, 1, 0);  // temp = g^T * b
+  g.Multiply(temp, x, 1, 0);           // x = g * temp = g * g^T * b
+  // std::cout << "b norm: " << buffer_blas::norm(b) << std::endl;
+  // std::cout << "temp norm: " << buffer_blas::norm(temp) << std::endl;
+  // std::cout << "x norm: " << buffer_blas::norm(x) << std::endl;
 }
 
 }  // namespace ax::math

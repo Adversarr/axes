@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/math/sparse.hpp"
 
 namespace ax::math {
 
@@ -53,7 +54,11 @@ public:
 
   void MarkAsSymmetric(bool is_symm = true) { is_symm_ = is_symm; }
 
-  virtual std::unique_ptr<RealCSRMatrix> ToCSR(BufferDevice) const = 0;
+  virtual std::unique_ptr<RealCSRMatrix> ToCSR() const = 0;
+
+  virtual math::RealSparseMatrix ToSparseMatrix() const = 0;
+
+  virtual std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const = 0;
 
 protected:
   BufferPtr<int> row_ptrs_;     // row_ptrs if CSR, col_ptrs if CSC

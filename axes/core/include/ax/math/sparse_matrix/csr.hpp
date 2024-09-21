@@ -35,13 +35,14 @@ public:
   void SetFromTriplets(const RealSparseCOO& coo);
 
   // Convert to Eigen SparseMatrix
-  RealSparseMatrix ToSparseMatrix() const;
+  RealSparseMatrix ToSparseMatrix() const override;
 
   // After construction of the matrix, you can call this function to enable the optimized
   // computation.
   void Finish() override;
 
-  std::unique_ptr<RealCSRMatrix> ToCSR(BufferDevice device) const final;
+  std::unique_ptr<RealCSRMatrix> ToCSR() const final;
+  std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
 
 private:
   std::shared_ptr<void> mat_descr_;

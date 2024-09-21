@@ -10,6 +10,7 @@
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/io.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/utils/formatting.hpp"
@@ -42,6 +43,7 @@ int main(int argc, char** argv) {
   po::add_option({
     po::make_option<bool>("gpu", "Use gpu compute", "false"),
     po::make_option<size_t>("size", "Size of the mesh", "10"),
+    po::make_option<bool>("fsai", "Use fsai preconditioner", "false"),
   });
   initialize(argc, argv);
 
@@ -121,7 +123,12 @@ int main(int argc, char** argv) {
   pruner.Prune(*bsr);
   pruner.Prune(grad);
   math::GeneralSparseSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+  auto use_fsai = po::get_parse_result()["fsai"].as<bool>();
+  if (use_fsai) {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
+  } else {
+     cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+  }
   cg.SetProblem(bsr);
   cg.Compute();
 

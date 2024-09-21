@@ -39,12 +39,12 @@ public:
   void TransposeMultiply(ConstRealBufferView x, RealBufferView y, Real alpha,
                          Real beta) const override;
 
-  math::RealSparseMatrix ToSparseMatrix() const;
+  math::RealSparseMatrix ToSparseMatrix() const override;
 
   void Finish() override;
 
-  std::unique_ptr<RealCSRMatrix> ToCSR(BufferDevice device) const override;
-
+  std::unique_ptr<RealCSRMatrix> ToCSR() const override;
+  std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
 private:
   std::shared_ptr<void> mat_desc_;
 };

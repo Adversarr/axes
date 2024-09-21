@@ -9,19 +9,19 @@ using namespace ax;
 using namespace ax::fem;
 
 static std::shared_ptr<Mesh> create_cube() {
-  auto result = std::make_shared<Mesh>(3, 4, BufferDevice::Host);
   auto tet_cube = geo::tet_cube(1, 2, 2, 2);
   auto v = tet_cube.vertices_;
   auto i = tet_cube.indices_;
   auto e = i.cast<size_t>().eval();
 
+  auto result = std::make_shared<Mesh>(3, 4, BufferDevice::Host);
   result->SetData(view_from_matrix(v), view_from_matrix(e));
   return result;
 }
 
 TEST_CASE("Laplace 3D") {
-  auto state = std::make_shared<State>(1, 4, BufferDevice::Host);
   auto mesh = create_cube();
+  auto state = std::make_shared<State>(1, mesh->GetNumVertices(), BufferDevice::Host);
   LaplaceTerm term(state, mesh);
   term.SetDiffusivity(1);
 
@@ -69,4 +69,47 @@ TEST_CASE("Laplace 3D") {
       CHECK(expected_val == doctest::Approx(computed_val).epsilon(1e-6));
     }
   }
+}
+
+
+
+TEST_CASE("Laplace 2d embed") {
+  auto plane = geo::plane(1, 1, 3, 3);
+  auto v = plane.vertices_;
+  auto i = plane.indices_;
+
+  auto state = std::make_shared<State>(1, v.cols(), BufferDevice::Host);
+  auto mesh = std::make_shared<Mesh>(3, 3, BufferDevice::Host);
+  auto e = i.cast<size_t>().eval();
+
+  mesh->SetData(view_from_matrix(v), view_from_matrix(e));
+
+  LaplaceTerm term(state, mesh);
+  term.SetDiffusivity(1);
+
+  auto computed = term.GetHessian().ToSparseMatrix();
+  computed.makeCompressed();
+
+  auto state2 = std::make_shared<State>(1, v.cols(), BufferDevice::Host);
+  auto mesh2 = std::make_shared<Mesh>(2, 3, BufferDevice::Host);
+  auto v2 = v.topRows(2).eval();
+
+  mesh2->SetData(view_from_matrix(v2), view_from_matrix(e));
+
+  LaplaceTerm term2(state2, mesh2);
+  term2.SetDiffusivity(1);
+
+  auto computed2 = term2.GetHessian().ToSparseMatrix();
+  computed2.makeCompressed();
+
+  // std::cout << computed << std::endl;
+  // std::cout << computed2 << std::endl;
+
+  // expect same.
+  CHECK(computed.rows() == computed2.rows());
+  CHECK(computed.cols() == computed2.cols());
+
+  math::for_each_entry(computed, [&](math::SparseIndex i, math::SparseIndex j, Real val) {
+    CHECK(computed2.coeff(i, j) == doctest::Approx(val).epsilon(1e-6));
+  });
 }

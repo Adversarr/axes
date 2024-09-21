@@ -6,6 +6,7 @@
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/math/sparse_matrix/csr.hpp"
+#include "ax/utils/cuda_helper.hpp"
 #ifdef AX_HAS_CUDA
 #  include "ax/core/buffer/device_buffer.cuh"
 #endif
@@ -22,7 +23,9 @@ void RealBlockMatrix::SetData(BufferView<const int> block_row_ptrs,
   AX_THROW_IF_FALSE(is_1d(block_row_ptrs.Shape()) && is_1d(block_col_indices.Shape())
                         && is_3d(block_values.Shape()),
                     "Invalid input shape. Require 1D, 1D, 3D buffer.");
-  AX_THROW_IF(block_row_ptrs.Shape().X() != rows_ + 1, "Invalid block_row_ptrs size.");
+  AX_THROW_IF(block_row_ptrs.Shape().X() != rows_ + 1,
+              "Invalid block_row_ptrs size. got {} expect {}", block_row_ptrs.Shape().X(),
+              rows_ + 1);
   const size_t nnz = block_col_indices.Shape().X();
   AX_THROW_IF_FALSE(nnz == block_values.Shape().Z(),
                     "Invalid block_values size. col_indices={}, values={}", nnz,
@@ -113,19 +116,16 @@ void RealBlockMatrix::Multiply(BufferView<const Real> rhs, BufferView<Real> dst,
                            rows_, dst.Shape().X(), dst.Shape().Y());
   }
 
+  auto [value, rptr, cidx] = make_view(values_, row_ptrs_, col_indices_);
+
   if (device == BufferDevice::Device) {
-#ifdef AX_HAS_CUDA
     if (!rhs.IsContinuous() || !dst.IsContinuous()) {
       AX_THROW_RUNTIME_ERROR("Buffer should be continuous for GPU matmul.");
     }
-    details::block_matrix_matmul_gpu(rows_, cols_, values_->View(), row_ptrs_->View(),
-                                     col_indices_->View(), rhs, dst, alpha, beta, mat_desc_);
-#else
-    AX_THROW_RUNTIME_ERROR("CUDA is not enabled.");
-#endif
+    AX_CUDA_CALL(details::block_matrix_mv_gpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha,
+                                              beta, mat_desc_));
   } else {
-    details::block_matrix_matmul_cpu(rows_, cols_, values_->View(), row_ptrs_->View(),
-                                     col_indices_->View(), rhs, dst, alpha, beta, mat_desc_);
+    details::block_matrix_mv_cpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha, beta, mat_desc_);
   }
 }
 
@@ -168,8 +168,25 @@ void RealBlockMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y,
     Multiply(x, y, alpha, beta);
     return;
   }
-  // TODO: Implement this.
-  AX_NOT_IMPLEMENTED();
+
+  const auto device = Device();
+  if (x.Device() != device || y.Device() != device) {
+    AX_THROW_RUNTIME_ERROR("Device mismatch. x={}, y={}, block_matrix={}", x.Device(), y.Device(),
+                           device);
+  }
+
+  auto [value, rptr, cidx] = make_view(values_, row_ptrs_, col_indices_);
+
+  if (device == BufferDevice::Device) {
+    if (!x.IsContinuous() || !y.IsContinuous()) {
+      AX_THROW_RUNTIME_ERROR("Buffer should be continuous for GPU matmul.");
+    }
+    AX_CUDA_CALL(details::block_matrix_transpose_mv_gpu(rows_, cols_, value, rptr, cidx, x, y,
+                                                        alpha, beta, mat_desc_));
+  } else {
+    details::block_matrix_transpose_mv_cpu(rows_, cols_, value, rptr, cidx, x, y, alpha, beta,
+                                           mat_desc_);
+  }
 }
 
 void RealBlockMatrix::SetData(BufferPtr<int> block_row_ptrs, BufferPtr<int> block_col_indices,

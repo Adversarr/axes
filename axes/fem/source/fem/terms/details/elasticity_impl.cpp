@@ -1,12 +1,14 @@
 #include "./elasticity_impl.hpp"
 
-#include "ax/core/buffer/for_each.hpp"
-#include "ax/math/common.hpp"
 #include <Eigen/Geometry>
+
+#include "ax/core/buffer/for_each.hpp"
+#include "ax/core/gsl.hpp"
+#include "ax/math/common.hpp"
 
 namespace ax::fem {
 
-static AX_FORCE_INLINE  math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
+static AX_FORCE_INLINE math::RealMatrix<9, 12> ComputePFPx(const math::RealMatrix3& DmInv) {
   const Real m = DmInv(0, 0);
   const Real n = DmInv(0, 1);
   const Real o = DmInv(0, 2);
@@ -61,7 +63,7 @@ static AX_FORCE_INLINE  math::RealMatrix<9, 12> ComputePFPx(const math::RealMatr
 }
 
 // Auto generated code.
-static AX_FORCE_INLINE  math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
+static AX_FORCE_INLINE math::RealMatrix<4, 6> ComputePFPx(const math::RealMatrix2& DmInv) {
   const Real m = DmInv(0, 0);
   const Real n = DmInv(0, 1);
   const Real p = DmInv(1, 0);
@@ -141,12 +143,11 @@ void compute_static_data_cpu(const Mesh& mesh, ConstRealBufferView rest_pose,
   };
 
   size_t n_dof_per_vert = mesh.GetNumDOFPerVertex();
+  AX_EXPECTS(n_dof_per_vert == 2 || n_dof_per_vert == 3);
   if (n_dof_per_vert == 2) {
     par_for_each_indexed(Dim1{n_elem}, job2d);
   } else if (n_dof_per_vert == 3) {
     par_for_each_indexed(Dim1{n_elem}, job3d);
-  } else {
-    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -197,12 +198,12 @@ void compute_deformation_gradient_cpu(const Mesh& mesh, ConstRealBufferView dmin
   };
 
   size_t n_dof_per_vert = mesh.GetNumDOFPerVertex();
+
+  AX_EXPECTS(n_dof_per_vert == 2 || n_dof_per_vert == 3);
   if (n_dof_per_vert == 2) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
   } else if (n_dof_per_vert == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
-  } else {
-    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -234,12 +235,11 @@ void compute_cubature_gradient_cpu(const Mesh& mesh, ConstRealBufferView grad,
     elem_grad_elem.col(3) = grad_elem_x.col(2);
   };
 
+  AX_EXPECTS(n_dof == 2 || n_dof == 3);
   if (n_dof == 2) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
   } else if (n_dof == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
-  } else {
-    AX_NOT_IMPLEMENTED();
   }
 }
 
@@ -250,8 +250,8 @@ void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
   auto job2d = [&](size_t elem) mutable {
     using CMMapT = Eigen::Map<const math::RealMatrix4>;
     using CMMapT46 = Eigen::Map<const math::RealMatrix<4, 6>>;
-    CMMapT hessian_elem(hessian.Offset(0, 0, elem));           // 2x2.
-    CMMapT46 pfpx_elem(pfpx.Offset(0, 0, elem));               // 4x6.
+    CMMapT hessian_elem(hessian.Offset(0, 0, elem));  // 2x2.
+    CMMapT46 pfpx_elem(pfpx.Offset(0, 0, elem));      // 4x6.
     using MMapT = Eigen::Map<math::RealMatrix<2, 2>>;
 
     math::RealMatrix<6, 6> local_hessian = pfpx_elem.transpose() * hessian_elem * pfpx_elem;
@@ -268,8 +268,8 @@ void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
   auto job3d = [&](size_t elem) mutable {
     using CMMapT = Eigen::Map<const math::RealMatrix<9, 9>>;
     using CMMapT912 = Eigen::Map<const math::RealMatrix<9, 12>>;
-    CMMapT hessian_elem(hessian.Offset(0, 0, elem));           // 9x9
-    CMMapT912 pfpx_elem(pfpx.Offset(0, 0, elem));              // 9x12.
+    CMMapT hessian_elem(hessian.Offset(0, 0, elem));  // 9x9
+    CMMapT912 pfpx_elem(pfpx.Offset(0, 0, elem));     // 9x12.
     using MMapT = Eigen::Map<math::RealMatrix<3, 3>>;
 
     math::RealMatrix<12, 12> local_hessian = pfpx_elem.transpose() * hessian_elem * pfpx_elem;
@@ -283,12 +283,11 @@ void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
     }
   };
 
+  AX_EXPECTS(n_dof == 2 || n_dof == 3);
   if (n_dof == 2) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job2d);
   } else if (n_dof == 3) {
     par_for_each_indexed(Dim1{mesh.GetNumElements()}, job3d);
-  } else {
-    AX_NOT_IMPLEMENTED();
   }
 }
 

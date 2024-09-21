@@ -3,6 +3,7 @@
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/core/entt.hpp"
+#include "ax/core/gsl.hpp"
 #ifdef AX_HAS_BLAS
 #  include <openblas/cblas.h>
 #endif
@@ -63,7 +64,7 @@ void do_copy_host(RealBufferView y, ConstRealBufferView x) {
 
 void do_copy_device(RealBufferView y, ConstRealBufferView x) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -102,7 +103,7 @@ void do_scal_host(Real alpha, RealBufferView x) {
 
 void do_scal_device(Real alpha, RealBufferView x) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   auto status
@@ -143,7 +144,7 @@ void do_swap_host(RealBufferView x, RealBufferView y) {
 
 void do_swap_device(RealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -186,7 +187,7 @@ void do_axpy_host(Real alpha, ConstRealBufferView x, RealBufferView y) {
 
 void do_axpy_device(Real alpha, ConstRealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -230,7 +231,7 @@ void do_dot_host(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 
 void do_dot_device(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -280,7 +281,7 @@ void do_nrm2_host(ConstRealBufferView x, Real &result) {
 
 void do_nrm2_device(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   auto status
@@ -322,7 +323,7 @@ void do_asum_host(ConstRealBufferView x, Real &result) {
 
 void do_asum_device(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_CUDA
-  auto handle = details::ensure_cublas();
+  auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
   size_t inc_x = x.Stride().X() / sizeof(Real);
   auto status
@@ -369,26 +370,25 @@ Real amax(ConstRealBufferView x) {
     throw make_invalid_argument("amax: x must be continuous for y,z");
   }
 
-  if (x.Device() == BufferDevice::Host) {
-    do_amax_host(x, result);
-  } else {
-    // do_amax_device(x, result);
-    AX_NOT_IMPLEMENTED();
-  }
+  AX_EXPECTS(x.Device() == BufferDevice::Host);
+  // if (x.Device() == BufferDevice::Host) {
+  do_amax_host(x, result);
+  // } else {
+  //   // do_amax_device(x, result);
+  // }
   return result;
 }
 
 // LEVEL 2
 
-
 // extras
 static void do_emul_host(ConstRealBufferView x, RealBufferView y) {
   if (prod(x.Shape()) < 1 << 20) {
-    for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+    for_each(std::tuple{x, y}, [](Real const &x, Real &y) {
       y *= x;
     });
   } else {
-    par_for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+    par_for_each(std::tuple{x, y}, [](Real const &x, Real &y) {
       y *= x;
     });
   }
@@ -399,7 +399,7 @@ void emul(ConstRealBufferView x, RealBufferView y) {
     AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
   }
 
-  if (! is_same_device(x, y)) {
+  if (!is_same_device(x, y)) {
     AX_THROW_RUNTIME_ERROR("device mismatch: x={}, y={}", x.Device(), y.Device());
   }
 
@@ -414,11 +414,11 @@ void emul(ConstRealBufferView x, RealBufferView y) {
 
 static void do_ediv_host(ConstRealBufferView x, RealBufferView y) {
   if (prod(x.Shape()) < 1 << 20) {
-    for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+    for_each(std::tuple{x, y}, [](Real const &x, Real &y) {
       y /= x;
     });
   } else {
-    par_for_each(std::tuple{x, y}, [](Real const& x, Real& y) {
+    par_for_each(std::tuple{x, y}, [](Real const &x, Real &y) {
       y /= x;
     });
   }
@@ -429,7 +429,7 @@ void ediv(ConstRealBufferView x, RealBufferView y) {
     AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
   }
 
-  if (! is_same_device(x, y)) {
+  if (!is_same_device(x, y)) {
     AX_THROW_RUNTIME_ERROR("device mismatch: x={}, y={}", x.Device(), y.Device());
   }
 

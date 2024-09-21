@@ -20,8 +20,8 @@ static std::shared_ptr<Mesh> create_cube() {
 }
 
 TEST_CASE("Mass 3D") {
-  auto state = std::make_shared<State>(1, 4, BufferDevice::Host);
   auto mesh = create_cube();
+  auto state = std::make_shared<State>(1, mesh->GetNumVertices(), BufferDevice::Host);
   MassTerm term(state, mesh);
   term.SetDensity(1);
 
@@ -66,4 +66,35 @@ TEST_CASE("Mass 3D") {
       CHECK(expected_val == doctest::Approx(computed_val).epsilon(1e-6));
     }
   }
+}
+
+TEST_CASE("Mass 2D Embed") {
+  auto plane = geo::plane(1, 1, 3, 3);
+  auto v = plane.vertices_;
+  auto i = plane.indices_;
+
+  auto state = std::make_shared<State>(1, v.cols(), BufferDevice::Host);
+  auto mesh = std::make_shared<Mesh>(3, 3, BufferDevice::Host);
+  auto e = i.cast<size_t>().eval();
+
+  mesh->SetData(view_from_matrix(v), view_from_matrix(e));
+
+  MassTerm term(state, mesh);
+  auto computed = term.GetHessian().ToSparseMatrix();
+  computed.makeCompressed();
+
+  auto state2 = std::make_shared<State>(1, v.cols(), BufferDevice::Host);
+  auto mesh2 = std::make_shared<Mesh>(2, 3, BufferDevice::Host);
+  auto v2 = v.topRows(2).eval();
+
+  mesh2->SetData(view_from_matrix(v2), view_from_matrix(e));
+
+  MassTerm term2(state2, mesh2);
+
+  auto computed2 = term2.GetHessian().ToSparseMatrix();
+  computed2.makeCompressed();
+
+  math::for_each_entry(computed, [&](math::SparseIndex i, math::SparseIndex j, Real val) {
+    CHECK(computed2.coeff(i, j) == doctest::Approx(val).epsilon(1e-6));
+  });
 }

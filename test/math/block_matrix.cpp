@@ -1,5 +1,7 @@
 #include "ax/math/sparse_matrix/block_matrix.hpp"
+
 #include <doctest/doctest.h>
+
 #include "ax/core/buffer/buffer_view.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/buffer/for_each.hpp"
@@ -21,7 +23,8 @@ TEST_CASE("block mm") {
   auto row_ptrs_view = view_from_raw_buffer(row_ptrs, 3);
   auto col_indices_view = view_from_raw_buffer(col_indices, 3);
   block_matrix.SetData(row_ptrs_view, col_indices_view, value_view);
-
+  block_matrix.MarkAsSymmetric(false);
+  block_matrix.Finish();
   // Check block matrix
   auto sparse = block_matrix.ToSparseMatrix();
   CHECK(sparse.rows() == 4);
@@ -55,6 +58,21 @@ TEST_CASE("block mm") {
 
   for (size_t i = 0; i < 2; ++i) {
     for (size_t j = 0; j < 2; ++j) {
+      CHECK(dst(i, j) == doctest::Approx(ground_truth(i + j * 2)));
+    }
+  }
+
+  std::swap(rhs, dst);
+  std::swap(rhs_view, dst_view);
+  ground_truth.setRandom(4);
+  for (size_t i = 0; i < 4; ++i) {
+    rhs(i % 2, i / 2) = ground_truth(i);
+  }
+  ground_truth = sparse.transpose() * ground_truth;
+  block_matrix.TransposeMultiply(rhs_view, dst_view, 1., 0.);
+
+  for (size_t i = 0; i < 2; ++i) {
+    for (size_t j = 0; j < 3; ++j) {
       CHECK(dst(i, j) == doctest::Approx(ground_truth(i + j * 2)));
     }
   }

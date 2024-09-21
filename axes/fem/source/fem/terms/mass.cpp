@@ -1,5 +1,7 @@
 #include "ax/fem/terms/mass.hpp"
 
+#include <gsl/pointers>
+
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
@@ -8,8 +10,6 @@
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/sparse_matrix/csr.hpp"
 #include "details/mass_impl.hpp"
-
-#include <gsl/pointers>
 
 namespace ax::fem {
 
@@ -37,7 +37,7 @@ MassTerm::MassTerm(shared_not_null<State> state, shared_not_null<Mesh> mesh)
   diff_ = state->GetVariables()->Clone();
   diff_->SetBytes(0);
 
-  SetDensity(1.0); // Default density is 1.0.
+  SetDensity(1.0);  // Default density is 1.0.
 }
 
 void MassTerm::MarkDirty() {
@@ -84,9 +84,13 @@ void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
       !is_1d(uniform_density.Shape()) || uniform_density.Shape().X() != mesh_->GetNumElements(),
       "MassTerm: Density must be a 1D buffer with the same number of elements as the mesh.");
   // Create the mass matrix.
-  hessian_ = details::compute_mass_matrix_host(*mesh_, uniform_density,
-                                               state_->GetVariables()->Shape().X());
+  auto hess = details::compute_mass_matrix_host(*mesh_, uniform_density,
+                                                state_->GetVariables()->Shape().X());
+
+  hessian_.SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),
+                   hess.Values()->ConstView());
   hessian_.MarkAsSymmetric();
+  hessian_.Finish();
 }
 
 void MassTerm::SetDensity(Real uniform_density) {

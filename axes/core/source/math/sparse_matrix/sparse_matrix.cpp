@@ -4,7 +4,8 @@
 
 namespace ax::math {
 
-Real RealCompressedMatrixBase::InnerProduct(ConstRealBufferView /* x */, ConstRealBufferView /* y */) const {
+Real RealCompressedMatrixBase::InnerProduct(ConstRealBufferView /* x */,
+                                            ConstRealBufferView /* y */) const {
   AX_NOT_IMPLEMENTED();
 }
 
@@ -14,7 +15,7 @@ void RealCompressedMatrixBase::TransposeMultiply(ConstRealBufferView x, RealBuff
     Multiply(x, y, alpha, beta);
     return;
   }
-  AX_NOT_IMPLEMENTED();
+  AX_THROW_RUNTIME_ERROR("TransposeMultiply is not supported for this matrix. (non-symmetric)");
 }
 
 void RealCompressedMatrixBase::Finish() {

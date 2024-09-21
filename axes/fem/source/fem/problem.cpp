@@ -35,6 +35,7 @@ Problem::Problem(std::shared_ptr<State> state, std::shared_ptr<Mesh> mesh)
 }
 
 Problem::TermInfo& Problem::AddTerm(std::string const& name, std::unique_ptr<TermBase> term) {
+  Expects(term);
   TermInfo info;
   info.term_ = std::move(term);
   info.name_ = name;
@@ -47,8 +48,8 @@ Problem::TermInfo& Problem::GetTerm(std::string const& name) {
       return term;
     }
   }
-  AX_THROW_RUNTIME_ERROR("Term not found.");
-  AX_UNREACHABLE();
+
+  throw std::invalid_argument("Term not found.");
 }
 
 bool Problem::HasTerm(std::string const& name) const {

@@ -52,7 +52,6 @@ void MassTerm::UpdateEnergy() {
     return;
   }
 
-  auto [bs, nv, _] = *gradient_->Shape();
   // compute diff.
   auto [rhs, diff, u, grad] = make_view(rhs_, diff_, state_->GetVariables(), gradient_);
   // diff <- u - rhs.

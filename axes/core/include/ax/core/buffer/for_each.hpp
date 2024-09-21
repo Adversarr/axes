@@ -20,9 +20,6 @@ void for_each(Fn&& f, BufferView<Front> tsf, BufferView<Ts>... ts) {
   auto z = tsf.Shape().Z() == 0 ? 1 : tsf.Shape().Z();
   for (size_t k = 0; k < z; ++k) {
     for (size_t j = 0; j < y; ++j) {
-#if defined AX_HAS_OPENMP && (!defined AX_IS_CUDACC)
-#  pragma omp simd
-#endif
       for (size_t i = 0; i < x; ++i) {
         f(tsf(i, j, k), ts(i, j, k)...);
       }

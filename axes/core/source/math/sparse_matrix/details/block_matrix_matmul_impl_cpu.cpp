@@ -8,7 +8,6 @@ static AX_FORCE_INLINE void do_mv(const Real* in_block_value, const Real* in_rhs
                                   size_t block_size, Real alpha) {
   // rhs[j] = sum_k in_block_value[i, k] * in_rhs[k, j], we are using col-major
   // linear_index = i + j * block_size
-#pragma unroll
   for (size_t j = 0; j < block_size; ++j) {
     for (size_t i = 0; i < block_size; ++i) {
       out_dst[i] += alpha * (in_block_value[i + j * block_size] * in_rhs[j]);

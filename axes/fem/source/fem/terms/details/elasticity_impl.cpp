@@ -208,13 +208,8 @@ void compute_deformation_gradient_cpu(const Mesh& mesh, ConstRealBufferView dmin
 
 void compute_cubature_gradient_cpu(const Mesh& mesh, ConstRealBufferView grad,
                                    ConstRealBufferView dminv, RealBufferView elem_grad) {
-  auto e = mesh.GetElements()->ConstView();
-  size_t n_vert_per_elem = mesh.GetNumVerticesPerElement();
   size_t n_dof = mesh.GetNumDOFPerVertex();
   auto job2d = [&](size_t elem) mutable {
-    auto i = e(0, elem);
-    auto j = e(1, elem);
-    auto k = e(2, elem);
     using CMMapT = Eigen::Map<const math::RealMatrix2>;
     using MMapT = Eigen::Map<math::RealMatrix<2, 3>>;
     CMMapT grad_elem(grad.Offset(0, 0, elem));           // 2x2.
@@ -250,8 +245,6 @@ void compute_cubature_gradient_cpu(const Mesh& mesh, ConstRealBufferView grad,
 
 void compute_cubature_hessian_cpu(const Mesh& mesh, ConstRealBufferView hessian,
                                   ConstRealBufferView pfpx, RealBufferView elem_hess) {
-  auto e = mesh.GetElements()->ConstView();
-  size_t n_vert_per_elem = mesh.GetNumVerticesPerElement();
   size_t n_dof = mesh.GetNumDOFPerVertex();
 
   auto job2d = [&](size_t elem) mutable {

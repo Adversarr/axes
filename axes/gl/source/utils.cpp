@@ -24,10 +24,17 @@ void init(bool is_registering) {
   });
 }
 
+#ifdef AX_PLATFORM_APPLE
+#  define DEFAULT_HIDPI_RATIO "1.0"
+#else
+#  define DEFAULT_HIDPI_RATIO "1.5"
+#endif
+
 void init(int argc, char** argv) {
   init(true);
-  po::get_program_options().add_options()("gl_hidpi_scale", "HiDPI scale factor",
-                                          cxxopts::value<float>()->default_value("1.5"));
+  po::get_program_options().add_options()(
+      "gl_hidpi_scale", "HiDPI scale factor",
+      cxxopts::value<float>()->default_value(DEFAULT_HIDPI_RATIO));
   ax::initialize(argc, argv);
 }
 

@@ -14,6 +14,7 @@
 #include "ax/math/accessor.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/views.hpp"
+#include "ax/geometry/normal.hpp"
 
 using namespace ax;
 
@@ -40,7 +41,6 @@ void update_render() {
     auto view = view_from_matrix(m.vertices_);
     copy(view, vertices->View());
     math::buffer_blas::axpy(1.0, u, view);
-    m.colors_.topRows<3>() = m.vertices_.cwiseAbs();
     m.use_lighting_ = false;
   });
 }
@@ -77,10 +77,11 @@ int main(int argc, char* argv[]) {
 
   BufferDevice device = use_gpu ? BufferDevice::Device : BufferDevice::Host;
 
-  auto cube = geo::tet_cube(1, size, size, size);
+  auto cube = geo::tet_cube(1, 4 * size, size, size);
   auto mesh = std::make_shared<fem::Mesh>(3, 4, device);
 
   auto vertices = cube.vertices_;
+  vertices.row(0) *= 4;
   auto elements = cube.indices_.cast<size_t>().eval();
   mesh->SetData(view_from_matrix(vertices), view_from_matrix(elements));
 
@@ -90,32 +91,43 @@ int main(int argc, char* argv[]) {
   auto& fe = add_component<FemData>(entity, mesh);
   auto state = fe.timestep_->GetProblem().GetState();
 
-  std::vector<fem::VariableCondition> conditions(3 * n_vertices, fem::VariableCondition::None);
-  for (size_t i = 0; i < static_cast<size_t>(size * 3); ++i) {
-    conditions[i] = fem::VariableCondition::Dirichlet;
+  {
+    std::vector<fem::VariableCondition> conditions(3 * n_vertices, fem::VariableCondition::None);
+    auto cond = view_from_buffer(conditions, {3, n_vertices});
+    Real x_min = -1 * 4;
+    for (size_t i = 0; i < n_vertices; ++i) {
+      if (vertices(0, i) < x_min + 1e-6) {
+        cond(0, i) = fem::VariableCondition::Dirichlet;
+        cond(1, i) = fem::VariableCondition::Dirichlet;
+        cond(2, i) = fem::VariableCondition::Dirichlet;
+      }
+    }
+    state->SetCondition(cond);
+    fe.timestep_->UpdatePruneDirichletBc();
   }
-  state->SetCondition(view_from_buffer(conditions, {3, n_vertices}));
-  fe.timestep_->UpdatePruneDirichletBc();
 
-  auto& glmesh = add_component<gl::Mesh>(entity);
+  auto& gl_mesh = add_component<gl::Mesh>(entity);
 
-  glmesh.indices_.resize(3, static_cast<Index>(n_triangles));
+  gl_mesh.indices_.resize(3, static_cast<Index>(n_triangles));
   for (auto [tid, tet] : math::enumerate(math::make_accessor(elements))) {
     Index i = static_cast<Index>(tet(0)), j = static_cast<Index>(tet(1)),
           k = static_cast<Index>(tet(2)), l = static_cast<Index>(tet(3));
-    glmesh.indices_.col(tid * 4 + 0) = math::IndexVector3(i, j, k);
-    glmesh.indices_.col(tid * 4 + 1) = math::IndexVector3(j, k, l);
-    glmesh.indices_.col(tid * 4 + 2) = math::IndexVector3(k, l, i);
-    glmesh.indices_.col(tid * 4 + 3) = math::IndexVector3(l, i, j);
+    gl_mesh.indices_.col(tid * 4 + 0) = math::IndexVector3(i, j, k);
+    gl_mesh.indices_.col(tid * 4 + 1) = math::IndexVector3(j, k, l);
+    gl_mesh.indices_.col(tid * 4 + 2) = math::IndexVector3(k, l, i);
+    gl_mesh.indices_.col(tid * 4 + 3) = math::IndexVector3(l, i, j);
   }
-  glmesh.colors_.resize(4, static_cast<Index>(n_vertices));
-  glmesh.vertices_ = vertices;
+  gl_mesh.colors_.resize(4, static_cast<Index>(n_vertices));
+  gl_mesh.colors_.topRows(3) = vertices.cwiseAbs();
+  gl_mesh.vertices_ = vertices;
+  gl_mesh.normals_ = geo::normal_per_vertex(vertices, gl_mesh.indices_);
 
   auto lame = fem::elasticity::compute_lame(3e6, 0.33);
   fe.timestep_->SetElasticity(fem::ElasticityKind::StableNeoHookean);
   fe.timestep_->SetExternalAcceleration(math::RealVector3{0, -9.8, 0});
   fe.timestep_->SetDensity(1e3);
   fe.timestep_->SetLame(lame);
+
   connect<gl::UiRenderEvent, &on_frame>();
   get_resource<gl::Context>().Initialize();
   return gl::enter_main_loop();

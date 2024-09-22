@@ -1,19 +1,32 @@
 #include "ax/fem/utils/prune_dbc.hpp"
 
+#include <gsl/assert>
+
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/for_each.hpp"
 #include "ax/utils/cuda_helper.hpp"
 #include "prune_dbc_gpu.hpp"
-#include <gsl/assert>
+
 namespace ax::fem {
 
-void do_prune_host(RealBufferView grad, ConstBufferView<VariableCondition> bc, ConstRealBufferView bc_var) {
-  for_each(std::tuple{grad, bc, bc_var}, [](Real& value, VariableCondition const& bc, Real const& var) {
+void do_prune_grad_host(RealBufferView grad, ConstBufferView<VariableCondition> bc,
+                        ConstRealBufferView /* bc_var */) {
+  for_each(std::tuple{grad, bc}, [](Real& value, VariableCondition const& bc) {
     if (bc == VariableCondition::Dirichlet) {
-      value = var;
+      value = 0;
     }
   });
+}
+
+void do_prune_variable_host(RealBufferView variables, ConstBufferView<VariableCondition> bc,
+                            ConstRealBufferView bc_var) {
+  for_each(std::tuple{variables, bc, bc_var},
+           [](Real& value, VariableCondition const& bc, Real const& var) {
+             if (bc == VariableCondition::Dirichlet) {
+               value = var;
+             }
+           });
 }
 
 void do_prune_hessian_host(math::RealBlockMatrix& hessian, ConstBufferView<VariableCondition> bc) {
@@ -47,7 +60,8 @@ void do_prune_hessian_host(math::RealBlockMatrix& hessian, ConstBufferView<Varia
   });
 }
 
-void prepare_prune_host(ConstBufferView<VariableCondition> bc, RealBufferView variables, ConstRealBufferView var_in) {
+void prepare_prune_host(ConstBufferView<VariableCondition> bc, RealBufferView variables,
+                        ConstRealBufferView var_in) {
   auto [x, y, _1] = *variables.Shape();
   par_for_each_indexed(Dim2{x, y}, [&](size_t i, size_t j) {
     if (bc(i, j) == VariableCondition::Dirichlet) {
@@ -58,7 +72,7 @@ void prepare_prune_host(ConstBufferView<VariableCondition> bc, RealBufferView va
   });
 }
 
-void PruneDirichletBc::Prune(RealBufferView grad) {
+void PruneDirichletBc::PruneGradient(RealBufferView grad) {
   auto bc = state_->GetCondition();
   if (!bc) {
     return;
@@ -70,9 +84,27 @@ void PruneDirichletBc::Prune(RealBufferView grad) {
   }
 
   if (device == BufferDevice::Host) {
-    do_prune_host(grad, bc->ConstView(), bc_var_->ConstView());
+    do_prune_grad_host(grad, bc->ConstView(), bc_var_->ConstView());
   } else {
-    AX_CUDA_CALL(do_prune_gpu(grad, bc->ConstView(), bc_var_->ConstView()));
+    AX_CUDA_CALL(do_prune_grad_gpu(grad, bc->ConstView(), bc_var_->ConstView()));
+  }
+}
+
+void PruneDirichletBc::PruneVariable(RealBufferView variables) {
+  auto bc = state_->GetCondition();
+  if (!bc) {
+    return;
+  }
+
+  auto device = bc->Device();
+  if (variables.Device() != device) {
+    AX_THROW_RUNTIME_ERROR("input is not on the same device as the boundary condition");
+  }
+
+  if (device == BufferDevice::Host) {
+    do_prune_variable_host(variables, bc->ConstView(), bc_var_->ConstView());
+  } else {
+    AX_CUDA_CALL(do_prune_variable_gpu(variables, bc->ConstView(), bc_var_->ConstView()));
   }
 }
 
@@ -94,14 +126,15 @@ void PruneDirichletBc::Prune(math::RealBlockMatrix& hessian) {
   }
 }
 
-PruneDirichletBc::PruneDirichletBc(std::shared_ptr<State> state) : state_(std::move(state)) {}
+PruneDirichletBc::PruneDirichletBc(shared_not_null<State> state) : state_(std::move(state)) {}
 
 void PruneDirichletBc::PruneWithGradient(math::RealBlockMatrix& hessian, RealBufferView grad) {
-  // NOTE: It seems that, if you are using the correct `grad`, this should be enough, we do not need to
+  // NOTE: It seems that, if you are using the correct `grad`, this should be enough, we do not need
+  // to
   //       update the `grad` as follows.
   // hessian.Multiply(bc_var_->ConstView(), grad, -1, 1); // grad = grad - hessian * bc_var
   Prune(hessian);
-  Prune(grad);
+  PruneGradient(grad);
 }
 
 void PruneDirichletBc::UpdateDbcValue() {

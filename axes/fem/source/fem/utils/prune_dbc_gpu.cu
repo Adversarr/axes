@@ -1,9 +1,22 @@
+#include "ax/utils/cuda_helper.hpp"
 #include "prune_dbc_gpu.hpp"
 
 namespace ax::fem {
 
 __global__ static void do_prune(Real *grad, const VariableCondition *bc,
-                                const Real *bc_var, size_t total) {
+                                const Real * /* bc_var */, size_t total) {
+
+  size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= total)
+    return;
+
+  if (bc[idx] == VariableCondition::Dirichlet) {
+    grad[idx] = 0;
+  }
+}
+
+__global__ static void do_prune_var(Real *grad, const VariableCondition *bc,
+                                    const Real *bc_var, size_t total) {
 
   size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= total)
@@ -14,12 +27,22 @@ __global__ static void do_prune(Real *grad, const VariableCondition *bc,
   }
 }
 
-void do_prune_gpu(RealBufferView grad, ConstBufferView<VariableCondition> bc,
-                  ConstRealBufferView bc_var) {
+void do_prune_variable_gpu(RealBufferView variable,
+                           ConstBufferView<VariableCondition> bc,
+                           ConstRealBufferView bc_var) {
+  unsigned int block_size = 256;
+  unsigned int num_blocks = utils::up_div(
+      static_cast<unsigned int>(prod(variable.Shape())), block_size);
+  do_prune_var<<<num_blocks, block_size>>>(
+      variable.Data(), bc.Data(), bc_var.Data(), prod(variable.Shape()));
+}
+
+void do_prune_grad_gpu(RealBufferView grad,
+                       ConstBufferView<VariableCondition> bc,
+                       ConstRealBufferView bc_var) {
   unsigned int block_size = 256;
   unsigned int num_blocks =
-      static_cast<unsigned int>(prod(grad.Shape()) + block_size - 1) /
-      block_size;
+      utils::up_div(static_cast<unsigned int>(prod(grad.Shape())), block_size);
   do_prune<<<num_blocks, block_size>>>(grad.Data(), bc.Data(), bc_var.Data(),
                                        prod(grad.Shape()));
 }

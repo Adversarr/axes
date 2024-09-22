@@ -52,6 +52,11 @@ void add_option(const std::string& name, const std::string& desc, Args&&... args
 
 void add_option(const Option& opt);
 void add_option(std::initializer_list<Option> opt_list);
+
+template <typename T>
+T get(std::string_view name) {
+  return get_parse_result()[name.data()].as<T>();
+}
 }  // namespace po
 
 /**

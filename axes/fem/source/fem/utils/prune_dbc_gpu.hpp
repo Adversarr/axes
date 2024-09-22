@@ -4,10 +4,15 @@
 
 namespace ax::fem {
 
-void do_prune_gpu(RealBufferView grad, ConstBufferView<VariableCondition> bc, ConstRealBufferView bc_var);
+void do_prune_variable_gpu(RealBufferView variables, ConstBufferView<VariableCondition> bc,
+                           ConstRealBufferView bc_var);
+
+void do_prune_grad_gpu(RealBufferView grad, ConstBufferView<VariableCondition> bc,
+                       ConstRealBufferView bc_var);
 
 void do_prune_hessian_gpu(math::RealBlockMatrix& hessian, ConstBufferView<VariableCondition> bc);
 
-void prepare_prune_gpu(ConstBufferView<VariableCondition> bc, RealBufferView variables, ConstRealBufferView bc_var);
+void prepare_prune_gpu(ConstBufferView<VariableCondition> bc, RealBufferView variables,
+                       ConstRealBufferView bc_var);
 
 }  // namespace ax::fem

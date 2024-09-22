@@ -21,7 +21,7 @@ void GeneralSparseSolver_ConjugateGradient::AnalyzePattern() {
 }
 
 BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealBufferView b,
-                                                               RealBufferView x) const {
+                                                                      RealBufferView x) const {
   const auto device = mat_->Device();
   if (device != b.Device() || device != x.Device()) {
     AX_THROW_RUNTIME_ERROR(
@@ -50,6 +50,18 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
   Real& err = status.l2_err_;
   bool& converged = status.converged_;
   for (; iter < max_iteration_; ++iter) {
+    // check convergence
+    err = buffer_blas::norm(r);
+    // AX_INFO("CG iter: {}, l2_err: {:12.6e}", iter, err);
+    if (err <= tolerance_) {
+      converged = true;
+      break;
+    } else if (!math::isfinite(err)) {
+      converged = false;
+      AX_ERROR("CG diverged at iteration {}", iter);
+      break;
+    }
+
     // q <- A d
     mata.Multiply(d, q, 1, 0);
 
@@ -77,18 +89,6 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
     Real beta = delta_new / delta_old;
     buffer_blas::scal(beta, d);  // d' <- beta d
     buffer_blas::axpy(1, q, d);  // d  <- s + beta d
-
-    // check convergence
-    err = buffer_blas::norm(r);
-    AX_INFO("CG iter: {}, l2_err: {:12.6e}", iter, err);
-    if (err <= tolerance_) {
-      converged = true;
-      break;
-    } else if (!math::isfinite(err)) {
-      converged = false;
-      AX_ERROR("CG diverged at iteration {}", iter);
-      break;
-    }
   }
   return status;
 }

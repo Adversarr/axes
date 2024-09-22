@@ -76,6 +76,20 @@ bool Problem::RemoveTerm(std::string const& name) {
   return false;
 }
 
+void Problem::UpdateEnergy() {
+  for (auto& term : terms_) {
+    term.term_->UpdateEnergy();
+  }
+
+  energy_ = 0;
+  for (auto& term : terms_) {
+    auto energy = term.term_->GetEnergy();
+    energy_ += energy * term.scale_;
+    // AX_INFO("{} => energy: {}", term.name_, energy);
+  }
+  // AX_INFO("Total energy: {}", energy_);
+}
+
 void Problem::UpdateGradient() {
   for (auto& term : terms_) {
     term.term_->UpdateGradient();
@@ -86,7 +100,7 @@ void Problem::UpdateGradient() {
   for (auto& term : terms_) {
     auto grad = term.term_->GetGradient();
     math::buffer_blas::axpy(term.scale_, grad, g_view);
-    AX_INFO("{} => norm of gradient: {}", term.name_, math::buffer_blas::norm(grad));
+    // AX_INFO("{} => norm of gradient: {}", term.name_, math::buffer_blas::norm(grad));
   }
 }
 
@@ -103,7 +117,7 @@ void Problem::UpdateHessian() {
     // term.gather_op_.Apply(hess.BlockValuesView(), bsr_hessian_.BlockValuesView(), 1.0, 1.0);
     math::buffer_blas::axpy(term.scale_, hess.Values()->View(), values_view);
 
-    AX_INFO("norm of hessian: {}", math::buffer_blas::norm(hess.Values()->ConstView()));
+    // AX_INFO("norm of hessian: {}", math::buffer_blas::norm(hess.Values()->ConstView()));
   }
 }
 

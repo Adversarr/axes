@@ -190,7 +190,7 @@ ElasticityTerm::ElasticityTerm(shared_not_null<State> state, shared_not_null<Mes
       row_entries[i] += row_entries[i - 1];
     }
     AX_DCHECK(cnt == n_fillin, "Mismatch in cnt.");
-    AX_DCHECK((size_t) row_entries.back() == n_fillin, "Mismatch in row_entries.");
+    AX_DCHECK((size_t)row_entries.back() == n_fillin, "Mismatch in row_entries.");
 
     hessian_.SetData(view_from_buffer(row_entries), view_from_buffer(col_indices),
                      view_from_buffer(values, {n_dof, n_dof, n_fillin}));
@@ -301,6 +301,20 @@ void ElasticityTerm::UpdateHessian() {
   is_hessian_up_to_date_ = true;
   is_gradient_up_to_date_ = true;
   is_energy_up_to_date_ = true;
+}
+
+void ElasticityTerm::SetKind(ElasticityKind kind) {
+  compute_.SetElasitcityKind(kind);
+}
+
+void ElasticityTerm::SetLame(ConstRealBufferView lame) {
+  auto compute_lame = compute_.Lame()->View();
+  AX_THROW_IF_NE(lame.Shape(), compute_lame.Shape(), "Invalid input lame shape.");
+  copy(compute_lame, lame);
+}
+
+void ElasticityTerm::SetHessianMakeSPSD(bool make_spsd) {
+  compute_.SetHessianMakeSPSD(make_spsd);
 }
 
 }  // namespace ax::fem

@@ -116,10 +116,9 @@ int main(int argc, char* argv[]) {
         for (int k = 0; k < dim; ++k) {
           size_t row = i + j * dim;
           size_t col = k + l * dim;
-          size_t linear = row / dim + col / dim * dim;
 
           AX_INFO("FD {} {} {} {}: {:12.6e}, Analytical: {:12.6e}", i, j, k, l, g(k, l),
-                  hes(row % dim, col % dim, linear));
+                  hes(row, col));
         }
       }
     }

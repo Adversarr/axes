@@ -62,9 +62,9 @@ static void compute_hessian(ConstRealBufferView deform_grad,  // deformation gra
                             ConstRealBufferView svd_v,        // v
                             ConstRealBufferView svd_s,        // sigma
                             RealBufferView energy_density, RealBufferView pk1,
-                            RealBufferView local_hessian) {
+                            RealBufferView local_hessian, bool make_spsd) {
   size_t n_cubature_points = deform_grad.Shape().Z();
-  par_for_each_indexed(Dim{n_cubature_points}, [&](size_t i) {
+  par_for_each_indexed(Dim{n_cubature_points}, [&, make_spsd](size_t i) {
     MaterialModel<dim> model(lame(0, i), lame(1, i));
     using MapT = math::Map<const math::RealMatrix<dim, dim>>;
     using VMapT = math::Map<const math::RealVector<dim>>;
@@ -76,9 +76,18 @@ static void compute_hessian(ConstRealBufferView deform_grad,  // deformation gra
     energy_density(i) = model.Energy(dg, svd_result);
     auto mapped = math::Map<math::RealMatrix<dim, dim>>(pk1.Offset(0, 0, i));
     mapped = model.Stress(dg, svd_result);
+    using Local = math::RealMatrix<dim * dim, dim * dim>;
 
-    math::Map<math::RealMatrix<dim * dim, dim * dim>>(local_hessian.Offset(0, 0, i))
-        = model.Hessian(dg, svd_result);
+    Local local = model.Hessian(dg, svd_result);
+
+    if (make_spsd) {
+      Eigen::SelfAdjointEigenSolver<Local> es(local);
+      auto eigval = es.eigenvalues().cwiseMax(0).eval();
+      const auto& eigvec = es.eigenvectors();
+      local = eigvec * eigval.asDiagonal() * eigvec.transpose();
+    }
+
+    math::Map<Local>(local_hessian.Offset(0, 0, i)) = local;
   });
 }
 
@@ -231,29 +240,29 @@ void do_update_hessian_host(ConstRealBufferView deform_grad,  // deformation gra
                             ConstRealBufferView svd_v,        // v
                             ConstRealBufferView svd_s,        // sigma
                             RealBufferView energy_density, RealBufferView pk1,
-                            RealBufferView local_hessian, ElasticityKind kind) {
+                            RealBufferView local_hessian, ElasticityKind kind, bool make_spsd) {
   size_t dim = deform_grad.Shape().X();
   if (dim == 2) {
     switch (kind) {
       case ElasticityKind::Linear:
         compute_hessian<2, elasticity::Linear>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                               energy_density, pk1, local_hessian);
+                                               energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::IsotropicARAP:
-        compute_hessian<2, elasticity::IsotropicARAP>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                      energy_density, pk1, local_hessian);
+        compute_hessian<2, elasticity::IsotropicARAP>(
+            deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::StVK:
         compute_hessian<2, elasticity::StVK>(deform_grad, lame, svd_u, svd_v, svd_s, energy_density,
-                                             pk1, local_hessian);
+                                             pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::NeoHookean:
         compute_hessian<2, elasticity::NeoHookeanBW>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                     energy_density, pk1, local_hessian);
+                                                     energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::StableNeoHookean:
-        compute_hessian<2, elasticity::StableNeoHookean>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                         energy_density, pk1, local_hessian);
+        compute_hessian<2, elasticity::StableNeoHookean>(
+            deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1, local_hessian, make_spsd);
         break;
       default:
         AX_THROW_RUNTIME_ERROR("Unsupported elasticity kind.");
@@ -262,23 +271,23 @@ void do_update_hessian_host(ConstRealBufferView deform_grad,  // deformation gra
     switch (kind) {
       case ElasticityKind::Linear:
         compute_hessian<3, elasticity::Linear>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                               energy_density, pk1, local_hessian);
+                                               energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::IsotropicARAP:
-        compute_hessian<3, elasticity::IsotropicARAP>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                      energy_density, pk1, local_hessian);
+        compute_hessian<3, elasticity::IsotropicARAP>(
+            deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::StVK:
         compute_hessian<3, elasticity::StVK>(deform_grad, lame, svd_u, svd_v, svd_s, energy_density,
-                                             pk1, local_hessian);
+                                             pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::NeoHookean:
         compute_hessian<3, elasticity::NeoHookeanBW>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                     energy_density, pk1, local_hessian);
+                                                     energy_density, pk1, local_hessian, make_spsd);
         break;
       case ElasticityKind::StableNeoHookean:
-        compute_hessian<3, elasticity::StableNeoHookean>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                                         energy_density, pk1, local_hessian);
+        compute_hessian<3, elasticity::StableNeoHookean>(
+            deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1, local_hessian, make_spsd);
         break;
       default:
         AX_THROW_RUNTIME_ERROR("Unsupported elasticity kind.");

@@ -68,7 +68,8 @@ void do_update_hessian_host(
   RealBufferView energy_density,
   RealBufferView pk1,
   RealBufferView local_hessian,
-  ElasticityKind kind
+  ElasticityKind kind,
+  bool make_spsd
 );
 
 void do_update_hessian_gpu(
@@ -80,7 +81,8 @@ void do_update_hessian_gpu(
   RealBufferView energy_density,
   RealBufferView pk1,
   RealBufferView local_hessian,
-  ElasticityKind kind
+  ElasticityKind kind,
+  bool make_spsd
 );
 
 }  // namespace ax::fem::details

@@ -67,7 +67,7 @@ TEST_CASE("Elasticity") {
 
     gt.Update(pose, ElasticityUpdateLevel::Hessian);
 
-    gt.UpdateHessian(false);
+    gt.UpdateHessian(true);
     gt.UpdateStress();
     gt.UpdateEnergy();
     gt.GatherHessianToVertices();
@@ -167,7 +167,7 @@ TEST_CASE("Elast GPU") {
 
     gt.Update(pose, ElasticityUpdateLevel::Hessian);
 
-    gt.UpdateHessian(false);
+    gt.UpdateHessian(true);
     gt.UpdateStress();
     gt.UpdateEnergy();
     gt.GatherHessianToVertices();

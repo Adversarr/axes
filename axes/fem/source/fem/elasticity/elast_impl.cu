@@ -69,7 +69,7 @@ compute_hessian(ConstRealBufferView deform_grad, // deformation gradient
                 ConstRealBufferView svd_v,       // v
                 ConstRealBufferView svd_s,       // sigma
                 RealBufferView energy_density, RealBufferView pk1,
-                RealBufferView local_hessian, size_t n_cube) {
+                RealBufferView local_hessian, size_t n_cube, bool make_spsd) {
   size_t i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i >= n_cube)
     return;
@@ -84,10 +84,18 @@ compute_hessian(ConstRealBufferView deform_grad, // deformation gradient
   svd_result.sigma_ = VMapT(svd_s.Offset(0, i));
   energy_density(i) = model.Energy(dg, svd_result);
   auto mapped = math::Map<math::RealMatrix<dim, dim>>(pk1.Offset(0, 0, i));
-  mapped = model.Stress(dg, svd_result);
+  using Local = math::RealMatrix<dim * dim, dim * dim>;
 
-  math::Map<math::RealMatrix<dim * dim, dim * dim>>(
-      local_hessian.Offset(0, 0, i)) = model.Hessian(dg, svd_result);
+  Local local = model.Hessian(dg, svd_result);
+
+  if (make_spsd) {
+    Eigen::SelfAdjointEigenSolver<Local> es(local);
+    auto eigval = es.eigenvalues().cwiseMax(0).eval();
+    const auto &eigvec = es.eigenvectors();
+    local = eigvec * eigval.asDiagonal() * eigvec.transpose();
+  }
+
+  math::Map<Local>(local_hessian.Offset(0, 0, i)) = local;
 }
 static inline unsigned int up_div(unsigned int a, unsigned int b) {
   return (a + b - 1) / b;
@@ -207,7 +215,7 @@ void do_update_hessian_gpu(
     ConstRealBufferView svd_v,       // v
     ConstRealBufferView svd_s,       // sigma
     RealBufferView energy_density, RealBufferView pk1,
-    RealBufferView local_hessian, ElasticityKind kind) {
+    RealBufferView local_hessian, ElasticityKind kind, bool make_spsd) {
   size_t dim = deform_grad.Shape().X();
   size_t n_cube = deform_grad.Shape().Z();
 
@@ -216,49 +224,49 @@ void do_update_hessian_gpu(
 
   if (dim == 2) {
     if (kind == ElasticityKind::Linear) {
-      compute_hessian<2, elasticity::Linear>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<2, elasticity::Linear><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::NeoHookean) {
-      compute_hessian<2, elasticity::NeoHookeanBW>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<2, elasticity::NeoHookeanBW><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::StVK) {
-      compute_hessian<2, elasticity::StVK>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<2, elasticity::StVK><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::StableNeoHookean) {
-      compute_hessian<2, elasticity::StableNeoHookean>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<2, elasticity::StableNeoHookean><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::IsotropicARAP) {
-      compute_hessian<2, elasticity::IsotropicARAP>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<2, elasticity::IsotropicARAP><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else {
       AX_THROW_RUNTIME_ERROR("Unsupported elasticity model");
     }
   } else {
     if (kind == ElasticityKind::Linear) {
-      compute_hessian<3, elasticity::Linear>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<3, elasticity::Linear><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::NeoHookean) {
-      compute_hessian<3, elasticity::NeoHookeanBW>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<3, elasticity::NeoHookeanBW><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::StVK) {
-      compute_hessian<3, elasticity::StVK>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<3, elasticity::StVK><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::StableNeoHookean) {
-      compute_hessian<3, elasticity::StableNeoHookean>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<3, elasticity::StableNeoHookean><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else if (kind == ElasticityKind::IsotropicARAP) {
-      compute_hessian<3, elasticity::IsotropicARAP>
-          <<<n_block, n_thread>>>(deform_grad, lame, svd_u, svd_v, svd_s,
-                                  energy_density, pk1, local_hessian, n_cube);
+      compute_hessian<3, elasticity::IsotropicARAP><<<n_block, n_thread>>>(
+          deform_grad, lame, svd_u, svd_v, svd_s, energy_density, pk1,
+          local_hessian, n_cube, make_spsd);
     } else {
       AX_THROW_RUNTIME_ERROR("Unsupported elasticity model");
     }

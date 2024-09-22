@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 
   math::buffer_blas::scal(-1, grad);
   pruner.Prune(*bsr);
-  pruner.Prune(grad);
+  pruner.PruneGradient(grad);
   math::GeneralSparseSolver_ConjugateGradient cg;
   auto use_fsai = po::get_parse_result()["fsai"].as<bool>();
   if (use_fsai) {
@@ -137,6 +137,8 @@ int main(int argc, char** argv) {
     AX_INFO("Solve Time: {}",
             std::chrono::duration_cast<std::chrono::milliseconds>(utils::now() - start));
   }
+
+  math::buffer_blas::axpy(1, pruner.GetDbcValue(), state->GetVariables()->View());
 
   // Check the solution.
   {

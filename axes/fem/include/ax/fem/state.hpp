@@ -27,6 +27,9 @@ public:
   // Set the data of the state and the condition of each variable.
   void SetData(ConstRealBufferView variables, ConstBufferView<VariableCondition> condition);
 
+  void SetVariable(ConstRealBufferView variables);
+  void SetCondition(ConstBufferView<VariableCondition> condition);
+
 private:
   BufferDevice device_;
   BufferPtr<Real> variables_;               ///< variables at each vertex, is (ndof, nvert)

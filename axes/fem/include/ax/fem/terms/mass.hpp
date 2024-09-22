@@ -31,10 +31,14 @@ public:
 
   void SetRhs(ConstRealBufferView rhs);
 
+  RealBufferView GetRhs() { return rhs_->View(); }
+
+  ConstRealBufferView GetRhs() const { return rhs_->ConstView(); }
+
 private:
   // The RHS vector without Mass multiplied.
-  BufferPtr<Real> rhs_;  ///< for dynamics, the external **ACCELERATION**
-  BufferPtr<Real> diff_; ///< stores (u - rhs)
+  BufferPtr<Real> rhs_;   ///< for dynamics, the external **ACCELERATION**
+  BufferPtr<Real> diff_;  ///< stores (u - rhs)
   bool is_diff_up_to_date_{false};
 };
 

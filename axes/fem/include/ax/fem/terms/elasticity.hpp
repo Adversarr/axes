@@ -17,9 +17,13 @@ public:
   void UpdateHessian() override;
   // TODO: options.
 
-// private:
-  ElasticityKind kind_{ElasticityKind::Linear};
+  void SetKind(ElasticityKind kind);
 
+  void SetLame(ConstRealBufferView lame);
+
+  void SetHessianMakeSPSD(bool make_spsd);
+
+// private:
   // Static
   BufferPtr<Real> rest_;         // (dim, nE). Rest position of each element.
   BufferPtr<Real> rest_volume_;  // (nE, ). Rest volume of each element.
@@ -33,7 +37,7 @@ public:
   BufferPtr<Real> elem_hess_; // (dim, dim, nVPE * nVPE * nE) hessian of the energy wrt element.
   math::GatherAddOp gather_hessian_;   // gather the local hessian into the global bsr.
   math::GatherAddOp gather_gradient_;  // gather the local gradient into the global gradient.
-  // ... many other buffers are declared in TermBase
+  // ... many other buffers are declared in TermBase.
 };
 
 }  // namespace ax::fem

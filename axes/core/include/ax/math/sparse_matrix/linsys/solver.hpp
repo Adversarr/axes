@@ -26,7 +26,7 @@ public:
   //////////////////// Iterative Solver ////////////////////
 
   size_t max_iteration_{1000};  ///< maximum number of iterations
-  Real tolerance_{1e-12};       ///< stopping criterion
+  Real tolerance_{1e-14};       ///< stopping criterion
   std::unique_ptr<GeneralSparsePreconditionerBase> preconditioner_;
 };
 

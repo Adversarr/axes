@@ -1,4 +1,5 @@
 #pragma once
+#include "ax/core/gsl.hpp"
 #include "ax/fem/state.hpp"
 #include "ax/math/sparse_matrix/block_matrix.hpp"
 
@@ -6,10 +7,11 @@ namespace ax::fem {
 
 class PruneDirichletBc {
 public:
-  explicit PruneDirichletBc(std::shared_ptr<State> state);
+  explicit PruneDirichletBc(shared_not_null<State> state);
 
   // For each Dirichlet dof, set grad to zero
-  void Prune(RealBufferView grad);
+  void PruneGradient(RealBufferView grad);
+  void PruneVariable(RealBufferView variables);
 
   // For each (i, j) block, if i or j is a Dirichlet dof, set the entry to
   // 1. zero       if i != j
@@ -24,9 +26,11 @@ public:
 
   void UpdateDbcValue();
 
+  ConstRealBufferView GetDbcValue() const { return bc_var_->ConstView(); }
+
 private:
   std::shared_ptr<State> state_;
-  BufferPtr<Real> bc_var_; ///< stores the dbc value.
+  BufferPtr<Real> bc_var_;  ///< stores the dbc value.
 };
 
 }  // namespace ax::fem

@@ -80,13 +80,15 @@ void ElasticityBatchedCompute::UpdateGradient() {
 
 void ElasticityBatchedCompute::UpdateHessian() {
   if (device_ == BufferDevice::Host) {
-    details::do_update_hessian_host(
-        deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
-        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_);
+    details::do_update_hessian_host(deform_grad_->ConstView(), lame_->ConstView(),
+                                    svd_u_->ConstView(), svd_v_->ConstView(), svd_s_->ConstView(),
+                                    energy_density_->View(), pk1_->View(), local_hessian_->View(),
+                                    kind_, make_spsd_);
   } else {
     AX_CUDA_CALL(details::do_update_hessian_gpu(
         deform_grad_->ConstView(), lame_->ConstView(), svd_u_->ConstView(), svd_v_->ConstView(),
-        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_));
+        svd_s_->ConstView(), energy_density_->View(), pk1_->View(), local_hessian_->View(), kind_,
+        make_spsd_));
   }
   is_energy_up_to_date_ = true;
   is_gradient_up_to_date_ = true;
@@ -98,6 +100,10 @@ void ElasticityBatchedCompute::SetElasitcityKind(ElasticityKind kind) {
   is_energy_up_to_date_ = false;
   is_gradient_up_to_date_ = false;
   is_hessian_up_to_date_ = false;
+}
+
+void ElasticityBatchedCompute::SetHessianMakeSPSD(bool make_spsd) {
+  make_spsd_ = make_spsd;
 }
 
 }  // namespace ax::fem

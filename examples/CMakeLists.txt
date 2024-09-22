@@ -31,7 +31,8 @@ axes_add_example(fem_benchmark "axes_gl;axes_fem")
 axes_add_example(fem_tetra_fd "axes_fem")
 axes_add_example(fem_tetra_fd2 "axes_fem")
 axes_add_example(fem_utils "axes_fem;axes_graph")
-axes_add_example(fem_poisson "axes_fem;axes_gl")
+axes_add_example(fem_poisson "axes_fem")
+axes_add_example(fem_backward_euler "axes_fem;axes_gl")
 
 axes_add_example(poisson_bench "axes_fem;axes_gl")
 

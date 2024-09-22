@@ -82,7 +82,7 @@ void MassTerm::UpdateHessian() {
 void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
   AX_THROW_IF(
       !is_1d(uniform_density.Shape()) || uniform_density.Shape().X() != mesh_->GetNumElements(),
-      "MassTerm: Density must be a 1D buffer with the same number of elements as the mesh.");
+      "Density must be a 1D buffer with the same number of elements as the mesh.");
   // Create the mass matrix.
   auto hess = details::compute_mass_matrix_host(*mesh_, uniform_density,
                                                 state_->GetVariables()->Shape().X());
@@ -96,6 +96,16 @@ void MassTerm::SetDensity(ConstRealBufferView uniform_density) {
 void MassTerm::SetDensity(Real uniform_density) {
   std::vector<Real> density(mesh_->GetNumElements(), uniform_density);
   SetDensity(view_from_buffer(density));
+}
+
+void MassTerm::SetRhs(ConstRealBufferView rhs) {
+  AX_THROW_IF(rhs.Shape() != state_->GetVariables()->Shape(),
+              "The rhs shape must be the same as the state variables.");
+  copy(rhs_->View(), rhs);
+  is_diff_up_to_date_ = false;
+  is_energy_up_to_date_ = false;
+  is_gradient_up_to_date_ = false;
+  is_hessian_up_to_date_ = false;
 }
 
 }  // namespace ax::fem

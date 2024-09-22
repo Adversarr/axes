@@ -40,6 +40,22 @@ void State::SetData(ConstRealBufferView variables, ConstBufferView<VariableCondi
   copy(condition_->View(), condition);
 }
 
+void State::SetVariable(ConstRealBufferView variables) {
+  if (variables.Shape() != variables_->Shape()) {
+    AX_THROW_RUNTIME_ERROR("Shape mismatch.");
+  }
+
+  copy(variables_->View(), variables);
+}
+
+void State::SetCondition(ConstBufferView<VariableCondition> condition) {
+  if (condition.Shape() != condition_->Shape()) {
+    AX_THROW_RUNTIME_ERROR("Shape mismatch.");
+  }
+
+  copy(condition_->View(), condition);
+}
+
 size_t State::GetNumDOFPerVertex() const {
   return n_dof_per_vertex_;
 }
@@ -48,5 +64,7 @@ size_t State::GetNumVertices() const {
   return n_vert_;
 }
 
-BufferDevice State::Device() const { return device_; }
-} // namespace ax::fem
+BufferDevice State::Device() const {
+  return device_;
+}
+}  // namespace ax::fem

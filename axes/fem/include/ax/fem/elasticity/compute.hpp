@@ -2,6 +2,7 @@
 #include "ax/fem/state.hpp"
 #include "ax/math/high_order/gather.hpp"
 #include "ax/utils/enum_refl.hpp"
+
 namespace ax::fem {
 
 AX_DEFINE_ENUM_CLASS(ElasticityKind, Linear, IsotropicARAP, StVK, NeoHookean, StableNeoHookean, );
@@ -47,6 +48,8 @@ public:
 
   void SetElasitcityKind(ElasticityKind kind);
 
+  void SetHessianMakeSPSD(bool make_spsd);
+
 private:
   void UpdateSVD();
 
@@ -69,6 +72,7 @@ private:
   BufferPtr<Real> svd_v_;  // (dim, dim, nC). SVD V.
   BufferPtr<Real> svd_s_;  // (dim, nC). SVD Sigma
 
+  bool make_spsd_{true};                // whether to make the local hessian SPSD.
   bool requires_svd_{false};            // whether the computation requires SVD.
   bool is_energy_up_to_date_{false};    // dirty bit.
   bool is_gradient_up_to_date_{false};  // dirty bit.

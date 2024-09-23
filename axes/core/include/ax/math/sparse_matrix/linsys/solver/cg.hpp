@@ -12,12 +12,18 @@ public:
 
   BlockedLinsysSolveStatus Solve(ConstRealBufferView b, RealBufferView x) const override;
 
-  GeneralSparseSolverKind GetKind() const override { return GeneralSparseSolverKind::ConjugateGradient; }
+  GeneralSparseSolverKind GetKind() const override {
+    return GeneralSparseSolverKind::ConjugateGradient;
+  }
+
 protected:
   BufferPtr<Real> p_buf;
   BufferPtr<Real> d_buf;
   BufferPtr<Real> q_buf;
   BufferPtr<Real> residual_buf;
+
+  // // Only support zero projection.
+  // std::function<void(RealBufferView)> zero_projection_;
 };
 
 }  // namespace ax::math

@@ -36,9 +36,15 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
   // r <- b-Ax
   buffer_blas::copy(r, b);
   mata.Multiply(x, r, -1, 1);
+  // if (zero_projection_) {
+  //   zero_projection_(r);
+  // }
 
   if (preconditioner_) {
     preconditioner_->Solve(r, d);  // d <- M^-1 r
+    // if (zero_projection_) {
+    //   zero_projection_(d);
+    // }
   } else {
     buffer_blas::copy(d, r);  // d <- r
   }
@@ -89,6 +95,10 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
     Real beta = delta_new / delta_old;
     buffer_blas::scal(beta, d);  // d' <- beta d
     buffer_blas::axpy(1, q, d);  // d  <- s + beta d
+
+    // if (zero_projection_) {
+    //   zero_projection_(q);
+    // }
   }
   return status;
 }

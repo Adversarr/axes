@@ -20,6 +20,7 @@ class GeneralSparsePreconditionerBase;
 class GeneralSparseSolverBase;
 
 using RealSparseMatrixPtr = std::shared_ptr<RealCompressedMatrixBase>;
+using ConstRealSparseMatrixPtr = std::shared_ptr<const RealCompressedMatrixBase>;
 
 struct BlockedLinsysSolveStatus {
   bool converged_{false};

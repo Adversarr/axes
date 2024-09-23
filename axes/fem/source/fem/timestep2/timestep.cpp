@@ -233,4 +233,7 @@ void TimeStepBase::Step() {
   EndStep();
 }
 
+PruneDirichletBc& TimeStepBase::GetPruneDirichletBc() {
+  return prune_dirichlet_bc_;
+}
 }  // namespace ax::fem

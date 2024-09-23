@@ -34,15 +34,15 @@ public:
   void SetElasticity(ElasticityKind kind);
 
   // Helper function to set the lame.
-  void SetLame(ConstRealBufferView lame);
+  virtual void SetLame(ConstRealBufferView lame);
   void SetLame(const math::RealVector2 &lame);  // uniform version
 
   // Helper function to set the density.
-  void SetDensity(ConstRealBufferView density);
+  virtual void SetDensity(ConstRealBufferView density);
   void SetDensity(Real density);  // uniform version
 
   // Helper function to set the external force.
-  void SetExternalAcceleration(ConstRealBufferView ext_accel);
+  virtual void SetExternalAcceleration(ConstRealBufferView ext_accel);
   void SetExternalAcceleration(const math::RealVector2 &ext_accel);  // uniform version
   void SetExternalAcceleration(const math::RealVector3 &ext_accel);  // uniform version
 
@@ -69,7 +69,7 @@ public:
   // Helper: perform a single step.
   void Step();
 
-  PruneDirichletBc &GetPruneDirichletBc() { return prune_dirichlet_bc_; }
+  PruneDirichletBc &GetPruneDirichletBc();
 
   void UpdatePruneDirichletBc();
 

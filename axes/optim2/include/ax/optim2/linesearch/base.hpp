@@ -13,6 +13,14 @@ public:
 
   void SetProblem(shared_not_null<ProblemBase> problem);
 
+  /**
+   * @brief Performs the line search optimization.
+   *
+   * @note If converged, the problem.var will be updated to the optimal.
+   *
+   * @param param
+   * @return LineSearchResult
+   */
   virtual LineSearchResult Optimize(LineSearchParam param) = 0;
 
   virtual LineSearchKind GetKind() const = 0;
@@ -49,7 +57,7 @@ protected:
 
   // set the problem.var to x0 + step * dir, and update the energy.
   // and gradient if needed.
-  void StepTo(const LineSearchParam& param, Real step_size, bool update_gradient = false);
+  void StepTo(const LineSearchParam& param, Real step_size, bool update_gradient, size_t iter);
 
   // get the cached energy.
   Real CurrentEnergy() const;
@@ -78,8 +86,8 @@ private:
   void FixParameter(LineSearchParam& param) const noexcept;
   Real current_step_size_;
 
-  Real grad_dot_dir_cur_;               // = <g, d> at current x
-  Real grad_dot_dir_x0_;                // = <g, d> at x0
+  Real grad_dot_dir_cur_;  // = <g, d> at current x
+  Real grad_dot_dir_x0_;   // = <g, d> at x0
   ProblemPtr problem_;
 };
 

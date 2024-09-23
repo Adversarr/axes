@@ -18,6 +18,7 @@ axes_add_example(parallel "axes_core")
 axes_add_example(block_precond_tests "axes_core;axes_fem")
 axes_add_example(csr_compress_tests "axes_core;axes_fem")
 axes_add_example(fem_gather_tests "axes_core;axes_fem")
+axes_add_example(unconst_quad_opt "axes_core;axes_optim2")
 
 # admm
 axes_add_example(cadmm "axes_gl;axes_xpbd")

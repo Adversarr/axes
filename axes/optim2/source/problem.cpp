@@ -13,6 +13,8 @@ ProblemBase::ProblemBase(RealBufferView variables, ConstRealBufferView gradient,
                          math::ConstRealSparseMatrixPtr hessian)
     : variables_(variables), gradient_(gradient), hessian_(std::move(hessian)) {}
 
+ProblemBase::~ProblemBase() = default;
+
 void ProblemBase::StepForwardActual() {
   // make sure the energy/gradient is up to date.
   UpdateGradient();
@@ -30,10 +32,10 @@ void ProblemBase::StepForwardActual() {
   is_grad_norm_up_to_date_ = true;
 
   // copy the current value to backup.
-  copy(backup_var_->ConstView(), variables_);
+  copy(backup_var_->View(), variables_);
   backup_energy_ = energy_;
   backup_grad_norm_ = grad_norm_;
-  copy(backup_grad_->ConstView(), gradient_);
+  copy(backup_grad_->View(), gradient_);
 }
 
 void ProblemBase::StepTemporary(ConstRealBufferView new_value, Real alpha, Real beta) {
@@ -41,6 +43,7 @@ void ProblemBase::StepTemporary(ConstRealBufferView new_value, Real alpha, Real 
 
   math::buffer_blas::scal(beta, variables_);
   math::buffer_blas::axpy(alpha, new_value, variables_);
+  is_grad_norm_up_to_date_ = false;
   MarkVariableChanged();
 }
 
@@ -50,11 +53,14 @@ void ProblemBase::BeginOptimize() {
 }
 
 void ProblemBase::EndOptimize() {
-  // do nothing.
+  copy(variables_, backup_var_->ConstView());
+  energy_ = backup_energy_;
+  is_grad_norm_up_to_date_ = false;
 }
 
 void ProblemBase::StepBack() {
   copy(variables_, backup_var_->ConstView());
+  is_grad_norm_up_to_date_ = false;
 }
 
 void ProblemBase::MarkVariableChanged() {
@@ -86,9 +92,11 @@ const_shared_not_null<math::RealCompressedMatrixBase> ProblemBase::GetHessian() 
 
 void ProblemBase::OnStep(bool is_in_linesearch, size_t iteration) noexcept {
   if (is_in_linesearch) {
-    AX_INFO("ls: {:2}, energy={:12.6e}", iteration, energy_);
+    AX_INFO("  ls: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
+            is_grad_norm_up_to_date_);
   } else {
-    AX_INFO("iter: {:2}, energy={:12.6e}", iteration, energy_);
+    AX_INFO("iter: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
+            is_grad_norm_up_to_date_);
   }
 }
 

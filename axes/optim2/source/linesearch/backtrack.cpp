@@ -17,7 +17,7 @@ LineSearchResult LineSearch_Backtracking::Optimize(LineSearchParam param) {
   Real current_step = GetCurrentStep();
   for (size_t max_iter = param.max_iter_.value(); iter < max_iter; ++iter) {
     // Go to the next step: x <- x0 + step * dir
-    StepTo(param, current_step, false);
+    StepTo(param, current_step, false, iter);
     Real value = CurrentEnergy();
     // do the armijo test.
     result.converged_ = TestCurrentArmojo(param);
@@ -51,5 +51,7 @@ LineSearchResult LineSearch_Backtracking::Optimize(LineSearchParam param) {
   EndSearch(result);
   return result;
 }
+
+LineSearchKind LineSearch_Backtracking::GetKind() const { return LineSearchKind::Backtracking; }
 
 }  // namespace ax::optim2

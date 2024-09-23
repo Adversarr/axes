@@ -10,12 +10,13 @@ Real LineSearchBase::GetCurrentStep() const {
   return current_step_size_;
 }
 
-void LineSearchBase::StepTo(const LineSearchParam& param, Real step_size, bool update_gradient) {
+void LineSearchBase::StepTo(const LineSearchParam& param, Real step_size, bool update_gradient, size_t iter) {
   current_step_size_ = step_size;
 
   // x <- x0 + step * dir
   problem_->StepBack();  // go back to x0
   problem_->StepTemporary(param.search_direction_, step_size, 1.0);
+  problem_->OnStep(true, iter);
 
   problem_->UpdateEnergy();
   if (update_gradient) {

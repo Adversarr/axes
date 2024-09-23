@@ -59,7 +59,7 @@ public:
   ConstRealBufferView GetBackupVariables() const;
   ConstRealBufferView GetBackupGradient() const;
 
-private:
+protected:
   // Workspace.
   RealBufferView variables_;  // can used by linesearch.
   Real energy_{0};

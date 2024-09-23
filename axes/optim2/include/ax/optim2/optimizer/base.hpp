@@ -9,14 +9,14 @@ AX_DEFINE_ENUM_CLASS(OptimizerKind, Newton, GradientDescent, Lbfgs, Fista, Nonli
 
 class OptimizerBase : public utils::Tunable {
 public:
-  OptimizerBase() = default;
-  ~OptimizerBase() override = default;
+  OptimizerBase();
+  ~OptimizerBase() override;
 
   void SetProblem(shared_not_null<ProblemBase> problem) { problem_ = problem; }
 
-  void SetLinesearch(LineSearchPtr ls) { linesearch_ = std::move(ls); }
+  void SetLinesearch(LineSearchPtr ls);
 
-  virtual void Optimize() const = 0;
+  virtual OptimizeResult Optimize(OptimizeParam param) = 0;
 
   virtual OptimizerKind GetKind() const = 0;
 

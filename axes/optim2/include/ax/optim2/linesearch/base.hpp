@@ -51,6 +51,8 @@ public:
   // interpolation is used to determine next step size.
   LinesearchInterpolationKind interpolation_kind_{LinesearchInterpolationKind::Quadratic};
 
+  Real OriginalGradientDotDirection() const;
+
 protected:
   // return the current step size.
   Real GetCurrentStep() const;
@@ -64,7 +66,6 @@ protected:
 
   // the backuped variables, i.e. step size=0.
   Real OriginalEnergy() const;
-  Real OriginalGradientDotDirection() const;
   ConstRealBufferView OriginalGradient() const;
   ConstRealBufferView OriginalVariables() const;
 
@@ -86,7 +87,6 @@ private:
   void FixParameter(LineSearchParam& param) const noexcept;
   Real current_step_size_;
 
-  Real grad_dot_dir_cur_;  // = <g, d> at current x
   Real grad_dot_dir_x0_;   // = <g, d> at x0
   ProblemPtr problem_;
 };

@@ -33,9 +33,9 @@ struct OptimizeResult {
 };
 
 struct OptimizeParam {
-  std::optional<size_t> max_iter_{100};  ///< maximum iteration
-  std::optional<Real> tol_grad_{1e-6};   ///< tolerance for gradient norm
-  std::optional<Real> tol_var_{1e-12};   ///< tolerance for variable change
+  std::optional<size_t> max_iter_;  ///< maximum iteration
+  std::optional<Real> tol_grad_;    ///< tolerance for gradient norm
+  std::optional<Real> tol_var_;     ///< tolerance for variable change
 };
 
 struct LineSearchParam {
@@ -66,7 +66,10 @@ struct LineSearchParam {
   std::optional<LinesearchInterpolationKind> interpolation_kind_;
 
   // Maximum iteration.
-  std::optional<size_t> max_iter_{100};
+  std::optional<size_t> max_iter_;
+
+  explicit LineSearchParam(ConstRealBufferView search_direction)
+      : search_direction_(search_direction) {}
 };
 
 }  // namespace ax::optim2

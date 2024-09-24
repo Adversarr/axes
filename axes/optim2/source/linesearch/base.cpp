@@ -51,7 +51,7 @@ void LineSearchBase::BeginSearch(LineSearchParam& param) {
 
   grad_dot_dir_x0_ = math::buffer_blas::dot(grad, param.search_direction_);
 
-  if (grad_dot_dir_x0_ > -math::epsilon<>) {
+  if (grad_dot_dir_x0_ >= 0) {
     AX_THROW_RUNTIME_ERROR(
         "Invalid search direction, not a descent direction: grad dot dir={:12.6e}",
         grad_dot_dir_x0_);
@@ -79,7 +79,8 @@ static bool strong_wolfe_condition(Real grad_norm, Real grad_norm0, Real strong_
 bool LineSearchBase::TestCurrentArmojo(const LineSearchParam& param) const {
   Real f_step = CurrentEnergy();
   Real f0 = OriginalEnergy();
-  Real armijo = param.armijo_.value();
+  Real armijo = param.armijo_.value() * OriginalGradientDotDirection();
+  AX_EXPECTS(armijo < 0);
   return arjimo_condition(f0, f_step, current_step_size_, armijo);
 }
 

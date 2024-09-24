@@ -29,6 +29,17 @@ public:
   bool verbose_{false};    // Print verbose information.
 
 protected:
+
+  /**
+   * @brief Test the convergence criteria.
+   * 
+   * @param param 
+   * @param is_first_iter if true, will not check variable change.
+   * @return true 
+   * @return false 
+   */
+  bool TestCriteria(const OptimizeParam& param, OptimizeResult& result);
+
   LineSearchPtr linesearch_;
   ProblemPtr problem_;
 };

@@ -35,4 +35,8 @@ namespace ax {
 // Possible values are: trace, debug, info, warn, err, critical, off
 using loglvl = spdlog::level::level_enum;
 
+void set_log_level(loglvl lvl);
+
+void set_log_pattern(const std::string& pattern);
+
 }  // namespace ax

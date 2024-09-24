@@ -26,18 +26,16 @@ void RealCSRMatrix::Multiply(ConstRealBufferView x, RealBufferView y, Real alpha
                            device);
   }
 
-  if (x.Shape() != y.Shape()) {
-    AX_THROW_RUNTIME_ERROR("The shape of x and y should be the same. x={}, y={}", x.Shape(),
-                           y.Shape());
-  }
-
   if (is_2d(x.Shape())) {
     x = flatten(x);
     y = flatten(y);
-  } else if (is_3d(x.Shape())) {
-    auto [bs, br, batch] = *x.Shape();
-    x = x.Reshaped({bs * br, batch});
-    y = y.Reshaped({bs * br, batch});
+  }
+
+  if (x.Shape() != Dim3(Rows())) {
+    AX_THROW_RUNTIME_ERROR("Invalid shape. x={}, matrix={}x{}", x.Shape(), rows_, cols_);
+  }
+  if (y.Shape() != Dim3(Cols())) {
+    AX_THROW_RUNTIME_ERROR("Invalid shape. y={}, matrix={}x{}", y.Shape(), rows_, cols_);
   }
 
   if (device == BufferDevice::Host) {
@@ -61,23 +59,16 @@ void RealCSRMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y, R
                            device);
   }
 
-  if (x.Shape() != y.Shape()) {
-    AX_THROW_RUNTIME_ERROR("The shape of x and y should be the same. x={}, y={}", x.Shape(),
-                           y.Shape());
-  }
-
   if (is_2d(x.Shape())) {
     x = flatten(x);
     y = flatten(y);
-  } else if (is_3d(x.Shape())) {
-    auto [bs, br, batch] = *x.Shape();
-    x = x.Reshaped({bs * br, batch});
-    y = y.Reshaped({bs * br, batch});
   }
 
-  if (x.Shape().X() != Rows() || y.Shape().X() != Cols()) {
-    AX_THROW_RUNTIME_ERROR("Invalid shape. x={}, y={}, matrix={}x{}", x.Shape(), y.Shape(), rows_,
-                           cols_);
+  if (x.Shape() != Dim3(Cols())) {
+    AX_THROW_RUNTIME_ERROR("Invalid shape. x={}, matrix={}x{}", x.Shape(), rows_, cols_);
+  }
+  if (y.Shape() != Dim3(Rows())) {
+    AX_THROW_RUNTIME_ERROR("Invalid shape. y={}, matrix={}x{}", y.Shape(), rows_, cols_);
   }
 
   if (device == BufferDevice::Host) {

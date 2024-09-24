@@ -65,8 +65,19 @@ void GeneralSparsePreconditioner_BlockJacobi::Solve(ConstRealBufferView b, RealB
   AX_THROW_IF_NULLPTR(inv_diag_, "inv_diag_ is null. compute inv_diag_ first.");
   size_t bs = mat_->BlockSize();
   size_t rows = mat_->BlockedRows();
+  auto expected_shape = Dim3(bs, rows);
+
+  if (is_1d(b.Shape())) {
+    AX_THROW_IF_NE(b.Shape().X(), rows * bs, "b must have the same shape as the problem.");
+    b = b.Reshaped(expected_shape);
+  }
+  if (is_1d(x.Shape())) {
+    AX_THROW_IF_NE(x.Shape().X(), rows * bs, "x must have the same shape as the problem.");
+    x = x.Reshaped(expected_shape);
+  }
+
   AX_THROW_IF_FALSE(
-      b.Shape().X() == bs && b.Shape().Y() == rows && x.Shape().X() == bs && x.Shape().Y() == rows,
+      b.Shape() == expected_shape && x.Shape() == expected_shape,
       "b and x must have the same shape as the block size and rows of the problem.");
 
   if (device == BufferDevice::Host) {

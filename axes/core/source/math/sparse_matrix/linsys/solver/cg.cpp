@@ -31,6 +31,11 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
   AX_THROW_IF_FALSE(b.Shape() == x.Shape(), "rhs must be same shape with x");
 
   auto [r, p, d, q] = make_view(residual_buf, p_buf, d_buf, q_buf);
+  r = r.Reshaped(b.Shape());
+  p = p.Reshaped(b.Shape());
+  d = d.Reshaped(b.Shape());
+  q = q.Reshaped(b.Shape());
+
   const auto& mata = *mat_;
 
   // r <- b-Ax

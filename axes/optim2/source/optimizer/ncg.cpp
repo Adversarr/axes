@@ -42,6 +42,10 @@ OptimizeResult Optimizer_NonlinearCg::Optimize(OptimizeParam param) {
 
   problem_->BeginOptimize();
   problem_->StepForwardActual();
+  auto final_act = finally([&] {
+    problem_->EndOptimize();
+    result.f_opt_ = problem_->GetEnergy();
+  });
 
   auto d = search_direction_->View();
   auto s = prec_grad_->View();
@@ -151,8 +155,6 @@ OptimizeResult Optimizer_NonlinearCg::Optimize(OptimizeParam param) {
     }
   }
 
-  problem_->EndOptimize();
-  result.f_opt_ = problem_->GetEnergy();
   return result;
 }
 

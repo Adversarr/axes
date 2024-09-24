@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   auto dst_device = DeviceBuffer<Real>::Create({2, 2});
   auto rhs_device = DeviceBuffer<Real>::Create({2, 3});
   copy(rhs_device->View(), rhs_view);
-  block_matrix.Multiply(rhs_device->View(), dst_device->View());
+  block_matrix.Multiply(rhs_device->View(), dst_device->View(), 1., 0.);
 
   math::RealField2 dst_host(2, 2);
   copy(view_from_matrix(dst_host), dst_device->View());

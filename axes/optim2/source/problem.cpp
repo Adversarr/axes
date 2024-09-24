@@ -69,7 +69,7 @@ void ProblemBase::MarkVariableChanged() {
 
 void ProblemBase::UpdateHessian() {
   if (hessian_ != nullptr) {
-    AX_WARN("Hessian is available but UpdateHessian is not implemented.");
+    AX_WARN("Hessian is available but UpdateHessian is not implemented. Are you using a quadratic model?");
   }
 }
 

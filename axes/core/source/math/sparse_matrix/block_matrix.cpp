@@ -106,14 +106,31 @@ void RealBlockMatrix::Multiply(BufferView<const Real> rhs, BufferView<Real> dst,
   // expect rhs is block_size X cols
   // expect dst is block_size X rows
 
-  if (rhs.Shape().X() != values_->Shape().X()) {
-    AX_THROW_RUNTIME_ERROR("Invalid rhs shape. expect {}x{}, got {}x{}", values_->Shape().X(),
-                           cols_, rhs.Shape().X(), rhs.Shape().Y());
+  // check shape.
+  auto block_rows = BlockedRows();
+  auto block_cols = BlockedCols();
+  auto expected_shape_rhs = Dim3{block_size_, block_cols};
+  auto expected_shape_dst = Dim3{block_size_, block_rows};
+
+  if (is_1d(rhs.Shape())) {
+    AX_THROW_IF_NE(rhs.Shape().X(), block_size_ * block_cols,
+                   "rhs must have the same shape as the problem.");
+    rhs = rhs.Reshaped(expected_shape_rhs);
+  }
+  if (is_1d(dst.Shape())) {
+    AX_THROW_IF_NE(dst.Shape().X(), block_size_ * block_rows,
+                   "dst must have the same shape as the problem.");
+    dst = dst.Reshaped(expected_shape_dst);
   }
 
-  if (dst.Shape().X() != values_->Shape().X()) {
-    AX_THROW_RUNTIME_ERROR("Invalid dst shape. expect {}x{}, got {}x{}", values_->Shape().X(),
-                           rows_, dst.Shape().X(), dst.Shape().Y());
+  // Ensure shape.
+  if (rhs.Shape() != expected_shape_rhs) {
+    AX_THROW_RUNTIME_ERROR("Invalid rhs shape. expect {}x{}, got {}x{}", block_size_, block_cols,
+                           rhs.Shape().X(), rhs.Shape().Y());
+  }
+  if (dst.Shape() != expected_shape_dst) {
+    AX_THROW_RUNTIME_ERROR("Invalid dst shape. expect {}x{}, got {}x{}", block_size_, block_rows,
+                           dst.Shape().X(), dst.Shape().Y());
   }
 
   auto [value, rptr, cidx] = make_view(values_, row_ptrs_, col_indices_);
@@ -168,7 +185,35 @@ void RealBlockMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y,
     Multiply(x, y, alpha, beta);
     return;
   }
+  // check shape.
+  auto block_rows = BlockedRows();
+  auto block_cols = BlockedCols();
+  auto expected_shape_x = Dim3{block_size_, block_rows};
+  auto expected_shape_y = Dim3{block_size_, block_cols};
 
+  if (is_1d(x.Shape())) {
+    AX_THROW_IF_NE(x.Shape().X(), block_size_ * block_rows,
+                   "x must have the same shape as the problem.");
+    x = x.Reshaped(expected_shape_x);
+  }
+  if (is_1d(y.Shape())) {
+    AX_THROW_IF_NE(y.Shape().X(), block_size_ * block_cols,
+                   "y must have the same shape as the problem.");
+    y = y.Reshaped(expected_shape_y);
+  }
+
+  // Ensure the number of rows in x matches the block size
+  if (x.Shape() != expected_shape_x) {
+    AX_THROW_RUNTIME_ERROR("Invalid x shape. expect {}x{}, got {}x{}", block_size_, block_rows,
+                           x.Shape().X(), x.Shape().Y());
+  }
+  // Ensure the number of rows in y matches the block size
+  if (y.Shape() != expected_shape_y) {
+    AX_THROW_RUNTIME_ERROR("Invalid y shape. expect {}x{}, got {}x{}", block_size_, block_cols,
+                           y.Shape().X(), y.Shape().Y());
+  }
+
+  // Check device.
   const auto device = Device();
   if (x.Device() != device || y.Device() != device) {
     AX_THROW_RUNTIME_ERROR("Device mismatch. x={}, y={}, block_matrix={}", x.Device(), y.Device(),

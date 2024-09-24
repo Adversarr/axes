@@ -24,6 +24,10 @@ OptimizeResult Optimizer_GradientDescent::Optimize(OptimizeParam param) {
 
   problem_->BeginOptimize();
   problem_->StepForwardActual();
+  auto final_act = finally([&] {
+    problem_->EndOptimize();
+    result.f_opt_ = problem_->GetEnergy();
+  });
   search_direction_ = ensure_buffer<Real>(search_direction_, problem_->GetVariables().Device(),
                                           problem_->GetVariables().Shape());
   auto sd = search_direction_->View();
@@ -55,8 +59,6 @@ OptimizeResult Optimizer_GradientDescent::Optimize(OptimizeParam param) {
     problem_->StepForwardActual();
   }
 
-  problem_->EndOptimize();
-  result.f_opt_ = problem_->GetEnergy();
   return result;
 }
 

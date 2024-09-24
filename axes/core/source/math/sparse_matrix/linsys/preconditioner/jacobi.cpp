@@ -38,11 +38,24 @@ void GeneralSparsePreconditioner_Jacobi::Solve(ConstRealBufferView b, RealBuffer
 
   auto rows = mat_->BlockedRows();
   auto bs = mat_->BlockSize();
-  AX_THROW_IF_FALSE(
-      b.Shape().X() == bs && b.Shape().Y() == rows && x.Shape().X() == bs && x.Shape().Y() == rows,
-      "SparsePreconditioner_Jacobi::Solve: b and x must have the same shape as the block size and "
-      "rows of the problem. got x {} b {}",
-      x.Shape(), b.Shape());
+  
+  auto expect_shape = Dim3(bs, rows);
+
+  if (is_1d(b.Shape())) {
+    AX_THROW_IF_FALSE(b.Shape() == expect_shape, "Invalid shape. b={}, expect={}", b.Shape(),
+                      expect_shape);
+    b = b.Reshaped(expect_shape);
+  }
+  if (is_1d(x.Shape())) {
+    AX_THROW_IF_FALSE(x.Shape() == expect_shape, "Invalid shape. x={}, expect={}", x.Shape(),
+                      expect_shape);
+    x = x.Reshaped(expect_shape);
+  }
+
+  if (b.Shape() != expect_shape || x.Shape() != expect_shape) {
+    AX_THROW_INVALID_ARGUMENT("Invalid shape. b={}, x={}, expect={}", b.Shape(), x.Shape(),
+                              expect_shape);
+  }
 
   if (inv_diag.Device() == BufferDevice::Device) {
     AX_CUDA_CALL(details::jacobi_precond_solve_gpu(x, b, inv_diag));

@@ -28,6 +28,10 @@ OptimizeResult Optimizer_Newton::Optimize(OptimizeParam param) {
 
   problem_->BeginOptimize();
   problem_->StepForwardActual();
+  auto final_act = finally([&] {
+    problem_->EndOptimize();
+    result.f_opt_ = problem_->GetEnergy();
+  });
   problem_->UpdateHessian();
   search_direction_ = ensure_buffer<Real>(search_direction_, problem_->GetVariables().Device(),
                                           problem_->GetVariables().Shape());
@@ -36,6 +40,7 @@ OptimizeResult Optimizer_Newton::Optimize(OptimizeParam param) {
   linear_solver_->SetProblem(problem_->GetHessian());
   linear_solver_->Compute();
   auto grad = problem_->GetGradient();
+
 
   for (iter = 0; iter < max_iter; ++iter) {
     problem_->OnStep(false, iter);
@@ -60,7 +65,7 @@ OptimizeResult Optimizer_Newton::Optimize(OptimizeParam param) {
       linear_solver_->Factorize();
     }
 
-    linear_solver_->Solve(flatten(grad), flatten(sd));
+    linear_solver_->Solve(grad, sd);
     math::buffer_blas::scal(-1.0, sd);
 
     AX_EXPECTS(math::buffer_blas::dot(sd, problem_->GetGradient()) < 0);
@@ -76,7 +81,6 @@ OptimizeResult Optimizer_Newton::Optimize(OptimizeParam param) {
     // commit the change due to line search.
     problem_->StepForwardActual();
   }
-
   return result;
 }
 

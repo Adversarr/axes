@@ -20,11 +20,10 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
   CheckInputParam(param);
   linesearch_->SetProblem(problem_);
 
-  auto ensure = [&, example = problem_->GetVariables()](auto& ptr) {
-    ptr = ensure_buffer<Real>(ptr, example.Device(), example.Shape());
-  };
-
   {  // setup the history buffers
+    auto ensure = [example = problem_->GetVariables()](auto& ptr) {
+      ptr = ensure_buffer<Real>(ptr, example.Device(), example.Shape());
+    };
     if (s_.size() != history_size_) {
       s_.resize(history_size_);
       y_.resize(history_size_);
@@ -44,10 +43,14 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
 
   OptimizeResult result;
   problem_->BeginOptimize();
+  problem_->StepForwardActual();
+  auto final_act = finally([&] {
+    problem_->EndOptimize();
+    result.f_opt_ = problem_->GetEnergy();
+  });
   const size_t max_iter = param.max_iter_.value_or(max_iter_);
   size_t& iter = result.n_iter_;
 
-  problem_->StepForwardActual();
   auto d = search_direction_->View();
   auto grad = problem_->GetGradient();
 
@@ -80,8 +83,6 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
     problem_->StepForwardActual();
   }
 
-  problem_->EndOptimize();
-  result.f_opt_ = problem_->GetEnergy();
   return result;
 }
 

@@ -6,9 +6,12 @@
 #include "ax/fem/terms/elasticity.hpp"
 #include "ax/fem/terms/mass.hpp"
 #include "ax/fem/utils/prune_dbc.hpp"
+#include "ax/optim2/problem.hpp"
 #include "ax/utils/opt.hpp"
 
 namespace ax::fem {
+
+class TimeStepVariationalProblem;
 
 /**
  * @brief Time step solver base.
@@ -23,6 +26,9 @@ public:
 
   const Problem &GetProblem() const;
   Problem &GetProblem();
+
+  // some timestepper need to compute some auxiliary terms.
+  virtual void Compute();
 
   // The inertia part.
   not_null<MassTerm *> GetInertia();
@@ -55,7 +61,7 @@ public:
   void StepToNext();
 
   // Set the timestep, also affect the coefficient of the elastic term.
-  void SetTimeStep(Real dt);
+  virtual void SetTimeStep(Real dt);
 
   // Prepare the problem, e.g. u_inertia.
   void BeginStep();
@@ -72,6 +78,8 @@ public:
   PruneDirichletBc &GetPruneDirichletBc();
 
   void UpdatePruneDirichletBc();
+
+  std::unique_ptr<TimeStepVariationalProblem> PrepareVariationalProblem();
 
 protected:
   BufferPtr<Real> velocity_;   ///< The velocity of each vertex
@@ -90,6 +98,22 @@ protected:
 private:
   MassTerm *cache_inertia_{nullptr};           ///< Cache the inertia term.
   ElasticityTerm *cache_elasticity_{nullptr};  ///< Cache the elasticity term.
+  friend class TimeStepVariationalProblem;
+};
+
+class TimeStepVariationalProblem : public optim2::ProblemBase {
+public:
+  explicit TimeStepVariationalProblem(not_null<TimeStepBase *> timestep);
+
+  void UpdateEnergy() override;
+  void UpdateGradient() override;
+  void UpdateHessian() override;
+  void MarkVariableChanged() override;
+
+private:
+  not_null<TimeStepBase *> timestep_;
+
+  // We do not need to store the dirty bit because the timestep_ will handle it.
 };
 
 }  // namespace ax::fem

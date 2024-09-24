@@ -15,7 +15,7 @@ namespace ax::math {
 class GeneralSparsePreconditioner_FSAI0 : public GeneralSparsePreconditionerBase {
 public:
   GeneralSparsePreconditioner_FSAI0() = default;
-  virtual ~GeneralSparsePreconditioner_FSAI0() override = default;
+  ~GeneralSparsePreconditioner_FSAI0() override = default;
 
   void AnalyzePattern() override;
 

@@ -69,7 +69,9 @@ void ProblemBase::MarkVariableChanged() {
 
 void ProblemBase::UpdateHessian() {
   if (hessian_ != nullptr) {
-    AX_WARN("Hessian is available but UpdateHessian is not implemented. Are you using a quadratic model?");
+    AX_WARN(
+        "Hessian is available but UpdateHessian is not implemented. Are you using a quadratic "
+        "model?");
   }
 }
 
@@ -91,12 +93,13 @@ const_shared_not_null<math::RealCompressedMatrixBase> ProblemBase::GetHessian() 
 }
 
 void ProblemBase::OnStep(bool is_in_linesearch, size_t iteration) noexcept {
+  AX_UNUSED(iteration);
   if (is_in_linesearch) {
-    AX_INFO("  ls: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
-            is_grad_norm_up_to_date_);
+    AX_TRACE("  ls: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
+             is_grad_norm_up_to_date_);
   } else {
-    AX_INFO("iter: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
-            is_grad_norm_up_to_date_);
+    AX_TRACE("iter: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
+             is_grad_norm_up_to_date_);
   }
 }
 
@@ -127,7 +130,8 @@ ConstRealBufferView ProblemBase::GetBackupVariables() const {
 ConstRealBufferView ProblemBase::GetBackupGradient() const {
   return backup_grad_->ConstView();
 }
+
 bool ProblemBase::WillHessianChangeTopo() const noexcept {
   return hessian_change_topo_;
 }
-} // namespace ax::optim2
+}  // namespace ax::optim2

@@ -6,7 +6,9 @@
 #include "ax/core/entt.hpp"
 #include "ax/core/init.hpp"
 #include "ax/fem/elasticity/base.hpp"
+#include "ax/fem/timestep2/quasi_newton.hpp"
 #include "ax/fem/timestep2/timestep.hpp"
+#include "ax/geometry/normal.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/init.hpp"
@@ -14,7 +16,6 @@
 #include "ax/math/accessor.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/views.hpp"
-#include "ax/geometry/normal.hpp"
 
 using namespace ax;
 
@@ -67,6 +68,7 @@ int main(int argc, char* argv[]) {
   po::add_option({
     po::make_option<bool>("gpu", "Use gpu compute", "true"),
     po::make_option<int>("size", "Size of the mesh", "4"),
+    po::make_option<std::string>("solver", "Timestepper solver", "quasi_newton"),
   });
 
   gl::init(argc, argv);
@@ -74,6 +76,7 @@ int main(int argc, char* argv[]) {
 
   auto use_gpu = po::get<bool>("gpu");
   auto size = po::get<int>("size");
+  auto solver = po::get<std::string>("solver");
 
   BufferDevice device = use_gpu ? BufferDevice::Device : BufferDevice::Host;
 
@@ -89,6 +92,14 @@ int main(int argc, char* argv[]) {
   size_t n_triangles = n_elem * 4;
   size_t n_vertices = mesh->GetNumVertices();
   auto& fe = add_component<FemData>(entity, mesh);
+  if (solver == "quasi_newton") {
+    fe.timestep_ = std::make_shared<fem::TimeStep_QuasiNewton>(mesh);
+  } else if (solver == "base") {
+    // nothing.
+  } else {
+    AX_ERROR("Unknown solver: {}", solver);
+  }
+
   auto state = fe.timestep_->GetProblem().GetState();
 
   {
@@ -122,11 +133,13 @@ int main(int argc, char* argv[]) {
   gl_mesh.vertices_ = vertices;
   gl_mesh.normals_ = geo::normal_per_vertex(vertices, gl_mesh.indices_);
 
-  auto lame = fem::elasticity::compute_lame(3e6, 0.33);
+  auto lame = fem::elasticity::compute_lame(1e7, 0.43);
   fe.timestep_->SetElasticity(fem::ElasticityKind::StableNeoHookean);
   fe.timestep_->SetExternalAcceleration(math::RealVector3{0, -9.8, 0});
   fe.timestep_->SetDensity(1e3);
+  fe.timestep_->SetTimeStep(1e-2);
   fe.timestep_->SetLame(lame);
+  fe.timestep_->Compute();
 
   connect<gl::UiRenderEvent, &on_frame>();
   get_resource<gl::Context>().Initialize();

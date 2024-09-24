@@ -1,10 +1,10 @@
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/core/init.hpp"
 #include "ax/math/buffer_blas.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
 #include "ax/optim2/optimizer/gradient_descent.hpp"
 #include "ax/optim2/optimizer/lbfgs.hpp"
 #include "ax/optim2/optimizer/ncg.hpp"
-#include "ax/math/sparse_matrix/csr.hpp"
 #include "ax/optim2/optimizer/newton.hpp"
 #include "ax/optim2/problem.hpp"
 
@@ -43,16 +43,31 @@ public:
   }
 
   void UpdateEnergy() override {
-    ++cnt_energy_eval_;
-    energy_ = 0.5 * var_.dot(A_ * var_) - rhs_.dot(var_);
+    if (is_energy_updated_) {
+      energy_ = cache_energy_;
+    } else {
+      ++cnt_energy_eval_;
+      cache_energy_ = energy_ = 0.5 * var_.dot(A_ * var_) - rhs_.dot(var_);
+    }
+    is_energy_updated_ = true;
   }
 
   void UpdateGradient() override {
+    if (is_grad_updated_) {
+      return;
+    }
     ++cnt_grad_eval_;
     gradient_buf_.noalias() = A_ * var_ - rhs_;
+    is_grad_updated_ = true;
+  }
+
+  void MarkVariableChanged() override {
+    is_energy_updated_ = false;
+    is_grad_updated_ = false;
   }
 
 private:
+  Real cache_energy_;
   math::RealVectorX var_;
   math::RealVectorX rhs_;
   math::RealVectorX gradient_buf_;
@@ -60,6 +75,9 @@ private:
 
   size_t cnt_energy_eval_ = 0;
   size_t cnt_grad_eval_ = 0;
+
+  bool is_energy_updated_ = false;
+  bool is_grad_updated_ = false;
 };
 
 int main(int argc, char* argv[]) {

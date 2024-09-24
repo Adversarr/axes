@@ -73,10 +73,11 @@ void LaplaceTerm::UpdateHessian() {
 }
 
 void LaplaceTerm::SetDiffusivity(ConstRealBufferView uniform_diffusivity) {
-  AX_THROW_IF(
-      !is_1d(uniform_diffusivity.Shape())
-          || uniform_diffusivity.Shape().X() != mesh_->GetNumElements(),
-      "LaplaceTerm: Diffusivity must be a 1D buffer with the same number of elements as the mesh.");
+  AX_THROW_IF(!is_1d(uniform_diffusivity.Shape())
+                  || uniform_diffusivity.Shape().X() != mesh_->GetNumElements(),
+              "LaplaceTerm: Diffusivity must be a 1D buffer with the same number of elements as "
+              "the mesh. expect {} got {}",
+              mesh_->GetNumElements(), uniform_diffusivity.Shape().X());
   auto hess = details::compute_laplace_matrix_host(*mesh_, uniform_diffusivity,
                                                    state_->GetVariables()->Shape().X());
   hessian_.SetData(hess.RowPtrs()->ConstView(), hess.ColIndices()->ConstView(),

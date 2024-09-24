@@ -25,6 +25,7 @@ target_link_libraries(axes_fem
   PUBLIC
     axes_core
     axes_optim
+    axes_optim2
     axes_geometry)
 
 ax_target_apply_flag(axes_fem PRIVATE)

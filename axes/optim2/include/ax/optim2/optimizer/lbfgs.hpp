@@ -13,7 +13,7 @@ public:
   Optimizer_LBFGS();
   ~Optimizer_LBFGS() override;
 
-  OptimizeResult Optimize(OptimizeParam param) override;
+  AX_NODISCARD OptimizeResult Optimize(OptimizeParam param) override;
 
   OptimizerKind GetKind() const override { return OptimizerKind::Lbfgs; }
 

@@ -34,8 +34,6 @@ TimeStepBase::TimeStepBase(shared_not_null<Mesh> mesh)
   auto& elast = problem_.AddTerm("elasticity", std::make_unique<ElasticityTerm>(state, mesh));
   cache_elasticity_ = static_cast<ElasticityTerm*>(elast.term_.get());
 
-  // Default time step.
-  SetTimeStep(1e-3);
   UpdatePruneDirichletBc();
   problem_.InitializeHessianFillIn();
 }
@@ -138,6 +136,7 @@ void TimeStepBase::BeginStep() {
 
   prune_dirichlet_bc_.PruneVariable(u_inertia);
   copy(u_->View(), u_inertia);  // We set the initial guess to the inertia term.
+  MarkCurrentSolutionUpdated();
 }
 
 void TimeStepBase::MarkCurrentSolutionUpdated() {
@@ -163,7 +162,6 @@ void TimeStepBase::SolveStep() {
 
   cache_elasticity_->SetHessianMakeSPSD(true);
   // update the states.
-  MarkCurrentSolutionUpdated();
   Real initial_grad_norm = 0;
   for (int i = 0; i < 16; ++i) {
     UpdateHessian();
@@ -236,4 +234,32 @@ void TimeStepBase::Step() {
 PruneDirichletBc& TimeStepBase::GetPruneDirichletBc() {
   return prune_dirichlet_bc_;
 }
+
+std::unique_ptr<TimeStepVariationalProblem> TimeStepBase::PrepareVariationalProblem() {
+  return std::make_unique<TimeStepVariationalProblem>(this);
+}
+
+TimeStepVariationalProblem::TimeStepVariationalProblem(not_null<TimeStepBase*> timestep)
+    : optim2::ProblemBase(timestep->problem_.GetState()->GetVariables()->View(),
+                          timestep->problem_.GetGradient()),
+      timestep_(timestep) {}
+
+void TimeStepVariationalProblem::UpdateEnergy() {
+  timestep_->UpdateEnergy();
+  energy_ = timestep_->problem_.GetEnergy();
+}
+
+void TimeStepVariationalProblem::UpdateGradient() {
+  timestep_->UpdateGradient();
+}
+
+void TimeStepVariationalProblem::UpdateHessian() {
+  timestep_->UpdateHessian();
+}
+
+void TimeStepVariationalProblem::MarkVariableChanged() {
+  timestep_->MarkCurrentSolutionUpdated();
+}
+
+void TimeStepBase::Compute() {}
 }  // namespace ax::fem

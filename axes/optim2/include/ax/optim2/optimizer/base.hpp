@@ -16,7 +16,7 @@ public:
 
   void SetLinesearch(LineSearchPtr ls);
 
-  virtual OptimizeResult Optimize(OptimizeParam param) = 0;
+  AX_NODISCARD virtual OptimizeResult Optimize(OptimizeParam param) = 0;
 
   virtual OptimizerKind GetKind() const = 0;
 

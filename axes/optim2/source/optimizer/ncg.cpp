@@ -20,6 +20,7 @@ OptimizerKind Optimizer_NonlinearCg::GetKind() const {
 OptimizeResult Optimizer_NonlinearCg::Optimize(OptimizeParam param) {
   AX_EXPECTS(problem_ != nullptr);
   AX_EXPECTS(linesearch_ != nullptr);
+  CheckInputParam(param);
   linesearch_->SetProblem(problem_);
 
   OptimizeResult result;

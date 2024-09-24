@@ -8,12 +8,15 @@ class Optimizer_Newton : public OptimizerBase {
 public:
   Optimizer_Newton();
 
-  void Optimize() const override;
+  ~Optimizer_Newton() override;
+
+  OptimizeResult Optimize(OptimizeParam param) override;
 
   OptimizerKind GetKind() const override;
 
 private:
   std::unique_ptr<math::GeneralSparseSolverBase> linear_solver_;
+  BufferPtr<Real> search_direction_;
 };
 
 }  // namespace ax::optim2

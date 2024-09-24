@@ -15,12 +15,12 @@ public:
 
   virtual GeneralPreconditionerKind GetKind() const = 0;
 
-  void SetProblem(RealSparseMatrixPtr mat);
+  void SetProblem(ConstRealSparseMatrixPtr mat);
 
   static std::unique_ptr<GeneralSparsePreconditionerBase> Create(GeneralPreconditionerKind kind);
 
 protected:
-  RealSparseMatrixPtr mat_;
+  ConstRealSparseMatrixPtr mat_;
 };
 
 }  // namespace ax::math

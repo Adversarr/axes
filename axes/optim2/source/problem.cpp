@@ -127,4 +127,7 @@ ConstRealBufferView ProblemBase::GetBackupVariables() const {
 ConstRealBufferView ProblemBase::GetBackupGradient() const {
   return backup_grad_->ConstView();
 }
-}  // namespace ax::optim2
+bool ProblemBase::WillHessianChangeTopo() const noexcept {
+  return hessian_change_topo_;
+}
+} // namespace ax::optim2

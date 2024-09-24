@@ -10,7 +10,8 @@ Real LineSearchBase::GetCurrentStep() const {
   return current_step_size_;
 }
 
-void LineSearchBase::StepTo(const LineSearchParam& param, Real step_size, bool update_gradient, size_t iter) {
+void LineSearchBase::StepTo(const LineSearchParam& param, Real step_size, bool update_gradient,
+                            size_t iter) {
   current_step_size_ = step_size;
 
   // x <- x0 + step * dir
@@ -51,10 +52,12 @@ void LineSearchBase::BeginSearch(LineSearchParam& param) {
 
   grad_dot_dir_x0_ = math::buffer_blas::dot(grad, param.search_direction_);
 
-  if (grad_dot_dir_x0_ >= 0) {
+  if (grad_dot_dir_x0_ >= 0 || !math::isfinite(grad_dot_dir_x0_)) {
     AX_THROW_RUNTIME_ERROR(
-        "Invalid search direction, not a descent direction: grad dot dir={:12.6e}",
-        grad_dot_dir_x0_);
+        "Invalid search direction, not a descent direction: grad dot dir={:12.6e} |g|={:12.6e}, "
+        "|d|={:12.6e}",
+        grad_dot_dir_x0_, math::buffer_blas::norm(grad),
+        math::buffer_blas::norm(param.search_direction_));
   }
 }
 
@@ -80,7 +83,6 @@ bool LineSearchBase::TestCurrentArmojo(const LineSearchParam& param) const {
   Real f_step = CurrentEnergy();
   Real f0 = OriginalEnergy();
   Real armijo = param.armijo_.value() * OriginalGradientDotDirection();
-  AX_EXPECTS(armijo < 0);
   return arjimo_condition(f0, f_step, current_step_size_, armijo);
 }
 
@@ -124,7 +126,7 @@ Real LineSearchBase::SolveOptimalStepSizeNone(const LineSearchParam& param, Real
   return (lo + hi) * shrink;
 }
 
-void LineSearchBase::FixParameter(LineSearchParam& param) const noexcept {
+void LineSearchBase::FixParameter(LineSearchParam& param) const {
   FIX_PARAM_IMPL(min_step_size_);
   FIX_PARAM_IMPL(max_step_size_);
   FIX_PARAM_IMPL(initial_step_size_);
@@ -138,6 +140,40 @@ void LineSearchBase::FixParameter(LineSearchParam& param) const noexcept {
   FIX_PARAM_IMPL(max_step_expand_factor_);
   FIX_PARAM_IMPL(interpolation_kind_);
   FIX_PARAM_IMPL(max_iter_);
+
+  if (param.max_step_size_ <= param.min_step_size_) {
+    AX_THROW_INVALID_ARGUMENT("max_step_size_ must be greater than min_step_size_, got {} and {}",
+                              param.max_step_size_.value(), param.min_step_size_.value());
+  }
+  if (param.armijo_ <= 0 || param.armijo_ >= 1) {
+    AX_THROW_INVALID_ARGUMENT("armijo_ must be in the range (0, 1), got {}", param.armijo_.value());
+  }
+  if (param.curvature_ <= 0 || param.curvature_ >= 1) {
+    AX_THROW_INVALID_ARGUMENT("curvature_ must be in the range (0, 1), got {}",
+                              param.curvature_.value());
+  }
+  if (param.step_shrink_factor_ <= 0 || param.step_shrink_factor_ >= 1) {
+    AX_THROW_INVALID_ARGUMENT("step_shrink_factor_ must be in the range (0, 1), got {}",
+                              param.step_shrink_factor_.value());
+  }
+  if (param.min_step_shrink_factor_ <= 0 || param.min_step_shrink_factor_ >= 1) {
+    AX_THROW_INVALID_ARGUMENT("min_step_shrink_factor_ must be in the range (0, 1), got {}",
+                              param.min_step_shrink_factor_.value());
+  }
+  if (param.max_step_shrink_factor_ <= 0 || param.max_step_shrink_factor_ >= 1) {
+    AX_THROW_INVALID_ARGUMENT("max_step_shrink_factor_ must be in the range (0, 1), got {}",
+                              param.max_step_shrink_factor_.value());
+  }
+  if (param.step_expand_factor_ <= 1) {
+    AX_THROW_INVALID_ARGUMENT("step_expand_factor_ must be greater than 1, got {}",
+                              param.step_expand_factor_.value());
+  }
+  if (param.max_step_expand_factor_ <= param.step_expand_factor_) {
+    AX_THROW_INVALID_ARGUMENT(
+        "max_step_expand_factor_ must be greater than step_expand_factor_, "
+        "got {} and {}",
+        param.max_step_expand_factor_.value(), param.step_expand_factor_.value());
+  }
 }
 
 }  // namespace ax::optim2

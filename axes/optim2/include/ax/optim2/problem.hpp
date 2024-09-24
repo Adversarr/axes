@@ -58,6 +58,7 @@ public:
   Real GetBackupGradientNorm() const;
   ConstRealBufferView GetBackupVariables() const;
   ConstRealBufferView GetBackupGradient() const;
+  bool WillHessianChangeTopo() const noexcept;
 
 protected:
   // Workspace.

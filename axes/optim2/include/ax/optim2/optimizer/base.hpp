@@ -40,6 +40,8 @@ protected:
    */
   bool TestCriteria(const OptimizeParam& param, OptimizeResult& result);
 
+  void CheckInputParam(const OptimizeParam& param) const;
+
   LineSearchPtr linesearch_;
   ProblemPtr problem_;
 };

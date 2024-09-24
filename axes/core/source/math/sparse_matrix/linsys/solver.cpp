@@ -4,7 +4,7 @@
 
 namespace ax::math {
 
-void GeneralSparseSolverBase::SetProblem(RealSparseMatrixPtr mat) {
+void GeneralSparseSolverBase::SetProblem(ConstRealSparseMatrixPtr mat) {
   mat_ = std::move(mat);
 }
 

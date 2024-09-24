@@ -9,15 +9,15 @@ namespace ax::math {
 
 void GeneralSparseSolver_ConjugateGradient::AnalyzePattern() {
   GeneralSparseSolverBase::AnalyzePattern();
-  if (mat_->BlockedCols() != mat_->BlockedRows()) {
+  if (mat_->Cols() != mat_->Rows()) {
     AX_THROW_RUNTIME_ERROR("SparseSolver_ConjugateGradient: only support square matrix.");
   }
 
   const auto device = mat_->Device();
-  p_buf = create_buffer<Real>(device, {mat_->BlockSize(), mat_->BlockedCols()});
-  d_buf = create_buffer<Real>(device, {mat_->BlockSize(), mat_->BlockedCols()});
-  q_buf = create_buffer<Real>(device, {mat_->BlockSize(), mat_->BlockedRows()});
-  residual_buf = create_buffer<Real>(device, {mat_->BlockSize(), mat_->BlockedRows()});
+  p_buf = create_buffer<Real>(device, {mat_->Cols()});
+  d_buf = create_buffer<Real>(device, {mat_->Cols()});
+  q_buf = create_buffer<Real>(device, {mat_->Cols()});
+  residual_buf = create_buffer<Real>(device, {mat_->Cols()});
 }
 
 BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealBufferView b,

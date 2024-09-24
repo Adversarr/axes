@@ -71,7 +71,7 @@ protected:
 
   // For Derived class, should not access the underlying problem directly.
   void BeginSearch(LineSearchParam& param);
-  void EndSearch(LineSearchResult& result);  // TODO: necessary?
+  void EndSearch(LineSearchResult& result);
 
   // Test the criteria for the current step size.
   bool TestCurrentArmojo(const LineSearchParam& param) const;
@@ -84,7 +84,7 @@ protected:
   Real SolveOptimalStepSizeNone(const LineSearchParam& param, Real lo, Real hi) const;
 
 private:
-  void FixParameter(LineSearchParam& param) const noexcept;
+  void FixParameter(LineSearchParam& param) const;
   Real current_step_size_;
 
   Real grad_dot_dir_x0_;   // = <g, d> at x0

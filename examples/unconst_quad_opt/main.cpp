@@ -2,7 +2,10 @@
 #include "ax/core/init.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/optim2/optimizer/gradient_descent.hpp"
+#include "ax/optim2/optimizer/lbfgs.hpp"
 #include "ax/optim2/optimizer/ncg.hpp"
+#include "ax/math/sparse_matrix/csr.hpp"
+#include "ax/optim2/optimizer/newton.hpp"
 #include "ax/optim2/problem.hpp"
 
 using namespace ax;
@@ -16,8 +19,9 @@ public:
         gradient_buf_(10) {
     rhs_.setRandom();
 
-    variables_ = view_from_matrix(var_);
-    gradient_ = view_from_matrix(gradient_buf_);
+    variables_ = flatten(view_from_matrix(var_));
+    gradient_ = flatten(view_from_matrix(gradient_buf_));
+
     math::RealSparseCOO coo;
     coo.push_back({0, 0, 4.0});
     for (int i = 1; i < 10; ++i) {
@@ -26,6 +30,11 @@ public:
       coo.push_back({i - 1, i, 1.0});
     }
     A_.setFromTriplets(coo.begin(), coo.end());
+
+    auto csr = std::make_shared<math::RealCSRMatrix>(A_, BufferDevice::Host);
+    hessian_ = csr;
+    csr->Finish();
+    hessian_change_topo_ = false;
   }
 
   ~QuadProblem() override {
@@ -55,7 +64,7 @@ private:
 
 int main(int argc, char* argv[]) {
   po::add_option({
-    po::make_option("kind", "kind of optimizer", "gd"),
+    po::make_option("kind", "kind of optimizer", "newton"),
     po::make_option("cgkind", "kind of cg", "fr"),
   });
   initialize(argc, argv);
@@ -82,9 +91,14 @@ int main(int argc, char* argv[]) {
       AX_THROW_RUNTIME_ERROR("Unknown cg kind: {}", cgkind);
     }
     optimizer = std::move(ncg);
+  } else if (kind == "lbfgs") {
+    optimizer = std::make_unique<optim2::Optimizer_LBFGS>();
+  } else if (kind == "newton") {
+    optimizer = std::make_unique<optim2::Optimizer_Newton>();
   } else {
     AX_THROW_RUNTIME_ERROR("Unknown optimizer kind: {}", kind);
   }
+
   optimizer->tol_grad_ = 1e-8;
   optimizer->tol_var_ = 1e-16;
   optimizer->max_iter_ = 1000;

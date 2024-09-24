@@ -10,7 +10,7 @@ public:
   GeneralSparseSolverBase() = default;
   virtual ~GeneralSparseSolverBase() = default;
 
-  void SetProblem(RealSparseMatrixPtr mat);
+  void SetProblem(ConstRealSparseMatrixPtr mat);
 
   // APIs
   virtual BlockedLinsysSolveStatus Solve(ConstRealBufferView b, RealBufferView x) const = 0;
@@ -21,7 +21,7 @@ public:
 
   static std::unique_ptr<GeneralSparseSolverBase> Create(GeneralSparseSolverKind kind);
 
-  RealSparseMatrixPtr mat_;  ///< The matrix to solve
+  ConstRealSparseMatrixPtr mat_;  ///< The matrix to solve
 
   //////////////////// Iterative Solver ////////////////////
 

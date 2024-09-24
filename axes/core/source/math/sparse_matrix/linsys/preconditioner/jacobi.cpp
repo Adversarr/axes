@@ -17,7 +17,7 @@ void GeneralSparsePreconditioner_Jacobi::Factorize() {
   auto& mat = *mat_;
   inv_diag_ = create_buffer<Real>(device, {mat.BlockSize(), mat.BlockedRows()});
 
-  auto blocked = std::dynamic_pointer_cast<RealBlockMatrix>(mat_);
+  auto blocked = std::dynamic_pointer_cast<const RealBlockMatrix>(mat_);
   if (blocked) {
     if (device == BufferDevice::Device) {
       AX_CUDA_CALL(details::jacobi_precond_precompute_blocked_gpu(inv_diag_->View(), *blocked));

@@ -2,7 +2,7 @@
 
 namespace ax::math {
 
-void GeneralSparsePreconditionerBase::SetProblem(RealSparseMatrixPtr mat) {
+void GeneralSparsePreconditionerBase::SetProblem(ConstRealSparseMatrixPtr mat) {
   mat_ = mat;
 }
 

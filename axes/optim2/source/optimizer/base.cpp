@@ -25,4 +25,18 @@ bool OptimizerBase::TestCriteria(const OptimizeParam& param, OptimizeResult& res
   return any_converged;
 }
 
+void OptimizerBase::CheckInputParam(const OptimizeParam& param) const {
+  if (auto max_iter = param.max_iter_.value_or(max_iter_); max_iter <= 0) {
+    AX_THROW_INVALID_ARGUMENT("max_iter must be positive. got {}", max_iter);
+  }
+
+  if (auto tol_grad = param.tol_grad_.value_or(tol_grad_); tol_grad <= 0) {
+    AX_THROW_INVALID_ARGUMENT("tol_grad must be positive. got {:12.6e}", tol_grad);
+  }
+
+  if (auto tol_var = param.tol_var_.value_or(tol_var_); tol_var <= 0) {
+    AX_THROW_INVALID_ARGUMENT("tol_var must be positive. got {:12.6e}", tol_var);
+  }
+}
+
 }  // namespace ax::optim2

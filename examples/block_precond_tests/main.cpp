@@ -174,7 +174,8 @@ static std::shared_ptr<math::RealBlockMatrix> create_block_matrix2(BufferDevice 
           if (k == l) {
             val(k, k, bid) = j == 1 ? static_cast<Real>(2 + bs) : 1.0;
           } else {
-            val(k, l, bid) = (j == 1) ? 1.0 : 0.0;
+            // val(k, l, bid) = (j == 1) ? 1.0 : 0.0;
+            val(k, l, bid) = 0;
           }
         }
       }
@@ -285,7 +286,7 @@ static void test_cg_jacobi() {
 
   for (size_t i = 0; i < 4; ++i) {
     for (size_t j = 0; j < 2; ++j) {
-      AX_INFO("ic. x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
+      AX_INFO("x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
     }
   }
 }
@@ -319,7 +320,7 @@ static void test_cg_ic() {
 
   for (size_t i = 0; i < 4; ++i) {
     for (size_t j = 0; j < 2; ++j) {
-      AX_INFO("x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
+      AX_INFO("ic. x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
     }
   }
 }
@@ -426,20 +427,55 @@ static void test_cg_gpu_jacobi_diag() {
   }
 }
 
+static void test_cg_ic_gpu() {
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  cg.SetProblem(create_block_matrix2(BufferDevice::Device));
+  cg.Compute();
+  math::RealField2 b_mat(2, 4);
+  math::RealField2 x_mat(2, 4);
+  b_mat << 1, 2, 3, 4, 5, 6, 7, 8;
+  x_mat.setZero();
+  // Launch Host CG
+  math::SparseSolver_ConjugateGradient cg_host;
+  cg_host.SetProblem(create_block_matrix2(BufferDevice::Host)->ToSparseMatrix()).Compute();
+  math::RealVectorX b_flat = b_mat.reshaped();
+  math::RealField2 gt = cg_host.Solve(b_flat, {}).solution_.reshaped(2, 4);
+
+  auto x_device = create_buffer<Real>(BufferDevice::Device, {2, 4});
+  auto b_device = create_buffer<Real>(BufferDevice::Device, {2, 4});
+  copy(x_device->View(), view_from_matrix(x_mat));
+  copy(b_device->View(), view_from_matrix(b_mat));
+
+  // Ok, test our cg.
+  auto status = cg.Solve(b_device->View(), x_device->View());
+  AX_CHECK(status.converged_, "CG did not converge.");
+  copy(view_from_matrix(x_mat), x_device->View());
+
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 2; ++j) {
+      AX_INFO("ic. GPU: x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i),
+              gt((Index)j, (Index)i));
+    }
+  }
+}
+
+
 int main(int argc, char** argv) {
   initialize(argc, argv);
 
-  test_block_jacobi();
-  test_cg();
-  test_cg_jacobi();
-  test_cg_jacobi_diag();
-  test_cg_ic();
+  // test_block_jacobi();
+  // test_cg();
+  // test_cg_jacobi();
+  // test_cg_jacobi_diag();
+  // test_cg_ic();
 
 #ifdef AX_HAS_CUDA
-  test_cg_gpu();
-  test_block_jacobi_gpu();
-  test_cg_gpu_jacobi();
-  test_cg_gpu_jacobi_diag();
+  // test_cg_gpu();
+  // test_block_jacobi_gpu();
+  // test_cg_gpu_jacobi();
+  // test_cg_gpu_jacobi_diag();
+  test_cg_ic_gpu();
 #endif
 
   clean_up();

@@ -1,86 +1,23 @@
 #include "ax/core/excepts.hpp"
 #include "ax/math/details/cusparse_context.cuh"
 #include "csr_compress_impl.hpp"
-#include <cusparse.h>
+#include <cusparse_v2.h>
+#include "descriptors.cuh"
 
 namespace ax::math::details {
-
-struct Descr {
-  cusparseSpMatDescr_t sp_descr_{nullptr};
-  cusparseDnVecDescr_t rhs_descr_{nullptr};
-  cusparseDnVecDescr_t lhs_descr_{nullptr};
-  cusparseDnVecDescr_t rhs_dst_descr_{nullptr};
-  cusparseDnVecDescr_t lhs_dst_descr_{nullptr};
-
-  Real *buffer_{nullptr};
-  size_t buffer_size_{0};
-
-  Descr(size_t rows, size_t cols, size_t nnz, int *row_ptrs, int *col_indices,
-        Real *values) {
-    auto status =
-        cusparseCreateCsr(&sp_descr_, rows, cols, nnz, row_ptrs, col_indices,
-                          values, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                          CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
-
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR("Failed to create CSR matrix descriptor {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
-    }
-
-    status = cusparseCreateDnVec(&rhs_descr_, cols, nullptr, CUDA_R_64F);
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
-    }
-
-    status = cusparseCreateDnVec(&lhs_descr_, rows, nullptr, CUDA_R_64F);
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
-    }
-
-    status = cusparseCreateDnVec(&rhs_dst_descr_, rows, nullptr, CUDA_R_64F);
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
-    }
-
-    status = cusparseCreateDnVec(&lhs_dst_descr_, cols, nullptr, CUDA_R_64F);
-    if (status != CUSPARSE_STATUS_SUCCESS) {
-      AX_THROW_RUNTIME_ERROR("Failed to create dense vector descriptor {}: {}",
-                             cusparseGetErrorName(status),
-                             cusparseGetErrorString(status));
-    }
-  }
-
-  ~Descr() {
-    cusparseDestroySpMat(sp_descr_);
-    cusparseDestroyDnVec(rhs_descr_);
-    cusparseDestroyDnVec(lhs_descr_);
-
-    if (buffer_) {
-      cudaFree(buffer_);
-      buffer_ = nullptr;
-    }
-  }
-};
 
 std::shared_ptr<void> create_csr_compress_desc_gpu(IntBufferView row_ptrs,
                                                    IntBufferView col_indices,
                                                    BufferView<Real> values,
                                                    size_t rows, size_t cols) {
-  return std::make_shared<Descr>(rows, cols, values.Shape().X(),
+  return std::make_shared<CsrDescr>(rows, cols, values.Shape().X(),
                                  row_ptrs.Data(), col_indices.Data(),
                                  values.Data());
 }
 
 void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y,
                           Real alpha, Real beta, std::shared_ptr<void> desc) {
-  auto descr = std::static_pointer_cast<Descr>(desc);
+  auto descr = std::static_pointer_cast<CsrDescr>(desc);
 
   if (!is_1d(x.Shape())) {
     AX_THROW_RUNTIME_ERROR("Input vector must be 1D for now.");
@@ -149,7 +86,7 @@ void compute_csr_spmv_gpu(BufferView<const Real> x, BufferView<Real> y,
 void compute_csr_spmv_transpose_gpu(BufferView<const Real> x,
                                     BufferView<Real> y, Real alpha, Real beta,
                                     std::shared_ptr<void> desc) {
-  auto descr = std::static_pointer_cast<Descr>(desc);
+  auto descr = std::static_pointer_cast<CsrDescr>(desc);
   if (!is_1d(x.Shape())) {
     AX_THROW_RUNTIME_ERROR("Input vector must be 1D for now.");
   }

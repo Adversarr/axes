@@ -206,4 +206,10 @@ std::unique_ptr<RealCompressedMatrixBase> RealCSRMatrix::Transfer(BufferDevice d
   return new_csr;
 }
 
+void RealCSRMatrix::Reserve(size_t nnz) {
+  values_ = ensure_buffer<Real>(values_, device_, {nnz});
+  row_ptrs_ = ensure_buffer<int>(row_ptrs_, device_, {rows_ + 1});
+  col_indices_ = ensure_buffer<int>(col_indices_, device_, {nnz});
+}
+
 }  // namespace ax::math

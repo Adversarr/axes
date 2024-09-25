@@ -13,6 +13,7 @@
 #include "ax/core/buffer/host_buffer.hpp"
 #include "ax/core/excepts.hpp"
 #include "ax/math/sparse_matrix/details/matmul_impl.hpp"
+#include "details/block_convert_csr.hpp"
 
 namespace ax::math {
 
@@ -142,7 +143,8 @@ void RealBlockMatrix::Multiply(BufferView<const Real> rhs, BufferView<Real> dst,
     AX_CUDA_CALL(details::block_matrix_mv_gpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha,
                                               beta, mat_descr_));
   } else {
-    details::block_matrix_mv_cpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha, beta, mat_descr_);
+    details::block_matrix_mv_cpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha, beta,
+                                 mat_descr_);
   }
 }
 
@@ -355,18 +357,23 @@ void RealBlockMatrix::Finish() {
   if (Device() == BufferDevice::Device) {
     if (!mat_descr_) {
       mat_descr_ = details::create_bsr_mat_desc(row_ptrs_->View(), col_indices_->View(),
-                                               values_->View(), rows_, cols_);
+                                                values_->View(), rows_, cols_);
     }
   }
 #endif
 }
 
 std::unique_ptr<RealCSRMatrix> RealBlockMatrix::ToCSR() const {
-  auto csr = std::make_unique<RealCSRMatrix>(rows_, cols_, device_);
+  auto csr = std::make_unique<RealCSRMatrix>(Rows(), Cols(), device_);
   if (block_size_ == 1) {
     csr->SetData(row_ptrs_->ConstView(), col_indices_->ConstView(), flatten(values_->ConstView()));
   } else {
-    AX_NOT_IMPLEMENTED();
+    if (device_ == BufferDevice::Device) {
+      AX_CUDA_CALL(details::block_matrix_to_csr(*this, *csr));
+    } else {
+      // this will not be time consuming.
+      csr = std::make_unique<RealCSRMatrix>(ToSparseMatrix(), device_);
+    }
   }
   return csr;
 }

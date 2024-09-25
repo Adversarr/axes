@@ -46,6 +46,7 @@ public:
   std::unique_ptr<RealCSRMatrix> ToCSR() const final;
   std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
 
+  void Reserve(size_t nnz);
 };
 
 }  // namespace ax::math

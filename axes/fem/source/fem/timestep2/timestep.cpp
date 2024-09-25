@@ -269,7 +269,8 @@ void TimeStepBase::Compute() {
 
   math::RealMatrixX rhs(problem_.GetState()->GetNumDOFPerVertex(),
                         problem_.GetState()->GetNumVertices());
-  rhs.setConstant(1 / static_cast<Real>(problem_.GetState()->GetNumDOFPerVertex()));
+  rhs.setZero();
+  rhs.row(0).setOnes();
   cache_inertia_->SetRhs(view_from_matrix(rhs));
   cache_inertia_->UpdateGradient();
   auto body_force_norm = math::buffer_blas::norm(cache_inertia_->GetGradient());

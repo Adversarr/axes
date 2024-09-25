@@ -4,7 +4,7 @@
 
 #include "csr_compress_impl.hpp"
 
-#include <cusparse.h>
+#include <cusparse_v2.h>
 
 namespace ax::math::details {
 
@@ -82,6 +82,7 @@ std::shared_ptr<void> create_bsr_mat_desc(BufferView<int> row_ptrs,
     cusparseCreateMatDescr(&descr);
     cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
+    cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
     return std::shared_ptr<void>(descr, [](void *descr) {
       cusparseDestroyMatDescr(static_cast<cusparseMatDescr_t>(descr));
     });

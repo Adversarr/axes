@@ -11,6 +11,7 @@
 #include "ax/math/io.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/ic.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/utils/formatting.hpp"
@@ -41,7 +42,7 @@ bool near_boundary(const math::RealVector2& xy) {
 
 int main(int argc, char** argv) {
   po::add_option({
-    po::make_option<bool>("gpu", "Use gpu compute", "false"),
+    po::make_option<bool>("gpu", "Use gpu compute", "true"),
     po::make_option<size_t>("size", "Size of the mesh", "10"),
     po::make_option<bool>("fsai", "Use fsai preconditioner", "false"),
   });
@@ -127,7 +128,7 @@ int main(int argc, char** argv) {
   if (use_fsai) {
     cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
   } else {
-    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
   }
   cg.SetProblem(bsr);
   cg.Compute();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cusparse.h>
+#include <cusparse_v2.h>
 #include <stdexcept>
 namespace ax::math::details {
 

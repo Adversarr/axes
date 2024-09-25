@@ -22,4 +22,8 @@ void RealCompressedMatrixBase::Finish() {
   // Do nothing.
 }
 
+void* RealCompressedMatrixBase::GetMatDescr() const {
+  return mat_descr_.get();
+}
+
 }  // namespace ax::math

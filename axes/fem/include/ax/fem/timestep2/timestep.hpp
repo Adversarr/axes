@@ -97,7 +97,7 @@ protected:
 
   PruneDirichletBc prune_dirichlet_bc_;  ///< The Dirichlet boundary condition pruner.
 
-  Real tol_rel_grad_{1e-3};   ///< Relative convergence criteria
+  Real tol_rel_grad_{3e-3};   ///< Relative convergence criteria
   Real tol_abs_grad_{1e-12};  ///< Absolute convergence criteria, computed from relative
 
 private:

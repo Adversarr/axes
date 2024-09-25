@@ -17,7 +17,11 @@ void GeneralSparsePreconditioner_IncompleteCholesky::AnalyzePattern() {
     if (device == BufferDevice::Host) {
       pimpl_ = std::make_unique<ImplIcCpu>(mat_);
     } else {
-      AX_NOT_IMPLEMENTED();
+      if (mat_->BlockSize() > 1) { // TODO: If you support other kind of matrix, you need to add them here.
+        pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_->ToCSR());
+      } else {
+        pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_);
+      }
     }
   }
 
@@ -59,8 +63,7 @@ void GeneralSparsePreconditioner_IncompleteCholesky::Solve(ConstRealBufferView b
   pimpl_->Solve(b, x);
 }
 
-GeneralPreconditionerKind
-GeneralSparsePreconditioner_IncompleteCholesky::GetKind() const {
+GeneralPreconditionerKind GeneralSparsePreconditioner_IncompleteCholesky::GetKind() const {
   return GeneralPreconditionerKind::IncompleteCholesky;
 }
-} // namespace ax::math
+}  // namespace ax::math

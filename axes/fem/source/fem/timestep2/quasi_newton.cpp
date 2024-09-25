@@ -5,6 +5,8 @@
 #include "ax/fem/terms/laplace.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/ic.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/downcast.hpp"
 #include "ax/optim2/optimizer/lbfgs.hpp"
@@ -32,10 +34,11 @@ void TimeStep_QuasiNewton::Compute() {
   auto hes = approximate_problem_->GetHessian();
   solver_ = std::make_unique<math::GeneralSparseSolver_ConjugateGradient>();  // hard coded.
   // solver_ = std::make_unique<math::GeneralSparseSolver_Downcast>();  // hard coded.
-  solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+  // solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
+  solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
   solver_->SetProblem(hes);
   solver_->Compute();
-  solver_->max_iteration_ = 30;  // do 10 step of pcg is enough for LBFGS preconditioning
+  solver_->max_iteration_ = 20;  // do 10 step of pcg is enough for LBFGS preconditioning
 }
 
 void TimeStep_QuasiNewton::SolveStep() {

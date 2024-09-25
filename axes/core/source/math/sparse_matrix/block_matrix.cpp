@@ -140,9 +140,9 @@ void RealBlockMatrix::Multiply(BufferView<const Real> rhs, BufferView<Real> dst,
       AX_THROW_RUNTIME_ERROR("Buffer should be continuous for GPU matmul.");
     }
     AX_CUDA_CALL(details::block_matrix_mv_gpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha,
-                                              beta, mat_desc_));
+                                              beta, mat_descr_));
   } else {
-    details::block_matrix_mv_cpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha, beta, mat_desc_);
+    details::block_matrix_mv_cpu(rows_, cols_, value, rptr, cidx, rhs, dst, alpha, beta, mat_descr_);
   }
 }
 
@@ -227,10 +227,10 @@ void RealBlockMatrix::TransposeMultiply(ConstRealBufferView x, RealBufferView y,
       AX_THROW_RUNTIME_ERROR("Buffer should be continuous for GPU matmul.");
     }
     AX_CUDA_CALL(details::block_matrix_transpose_mv_gpu(rows_, cols_, value, rptr, cidx, x, y,
-                                                        alpha, beta, mat_desc_));
+                                                        alpha, beta, mat_descr_));
   } else {
     details::block_matrix_transpose_mv_cpu(rows_, cols_, value, rptr, cidx, x, y, alpha, beta,
-                                           mat_desc_);
+                                           mat_descr_);
   }
 }
 
@@ -353,8 +353,8 @@ void RealBlockMatrix::SetFromBlockedTriplets(ConstIntBufferView row, ConstIntBuf
 void RealBlockMatrix::Finish() {
 #ifdef AX_HAS_CUDA
   if (Device() == BufferDevice::Device) {
-    if (!mat_desc_) {
-      mat_desc_ = details::create_bsr_mat_desc(row_ptrs_->View(), col_indices_->View(),
+    if (!mat_descr_) {
+      mat_descr_ = details::create_bsr_mat_desc(row_ptrs_->View(), col_indices_->View(),
                                                values_->View(), rows_, cols_);
     }
   }

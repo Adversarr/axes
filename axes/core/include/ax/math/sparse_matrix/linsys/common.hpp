@@ -10,10 +10,11 @@ AX_DEFINE_ENUM_CLASS(GeneralSparseSolverKind,
 );
 
 AX_DEFINE_ENUM_CLASS(GeneralPreconditionerKind,
-                     Jacobi,       // Jacobi preconditioner.
-                     BlockJacobi,  // Block Jacobi preconditioner.
-                     Identity,     // Identity preconditioner.
-                     FSAI0,        // FSAI0 preconditioner.
+                     IncompleteCholesky,  // Incomplete Cholesky preconditioner.
+                     Jacobi,              // Jacobi preconditioner.
+                     BlockJacobi,         // Block Jacobi preconditioner.
+                     Identity,            // Identity preconditioner.
+                     FSAI0,               // FSAI0 preconditioner.
 )
 
 class GeneralSparsePreconditionerBase;

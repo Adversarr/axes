@@ -1,5 +1,6 @@
 #pragma once
 #include "ax/core/buffer/buffer_view.hpp"
+#include "ax/core/gsl.hpp"
 #include "ax/math/sparse.hpp"
 #include "ax/math/sparse_matrix/sparse_matrix.hpp"
 
@@ -45,8 +46,6 @@ public:
   std::unique_ptr<RealCSRMatrix> ToCSR() const final;
   std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
 
-private:
-  std::shared_ptr<void> mat_descr_;
 };
 
 }  // namespace ax::math

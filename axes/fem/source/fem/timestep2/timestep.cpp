@@ -261,5 +261,23 @@ void TimeStepVariationalProblem::MarkVariableChanged() {
   timestep_->MarkCurrentSolutionUpdated();
 }
 
-void TimeStepBase::Compute() {}
-}  // namespace ax::fem
+void TimeStepBase::Compute() {
+  // prepare the tol_grad.
+  if (tol_rel_grad_ < 1e-5) {
+    AX_WARN("Relative Error is too small? got {:12.6e}", tol_rel_grad_);
+  }
+
+  math::RealMatrixX rhs(problem_.GetState()->GetNumDOFPerVertex(),
+                        problem_.GetState()->GetNumVertices());
+  rhs.setConstant(1 / static_cast<Real>(problem_.GetState()->GetNumDOFPerVertex()));
+  cache_inertia_->SetRhs(view_from_matrix(rhs));
+  cache_inertia_->UpdateGradient();
+  auto body_force_norm = math::buffer_blas::norm(cache_inertia_->GetGradient());
+  tol_abs_grad_ = tol_rel_grad_ * body_force_norm;
+
+  AX_INFO("Body force norm: {:12.6e} | Tol abs grad: {:12.6e}", body_force_norm, tol_abs_grad_);
+}
+void TimeStepBase::SetRelativeTolerance(Real tol_rel_grad) {
+  tol_rel_grad_ = tol_rel_grad;
+}
+} // namespace ax::fem

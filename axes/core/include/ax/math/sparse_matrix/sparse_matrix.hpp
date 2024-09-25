@@ -11,6 +11,7 @@ class RealCSRMatrix;
 class RealCompressedMatrixBase {
 public:
   RealCompressedMatrixBase() = default;
+
   RealCompressedMatrixBase(size_t rows, size_t cols, BufferDevice device)
       : rows_(rows), cols_(cols), device_(device) {}
 
@@ -60,6 +61,8 @@ public:
 
   virtual std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const = 0;
 
+  void* GetMatDescr() const;
+
 protected:
   BufferPtr<int> row_ptrs_;     // row_ptrs if CSR, col_ptrs if CSC
   BufferPtr<int> col_indices_;  // col_indices if CSR, row_indices if CSC
@@ -69,6 +72,7 @@ protected:
   size_t block_size_{1};        // block size
   BufferDevice device_;         // device
   bool is_symm_{false};         // is symmetric, if True, may perform TransposeMultiply faster
+  std::shared_ptr<void> mat_descr_; // matrix descriptor
 };
 
 }  // namespace ax::math

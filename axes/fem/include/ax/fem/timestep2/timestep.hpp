@@ -81,6 +81,8 @@ public:
 
   std::unique_ptr<TimeStepVariationalProblem> PrepareVariationalProblem();
 
+  void SetRelativeTolerance(Real tol_rel_grad);
+
 protected:
   BufferPtr<Real> velocity_;   ///< The velocity of each vertex
   BufferPtr<Real> u_back_;     ///< The last displacement of each vertex
@@ -94,6 +96,9 @@ protected:
   shared_not_null<Mesh> mesh_;  ///< The mesh.
 
   PruneDirichletBc prune_dirichlet_bc_;  ///< The Dirichlet boundary condition pruner.
+
+  Real tol_rel_grad_{1e-3};   ///< Relative convergence criteria
+  Real tol_abs_grad_{1e-12};  ///< Absolute convergence criteria, computed from relative
 
 private:
   MassTerm *cache_inertia_{nullptr};           ///< Cache the inertia term.

@@ -45,8 +45,6 @@ public:
 
   std::unique_ptr<RealCSRMatrix> ToCSR() const override;
   std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
-private:
-  std::shared_ptr<void> mat_desc_;
 };
 
 // NOTE: We use the RealBufferView to represent a view of a block vector.

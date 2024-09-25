@@ -5,6 +5,7 @@
 #include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/sparse_matrix/block_matrix.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/ic.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 
@@ -284,6 +285,40 @@ static void test_cg_jacobi() {
 
   for (size_t i = 0; i < 4; ++i) {
     for (size_t j = 0; j < 2; ++j) {
+      AX_INFO("ic. x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
+    }
+  }
+}
+
+static void test_cg_ic() {
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  cg.SetProblem(create_block_matrix2(BufferDevice::Host));
+  cg.Compute();
+
+  math::RealField2 b_mat(2, 4);
+  math::RealField2 x_mat(2, 4);
+  b_mat << 1, 2, 3, 4, 5, 6, 7, 8;
+  x_mat.setZero();
+  auto spm_classical = create_block_matrix2(BufferDevice::Host)->ToSparseMatrix();
+  // Launch Host CG
+  math::SparseSolver_ConjugateGradient cg_host;
+  cg_host.SetProblem(spm_classical).Compute();
+  math::RealVectorX b_flat = b_mat.reshaped();
+  math::RealField2 gt = cg_host.Solve(b_flat, {}).solution_.reshaped(2, 4);
+
+  math::RealField2 temp(2, 4);
+  // Check that the solution is correct
+  cg.mat_->Multiply(view_from_matrix(gt), view_from_matrix(temp), 1., 0.);
+  math::RealField2 resdual = b_mat - temp;
+  AX_CHECK(resdual.norm() < 1e-9, "CG solution is wrong, residual norm: {}", resdual.norm());
+
+  // Ok, test our cg.
+  auto status = cg.Solve(view_from_matrix(b_mat), view_from_matrix(x_mat));
+  AX_CHECK(status.converged_, "CG did not converge.");
+
+  for (size_t i = 0; i < 4; ++i) {
+    for (size_t j = 0; j < 2; ++j) {
       AX_INFO("x({},{}) = {}, gt = {}", i, j, x_mat((Index)j, (Index)i), gt((Index)j, (Index)i));
     }
   }
@@ -398,6 +433,7 @@ int main(int argc, char** argv) {
   test_cg();
   test_cg_jacobi();
   test_cg_jacobi_diag();
+  test_cg_ic();
 
 #ifdef AX_HAS_CUDA
   test_cg_gpu();

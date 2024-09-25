@@ -18,9 +18,9 @@ void compute_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
   auto mat_col = mat.ColIndices()->ConstView();
   auto mat_val = mat.Values()->ConstView();
   auto find_original_value = [&](int row, int col) -> Real {
-    int row_start = mat_row(row);
-    int row_end = mat_row(row + 1);
-    for (int i = row_start; i < row_end; ++i) {
+    auto row_start = static_cast<size_t>(mat_row(static_cast<size_t>(row)));
+    auto row_end = static_cast<size_t>(mat_row(static_cast<size_t>(row) + 1));
+    for (auto i = row_start; i < row_end; ++i) {
       if (mat_col(i) == col) {
         return mat_val(i);
       }
@@ -29,18 +29,18 @@ void compute_fsai_cpu(const RealCSRMatrix& mat, RealCSRMatrix& fact_inv) {
   };
 
   auto job_of_row = [&](size_t row) mutable {
-    int row_start = row_ptr(row);
-    int row_end = row_ptr(row + 1);
-    Index row_size = row_end - row_start;
+    auto row_start = static_cast<size_t>(row_ptr(row));
+    // auto row_end = static_cast<size_t>(row_ptr(row + 1));
+    Index row_size = row_ptr(row + 1) - row_ptr(row);
     AX_EXPECTS(row_size > 0 && "Invalid row size");
     RealMatrixX mat(row_size, row_size);
     RealVectorX b = RealVectorX::Unit(row_size, row_size - 1);
 
     for (int j = 0; j < row_size; ++j) {
-      int g_j_coresp_col = col_ind(static_cast<size_t>(row_start + j));
+      int g_j_coresp_col = col_ind(row_start + static_cast<size_t>(j));
       for (int i = 0; i < row_size; ++i) {
         // for (i, j) find the corresponding coefficient in original matrix.
-        int g_i_coresp_col = col_ind(static_cast<size_t>(row_start + i));
+        int g_i_coresp_col = col_ind(row_start + static_cast<size_t>(i));
         Real a_ij = find_original_value(g_j_coresp_col, g_i_coresp_col);
         mat(i, j) = a_ij;
       }

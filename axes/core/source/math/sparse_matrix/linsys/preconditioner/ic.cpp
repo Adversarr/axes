@@ -26,6 +26,7 @@ void GeneralSparsePreconditioner_IncompleteCholesky::AnalyzePattern() {
               "BSR matrix is not naively supported. AnalyzePattern will do noting and Factorize "
               "will use CSR format.");
         });
+        return;
       } else {
         AX_CUDA_CALL(pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_));
       }

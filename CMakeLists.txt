@@ -119,6 +119,9 @@ if (AX_ENABLE_CUDA)
   set(CMAKE_CUDA_STANDARD 20)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   set(CMAKE_CUDA_ARCHITECTURES 86)
+  if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    set(CMAKE_CUDA_ARCHITECTURES native)
+  endif()
   find_package(CUDAToolkit REQUIRED)
   message(STATUS "CUDAToolkit_ROOT: ${CUDAToolkit_ROOT}")
   message(STATUS "CUDAToolkit_ROOT_DIR: ${CUDAToolkit_ROOT_DIR}")
@@ -131,7 +134,8 @@ if (AX_ENABLE_CUDA)
   message(STATUS "CMAKE_CUDA_COMPILER_VERSION: ${CMAKE_CUDA_COMPILER_VERSION}")
   message(STATUS "CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
   enable_language(CUDA)
-  list(APPEND AX_CUDA_FLAGS "--extended-lambda" "--expt-relaxed-constexpr" "-rdc=true" "-c")
+  list(APPEND AX_CUDA_FLAGS "--expt-extended-lambda" "--expt-relaxed-constexpr")
+  # set(AX_CUDA_FLAGS "${AX_CUDA_FLAGS} --expt-relaxed-constexpr --expt-extended-lambda")
 endif()
 
 ##############################################################################################
@@ -207,7 +211,7 @@ endif()
 # Default Asset Directory.
 set(AX_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 # Disable LTO:
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
 ##############################################################################################
 # Now, declare the library and executables.

@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
     gl_mesh.indices_.col(tid * 4 + 3) = math::IndexVector3(l, i, j);
   }
   gl_mesh.colors_.resize(4, static_cast<Index>(n_vertices));
-  gl_mesh.colors_.topRows(3) = vertices.cwiseAbs();
+  gl_mesh.colors_.topRows(3) = vertices.cwiseAbs() * 0.6;
   gl_mesh.vertices_ = vertices;
   gl_mesh.normals_ = geo::normal_per_vertex(vertices, gl_mesh.indices_);
 

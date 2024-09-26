@@ -7,6 +7,7 @@
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/ic.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/downcast.hpp"
 #include "ax/optim2/optimizer/lbfgs.hpp"
@@ -34,13 +35,13 @@ void TimeStep_QuasiNewton::Compute() {
   auto hes = approximate_problem_->GetHessian();
   if (!solver_) {  // hard code path
     solver_ = std::make_unique<math::GeneralSparseSolver_ConjugateGradient>();
-    solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
+    solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_Jacobi>();
+    solver_->tolerance_ = tol_abs_grad_;
     // solver_->preconditioner_
     //     = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
   }
   solver_->SetProblem(hes);
   solver_->Compute();
-  solver_->max_iteration_ = 20;  // do 10 step of pcg is enough for LBFGS preconditioning
 }
 
 void TimeStep_QuasiNewton::SolveStep() {

@@ -1,70 +1,30 @@
 #include "ax/fem/timestepper/quasi_newton.hpp"
 
 #include <exception>
+#include <iostream>
 
 #include "ax/core/entt.hpp"
 #include "ax/fem/laplace_matrix.hpp"
 #include "ax/math/io.hpp"
-#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
 #include "ax/math/linsys/preconditioner/FromLambda.hpp"
+#include "ax/math/linsys/sparse/ConjugateGradient.hpp"
+#include "ax/math/utils/formatting.hpp"
 #include "ax/optim/common.hpp"
 #include "ax/utils/ndrange.hpp"
-#include "ax/math/utils/formatting.hpp"
 #include "ax/utils/opt.hpp"
 #include "ax/utils/time.hpp"
-#include <iostream>
 // Very experimental
 #define DIMENSION 128
-// auto *cmpt = try_get_resource<SparseInverseApproximator>();
-// AX_THROW_IF_NULL(cmpt, "SparseInverseApproximator not set.");
-// return cmpt->A_ * gk;
-// auto apply = [cmpt](math::RealVectorX const &v) -> math::RealVectorX {
-//   auto const &A = cmpt->A_;
-//   auto const &delta = cmpt->eig_modification_;
-//   math::RealVectorX At_v = A.transpose() * v;
-//   return A * At_v + delta * v;
-// };
-//
-// if (sk.size() == 0 || yk.size() == 0) {
-//   return apply(gk);
-// }
-//
-// if (!(cmpt->require_check_secant_)) {
-//   return apply(gk);
-// }
-//
-// // NOTE: Our original implementation in python
-// // Hyk = self.apply_LDLT(y[-1])
-// // gamma_Hsy = np.dot(y[-1], s[-1]) / (np.dot(y[-1], Hyk) + epsilon)
-// // LDLT_q = self.apply_LDLT(q)
-// // r = gamma_Hsy * LDLT_q
-// // ---------------------------------------------------------------------
-// // Derivation: Estimiate the secant equation coefficient
-// // ---------------------------------------------------------------------
-// // 1. Traditional. Estimate the 1 rank approximation of H0.
-// // gamma_LSy = (np.dot(s[-1], y[-1]) / (np.dot(y[-1], y[-1]) + epsilon))
-// // print(f'LSy: {gamma_LSy}')
-// // 2. Ours. Estimate the approximation of H0, but with a different scale.
-// // Secant equation: yk = Hk * sk
-// //   <yk, sk> = gamma * <yk, I yk> => H0 = gamma I
-// //   <yk, sk> = gamma * <yk, H yk> => gamma = <yk, sk> / <yk, H yk>
-// Real const gamma_Hsy = yk.dot(sk) / (yk.dot(apply(yk)) + math::epsilon<Real>);
-// return gamma_Hsy * apply(gk);
 
 using namespace ax;
-bool apply_ppcg(
-  math::RealSparseMatrix const& A,
-  math::RealVectorX const& b,
-  math::RealVectorX& x,
-  math::RealVectorX& r,
-  math::RealMatrixX const& z,
-  Index max_iter = 1000,
-  Real tol_l2 = 1e-6
-) {
+
+bool apply_ppcg(math::RealSparseMatrix const &A, math::RealVectorX const &b, math::RealVectorX &x,
+                math::RealVectorX &r, math::RealMatrixX const &z, Index max_iter = 1000,
+                Real tol_l2 = 1e-6) {
   // Apply Projected Preconditioned Conjugate Gradient
   // 1. r = b - A x
   r = b - A * x;
-  auto project_ortho_z = [&z] (math::RealVectorX& v) {
+  auto project_ortho_z = [&z](math::RealVectorX &v) {
     v = v - z * (z.transpose() * v);
   };
   {
@@ -73,7 +33,7 @@ bool apply_ppcg(
     AX_INFO("PPCG: |x - Px|={:12.6e}", (x - x_under_z).norm());
   }
   math::RealVectorX g = r;
-  project_ortho_z(g); // g = P r
+  project_ortho_z(g);  // g = P r
   math::RealVectorX d = -g;
   bool converged = false;
   Real r_dot_g = r.dot(g);
@@ -101,16 +61,9 @@ bool apply_ppcg(
   return converged;
 }
 
-bool apply_extended_cg(
-    math::RealSparseMatrix const& A,
-    math::RealVectorX const& b,
-    math::RealVectorX& x,
-    math::RealVectorX& u,
-    math::RealVectorX& r,
-    math::RealMatrixX const& z,
-    Index max_iter = 1000,
-    Real tol_l2 = 1e-6
-) {
+bool apply_extended_cg(math::RealSparseMatrix const &A, math::RealVectorX const &b,
+                       math::RealVectorX &x, math::RealVectorX &u, math::RealVectorX &r,
+                       math::RealMatrixX const &z, Index max_iter = 1000, Real tol_l2 = 1e-6) {
   bool converged = false;
 
   // Our formula is:
@@ -131,7 +84,8 @@ bool apply_extended_cg(
   for (Index i = 0; i < max_iter; ++i) {
     math::RealVectorX Ap_x = A * p_x;
     math::RealVectorX Ap_u = z.transpose() * Ap_x;
-    Real alpha = (partial_x.dot(partial_x) + partial_u.dot(partial_u)) / (p_x.dot(Ap_x) + p_u.dot(Ap_u));
+    Real alpha
+        = (partial_x.dot(partial_x) + partial_u.dot(partial_u)) / (p_x.dot(Ap_x) + p_u.dot(Ap_u));
     x += alpha * p_x;
     u += alpha * p_u;
     r += alpha * (Ap_x + z * Ap_u);
@@ -193,34 +147,6 @@ template <int dim>
 void Timestepper_QuasiNewton<dim>::BeginSimulation(Real dt) {
   TimeStepperBase<dim>::BeginSimulation(dt);
   UpdateSolverLaplace();
-
-  // Now it is N, DIMENSION each column is a basis.
-  // basis_ = math::read_npy_v10_real("/home/adversarr/Repo/axes/basis.npy");
-  // AX_CHECK(basis_.rows() == DIMENSION, "The basis should be {}.", DIMENSION);
-  // for (auto i: utils::range(basis_.cols())) {
-  //   basis_.col(i).setZero();
-  //   basis_(i, i) = 1.;
-  // }
-  // we assume the b.c. does not change in time
-  // for (auto [i, d]: utils::ndrange<Index>(this->mesh_->GetNumVertices(), dim)) {
-  //   if (this->mesh_->IsDirichletBoundary(i, d)) {
-  //     basis_.row(i).setZero(); // we now assume that, all the dof are fixed for this vertex
-  //   }
-  // }
-
-  // // Make sure the basis is unit, ortho, we perform a Gram-Schmidt.
-  // for (size_t i = 0; i < basis_.cols(); ++i) {
-  //   for (size_t j = 0; j < i; ++j) {
-  //     basis_.col(i) -= basis_.col(j).dot(basis_.col(i)) * basis_.col(j);
-  //   }
-  //   basis_.col(i).normalize();
-  // }
-  // AX_CHECK(basis_.cols() == DIMENSION, "The basis should be 32.");
-
-  // std::cout << basis_.transpose() * basis_ << std::endl;
-
-  // math::write_npy_v10("/home/adversarr/Repo/neural_subspace/basis_actual.npy", basis_);
-
   static_inverse_approximation_ = GetLaplacianAsApproximation();
   static_inverse_approximation_ = math::kronecker_identity<3>(static_inverse_approximation_);
 }
@@ -239,7 +165,8 @@ void Timestepper_QuasiNewton<dim>::BeginTimestep() {
 
 class PreconditionerByBasis : public math::PreconditionerBase {
 public:
-  explicit PreconditionerByBasis(math::RealMatrixX const &basis, math::RealMatrixX const &inverse_under_basis)
+  explicit PreconditionerByBasis(math::RealMatrixX const &basis,
+                                 math::RealMatrixX const &inverse_under_basis)
       : basis_(basis), inverse_under_basis_(inverse_under_basis) {}
 
   math::RealMatrixX Solve(const math::RealMatrixX &b) override {
@@ -253,13 +180,11 @@ public:
     return result + (b - basis_ * b_under_basis);
   }
 
-  void AnalyzePattern() override{}
+  void AnalyzePattern() override {}
 
   void Factorize() override {}
 
-  math::PreconditionerKind GetKind() const override {
-    return math::PreconditionerKind::Identity;
-  }
+  math::PreconditionerKind GetKind() const override { return math::PreconditionerKind::Identity; }
 
 private:
   math::RealMatrixX basis_;
@@ -281,84 +206,19 @@ void Timestepper_QuasiNewton<dim>::SolveTimestep() {
           return approx.solution_;
         });
   } else if (strategy_ == LbfgsStrategy::kLaplacian) {
-    optimizer.SetApproxSolve([&](Gradient const &g, Variable const &, Variable const &,
-                                 Gradient const &) -> Variable {
-      auto start = utils::now();
-      auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
-      auto end = utils::now();
-      AX_INFO("Solver Time Elapsed: {}", end - start);
-      return approx.solution_;
-    });
+    optimizer.SetApproxSolve(
+        [&](Gradient const &g, Variable const &, Variable const &, Gradient const &) -> Variable {
+          auto start = utils::now();
+          auto approx = solver_->Solve(g, g * this->dt_ * this->dt_);
+          auto end = utils::now();
+          AX_INFO("Solver Time Elapsed: {}", end - start);
+          return approx.solution_;
+        });
   } else if (strategy_ == LbfgsStrategy::kReservedForExperimental) {
-    optimizer_.SetApproxSolve([&](Gradient const &gk, Variable const &du,
-                                  Gradient const &sk,
+    optimizer_.SetApproxSolve([&](Gradient const &gk, Variable const &du, Gradient const &sk,
                                   Gradient const &yk) -> Variable {
-      Index num_vert = this->GetMesh()->GetNumVertices();
-      // auto hessian = this->Hessian(du.reshaped(dim, num_vert) + this->u_,
-      //                              true);                // give me the SPSD hessian.
-      // auto hessian = this->GetLaplacianAsApproximation();
-      // math::RealMatrixX full_basis(DIMENSION * 3, num_vert * dim);  // (128 * 3, N * 3)
-      // full_basis.setZero();
-      // for (Index d = 0; d < dim; ++d) {
-      //   full_basis.block(d * DIMENSION, d * num_vert, DIMENSION, num_vert) = basis_;
-      // }
-      math::RealMatrixX full_basis = basis_;
-
-      // std::cout << full_basis.transpose() * full_basis << std::endl;
-      // compute the reduced hessian, (128*3, 128*3)
-      math::RealMatrixX reduced_hessian = full_basis * static_inverse_approximation_ * full_basis.transpose();
-      // AX_CHECK(reduced_hessian.rows() == DIMENSION * 3 && reduced_hessian.cols() == DIMENSION * 3,
-      //          "Invalid reduced hessian size: {}, {}", reduced_hessian.rows(), reduced_hessian.cols());
-      // std::cout << reduced_hessian << std::endl;
-
-      // we inspect its eigen system:
-      // Eigen::SelfAdjointEigenSolver<math::RealMatrixX> eigensolver(reduced_hessian);
-      // AX_INFO("Eigen Values are: {}", eigensolver.eigenvalues());
-
-      // r = b - Ax, Projection is P, the shape of P is (32, N), equal to the basis.Transpose.
-      Gradient reduced_gradient = full_basis * gk;  // P@r
-      // Solve the reduced system
-      Eigen::LDLT<math::RealMatrixX> llt(reduced_hessian);
-      Gradient reduced_result = llt.solve(reduced_gradient);
-      AX_INFO("Reduced Gradient Norm: {:12.6e}", reduced_gradient.norm());
-      AX_INFO("Reduced Result Norm: {:12.6e}", reduced_result.norm());
-      // Gradient reduced_result = reduced_gradient;
-
-      // assemble the final result
-      Gradient u = full_basis.transpose() * reduced_result;  // P.T @ (P A^{-1} P.T) P @ r
-      // unsolved part
-      Gradient new_residual = gk - static_inverse_approximation_ * u;
-      Gradient result = u + new_residual;
-      AX_INFO("U norm: {:12.6e}", u.norm());
-      AX_INFO("Res norm: {:12.6e}/{:12.6e}", new_residual.norm(), gk.norm());
-      AX_INFO("Gradient dot Result: {:12.6e}", math::dot(gk, result));
-
-      // // VERSION 2: PPCG
-      // math::RealVectorX x, r;
-      // x = result;
-      // apply_ppcg(static_inverse_approximation_, result, x, r, full_basis);
-      // unsolved_part = x - solved_part;
-      // result = x;
-      // AX_INFO("After PPCG, unsolved_part norm: {:12.6e}", unsolved_part.norm());
-
-      // // VERSION 3: Extended CG
-      // math::RealVectorX x = gk, r, u;
-      // x.setZero();
-      // apply_extended_cg(
-      //   static_inverse_approximation_,
-      //   gk,
-      //   x,
-      //   u,
-      //   r,
-      //   full_basis
-      // );
-      // result = x + full_basis * u;
-
-      // I want to know about the residual:
-      math::RealVectorX residual = static_inverse_approximation_ * result - gk;
-      AX_INFO("Residual norm: {:12.6e} |gk|={:12.6e} |P gk|={:12.6e}", residual.norm(), gk.norm(),
-              result.norm());
-      return result;
+      AX_NOT_IMPLEMENTED();
+      AX_UNREACHABLE();
     });
   }
 
@@ -376,16 +236,17 @@ void Timestepper_QuasiNewton<dim>::SolveTimestep() {
     AX_ERROR("Failed to converge, early stopped!");
   }
 
-  AX_INFO("Converged: {}(v: {}, g: {}), Iterations={}", result.converged_var_ || result.converged_grad_,
-    result.converged_var_, result.converged_grad_, result.n_iter_);
+  AX_INFO("Converged: {}(v: {}, g: {}), Iterations={}",
+          result.converged_var_ || result.converged_grad_, result.converged_var_,
+          result.converged_grad_, result.n_iter_);
   this->du_ = result.x_opt_.reshaped(dim, this->mesh_->GetNumVertices());
 }
 
 template <int dim>
 void Timestepper_QuasiNewton<dim>::SetOptions(const utils::Options &option) {
   utils::extract_enum(option, "lbfgs_strategy", strategy_);
-  utils::extract_and_create<math::HostSparseSolverBase, math::HostSparseSolverKind>(option, "sparse_solver",
-                                                                            solver_);
+  utils::extract_and_create<math::HostSparseSolverBase, math::HostSparseSolverKind>(
+      option, "sparse_solver", solver_);
   extract_tunable(option, "sparse_solver_opt", solver_.get());
   /* SECT: Lbfgs Options */
   extract_tunable(option, "optimizer_opt", &optimizer_);

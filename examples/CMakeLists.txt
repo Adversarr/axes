@@ -20,11 +20,6 @@ axes_add_example(csr_compress_tests "axes_core;axes_fem")
 axes_add_example(fem_gather_tests "axes_core;axes_fem")
 axes_add_example(unconst_quad_opt "axes_core;axes_optim2")
 
-# admm
-axes_add_example(cadmm "axes_gl;axes_xpbd")
-axes_add_example(admm_sph "axes_gl;axes_xpbd")
-axes_add_example(springs "axes_gl;axes_optim")
-
 # FEM
 axes_add_example(fem2debug "axes_gl;axes_fem")
 axes_add_example(fem3debug "axes_gl;axes_fem")
@@ -41,9 +36,7 @@ axes_add_example(poisson_bench "axes_fem;axes_gl")
 if(AX_ENABLE_CUDA)
   axes_add_example(cuda_intro "axes_core")
   axes_add_example(fem_tetra_fd_gpu "axes_fem")
-  axes_add_example(map_to_cuda "axes_core")
   axes_add_example(cu_admm "axes_gl;axes_fem")
-  axes_add_example(memory "axes_core")
   axes_add_example(test_cu_block_mm "axes_core")
 endif()
 

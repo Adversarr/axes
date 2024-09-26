@@ -6,7 +6,6 @@
 #include "ax/fem/elasticity.hpp"
 #include "ax/fem/timestepper.hpp"
 #include "ax/fem/timestepper/naive_optim.hpp"
-#include "ax/fem/timestepper/ncg.hpp"
 #include "ax/fem/timestepper/quasi_newton.hpp"
 #include "ax/fem/trimesh.hpp"
 #include "ax/geometry/primitives.hpp"
@@ -342,9 +341,6 @@ int main(int argc, char** argv) {
     std::cout << "Newton" << std::endl;
     ts = std::make_unique<fem::Timestepper_NaiveOptim<3>>(std::make_shared<fem::LinearMesh<3>>());
     ts->SetOptions({{"optimizer_opt", utils::Options{{"verbose", true}}}});
-  } else if (opt == "ncg") {
-    ts = std::make_unique<fem::Timestepper_NonlinearCg<3>>(std::make_shared<fem::LinearMesh<3>>());
-    auto* ncg = dynamic_cast<fem::Timestepper_NonlinearCg<3>*>(ts.get());
   } else {
     AX_CHECK(false, "Invalid optimizer name, expect 'liu' or 'newton', got {}", opt);
   }

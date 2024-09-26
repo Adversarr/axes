@@ -57,9 +57,6 @@ public:
   void UpdateGradient();
   void UpdateHessian();
 
-  // Update the internal state.
-  void StepToNext();
-
   // Set the timestep, also affect the coefficient of the elastic term.
   virtual void SetTimeStep(Real dt);
 
@@ -83,6 +80,8 @@ public:
 
   void SetRelativeTolerance(Real tol_rel_grad);
 
+  void SetOptions(utils::Options const& option) override;
+
 protected:
   BufferPtr<Real> velocity_;   ///< The velocity of each vertex
   BufferPtr<Real> u_back_;     ///< The last displacement of each vertex
@@ -99,6 +98,10 @@ protected:
 
   Real tol_rel_grad_{3e-3};   ///< Relative convergence criteria
   Real tol_abs_grad_{1e-12};  ///< Absolute convergence criteria, computed from relative
+
+  bool is_set_density_called_ {false};
+  bool is_set_lame_called_ {false};
+  bool is_set_time_step_called_ {false};
 
 private:
   MassTerm *cache_inertia_{nullptr};           ///< Cache the inertia term.

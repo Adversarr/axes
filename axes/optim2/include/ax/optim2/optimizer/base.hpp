@@ -20,6 +20,12 @@ public:
 
   virtual OptimizerKind GetKind() const = 0;
 
+  static std::unique_ptr<OptimizerBase> Create(OptimizerKind kind);
+
+  utils::Options GetOptions() const override;
+
+  void SetOptions(utils::Options const& option) override;
+
   ///// public members: we do not need use trival getter and setter here.
 
   // These parameters could be override by input parameters.

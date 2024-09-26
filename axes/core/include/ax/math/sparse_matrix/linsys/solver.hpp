@@ -5,7 +5,7 @@
 
 namespace ax::math {
 
-class GeneralSparseSolverBase : utils::Tunable {
+class GeneralSparseSolverBase : public utils::Tunable {
 public:
   GeneralSparseSolverBase() = default;
   virtual ~GeneralSparseSolverBase() = default;
@@ -22,6 +22,10 @@ public:
   static std::unique_ptr<GeneralSparseSolverBase> Create(GeneralSparseSolverKind kind);
 
   ConstRealSparseMatrixPtr mat_;  ///< The matrix to solve
+
+  void SetOptions(utils::Options const& option) override;
+
+  utils::Options GetOptions() const override;
 
   //////////////////// Iterative Solver ////////////////////
 

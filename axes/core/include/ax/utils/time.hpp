@@ -17,6 +17,26 @@ using microseconds = std::chrono::microseconds;
 using milliseconds = std::chrono::milliseconds;
 using seconds = std::chrono::seconds;
 
+namespace details {
+
+inline bool timer_en(bool set, bool val) {
+  static bool en = false;
+  if (set) {
+    en = val;
+  }
+  return en;
+}
+
+}
+
+inline bool is_timer_enabled() {
+  return details::timer_en(false, false);
+}
+
+inline bool set_timer_enable(bool en) {
+  return details::timer_en(true, en);
+}
+
 inline time_point_t now() { return clock_t::now(); }
 
 inline int64_t get_current_time_nanos() {
@@ -29,8 +49,10 @@ public:
   TimerRegistry() = default;
   ~TimerRegistry() {
     for (const auto& [name, desc] : total_durations_) {
-      std::cout << "Timer: " << name << "\n- total: " << desc.total_ << "\n- count: " << desc.cnt_
-                << "\n- avg:   " << (desc.total_ / desc.cnt_) << '\n';
+      auto total = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(desc.total_);
+      auto cnt = static_cast<double>(desc.cnt_);
+      std::cout << "Timer: " << name << "\n- total: " << total << "\n- count: " << desc.cnt_
+                << "\n- avg:   " << (total / cnt) << '\n';
     }
   }
 
@@ -39,15 +61,17 @@ public:
     Index cnt_ = 0;
   };
 
-  inline void AddDuration(const char* name, duration_t duration) {
-    if (total_durations_.find(name) == total_durations_.end()) {
-      auto [it, _] = total_durations_.emplace(name, Desc{});
-      it->second.total_ = duration;
-      it->second.cnt_ = 1;
-    } else {
-      auto& cur = total_durations_[name];
-      cur.total_ += duration;
-      cur.cnt_ += 1;
+  void AddDuration(const char* name, duration_t duration) {
+    if (is_timer_enabled()) {
+      if (total_durations_.find(name) == total_durations_.end()) {
+        auto [it, _] = total_durations_.emplace(name, Desc{});
+        it->second.total_ = duration;
+        it->second.cnt_ = 1;
+      } else {
+        auto& cur = total_durations_[name];
+        cur.total_ += duration;
+        cur.cnt_ += 1;
+      }
     }
   }
 
@@ -82,6 +106,8 @@ private:
   const bool en_;
 };
 
+
+#ifdef AX_ENABLE_TIMER
 #define AX_TIMEIT(name) ::ax::utils::Timer timer_do_not_use(#name)
 #ifdef _MSC_VER
 #  define AX_PRETTY_FUNCTION_NAME __func__
@@ -89,6 +115,10 @@ private:
 #else
 #  define AX_PRETTY_FUNCTION_NAME __PRETTY_FUNCTION__
 #  define AX_TIME_FUNC() ::ax::utils::Timer _timer(__PRETTY_FUNCTION__)
+#endif
+#else
+#define AX_TIMEIT(name) ((void) name)
+#define AX_TIME_FUNC() ((void) 0)
 #endif
 
 }  // namespace ax::utils

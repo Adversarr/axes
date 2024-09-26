@@ -2,6 +2,7 @@
 
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
+#include "ax/fem/elasticity/base.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
@@ -61,6 +62,7 @@ void TimeStepBase::SetElasticity(ElasticityKind kind) {
 
 void TimeStepBase::SetLame(ConstRealBufferView lame) {
   cache_elasticity_->SetLame(lame);
+  is_set_lame_called_ = true;
 }
 
 void TimeStepBase::SetLame(const math::RealVector2& lame) {
@@ -72,6 +74,7 @@ void TimeStepBase::SetLame(const math::RealVector2& lame) {
 
 void TimeStepBase::SetDensity(ConstRealBufferView density) {
   cache_inertia_->SetDensity(density);
+  is_set_time_step_called_ = true;
 }
 
 void TimeStepBase::SetDensity(Real density) {
@@ -122,6 +125,7 @@ void TimeStepBase::UpdateHessian() {
 void TimeStepBase::SetTimeStep(Real dt) {
   dt_ = dt;
   problem_.GetTerm("elasticity").scale_ = dt * dt;
+  is_set_time_step_called_ = true;
 }
 
 void TimeStepBase::BeginStep() {
@@ -262,6 +266,15 @@ void TimeStepVariationalProblem::MarkVariableChanged() {
 }
 
 void TimeStepBase::Compute() {
+  // make sure the necessary parameters are set properly.
+  if (!is_set_density_called_) {
+    AX_THROW_RUNTIME_ERROR("should call SetDensity at least once.");
+  } else if (!is_set_lame_called_) {
+    AX_THROW_RUNTIME_ERROR("should call SetLame at least once.");
+  } else if (!is_set_time_step_called_) {
+    AX_THROW_RUNTIME_ERROR("should call SetTimeStep at least once.");
+  }
+
   // prepare the tol_grad.
   if (tol_rel_grad_ < 1e-5) {
     AX_WARN("Relative Error is too small? got {:12.6e}", tol_rel_grad_);
@@ -278,7 +291,49 @@ void TimeStepBase::Compute() {
 
   AX_INFO("Body force norm: {:12.6e} | Tol abs grad: {:12.6e}", body_force_norm, tol_abs_grad_);
 }
+
 void TimeStepBase::SetRelativeTolerance(Real tol_rel_grad) {
   tol_rel_grad_ = tol_rel_grad;
 }
+
+void TimeStepBase::SetOptions(utils::Options const& option) {
+  AX_SYNC_OPT_IF(option, Real, tol_rel_grad) {
+    if (tol_rel_grad_ <= math::epsilon<>) {
+      AX_THROW_INVALID_ARGUMENT("Tol rel grad too small: {:12.6e}", tol_rel_grad_);
+    }
+  }
+
+  if (auto y_it = option.find("youngs"), p_it = option.find("poisson");
+      y_it != option.end() || p_it != option.end()) {
+    if (y_it == option.end() || p_it == option.end()) {
+      AX_THROW_INVALID_ARGUMENT("Youngs and Poisson must be set together.");
+    }
+
+    Real youngs = y_it->value().as_double();
+    Real poisson = p_it->value().as_double();
+
+    // compute lame
+    auto lame = elasticity::compute_lame(youngs, poisson);
+    SetLame(lame);
+  }
+
+  if (auto d_it = option.find("density"); d_it != option.end()) {
+    SetDensity(d_it->value().as_double());
+  }
+
+  if (auto dt_it = option.find("dt"); dt_it != option.end()) {
+    SetTimeStep(dt_it->value().as_double());
+  }
+
+  if (auto kind = option.find("elasticity_kind"); kind != option.end()) {
+    auto name = kind->value().as_string().data();
+    auto kind_actual = utils::reflect_enum<ElasticityKind>(name);
+    if (! kind_actual) {
+      AX_THROW_INVALID_ARGUMENT("Invalid elasticity_kind: {}", name);
+    }
+    SetElasticity(*kind_actual);
+  }
+}
+
+
 } // namespace ax::fem

@@ -16,6 +16,7 @@
 #include "ax/math/accessor.hpp"
 #include "ax/math/buffer_blas.hpp"
 #include "ax/math/views.hpp"
+#include "ax/utils/time.hpp"
 
 using namespace ax;
 
@@ -141,6 +142,7 @@ int main(int argc, char* argv[]) {
   fe.timestep_->SetLame(lame);
   fe.timestep_->Compute();
 
+  utils::set_timer_enable(true);
   connect<gl::UiRenderEvent, &on_frame>();
   get_resource<gl::Context>().Initialize();
   return gl::enter_main_loop();

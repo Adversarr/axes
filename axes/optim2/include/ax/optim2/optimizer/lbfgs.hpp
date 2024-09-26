@@ -18,7 +18,8 @@ public:
   OptimizerKind GetKind() const override { return OptimizerKind::Lbfgs; }
 
   size_t history_size_ = 10;
-
+  size_t history_push_cnt_ = 0;
+  bool reuse_history_ = false;
   CentralFn precond_;
 
 private:

@@ -69,6 +69,24 @@ template <typename T> struct SyncToFieldHelper {
   }
 };
 
+template <> struct SyncToFieldHelper<size_t> {
+  bool Apply(Index& value, Options const& options, const char* name) {
+    if (auto it = options.find(name); it == options.end()) {
+      return false;
+    } else {
+      size_t old_val = value;
+      if (it->value().is_int64()) {
+        value = static_cast<size_t>(it->value().as_int64());
+      } else if (it->value().is_uint64()) {
+        value = static_cast<size_t>(it->value().as_uint64());
+      } else {
+        throw std::invalid_argument("Expect [" + std::string(name) + "] to be a int or uint.");
+      }
+      return old_val != value;
+    }
+  }
+};
+
 template <> struct SyncToFieldHelper<Index> {
   bool Apply(Index& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
@@ -202,18 +220,6 @@ bool extract_tunable(utils::Options const& opt, const char* key, AnyTunable* tun
     return true;
   } else {
     return false;
-  }
-}
-
-template <typename Factory, typename Kind>
-auto extract_and_create(utils::Options const& opt, const char* key) {
-  auto [has_key, kind] = utils::extract_enum<Kind>(opt, key);
-  if (has_key) {
-    if (kind) {
-      return Factory::Create(kind.value());
-    } else {
-      throw make_invalid_argument("Invalid {} option: {}", key, opt.at(key).as_string());
-    }
   }
 }
 

@@ -1,3 +1,4 @@
+#define AX_ENABLE_TIMER
 #include "ax/math/buffer_blas.hpp"
 
 #include "ax/core/buffer/copy.hpp"
@@ -13,6 +14,7 @@
 #endif
 
 #include "ax/utils/cuda_helper.hpp"
+#include "ax/utils/time.hpp"
 #include "details/buffer_blas_impl.hpp"
 
 namespace ax::math::buffer_blas {
@@ -50,7 +52,7 @@ cublasHandle_t ensure_cublas() {
 }  // namespace details
 #endif
 
-void do_copy_host(RealBufferView y, ConstRealBufferView x) {
+static void do_copy_host(RealBufferView y, ConstRealBufferView x) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -62,7 +64,7 @@ void do_copy_host(RealBufferView y, ConstRealBufferView x) {
 #endif
 }
 
-void do_copy_device(RealBufferView y, ConstRealBufferView x) {
+static void do_copy_device(RealBufferView y, ConstRealBufferView x) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -80,6 +82,7 @@ void do_copy_device(RealBufferView y, ConstRealBufferView x) {
 
 // computes y = x.
 void copy(RealBufferView y, ConstRealBufferView x) {
+  AX_TIME_FUNC();
   AX_CHECK(is_same_device(x, y), "copy: x and y should be on the same device.");
   if (x.Device() == BufferDevice::Host) {
     do_copy_host(y, x);
@@ -88,7 +91,7 @@ void copy(RealBufferView y, ConstRealBufferView x) {
   }
 }
 
-void do_scal_host(Real alpha, RealBufferView x) {
+static void do_scal_host(Real alpha, RealBufferView x) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t total = prod(x.Shape());
@@ -101,7 +104,7 @@ void do_scal_host(Real alpha, RealBufferView x) {
 #endif
 }
 
-void do_scal_device(Real alpha, RealBufferView x) {
+static void do_scal_device(Real alpha, RealBufferView x) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -117,6 +120,7 @@ void do_scal_device(Real alpha, RealBufferView x) {
 
 // computes x = alpha * x.
 void scal(Real alpha, RealBufferView x) {
+  AX_TIME_FUNC();
   if (!(x.IsContinuous(1))) {
     throw make_invalid_argument("scal: x must be continuous for y,z");
   }
@@ -128,7 +132,7 @@ void scal(Real alpha, RealBufferView x) {
   }
 }
 
-void do_swap_host(RealBufferView x, RealBufferView y) {
+static void do_swap_host(RealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -142,7 +146,7 @@ void do_swap_host(RealBufferView x, RealBufferView y) {
 #endif
 }
 
-void do_swap_device(RealBufferView x, RealBufferView y) {
+static void do_swap_device(RealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -159,6 +163,7 @@ void do_swap_device(RealBufferView x, RealBufferView y) {
 
 // swaps x and y.
 void swap(RealBufferView x, RealBufferView y) {
+  AX_TIME_FUNC();
   AX_CHECK(is_same_device(x, y), "swap: x and y should be on the same device.");
   if (!(x.IsContinuous(1) && y.IsContinuous(1))) {
     throw make_invalid_argument("swap: x and y must be continuous for y,z");
@@ -171,7 +176,7 @@ void swap(RealBufferView x, RealBufferView y) {
   }
 }
 
-void do_axpy_host(Real alpha, ConstRealBufferView x, RealBufferView y) {
+static void do_axpy_host(Real alpha, ConstRealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -185,7 +190,7 @@ void do_axpy_host(Real alpha, ConstRealBufferView x, RealBufferView y) {
 #endif
 }
 
-void do_axpy_device(Real alpha, ConstRealBufferView x, RealBufferView y) {
+static void do_axpy_device(Real alpha, ConstRealBufferView x, RealBufferView y) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -202,6 +207,7 @@ void do_axpy_device(Real alpha, ConstRealBufferView x, RealBufferView y) {
 
 // computes y = alpha * x + y.
 void axpy(Real alpha, ConstRealBufferView x, RealBufferView y) {
+  AX_TIME_FUNC();
   AX_CHECK(is_same_device(x, y), "axpy: x and y should be on the same device.");
   if (!(x.IsContinuous(1) && y.IsContinuous(1))) {
     throw make_invalid_argument("axpy: x and y must be continuous for y,z");
@@ -214,7 +220,7 @@ void axpy(Real alpha, ConstRealBufferView x, RealBufferView y) {
   }
 }
 
-void do_dot_host(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
+static void do_dot_host(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t inc_y = y.Stride().X() / sizeof(Real);
@@ -229,7 +235,7 @@ void do_dot_host(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 #endif
 }
 
-void do_dot_device(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
+static void do_dot_device(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -246,6 +252,7 @@ void do_dot_device(ConstRealBufferView x, ConstRealBufferView y, Real &result) {
 
 // computes dot product <x, y>
 Real dot(ConstRealBufferView x, ConstRealBufferView y) {
+  AX_TIME_FUNC();
   AX_CHECK(is_same_device(x, y), "dot: x and y should be on the same device.");
   if (x.Shape() != y.Shape()) {
     AX_THROW_INVALID_ARGUMENT("dot: x and y must have the same shape. got {} and {}", x.Shape(),
@@ -265,7 +272,7 @@ Real dot(ConstRealBufferView x, ConstRealBufferView y) {
   return result;
 }
 
-void do_nrm2_host(ConstRealBufferView x, Real &result) {
+static void do_nrm2_host(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t total = prod(x.Shape());
@@ -279,7 +286,7 @@ void do_nrm2_host(ConstRealBufferView x, Real &result) {
 #endif
 };
 
-void do_nrm2_device(ConstRealBufferView x, Real &result) {
+static void do_nrm2_device(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -295,6 +302,7 @@ void do_nrm2_device(ConstRealBufferView x, Real &result) {
 
 // computes the 2-norm of x.
 Real norm(ConstRealBufferView x) {
+  AX_TIME_FUNC();
   Real result = 0;
   if (!(x.IsContinuous(1))) {
     throw make_invalid_argument("norm: x must be continuous for y,z");
@@ -308,7 +316,7 @@ Real norm(ConstRealBufferView x) {
   return result;
 }
 
-void do_asum_host(ConstRealBufferView x, Real &result) {
+static void do_asum_host(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t total = prod(x.Shape());
@@ -321,7 +329,7 @@ void do_asum_host(ConstRealBufferView x, Real &result) {
 #endif
 }
 
-void do_asum_device(ConstRealBufferView x, Real &result) {
+static void do_asum_device(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_CUDA
   auto *handle = details::ensure_cublas();
   size_t total = prod(x.Shape());
@@ -337,6 +345,7 @@ void do_asum_device(ConstRealBufferView x, Real &result) {
 
 // computes the 1-norm of x.
 Real asum(ConstRealBufferView x) {
+  AX_TIME_FUNC();
   Real result = 0;
   if (!(x.IsContinuous(1))) {
     throw make_invalid_argument("asum: x must be continuous for y,z");
@@ -350,7 +359,7 @@ Real asum(ConstRealBufferView x) {
   return result;
 }
 
-void do_amax_host(ConstRealBufferView x, Real &result) {
+static void do_amax_host(ConstRealBufferView x, Real &result) {
 #ifdef AX_HAS_BLAS
   size_t inc_x = x.Stride().X() / sizeof(Real);
   size_t total = prod(x.Shape());
@@ -365,6 +374,8 @@ void do_amax_host(ConstRealBufferView x, Real &result) {
 
 // computes the max-norm of x.
 Real amax(ConstRealBufferView x) {
+  AX_TIME_FUNC();
+
   Real result = 0;
   if (!(x.IsContinuous(1))) {
     throw make_invalid_argument("amax: x must be continuous for y,z");
@@ -395,6 +406,7 @@ static void do_emul_host(ConstRealBufferView x, RealBufferView y) {
 }
 
 void emul(ConstRealBufferView x, RealBufferView y) {
+  AX_TIME_FUNC();
   if (x.Shape() != y.Shape()) {
     AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
   }
@@ -425,6 +437,7 @@ static void do_ediv_host(ConstRealBufferView x, RealBufferView y) {
 }
 
 void ediv(ConstRealBufferView x, RealBufferView y) {
+  AX_TIME_FUNC();
   if (x.Shape() != y.Shape()) {
     AX_THROW_RUNTIME_ERROR("shape mismatch: x={}, y={}", x.Shape(), y.Shape());
   }

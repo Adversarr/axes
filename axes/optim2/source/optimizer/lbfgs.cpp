@@ -18,6 +18,10 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
   AX_EXPECTS(problem_ != nullptr);
   AX_EXPECTS(linesearch_ != nullptr);
   CheckInputParam(param);
+  if (!reuse_history_) {
+    history_push_cnt_ = 0;
+  }
+
   linesearch_->SetProblem(problem_);
 
   {  // setup the history buffers
@@ -87,13 +91,22 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
 }
 
 void Optimizer_LBFGS::PushHistory(size_t iter) {
-  const size_t rotate_id = iter % history_size_;
+  const size_t rotate_id = history_push_cnt_ % history_size_;
   auto& s = s_[rotate_id];
   auto& y = y_[rotate_id];
   auto& rho = rho_[rotate_id];
   AX_TRACE("Put into history: {}", rotate_id);
 
   auto [sv, yv] = make_view(s, y);
+  rho = 1.0 / (math::buffer_blas::dot(sv, yv) + 1e-20);
+
+  if (rho <= 0 || !math::isfinite(rho)) {
+    AX_THROW_RUNTIME_ERROR(
+        "LBFGS {}: rho is not positive: {} the problem is too stiff or the "
+        "inverse approximation is bad. Consider use a better linesearch to guarantee the "
+        "strong wolfe condition.",
+        iter, rho);
+  }
 
   problem_->UpdateGradient();
   math::buffer_blas::copy(sv, problem_->GetVariables());            // s <- x_k+1
@@ -103,26 +116,15 @@ void Optimizer_LBFGS::PushHistory(size_t iter) {
   math::buffer_blas::axpy(-1, problem_->GetBackupGradient(), yv);  // y <- grad_k+1 - grad_k
 
   AX_TRACE("|s|= {:12.6e} |y|= {:12.6e}", math::buffer_blas::norm(sv), math::buffer_blas::norm(yv));
-
-  rho = 1.0 / (math::buffer_blas::dot(sv, yv) + 1e-20);
-
-  if (rho <= 0 || !math::isfinite(rho)) {
-    AX_THROW_RUNTIME_ERROR(
-        "LBFGS {}: rho is not positive: {} the problem is too stiff or the "
-        "inverse approximation is bad. Consider use a better linesearch to guarantee the "
-        "strong wolfe condition.",
-        iter, rho);
-
-    // TODO: Last History is not available, we should discard it.
-  }
+  ++history_push_cnt_;
 }
 
 // Implements Algorithm 7.4 (L-BFGS two-loop recursion).
 void Optimizer_LBFGS::SolveApproximator(size_t iter, RealBufferView q) {
-  const size_t available = std::min(iter, history_size_);
+  const size_t available = std::min(history_push_cnt_, history_size_);
   // pre
   for (size_t i = 1; i <= available; i++) {  // k-1 to k-m
-    const size_t rotate_id = (iter + history_size_ - i) % history_size_;
+    const size_t rotate_id = (history_push_cnt_ + history_size_ - i) % history_size_;
     AX_TRACE("(Pre) Load history: {}", rotate_id);
     const Real si_q = math::buffer_blas::dot(s_[rotate_id]->ConstView(), q);
     const Real alpha = rho_[rotate_id] * si_q;
@@ -132,7 +134,7 @@ void Optimizer_LBFGS::SolveApproximator(size_t iter, RealBufferView q) {
   }
 
   // central
-  const size_t most_recent = (iter + history_size_ - 1) % history_size_;
+  const size_t most_recent = (history_push_cnt_ + history_size_ - 1) % history_size_;
   const auto& last_s = s_[most_recent];
   const auto& last_y = y_[most_recent];
   AX_TRACE("Center using history: {}", most_recent);
@@ -153,7 +155,7 @@ void Optimizer_LBFGS::SolveApproximator(size_t iter, RealBufferView q) {
 
   // post
   for (size_t i = available; i != 0; --i) {  // k-m to k-1
-    const size_t rotate_id = (iter + history_size_ - i) % history_size_;
+    const size_t rotate_id = (history_push_cnt_ + history_size_ - i) % history_size_;
     AX_TRACE("(Post) Load history: {}", rotate_id);
     auto [s, y] = make_view(s_[rotate_id], y_[rotate_id]);
     const Real yi_r = math::buffer_blas::dot(y, r);

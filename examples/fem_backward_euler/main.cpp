@@ -8,6 +8,7 @@
 #include "ax/fem/elasticity/base.hpp"
 #include "ax/fem/timestep2/quasi_newton.hpp"
 #include "ax/fem/timestep2/timestep.hpp"
+#include "ax/fem/topo.hpp"
 #include "ax/geometry/normal.hpp"
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/context.hpp"
@@ -83,6 +84,21 @@ int main(int argc, char* argv[]) {
 
   auto cube = geo::tet_cube(1, 4 * size, size, size);
   auto mesh = std::make_shared<fem::Mesh>(3, 4, device);
+  {  // Apply Reverse Cuthill-McKee Ordering Algorithm.
+    auto [fwd, bwd] = fem::optimize_topology<3>(cube.indices_, cube.vertices_.cols());
+    auto vert_bak = cube.vertices_;
+    auto elem_bak = cube.indices_;
+
+    for (Index i = 0; i < cube.vertices_.cols(); ++i) {
+      cube.vertices_.col(i) = vert_bak.col(bwd[static_cast<size_t>(i)]);
+    }
+
+    for (Index i = 0; i < cube.indices_.cols(); ++i) {
+      for (Index d = 0; d <= 3; ++d) {
+        cube.indices_(d, i) = fwd[static_cast<size_t>(cube.indices_(d, i))];
+      }
+    }
+  }
 
   auto vertices = cube.vertices_;
   vertices.row(0) *= 4;

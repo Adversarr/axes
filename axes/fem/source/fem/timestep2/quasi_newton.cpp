@@ -32,10 +32,12 @@ void TimeStep_QuasiNewton::Compute() {
   approximate_problem_->InitializeHessianFillIn();
   approximate_problem_->UpdateHessian();
   auto hes = approximate_problem_->GetHessian();
-  solver_ = std::make_unique<math::GeneralSparseSolver_ConjugateGradient>();  // hard coded.
-  // solver_ = std::make_unique<math::GeneralSparseSolver_Downcast>();  // hard coded.
-  // solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
-  solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  if (!solver_) {  // hard code path
+    solver_ = std::make_unique<math::GeneralSparseSolver_ConjugateGradient>();
+    solver_->preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
+    // solver_->preconditioner_
+    //     = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  }
   solver_->SetProblem(hes);
   solver_->Compute();
   solver_->max_iteration_ = 20;  // do 10 step of pcg is enough for LBFGS preconditioning
@@ -85,8 +87,15 @@ void TimeStep_QuasiNewton::SetLame(ConstRealBufferView lame) {
   auto temp_buf = create_buffer<Real>(BufferDevice::Host, lame.Shape());
   auto temp_view = temp_buf->View();
   copy(temp_view, lame);
+  auto k = GetElasticity()->GetKind();
   for (size_t i = 0; i < lame.Shape().Y(); ++i) {
-    temp_buf->Data()[i] = temp_view(0, i) + 2 * temp_view(1, i);
+    if (k != ElasticityKind::StableNeoHookean) {
+      temp_buf->Data()[i] = temp_view(0, i) + 2 * temp_view(1, i);
+    } else {
+      Real lambda = temp_view(0, i) + 5.0 / 6.0 * temp_view(1, i);
+      Real mu = mu = 4.0 / 3.0 * temp_view(1, i);
+      temp_buf->Data()[i] = (lambda + 2 * mu);
+    }
   }
 
   // Update the Lame parameters in the problem.

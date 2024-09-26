@@ -70,7 +70,13 @@ OptimizeResult Optimizer_LBFGS::Optimize(OptimizeParam param) {
     math::buffer_blas::scal(-1, d);    // d <- -H_k * grad
 
     // do line search
-    auto ls_result = linesearch_->Optimize(ls_param);
+    LineSearchResult ls_result;
+    try {
+      ls_result = linesearch_->Optimize(ls_param);
+    } catch (const std::runtime_error& rte) {
+      AX_ERROR("Line Search Failed at iteration {:3}!!!", iter);
+      throw;
+    }
     if (!ls_result.converged_) {
       AX_ERROR("Line search failed.");
       break;
@@ -96,8 +102,14 @@ void Optimizer_LBFGS::PushHistory(size_t iter) {
   auto& y = y_[rotate_id];
   auto& rho = rho_[rotate_id];
   AX_TRACE("Put into history: {}", rotate_id);
-
   auto [sv, yv] = make_view(s, y);
+  problem_->UpdateGradient();
+  math::buffer_blas::copy(sv, problem_->GetVariables());            // s <- x_k+1
+  math::buffer_blas::axpy(-1, problem_->GetBackupVariables(), sv);  // s <- x_k+1 - x_k
+
+  math::buffer_blas::copy(yv, problem_->GetGradient());            // y <- grad_k+1
+  math::buffer_blas::axpy(-1, problem_->GetBackupGradient(), yv);  // y <- grad_k+1 - grad_k
+
   rho = 1.0 / (math::buffer_blas::dot(sv, yv) + 1e-20);
 
   if (rho <= 0 || !math::isfinite(rho)) {
@@ -107,13 +119,6 @@ void Optimizer_LBFGS::PushHistory(size_t iter) {
         "strong wolfe condition.",
         iter, rho);
   }
-
-  problem_->UpdateGradient();
-  math::buffer_blas::copy(sv, problem_->GetVariables());            // s <- x_k+1
-  math::buffer_blas::axpy(-1, problem_->GetBackupVariables(), sv);  // s <- x_k+1 - x_k
-
-  math::buffer_blas::copy(yv, problem_->GetGradient());            // y <- grad_k+1
-  math::buffer_blas::axpy(-1, problem_->GetBackupGradient(), yv);  // y <- grad_k+1 - grad_k
 
   AX_TRACE("|s|= {:12.6e} |y|= {:12.6e}", math::buffer_blas::norm(sv), math::buffer_blas::norm(yv));
   ++history_push_cnt_;

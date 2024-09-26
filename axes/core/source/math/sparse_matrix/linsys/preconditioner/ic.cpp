@@ -1,4 +1,5 @@
 #include "ic_impl.hpp"
+#include "ax/utils/cuda_helper.hpp"
 
 namespace ax::math {
 
@@ -26,7 +27,7 @@ void GeneralSparsePreconditioner_IncompleteCholesky::AnalyzePattern() {
               "will use CSR format.");
         });
       } else {
-        pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_);
+        AX_CUDA_CALL(pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_));
       }
     }
   }
@@ -37,7 +38,8 @@ void GeneralSparsePreconditioner_IncompleteCholesky::AnalyzePattern() {
 void GeneralSparsePreconditioner_IncompleteCholesky::Factorize() {
   if (!pimpl_ && mat_->Device() == BufferDevice::Device && mat_->BlockSize() > 1) {
     // BSR branch.
-    pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_->ToCSR());
+    AX_CUDA_CALL(pimpl_ = std::make_unique<ImplIcCsrGpu>(mat_->ToCSR()));
+    pimpl_->AnalyzePattern();
   }
 
   AX_THROW_IF_NULLPTR(mat_, "mat not set.");

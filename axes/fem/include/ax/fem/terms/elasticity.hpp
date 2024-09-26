@@ -18,6 +18,7 @@ public:
   // TODO: options.
 
   void SetKind(ElasticityKind kind);
+  ElasticityKind GetKind() const noexcept;
 
   void SetLame(ConstRealBufferView lame);
 

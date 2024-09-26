@@ -70,7 +70,7 @@ template <typename T> struct SyncToFieldHelper {
 };
 
 template <> struct SyncToFieldHelper<size_t> {
-  bool Apply(Index& value, Options const& options, const char* name) {
+  bool Apply(size_t& value, Options const& options, const char* name) {
     if (auto it = options.find(name); it == options.end()) {
       return false;
     } else {

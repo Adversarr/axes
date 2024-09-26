@@ -307,6 +307,10 @@ void ElasticityTerm::SetKind(ElasticityKind kind) {
   compute_.SetElasitcityKind(kind);
 }
 
+ElasticityKind ElasticityTerm::GetKind() const noexcept {
+  return compute_.Kind();
+}
+
 void ElasticityTerm::SetLame(ConstRealBufferView lame) {
   auto compute_lame = compute_.Lame()->View();
   AX_THROW_IF_NE(lame.Shape(), compute_lame.Shape(), "Invalid input lame shape.");

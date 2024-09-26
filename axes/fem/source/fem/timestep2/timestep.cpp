@@ -74,7 +74,7 @@ void TimeStepBase::SetLame(const math::RealVector2& lame) {
 
 void TimeStepBase::SetDensity(ConstRealBufferView density) {
   cache_inertia_->SetDensity(density);
-  is_set_time_step_called_ = true;
+  is_set_density_called_ = true;
 }
 
 void TimeStepBase::SetDensity(Real density) {

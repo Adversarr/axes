@@ -61,11 +61,10 @@ void GeneralSparseSolverBase::SetOptions(utils::Options const& option) {
     }
   }
 
-  utils::extract_and_create<GeneralPreconditionerKind, GeneralSparsePreconditionerBase>(
+  utils::extract_and_create<GeneralSparsePreconditionerBase,GeneralPreconditionerKind>(
       option, "preconditioner_kind", preconditioner_);
 
-  if (auto it = option.find("precondioner_opt");
-      it != option.end()) {
+  if (auto it = option.find("precondioner_opt"); it != option.end()) {
     if (!preconditioner_) {
       AX_WARN("preconditioner is null, but precondioner_opt is set");
     }

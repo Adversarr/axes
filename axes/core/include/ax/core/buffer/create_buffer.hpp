@@ -19,15 +19,16 @@ using DefaultHostBuffer = HostBuffer<T>;
 
 template <typename T>
 BufferPtr<T> create_buffer(BufferDevice device, BufferDim shape) {
-  if (device == BufferDevice::Device) {
 #ifdef AX_HAS_CUDA
+  if (device == BufferDevice::Device) {
     return details::DefaultDeviceBuffer<T>::Create(shape);
-#else
-    AX_THROW_RUNTIME_ERROR("CUDA is not enabled.");
-#endif
   } else {
     return details::DefaultHostBuffer<T>::Create(shape);
   }
+#else
+  AX_CHECK(device == BufferDevice::Host, "CUDA not enabled.");
+  return details::DefaultHostBuffer<T>::Create(shape);
+#endif
 }
 
 template <typename T>

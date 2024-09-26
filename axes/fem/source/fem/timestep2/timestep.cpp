@@ -4,8 +4,7 @@
 #include "ax/core/buffer/eigen_support.hpp"
 #include "ax/fem/elasticity/base.hpp"
 #include "ax/math/buffer_blas.hpp"
-#include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
-#include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
+#include "ax/optim2/optimizer/newton.hpp"
 #include "ax/utils/time.hpp"
 
 namespace ax::fem {
@@ -155,59 +154,12 @@ void TimeStepBase::UpdateCurrentSolution(ConstRealBufferView u_current) {
 void TimeStepBase::SolveStep() {
   // Implement the backward euler with 1 newton step.
   auto start = utils::now();
-  auto hessian = problem_.GetHessian();
-  auto grad = problem_.GetGradient();
 
   // We expect to decrease the |grad| to 0.01 * initial |grad|.
-  math::GeneralSparseSolver_ConjugateGradient cg;
-  cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
-  cg.SetProblem(hessian);
-  cg.AnalyzePattern();
-
-  cache_elasticity_->SetHessianMakeSPSD(true);
-  // update the states.
-  Real initial_grad_norm = 0;
-  for (int i = 0; i < 16; ++i) {
-    UpdateHessian();
-    UpdateGradient();
-    UpdateEnergy();
-    prune_dirichlet_bc_.PruneWithGradient(*hessian, grad);
-
-    Real grad_norm = math::buffer_blas::norm(grad);
-    if (i == 0) {
-      initial_grad_norm = grad_norm;
-    } else if (grad_norm < 1e-2 * initial_grad_norm || grad_norm < 1e-4) {
-      AX_INFO("ProjectNewton converged in {} iterations.", i);
-      break;
-    }
-
-    AX_INFO("Newton iteration: {} |grad|: {:12.6e} energy: {:12.6e}", i, grad_norm,
-            problem_.GetEnergy());
-    cg.Factorize();
-    auto current_energy = problem_.GetEnergy();
-    temp_->SetBytes(0);
-    auto uphill = temp_->View();
-    cg.Solve(grad, uphill);
-
-    // update the solution to the negative of the delta with a naive back tracking
-    Real expect_descent = -0.1 * math::buffer_blas::dot(grad, uphill);
-    AX_EXPECTS(expect_descent <= 0);
-    for (size_t ls_iter = 0; ls_iter < 10; ++ls_iter) {
-      math::buffer_blas::axpy(-1.0, uphill, u_->View());
-      MarkCurrentSolutionUpdated();
-      UpdateEnergy();
-      if (problem_.GetEnergy() < current_energy + expect_descent) {
-        AX_INFO("Line search converged in {} iterations.", ls_iter);
-        break;
-      }
-
-      math::buffer_blas::axpy(1.0, uphill, u_->View());
-      math::buffer_blas::scal(0.5, uphill);
-      expect_descent *= 0.5;
-      MarkCurrentSolutionUpdated();
-    }
-  }
-
+  optim2::Optimizer_Newton newton;
+  newton.SetProblem(PrepareVariationalProblem());
+  auto result = newton.Optimize({});
+  AX_INFO("Newton step: {}", result.n_iter_);
   auto end = utils::now();
   AX_INFO("Solve time: {}", std::chrono::duration_cast<std::chrono::milliseconds>(end - start));
 }
@@ -245,7 +197,8 @@ std::unique_ptr<TimeStepVariationalProblem> TimeStepBase::PrepareVariationalProb
 
 TimeStepVariationalProblem::TimeStepVariationalProblem(not_null<TimeStepBase*> timestep)
     : optim2::ProblemBase(timestep->problem_.GetState()->GetVariables()->View(),
-                          timestep->problem_.GetGradient()),
+                          timestep->problem_.GetGradient(),
+                          timestep->problem_.GetHessian()),
       timestep_(timestep) {}
 
 void TimeStepVariationalProblem::UpdateEnergy() {

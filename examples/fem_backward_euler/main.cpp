@@ -13,6 +13,7 @@
 #include "ax/geometry/primitives.hpp"
 #include "ax/gl/context.hpp"
 #include "ax/gl/init.hpp"
+#include "ax/gl/primitives/lines.hpp"
 #include "ax/gl/primitives/mesh.hpp"
 #include "ax/math/accessor.hpp"
 #include "ax/math/buffer_blas.hpp"
@@ -46,6 +47,13 @@ void update_render() {
     math::buffer_blas::axpy(1.0, u, view);
     m.use_lighting_ = false;
   });
+
+  patch_component<gl::Lines>(entity, [&](gl::Lines& l) {
+    auto view = view_from_matrix(l.vertices_);
+    copy(view, vertices->View());
+    l.colors_.setZero();
+    math::buffer_blas::axpy(1.0, u, view);
+  });
 }
 
 void on_frame(gl::UiRenderEvent) {
@@ -69,6 +77,7 @@ void on_frame(gl::UiRenderEvent) {
 int main(int argc, char* argv[]) {
   po::add_option({
     po::make_option<bool>("gpu", "Use gpu compute", "true"),
+    po::make_option<bool>("rcm", "Use Reverse Cuthill-McKee Ordering Algorithm", "true"),
     po::make_option<int>("size", "Size of the mesh", "4"),
     po::make_option<std::string>("solver", "Timestepper solver", "quasi_newton"),
   });
@@ -84,7 +93,7 @@ int main(int argc, char* argv[]) {
 
   auto cube = geo::tet_cube(1, 4 * size, size, size);
   auto mesh = std::make_shared<fem::Mesh>(3, 4, device);
-  {  // Apply Reverse Cuthill-McKee Ordering Algorithm.
+  if (po::get<bool>("rcm")) {  // Apply Reverse Cuthill-McKee Ordering Algorithm.
     auto [fwd, bwd] = fem::optimize_topology<3>(cube.indices_, cube.vertices_.cols());
     auto vert_bak = cube.vertices_;
     auto elem_bak = cube.indices_;
@@ -149,6 +158,8 @@ int main(int argc, char* argv[]) {
   gl_mesh.colors_.topRows(3) = vertices.cwiseAbs() * 0.6;
   gl_mesh.vertices_ = vertices;
   gl_mesh.normals_ = geo::normal_per_vertex(vertices, gl_mesh.indices_);
+
+  add_component<gl::Lines>(entity, gl::Lines::Create(gl_mesh));
 
   auto lame = fem::elasticity::compute_lame(1e7, 0.43);
   fe.timestep_->SetElasticity(fem::ElasticityKind::StableNeoHookean);

@@ -92,15 +92,8 @@ const_shared_not_null<math::RealCompressedMatrixBase> ProblemBase::GetHessian() 
   return hessian_;
 }
 
-void ProblemBase::OnStep(bool is_in_linesearch, size_t iteration) noexcept {
-  AX_UNUSED(iteration);
-  if (is_in_linesearch) {
-    AX_TRACE("  ls: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
-             is_grad_norm_up_to_date_);
-  } else {
-    AX_TRACE("iter: {:2}, energy={:12.6e} |g|={:12.6e} (upd={})", iteration, energy_, grad_norm_,
-             is_grad_norm_up_to_date_);
-  }
+void ProblemBase::OnStep(bool /* is_in_linesearch */, size_t /* iteration */) noexcept {
+
 }
 
 Real ProblemBase::GetGaridentNorm() {

@@ -123,7 +123,7 @@ Real LineSearchBase::SolveOptimalStepSizeQuadratic(const LineSearchParam& /* par
 Real LineSearchBase::SolveOptimalStepSizeNone(const LineSearchParam& param, Real lo,
                                               Real hi) const {
   Real shrink = param.step_shrink_factor_.value();
-  return (lo + hi) * shrink;
+  return shrink * hi + (1 - shrink) * lo;
 }
 
 void LineSearchBase::FixParameter(LineSearchParam& param) const {
@@ -174,6 +174,50 @@ void LineSearchBase::FixParameter(LineSearchParam& param) const {
         "got {} and {}",
         param.max_step_expand_factor_.value(), param.step_expand_factor_.value());
   }
+}
+
+void LineSearchBase::UpdateGradient() {
+  problem_->UpdateGradient();
+}
+
+ConstRealBufferView LineSearchBase::CurrentGradient() const {
+  return problem_->GetGradient();
+}
+
+utils::Options LineSearchBase::GetOptions() const {
+  auto opt = utils::Tunable::GetOptions();
+  opt["min_step_size"] = min_step_size_;
+  opt["max_step_size"] = max_step_size_;
+  opt["initial_step_size"] = initial_step_size_;
+  opt["armijo"] = armijo_;
+  opt["curvature"] = curvature_;
+  opt["strong_wolfe"] = strong_wolfe_;
+  opt["step_shrink_factor"] = step_shrink_factor_;
+  opt["min_step_shrink_factor"] = min_step_shrink_factor_;
+  opt["max_step_shrink_factor"] = max_step_shrink_factor_;
+  opt["step_expand_factor"] = step_expand_factor_;
+  opt["max_step_expand_factor"] = max_step_expand_factor_;
+  opt["interpolation_kind"] = utils::reflect_name(interpolation_kind_).value();
+  opt["max_iter"] = max_iter_;
+  return opt;
+}
+
+void LineSearchBase::SetOptions(const utils::Options& opt) {
+  AX_SYNC_OPT(opt, Real, min_step_size);
+  AX_SYNC_OPT(opt, Real, max_step_size);
+  AX_SYNC_OPT(opt, Real, initial_step_size);
+  AX_SYNC_OPT(opt, Real, armijo);
+  AX_SYNC_OPT(opt, Real, curvature);
+  AX_SYNC_OPT(opt, Real, strong_wolfe);
+  AX_SYNC_OPT(opt, Real, step_shrink_factor);
+  AX_SYNC_OPT(opt, Real, min_step_shrink_factor);
+  AX_SYNC_OPT(opt, Real, max_step_shrink_factor);
+  AX_SYNC_OPT(opt, Real, step_expand_factor);
+  AX_SYNC_OPT(opt, Real, max_step_expand_factor);
+  AX_SYNC_OPT_ENUM(opt, LinesearchInterpolationKind, interpolation_kind_, interpolation_kind);
+  AX_SYNC_OPT(opt, size_t, max_iter);
+
+  utils::Tunable::SetOptions(opt);
 }
 
 }  // namespace ax::optim2

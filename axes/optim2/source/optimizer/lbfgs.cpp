@@ -5,11 +5,12 @@
 #include "ax/math/buffer_blas.hpp"
 #include "ax/optim2/linesearch/backtrack.hpp"
 #include "ax/optim2/linesearch/base.hpp"
+#include "ax/optim2/linesearch/wolfe.hpp"
 
 namespace ax::optim2 {
 
 Optimizer_LBFGS::Optimizer_LBFGS() {
-  linesearch_ = std::make_unique<LineSearch_Backtracking>();
+  linesearch_ = std::make_unique<LineSearch_Wolfe>();
 }
 
 Optimizer_LBFGS::~Optimizer_LBFGS() = default;

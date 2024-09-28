@@ -53,6 +53,10 @@ public:
 
   Real OriginalGradientDotDirection() const;
 
+  utils::Options GetOptions() const override;
+
+  void SetOptions(const utils::Options &option) override;
+
 protected:
   // return the current step size.
   Real GetCurrentStep() const;
@@ -82,6 +86,9 @@ protected:
   Real SolveOptimalStepSizeQuadratic(const LineSearchParam& param, Real f_lo, Real g_lo, Real f_hi,
                                      Real lo, Real hi) const;
   Real SolveOptimalStepSizeNone(const LineSearchParam& param, Real lo, Real hi) const;
+
+  void UpdateGradient();
+  ConstRealBufferView CurrentGradient() const;
 
 private:
   void FixParameter(LineSearchParam& param) const;

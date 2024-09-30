@@ -14,10 +14,10 @@ void GeneralSparseSolver_ConjugateGradient::AnalyzePattern() {
   }
 
   const auto device = mat_->Device();
-  p_buf = create_buffer<Real>(device, {mat_->Cols()});
-  d_buf = create_buffer<Real>(device, {mat_->Cols()});
-  q_buf = create_buffer<Real>(device, {mat_->Cols()});
-  residual_buf = create_buffer<Real>(device, {mat_->Cols()});
+  p_buf_ = create_buffer<Real>(device, {mat_->Cols()});
+  d_buf_ = create_buffer<Real>(device, {mat_->Cols()});
+  q_buf_ = create_buffer<Real>(device, {mat_->Cols()});
+  residual_buf_ = create_buffer<Real>(device, {mat_->Cols()});
 }
 
 BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealBufferView b,
@@ -30,7 +30,7 @@ BlockedLinsysSolveStatus GeneralSparseSolver_ConjugateGradient::Solve(ConstRealB
   }
   AX_THROW_IF_FALSE(b.Shape() == x.Shape(), "rhs must be same shape with x");
 
-  auto [r, p, d, q] = make_view(residual_buf, p_buf, d_buf, q_buf);
+  auto [r, p, d, q] = make_view(residual_buf_, p_buf_, d_buf_, q_buf_);
   r = r.Reshaped(b.Shape());
   p = p.Reshaped(b.Shape());
   d = d.Reshaped(b.Shape());

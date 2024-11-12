@@ -1,4 +1,3 @@
-#pragma once
 #include "elast_impl.hpp"
 
 #include "ax/core/buffer/for_each.hpp"

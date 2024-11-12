@@ -212,4 +212,17 @@ void RealCSRMatrix::Reserve(size_t nnz) {
   col_indices_ = ensure_buffer<int>(col_indices_, device_, {nnz});
 }
 
+RealCSRMatrix::ConstMappedT RealCSRMatrix::MapToEigen() const {
+  size_t nnz = values_->Shape().X();
+  return ConstMappedT(
+      static_cast<Index>(rows_), static_cast<Index>(cols_), static_cast<Index>(nnz),
+      row_ptrs_->Data(), col_indices_->Data(), values_->Data());
+}
+
+RealCSRMatrix::MappedT RealCSRMatrix::MapToEigen() {
+  size_t nnz = values_->Shape().X();
+  return MappedT(static_cast<Index>(rows_), static_cast<Index>(cols_), static_cast<Index>(nnz),
+                 row_ptrs_->Data(), col_indices_->Data(), values_->Data());
+}
+
 }  // namespace ax::math

@@ -1,4 +1,3 @@
-#pragma once
 #include "ax/core/buffer/copy.hpp"
 #include "ax/core/buffer/create_buffer.hpp"
 #include "ax/core/buffer/eigen_support.hpp"
@@ -12,6 +11,7 @@
 #include "ax/math/sparse_matrix/linsys/preconditioner/block_jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/fsai0.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/ic.hpp"
+#include "ax/math/sparse_matrix/linsys/preconditioner/ilu.hpp"
 #include "ax/math/sparse_matrix/linsys/preconditioner/jacobi.hpp"
 #include "ax/math/sparse_matrix/linsys/solver/cg.hpp"
 #include "ax/math/utils/formatting.hpp"
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   po::add_option({
     po::make_option<bool>("gpu", "Use gpu compute", "true"),
     po::make_option<size_t>("size", "Size of the mesh", "10"),
-    po::make_option<bool>("fsai", "Use fsai preconditioner", "false"),
+    po::make_option<std::string>("prec", "Preconditioner", "jacobi"),
   });
   initialize(argc, argv);
 
@@ -112,31 +112,51 @@ int main(int argc, char** argv) {
   auto grad_norm = math::buffer_blas::norm(grad);
   AX_INFO("Gradient norm: {}", grad_norm);
 
-  // copy hessian to host
-  // math::RealBlockMatrix hessian_host(nv, nv, 1);
-  // hessian_host.SetData(bsr->RowPtrs()->ConstView(),
-  //                      bsr->ColIndices()->ConstView(),
-  //                      bsr->Values()->ConstView());
-  // auto spm = hessian_host.ToSparseMatrix();
-  // math::write_sparse_matrix("laplace.mtx", spm);
-
   math::buffer_blas::scal(-1, grad);
   pruner.Prune(*bsr);
   pruner.PruneGradient(grad);
-  math::GeneralSparseSolver_ConjugateGradient cg;
-  auto use_fsai = po::get_parse_result()["fsai"].as<bool>();
-  if (use_fsai) {
-    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
-  } else {
-    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  {
+    // copy hessian to host and write to file
+    math::RealCSRMatrix csr_host(nv, nv, BufferDevice::Host);
+    auto csr_dev = bsr->ToCSR();
+    csr_host.SetData(csr_dev->RowPtrs()->ConstView(),
+                     csr_dev->ColIndices()->ConstView(),
+                     csr_dev->Values()->ConstView());
+    math::write_sparse_matrix("laplace.mtx", csr_host.ToSparseMatrix());
   }
+  math::GeneralSparseSolver_ConjugateGradient cg;
+  auto preconditioner = po::get_parse_result()["prec"].as<std::string>();
+  // lower it
+  std::transform(preconditioner.begin(), preconditioner.end(), preconditioner.begin(), ::tolower);
+
+  if (preconditioner == "fsai") {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_FSAI0>();
+  } else if (preconditioner == "jacobi") {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_Jacobi>();
+  } else if (preconditioner == "block_jacobi") {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_BlockJacobi>();
+  } else if (preconditioner == "ic") {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_IncompleteCholesky>();
+  } else if (preconditioner == "ilu") {
+    cg.preconditioner_ = std::make_unique<math::GeneralSparsePreconditioner_ILU>();
+  } else {
+    AX_CHECK(false, "Unknown preconditioner: {}", preconditioner);
+  }
+
+
   cg.SetProblem(bsr);
   cg.Compute();
   {
-    auto start = utils::now();
+    AX_INFO("Bootstrap the first solve");
     cg.Solve(grad, state->GetVariables()->View());
+    AX_INFO("Bootstrap solve done, begin solve.");
+    // Reset the value:
+    state->GetVariables()->SetBytes(0);
+    auto start = utils::now();
+    auto status = cg.Solve(grad, state->GetVariables()->View());
     AX_INFO("Solve Time: {}",
             std::chrono::duration_cast<std::chrono::milliseconds>(utils::now() - start));
+    AX_INFO("Iterations: {}", status.iter_);
   }
 
   math::buffer_blas::axpy(1, pruner.GetDbcValue(), state->GetVariables()->View());

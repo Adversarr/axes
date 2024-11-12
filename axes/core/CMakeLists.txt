@@ -11,6 +11,7 @@ find_package(fmt REQUIRED)
 find_package(Taskflow REQUIRED)
 find_package(cxxopts REQUIRED)
 find_package(Microsoft.GSL REQUIRED)
+find_package(superlu QUIET)
 set(BLA_VENDOR "OpenBLAS")
 find_package(BLAS QUIET)
 if(AX_ENABLE_OPENMP)
@@ -69,6 +70,11 @@ target_link_libraries(axes_core
 if(CHOLMOD_FOUND)
   target_link_libraries(axes_core PRIVATE SuiteSparse::CHOLMOD)
   target_compile_definitions(axes_core PUBLIC "AX_HAS_CHOLMOD")
+endif()
+
+if (superlu_FOUND)
+  target_link_libraries(axes_core PRIVATE superlu::superlu)
+  target_compile_definitions(axes_core PUBLIC "AX_HAS_SUPERLU")
 endif()
 
 # optional: CUDA

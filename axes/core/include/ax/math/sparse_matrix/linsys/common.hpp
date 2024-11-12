@@ -15,6 +15,7 @@ AX_DEFINE_ENUM_CLASS(GeneralPreconditionerKind,
                      BlockJacobi,         // Block Jacobi preconditioner.
                      Identity,            // Identity preconditioner.
                      FSAI0,               // FSAI0 preconditioner.
+                     ILU,                 // ILU preconditioner.
 )
 
 class GeneralSparsePreconditionerBase;

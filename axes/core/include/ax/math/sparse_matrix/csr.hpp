@@ -47,6 +47,12 @@ public:
   std::unique_ptr<RealCompressedMatrixBase> Transfer(BufferDevice device) const override;
 
   void Reserve(size_t nnz);
+
+  using ConstMappedT = Eigen::Map<const Eigen::SparseMatrix<Real, Eigen::RowMajor, int>>;
+  using MappedT = Eigen::Map<Eigen::SparseMatrix<Real, Eigen::RowMajor, int>>;
+
+  ConstMappedT MapToEigen() const;
+  MappedT MapToEigen();
 };
 
 }  // namespace ax::math

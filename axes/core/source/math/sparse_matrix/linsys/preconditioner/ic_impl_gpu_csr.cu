@@ -77,7 +77,7 @@ void ImplIcCsrGpu::Factorize() {
   CHECK_CUDA(cudaMalloc(&d_bufferIC, bufferSizeIC));
   CHECK_CUSPARSE(cusparseDcsric02_analysis(
       cusparseHandle, m, nnz, descrM, d_L_values, d_A_rows, d_A_columns, infoM,
-      CUSPARSE_SOLVE_POLICY_NO_LEVEL, d_bufferIC));
+      CUSPARSE_SOLVE_POLICY_USE_LEVEL, d_bufferIC));
   int structural_zero;
   auto status =
       cusparseXcsric02_zeroPivot(cusparseHandle, infoM, &structural_zero);
